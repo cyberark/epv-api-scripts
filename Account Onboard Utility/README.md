@@ -2,10 +2,10 @@ The content of the sample_accounts.csv is for example only and does not represen
 
 Main capabilities
 -----------------
-•	The tool Uses REST API and can support v9.8 of PVWA and up
-•	The tool supports basic Account and Safe Creation, much like the Password Upload Utility
-•	The tool supports Template Safe (currently one for all Accounts)
-•	The tool can take a simple CSV file with only the relevant Account information
+- The tool Uses REST API and can support v9.8 of PVWA and up
+- The tool supports basic Account and Safe Creation, much like the Password Upload Utility
+- The tool supports Template Safe (currently one for all Accounts)
+- The tool can take a simple CSV file with only the relevant Account information
 
 In order to run the tool you need to run some simple commands in Powershell.
 The Tool supports two modes: <Create> and <Update>
