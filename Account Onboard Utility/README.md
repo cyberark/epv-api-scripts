@@ -18,12 +18,12 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-TemplateSafe <string>] [-CsvPat
 
 If you just want to Create Accounts (including creating the Safes if they don’t exist):
 ```powershell
-& .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault"  -CsvPath .\accounts.csv –Create
+& .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault"  -CsvPath .\accounts.csv -Create
 ```
 
 If you want to Create Accounts and Safes according to a Safe Template:
-``powershell
-& .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault"  -CsvPath .\accounts.csv –Create -TemplateSafe “MyTemplateSafe”
+```powershell
+& .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault"  -CsvPath .\accounts.csv -Create -TemplateSafe “MyTemplateSafe”
 ```
 
 If you want to Create Accounts but not create the safes (if they don’t exist):
