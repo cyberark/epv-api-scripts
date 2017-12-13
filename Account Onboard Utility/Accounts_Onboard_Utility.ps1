@@ -347,11 +347,11 @@ Function Create-Safe
 
 Function Get-Account
 {
-	param ($accountName, $safeName)
+	param ($accountName, $accountAddress, $safeName)
 	$_account = $null
 	try{
 		# Search for created account
-		$urlSearchAccount = $URL_Accounts+"?Safe="+$(Encode-URL $safeName)+"&Keywords="+$(Encode-URL $accountName)
+		$urlSearchAccount = $URL_Accounts+"?Safe="+$(Encode-URL $safeName)+"&Keywords="+$(Encode-URL "$accountName $accountAddress")
 		$_account = $(Invoke-Rest -Uri $urlSearchAccount -Header $g_LogonHeader -Command "Get")
 		if($null -ne $_account)
 		{
@@ -368,9 +368,9 @@ Function Get-Account
 
 Function Test-Account
 {
-	param ($accountName, $safeName)
+	param ($accountName, $accountAddress, $safeName)
 	try{
-		If ($null -eq $(Get-Account -accountName $accountName -safeName $safeName))
+		If ($null -eq $(Get-Account -accountName $accountName -accountAddress $accountAddress -safeName $safeName))
 		{
 			# No accounts found
 			Log-Msg -Type Debug -MSG "Account $accountName does not exist"
@@ -565,7 +565,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 		If($shouldSkip -eq $False)
 		{
 			# Check if the Account exists
-			$accExists = $(Test-Account -safeName $account.Safe -accountName $account.username)
+			$accExists = $(Test-Account -safeName $account.Safe -accountName $account.username -accountAddress $accountAddress)
 			
 			try{
 				If($accExists)
@@ -573,7 +573,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 					If($Update)
 					{
 						# Get Existing Account Details
-						$s_Account = $(Get-Account -safeName $account.Safe -accountName $account.username)
+						$s_Account = $(Get-Account -safeName $account.Safe -accountName $account.username -accountAddress $accountAddress)
 						
 						# Create the Account to update with current properties
 						$updateAccount = "" | select Safe,Folder,PlatformID,Address,UserName,DeviceType,AccountName,Properties
