@@ -533,8 +533,6 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 			$TemplateSafeDetails = (Get-Safe -safeName $TemplateSafe)
 			$TemplateSafeDetails.Description = "Template Safe Created using Accounts Onboard Utility"
 			$TemplateSafeMembers = (Get-SafeMembers -safeName $TemplateSafe)
-			if($InDebug)
-			{$TemplateSafeMembers}
 		}
 		else
 		{
