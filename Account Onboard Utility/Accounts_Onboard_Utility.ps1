@@ -12,7 +12,9 @@
 # 1.5 25/07/2017 - Including Safe Creation and Update Account
 # 1.6 02/08/2017 - Fixed Update Account
 # 1.7 08/08/2017 - Support for Template Safe (General) and Fixing Disable SSL Verification issues
-# 1.8 27/08/2017 - Support accepting Account and Safe objects as input parameters
+# 1.8 27/08/2017 - Fixed Test-Account in cases where more than one results returns
+# 1.9 21/12/2017 - Fixed Template Safe creation and owner permissions
+# 2.0 26/12/2017 - Support for Creating/Updating custom account properties
 #
 ###########################################################################
 [CmdletBinding(DefaultParametersetName="Create")]
@@ -127,11 +129,9 @@ Function Log-MSG
 <# 
 .SYNOPSIS 
 	Method to log a message on screen and in a log file
-
 .DESCRIPTION
 	Logging The input Message to the Screen and the Log File. 
 	The Message Type is presented in colours on the screen based on the type
-
 .PARAMETER MSG
 	The message to log
 .PARAMETER Header
@@ -258,7 +258,7 @@ Function Get-Safe
 		Log-Msg -Type Error -MSG $_.Exception.Response.StatusDescription
 	}
 	
-	return $_safe
+	return $_safe.GetSafeResult
 }
 
 Function Get-SafeMembers
@@ -268,16 +268,18 @@ Function Get-SafeMembers
 		[String]$safeName
 		)
 	$_safeMembers = $null
+	$_safeOwners = $null
 	try{
 		$accSafeMembersURL = $URL_SafeMembers -f $safeName
 		$_safeMembers = $(Invoke-Rest -Uri $accSafeMembersURL -Header $g_LogonHeader -Command "Get" -ErrorAction "SilentlyContinue")
+		$_safeOwners = $_safeMembers.members | Select-Object -Property @{Name = 'MemberName'; Expression = {$_.UserName}}, Permissions
 	}
 	catch
 	{
 		Log-Msg -Type Error -MSG $_.Exception.Response.StatusDescription
 	}
 	
-	return $_safeMembers
+	return $_safeOwners
 }
 
 Function Test-Safe
@@ -319,10 +321,12 @@ Function Create-Safe
 		)
 	
 	# Check if Template Safe is in used
-	If(![String]::IsNullOrEmpty($templateSafeObject))
+	If($templateSafeObject -ne $null)
 	{
 		# Using Template Safe
 		Log-Msg -Type Info -MSG "Creating Safe $safeName according to Tempalte"
+		# Update the safe name in the Safe Template Object
+		$templateSafeObject.SafeName = $safeName
 		$restBody = @{ safe=$templateSafeObject } | ConvertTo-Json -Depth 3
 	}
 	else
@@ -342,6 +346,23 @@ Function Create-Safe
 		# Safe creation failed
 		Log-Msg -Type Error -MSG "Safe Creation failed - Should Skip Account Creation"
 		return $true 
+	}
+}
+
+Function Add-Owner
+{
+	param ($safeName, $members)
+	$urlOwnerAdd = $URL_SafeMembers -f $safeName
+	ForEach ($bodyMember in $members)
+	{
+		$restBody = @{ member=$bodyMember } | ConvertTo-Json -Depth 3
+		# Add the Safe Owner
+		try {
+			# Add the Safe Owner
+			$restResponse = Invoke-Rest -Uri $urlOwnerAdd -Header $g_LogonHeader -Command "Post" -Body $restBody
+		} catch {
+			Log-Msg -Type Error -MSG "Failed to add Owner to safe $safeName with error: $($_.Exception.Response.StatusDescription)"
+		}
 	}
 }
 
@@ -501,8 +522,10 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 #endregion
 
 #region Template Safe
+	$TemplateSafeDetails = $null
 	If(![string]::IsNullOrEmpty($TemplateSafe) -and !$NoSafeCreation)
 	{
+		Log-Msg -Type Info -Msg "Checking Template Safe..."
 		# Using Template Safe to create any new safe
 		If ((Test-Safe -safeName $TemplateSafe))
 		{
@@ -541,6 +564,19 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 		} else {
 			$account.disableAutoMgmt = $false
 		}
+		# Check if there are custom properties
+		$customProps = $($account.PSObject.Properties | Where { $_.Name -notin "username","address","safe","platformID","password","disableAutoMgmt","disableAutoMgmtReason","groupName","groupPlatformID" })
+		if($customProps -ne $null)
+		{
+			$account | Add-Member properties @()
+			# Convert any non-default property in the CSV as a new account property
+			ForEach ($prop in $customProps)
+			{
+				If(![string]::IsNullOrEmpty($prop.Value))
+				{ $account.properties += @{"Key"=$prop.Name; "Value"=$prop.Value} }
+				$account.PSObject.Properties.Remove($prop.Name)
+			}
+		}
 		# Check if the Safe Exists
 		$safeExists = $(Test-Safe -safeName $account.Safe)
 		# Check if we can create safes or not
@@ -550,6 +586,10 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 				# The target safe does not exist
 				# The user chose to create safes during this process
 				$shouldSkip = Create-Safe -TemplateSafe $TemplateSafeDetails -Safe $account.Safe
+				if ($TemplateSafeDetails -ne $null -and $TemplateSafeMembers -ne $null)
+				{
+					Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
+				}
 			}
 			catch{
 				Log-Msg -Type Debug -MSG "There was an error creating Safe $($account.Safe)"
@@ -577,7 +617,8 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 						
 						# Create the Account to update with current properties
 						$updateAccount = "" | select Safe,Folder,PlatformID,Address,UserName,DeviceType,AccountName,Properties
-						
+						$updateAccount.Properties = @()
+						$updateAccount.Properties += $account.properties
 						ForEach($sProp in $s_Account.Properties)
 						{
 							if($sProp.Key -eq "Safe")
@@ -588,7 +629,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									$updateAccount.Safe = $account.Safe	
 								}
 							}	
-							if($sProp.Key -eq "Folder")
+							elseif($sProp.Key -eq "Folder")
 							{ 
 								$updateAccount.Folder = $sProp.Value 
 								If(![string]::IsNullOrEmpty($account.Folder) -and $account.Folder -ne $updateAccount.Folder)
@@ -596,16 +637,15 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									$updateAccount.Folder = $account.Folder	
 								}
 							}
-							if($sProp.Key -eq "PolicyID")
+							elseif($sProp.Key -eq "PolicyID")
 							{ 
-								write-host $sProp.Value
 								$updateAccount.PlatformID = $sProp.Value
 								If(![string]::IsNullOrEmpty($account.PlatformID) -and $account.PlatformID -ne $updateAccount.PlatformID)
 								{
 									$updateAccount.PlatformID = $account.PlatformID	
 								}
 							}
-							if($sProp.Key -eq "DeviceType")
+							elseif($sProp.Key -eq "DeviceType")
 							{ 
 								$updateAccount.DeviceType = $sProp.Value
 								#If(![string]::IsNullOrEmpty($account.DeviceType) -and $account.DeviceType -ne $updateAccount.DeviceType)
@@ -613,7 +653,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								#	$updateAccount.DeviceType = $account.DeviceType	
 								#}
 							}
-							if($sProp.Key -eq "Address")
+							elseif($sProp.Key -eq "Address")
 							{ 
 								$updateAccount.Address = $sProp.Value
 								If(![string]::IsNullOrEmpty($account.Address) -and $account.Address -ne $updateAccount.Address)
@@ -621,16 +661,15 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									$updateAccount.Address = $account.Address	
 								}
 							}
-							if($sProp.Key -eq "Name")
+							elseif($sProp.Key -eq "Name")
 							{ 
-								write-host $sProp.Value
 								$updateAccount.AccountName = $sProp.Value
 								If(![string]::IsNullOrEmpty($account.AccountName) -and $account.AccountName -ne $updateAccount.AccountName)
 								{
 									$updateAccount.AccountName = $account.AccountName	
 								}
 							}
-							if($sProp.Key -eq "UserName")
+							elseif($sProp.Key -eq "UserName")
 							{ 
 								$updateAccount.UserName = $sProp.Value
 								If(![string]::IsNullOrEmpty($account.UserName) -and $account.UserName -ne $updateAccount.UserName)
@@ -638,10 +677,28 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									$updateAccount.UserName = $account.UserName	
 								}
 							}
+							else
+							{
+								# Check other properties on the account to update
+								ForEach($uProp in $updateAccount.Properties)
+								{
+									if($uProp.ContainsValue($sProp.Name))
+									{
+										$uProp.Value = $sProp.Value
+									}
+								}
+							}
 						}
 						
+						# Check if we need to add more properties to the updated account
+						If ($account.disableAutoMgmt)
+						{
+							$updateAccount.Properties += @{"Key"="CPMDisabled"; "Value"="yes"}
+						}
+						if($InDebug)
+						{$updateAccount}
 						# Update the existing account
-						$restBody = @{ Accounts=$updateAccount } | ConvertTo-Json -depth 3
+						$restBody = @{ Accounts=$updateAccount } | ConvertTo-Json -depth 5
 						$urlUpdateAccount = $URL_AccountDetails -f $s_Account.AccountID
 						$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "PUT")
 						Log-Msg -Type Info -MSG "Account Updated Successfully"
@@ -667,7 +724,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 				if($createAccount)
 				{
 					# Create the Account
-					$restBody = @{ account=$account } | ConvertTo-Json -Depth 2
+					$restBody = @{ account=$account } | ConvertTo-Json -Depth 5
 					Log-Msg -Type Debug -Msg $restBody
 					$addAccountResult = $(Invoke-Rest -Uri $URL_Account -Header $g_LogonHeader -Body $restBody -Command "Post")
 					if($addAccountResult -ne $null)
