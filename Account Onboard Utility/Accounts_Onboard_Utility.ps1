@@ -15,6 +15,7 @@
 # 1.8 27/08/2017 - Fixed Test-Account in cases where more than one results returns
 # 1.9 21/12/2017 - Fixed Template Safe creation and owner permissions
 # 2.0 26/12/2017 - Support for Creating/Updating custom account properties
+# 2.1 02/01/2018 - Reduce errors from Template Safe creation (Ignore default users)
 #
 ###########################################################################
 [CmdletBinding(DefaultParametersetName="Create")]
@@ -270,9 +271,10 @@ Function Get-SafeMembers
 	$_safeMembers = $null
 	$_safeOwners = $null
 	try{
+		$_defaultUsers = @("Master","Batch","Backup Users","Auditors","Operators","DR Users","Notification Engines","PVWAGWAccounts","PasswordManager")
 		$accSafeMembersURL = $URL_SafeMembers -f $safeName
 		$_safeMembers = $(Invoke-Rest -Uri $accSafeMembersURL -Header $g_LogonHeader -Command "Get" -ErrorAction "SilentlyContinue")
-		$_safeOwners = $_safeMembers.members | Select-Object -Property @{Name = 'MemberName'; Expression = {$_.UserName}}, Permissions
+		$_safeOwners = $_safeMembers.members | Where {$_.UserName -notin $_defaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
 	}
 	catch
 	{
