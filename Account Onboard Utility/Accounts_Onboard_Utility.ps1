@@ -7,6 +7,9 @@
 # COMMENT: 
 # This script will onboard all accounts from a CSV file using REST API
 #
+# SUPPORTED VERSIONS:
+# CyberArk PVWA v9.8 and above
+#
 # VERSION HISTORY:
 # 1.0 17/07/2017 - Initial release
 # 1.5 25/07/2017 - Including Safe Creation and Update Account
