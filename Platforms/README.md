@@ -11,7 +11,7 @@ Export-Import-Platform.ps1 -PVWAURL <string> -Import -PlatformZipPath <string> [
 Export-Import-Platform.ps1 -PVWAURL <string> -Export -PlatformID <string> -PlatformZipPath <string> [<CommonParameters>]
 ```
 
-Usage (Get Platform detailes):
+Usage (Get Platform details):
 ------
 ```powershell
 Get-PlatformDetails.ps1 [-PVWAURL] <string> [-PlatformID] <string> [<CommonParameters>]
