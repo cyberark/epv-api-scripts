@@ -1,0 +1,11 @@
+username,address,safe,platformID,password,EnableAutoMgmt,ManualMgmtReason,RemoteMachineAddresses,RestrictMachineAccessToList,SSHKey,GroupName,GroupPlatformID,database,dsn,port
+Administrator,FINAPP05.exFinance.com,WIN-LCL-SRV-ADMIN,WinServerLocal,P6]xlE7L,Yes,,,,,,,,,
+Administrator,JSmith.exFinance.com,WIN-LCL-DSK-ADMIN,WinServerLocal,kS$47.po,Yes,,,,,,,,,
+Administrator,TJones.exFinance.com,WIN-LCL-DSK-ADMIN,WinServerLocal,QcQih6%h,Yes,,,,,,,,,
+Administrator,FINAPP08.exFinance.com,WIN-LCL-SRV-ADMIN,WinServerLocal,sdvs5g3Rsd!i,Yes,,,,,,,,,
+a-root,FinDevORA01.exFinance.com,DEV-UNX-LCL-ROOT,UnixSSH,QcQih6%h,Yes,,,,,,,,,
+oraAdmin,FinDevORA01.exFinance.com,DEV-FIN-DB-ADMIN,Oracle,x7NB[|Nv,FALSE,Oracle Admin - Break Glass user,,,,,,Master,,1521
+a-root,FinDevORA02.exFinance.com,DEV-UNX-LCL-ROOT,UnixSSH,P6]xlE7L,TRUE,,,,,,,,,
+oraAdmin,FinDevORA02.exFinance.com,DEV-FIN-DB-ADMIN,Oracle,Sj3HN/T(,No,Oracle Admin - Break Glass user,,,,,,Master,,1521
+a-root,FinDevWL01.exFinance.com,DEV-UNX-LCL-ROOT,UnixSSH,QcQih6%h,Yes,,,,,,,,,
+srvAdmin,exFinance.com,IT-DOM-ADMIN,WinDomain,Df465fh%ds2q213d,Yes,,"FINAPP01.exFinance.com,FINAPP02.exFinance.com,FINAPP03.exFinance.com,FINAPP04.exFinance.com,FINAPP05.exFinance.com,FINAPP06.exFinance.com",Yes,,,,,,
