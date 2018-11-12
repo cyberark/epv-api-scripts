@@ -21,6 +21,7 @@
 #
 # VERSION HISTORY:
 # 1.0 22/07/2018 - Initial release
+# 1.1 13/10/2018 - Updated with authentiation type
 #
 ###########################################################################
 [CmdletBinding(DefaultParameterSetName="List")]
@@ -30,7 +31,11 @@ param
 	[ValidateScript({Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30})]
 	[Alias("url")]
 	[String]$PVWAURL,
-		
+	
+	[Parameter(Mandatory=$false,HelpMessage="Enter the Authentication type (Default:CyberArk)")]
+	[ValidateSet("cyberark","ldap","radius")]
+	[String]$AuthType="cyberark",
+	
 	# Use this switch to list accounts
 	[Parameter(ParameterSetName='List',Mandatory=$true)][switch]$List,
 	# Use this switch to list accounts
@@ -75,8 +80,8 @@ $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
 # -----------
 $URL_PVWAAPI = $PVWAURL+"/api"
 $URL_Authentication = $URL_PVWAAPI+"/auth"
-$URL_CyberArkLogon = $URL_Authentication+"/cyberark/Logon"
-$URL_CyberArkLogoff = $URL_Authentication+"/Logoff"
+$URL_Logon = $URL_Authentication+"/$AuthType/Logon"
+$URL_Logoff = $URL_Authentication+"/Logoff"
 
 # URL Methods
 # -----------
@@ -89,8 +94,8 @@ $URL_Platforms = $URL_PVWAAPI+"/Platforms/{0}"
 
 # Initialize Script Variables
 # ---------------------------
-$rstusername = $rstpassword = ""
-$logonToken  = ""
+$g_LogonHeader = ""
+$g_WebSession = $null
 
 #region Functions
 Function Test-CommandExists
@@ -155,6 +160,54 @@ Function AddSearchCriteria
 	return $retURL
 }
 
+Function Get-LogonHeader
+{
+	param(
+		[System.Management.Automation.CredentialAttribute()]$Credentials, 
+		[Parameter(Mandatory = $false)]
+		[ref]$outWebSessionCookies
+	)
+	# Create the POST Body for the Logon
+    # ----------------------------------
+    $logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
+	try{
+		# Logon
+		write-debug "Invoke-RestMethod -Method Post -Uri $URL_Logon -ContentType 'application/json' -Body $logonBody -SessionVariable outWebSessionCookies"
+	    	$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -ContentType "application/json" -Body $logonBody -SessionVariable outWebSessionCookies
+		
+		$cookiejar = New-Object System.Net.CookieContainer
+		$webrequest = [System.Net.HTTPWebRequest]::Create($PVWAURL)
+		$webrequest.Credentials = $Credentials
+		$webrequest.CookieContainer = $cookiejar
+		$response = $webrequest.GetResponse()
+		$cookies = $cookiejar.GetCookies($PVWAURL)
+	    
+		# Add cookie to websession
+		foreach ($cookie in $cookies) {$outWebSessionCookies.Cookies.Add((Create-Cookie -name $($cookie.name) -value $($cookie.value) -domain $PVWAURL))}
+		
+		# Clear logon body
+		$logonBody = ""
+	}
+	catch
+	{
+		Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
+		$logonToken = ""
+	}
+	write-debug "$($logonToken.gettype()): $logonToken"
+	Write-Debug "$($outWebSessionCookies.gettype()): $outWebSessionCookies"
+    If ([string]::IsNullOrEmpty($logonToken))
+    {
+        Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
+        break
+    }
+	
+    # Create a Logon Token Header (This will be used through out all the script)
+    # ---------------------------
+    $logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+    $logonHeader.Add("Authorization", $logonToken)
+	
+    return $logonHeader
+}
 #endregion
 
 If (Test-CommandExists Invoke-RestMethod)
@@ -175,41 +228,21 @@ If (Test-CommandExists Invoke-RestMethod)
     }
 
 #region [Logon]
-    # Get Credentials to Login
-    # ------------------------
-    $caption = "Get accounts"
-    $msg = "Enter your User name and Password"; 
-    $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
+	# Get Credentials to Login
+	# ------------------------
+	$caption = "Accounts Onboard Utility"
+	$msg = "Enter your User name and Password"; 
+	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 	if ($creds -ne $null)
 	{
-		$rstusername = $creds.username.Replace('\','');    
-		$rstpassword = $creds.GetNetworkCredential().password
+		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds -outWebSessionCookies ([ref]$g_WebSession))
+		if($g_LogonHeader -eq $null -or $g_LogonHeader -eq "") { break }
+		Write-Debug $g_WebSession
 	}
-	else { exit }
-
-    # Create the POST Body for the Logon
-    # ----------------------------------
-    $logonBody = @{ username=$rstusername;password=$rstpassword }
-    $logonBody = $logonBody | ConvertTo-Json
-	try{
-	    # Logon
-	    $logonToken = Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogon -Body $logonBody -ContentType "application/json"
+	else { 
+		Log-Msg -Type Error -MSG "No Credentials were entered" -Footer
+		break
 	}
-	catch
-	{
-		Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
-		$logonToken = ""
-	}
-    If ($logonToken -eq "")
-    {
-        Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-        exit
-    }
-	
-    # Create a Logon Token Header (This will be used through out all the script)
-    # ---------------------------
-    $logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-    $logonHeader.Add("Authorization", $logonToken)
 #endregion
 
 	$response = ""
@@ -228,7 +261,7 @@ If (Test-CommandExists Invoke-RestMethod)
 				Write-Error $_.Exception
 			}
 			try{
-				$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $AccountsURLWithFilters -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+				$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $AccountsURLWithFilters -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
 			} catch {
 				Write-Error $_.Exception.Response.StatusDescription
 			}
@@ -243,7 +276,7 @@ If (Test-CommandExists Invoke-RestMethod)
 				
 				While ($nextLink -ne "" -and $nextLink -ne $null)
 				{
-					$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $("$PVWAURL/$nextLink") -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000	
+					$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $("$PVWAURL/$nextLink") -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000	
 					$nextLink = $GetAccountsResponse.nextLink
 					Write-Debug $nextLink
 					$GetAccountsList += $GetAccountsResponse.value
@@ -262,7 +295,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		{
 			if($AccountID -ne "")
 			{
-				$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+				$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $AccountID) -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
 				$response = $GetAccountDetailsResponse
 			}
 		}
@@ -274,7 +307,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		Foreach ($item in $response)
 		{
 			# Get the Platform Name
-			$platformName = Invoke-RestMethod -Method Get -Uri $($URL_Platforms -f $item.platformId) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+			$platformName = Invoke-RestMethod -Method Get -Uri $($URL_Platforms -f $item.platformId) -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
 			$output += $item | Select-Object id,@{Name = 'UserName'; Expression = { $_.userName}}, @{Name = 'Address'; Expression = { $_.address}}, @{Name = 'SafeName'; Expression = { $_.safeName}}, @{Name = 'Platform'; Expression = { $platformName.Details.PolicyName}}, @{Name = 'CreateDate'; Expression = { Convert-Date $_.createdTime}}
 		}
 		If([string]::IsNullOrEmpty($CSVPath))
@@ -293,7 +326,7 @@ If (Test-CommandExists Invoke-RestMethod)
     # Logoff the session
     # ------------------
     Write-Host "Logoff Session..."
-    Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogoff -Headers $logonHeader -ContentType "application/json" | Out-Null
+    Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" | Out-Null
 }
 else
 {
