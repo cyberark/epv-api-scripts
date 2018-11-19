@@ -387,7 +387,7 @@ Function Get-Account
 		$_accounts = $(Invoke-Rest -Uri $urlSearchAccount -Header $g_LogonHeader -Command "Get")
 		if($null -ne $_accounts)
 		{
-			foreach ($item in $_accounts)
+			foreach ($item in $_accounts.value)
 			{
 				if(($item -ne $null) -and ($item.username -eq $accountName) -and ($item.address -eq $accountAddress))
 				{
