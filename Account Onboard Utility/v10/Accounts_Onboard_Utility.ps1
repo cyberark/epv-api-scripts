@@ -697,7 +697,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 							
 							if($InDebug) {$updateAccount}
 							# Update the existing account
-							$restBody = $s_AccountBody | ConvertTo-Json -depth 5
+							$restBody = ConvertTo-Json @($s_AccountBody) -depth 5
 							$urlUpdateAccount = $URL_AccountsDetails -f $s_Account.id
 							$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "PATCH")
 							Log-Msg -Type Info -MSG "Account Updated Successfully"
