@@ -12,12 +12,13 @@
 #
 # VERSION HISTORY:
 # 1.0 16/12/2018 - Initial release
+# 1.1 06/02/2019 - Bug fix
 #
 ###########################################################################
 [CmdletBinding(DefaultParameterSetName="List")]
 param
 (
-	[Parameter(Mandatory=$true,HelpMessage="Enter the PVWA URL")]
+	[Parameter(Mandatory=$true,HelpMessage="Please enter your PVWA address (For example: https://pvwa.mydomain.com/passwordvault)")]
 	[ValidateScript({Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30})]
 	[Alias("url")]
 	[String]$PVWAURL,
@@ -437,7 +438,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		if([string]::IsNullOrEmpty($g_LogonHeader)) { break }
 	}
 	else { 
-		Log-Msg -Type Error -MSG "No Credentials were entered" -Footer
+		Write-Error "No Credentials were entered"
 		break
 	}
 #endregion
