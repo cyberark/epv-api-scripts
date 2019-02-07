@@ -448,6 +448,16 @@ Function Get-LogonHeader
 }
 #endregion
 
+# Check if Powershell is running in Constrained Language Mode
+If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
+{
+	Log-Msg -Type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
+	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
+	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
+	Log-Msg -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
+	return
+}
+
 # Check if to disable SSL verification
 If($DisableSSLVerify)
 {
