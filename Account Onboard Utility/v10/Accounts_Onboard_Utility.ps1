@@ -116,7 +116,7 @@ Function Encode-URL($sText)
 {
 	if ($sText.Trim() -ne "")
 	{
-		Write-Debug "Returning URL Encode of $sText"
+		Log-Msg -Type Debug -Msg "Returning URL Encode of $sText"
 		return [System.Web.HttpUtility]::UrlEncode($sText)
 	}
 	else
@@ -489,7 +489,17 @@ If($DisableSSLVerify)
 	} catch {
 		Log-Msg -Type Error -MSG "Could not change SSL validation"
 		Log-Msg -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
-		exit
+		return
+	}
+}
+Else
+{
+	try{
+		Log-Msg -Type Debug -MSG "Setting script to use TLS 1.2"
+		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+	} catch {
+		Log-Msg -Type Error -MSG "Could not change SSL settings to use TLS 1.2"
+		Log-Msg -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
 	}
 }
 
