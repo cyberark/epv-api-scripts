@@ -10,9 +10,6 @@
 # SUPPORTED VERSIONS:
 # CyberArk PVWA v10.4 and above
 #
-# VERSION HISTORY:
-# 1.0 26/06/2018 - Initial release
-#
 ###########################################################################
 [CmdletBinding(DefaultParametersetName="Create")]
 param
@@ -172,6 +169,11 @@ Function Log-MSG
 		$writeToFile = $true
 		# Replace empty message with 'N/A'
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
+		# Mask Passwords
+		if($Msg -match '(password\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))')
+		{
+			$Msg = $Msg.Replace($Matches[2],"****")
+		}
 		# Check the message type
 		switch ($type)
 		{
