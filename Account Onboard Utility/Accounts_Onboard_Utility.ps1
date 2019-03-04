@@ -10,16 +10,6 @@
 # SUPPORTED VERSIONS:
 # CyberArk PVWA v9.8 and above
 #
-# VERSION HISTORY:
-# 1.0 17/07/2017 - Initial release
-# 1.5 25/07/2017 - Including Safe Creation and Update Account
-# 1.6 02/08/2017 - Fixed Update Account
-# 1.7 08/08/2017 - Support for Template Safe (General) and Fixing Disable SSL Verification issues
-# 1.8 27/08/2017 - Fixed Test-Account in cases where more than one results returns
-# 1.9 21/12/2017 - Fixed Template Safe creation and owner permissions
-# 2.0 26/12/2017 - Support for Creating/Updating custom account properties
-# 2.1 02/01/2018 - Reduce errors from Template Safe creation (Ignore default users)
-#
 ###########################################################################
 [CmdletBinding(DefaultParametersetName="Create")]
 param
@@ -175,6 +165,11 @@ Function Log-MSG
 	$writeToFile = $true
 	# Replace empty message with 'N/A'
 	if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
+	# Mask Passwords
+	if($Msg -match '(password\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))')
+	{
+		$Msg = $Msg.Replace($Matches[2],"****")
+	}
 	# Check the message type
 	switch ($type)
 	{
@@ -232,8 +227,8 @@ Function Invoke-Rest
 	
 	$restResponse = ""
 	try{
-		Log-Msg -Type Verbose -MSG "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body"
-		$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body
+		Log-Msg -Type Verbose -MSG "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 36000"
+		$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000
 	} catch {
 		If($_.Exception.Response.StatusDescription -ne $null)
 		{
@@ -473,6 +468,17 @@ If($DisableSSLVerify)
 		Log-Msg -Type Error -MSG "Could not change SSL validation"
 		Log-Msg -Type Error -MSG $_.Exception
 		exit
+	}
+}
+Else
+{
+	try{
+		Log-Msg -Type Debug -Msg "Setting script to use TLS 1.2"
+		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+	} catch {
+		Log-Msg -Type Error -Msg "Could not change SSL validation"
+		Log-Msg -Type Error -Msg $_.Exception
+		return
 	}
 }
 
