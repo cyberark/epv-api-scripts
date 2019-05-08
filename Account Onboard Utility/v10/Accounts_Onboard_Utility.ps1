@@ -19,6 +19,10 @@ param
 	[Alias("url")]
 	[String]$PVWAURL,
 	
+	[Parameter(Mandatory=$false,HelpMessage="Enter the Authentication type (Default:CyberArk)")]
+	[ValidateSet("cyberark","ldap","radius")]
+	[String]$AuthType="cyberark",
+	
 	[Parameter(Mandatory=$false,HelpMessage="Please enter Safe Template Name")]
 	[Alias("safe")]
 	[String]$TemplateSafe,
@@ -67,8 +71,8 @@ $InVerbose = $PSBoundParameters.Verbose.IsPresent
 $URL_PVWABaseAPI = $PVWAURL+"/WebServices/PIMServices.svc"
 $URL_PVWAAPI = $PVWAURL+"/api"
 $URL_Authentication = $URL_PVWAAPI+"/auth"
-$URL_CyberArkLogon = $URL_Authentication+"/cyberark/Logon"
-$URL_CyberArkLogoff = $URL_Authentication+"/Logoff"
+$URL_Logon = $URL_Authentication+"/$AuthType/Logon"
+$URL_Logoff = $URL_Authentication+"/Logoff"
 
 # URL Methods
 # -----------
@@ -442,7 +446,7 @@ Function Get-LogonHeader
 	write-Verbose $logonBody
 	try{
 	    # Logon
-	    $logonToken = Invoke-Rest -Command Post -Uri $URL_CyberArkLogon -Body $logonBody
+	    $logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
 		# Clear logon body
 		$logonBody = ""
 	}
@@ -769,7 +773,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 	# Logoff the session
     # ------------------
     Write-Host "Logoff Session..."
-    Invoke-Rest -Uri $URL_CyberArkLogoff -Header $g_LogonHeader -Command "Post"
+    Invoke-Rest -Uri $URL_Logoff -Header $g_LogonHeader -Command "Post"
 	# Footer
 	Log-Msg -Type Info -MSG "Vaulted ${counter} out of ${rowCount} accounts successfully." -Footer
 #endregion
