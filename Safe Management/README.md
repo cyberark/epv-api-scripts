@@ -52,15 +52,15 @@ Safe-Management.ps1 -PVWAURL <string> -Members -SafeName <string> [-UserName <st
 
 If you want to list all members of the safe 'MySafe':
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault"  -Members -SafeName "MySafe"
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Members -SafeName "MySafe"
 ```
 
 If you want to add a new End User (default role) member to the safe 'MySafe':
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault"  -Members -SafeName "MySafe" -UserName "MyUser" -MemberRole "EndUser"
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Members -SafeName "MySafe" -UserName "MyUser" -MemberRole "EndUser"
 ```
 
 If you want to add a new Auditor member from LDADP to the safe 'MySafe':
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault"  -Members -SafeName "MySafe" -UserName "MyAuditUser" -MemberRole "Auditor" -UserLocation "MyLDAPDomain.com"
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Members -SafeName "MySafe" -UserName "MyAuditUser" -MemberRole "Auditor" -UserLocation "MyLDAPDomain.com"
 ```
