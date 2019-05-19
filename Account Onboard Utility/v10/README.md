@@ -10,7 +10,7 @@ Main capabilities
 - In this example script you will find examples of iterating Accounts, Patching account information (for update), Creating accounts, Creating safes, Adding Owners to safe
 
 In order to run the tool you need to run some simple commands in Powershell.
-The Tool supports two modes: <Create> and <Update>
+The Tool supports two modes: [*Create*](#create-command) and [*Update*](#update-command)
 
 
 Create Command:

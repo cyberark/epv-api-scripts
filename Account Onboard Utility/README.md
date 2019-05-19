@@ -8,7 +8,7 @@ Main capabilities
 - The tool can take a simple CSV file with only the relevant Account information
 
 In order to run the tool you need to run some simple commands in Powershell.
-The Tool supports two modes: *Create* and *Update*
+The Tool supports two modes: [*Create*](#create-command) and [*Update*](#update-command)
 
 Create Command:
 ---------------
