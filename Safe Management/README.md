@@ -8,7 +8,7 @@ Main capabilities
 - The tool can support comma delimited CSV files (default) or tab delimited CSV files
 
 In order to run the tool you need to run some simple commands in Powershell.
-The Tool supports three modes: *List(#list-command:)*, *Add* and *Members*
+The Tool supports three modes: *List*(#list-command), *Add* and *Members*
 
 
 #List Command:
