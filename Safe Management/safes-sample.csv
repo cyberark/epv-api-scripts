@@ -1,0 +1,3 @@
+Safename,Description,Member,MemberLocation,UseAccounts,RetrieveAccounts,ListAccounts,AddAccounts,UpdateAccountContent,UpdateAccountProperties,InitiateCPMAccountManagementOperations,SpecifyNextAccountContent,RenameAccounts,DeleteAccounts,UnlockAccounts,ManageSafe,ManageSafeMembers,BackupSafe,ViewAuditLog,ViewSafeMembers,RequestsAuthorizationLevel,AccessWithoutConfirmation,CreateFolders,DeleteFolders,MoveAccountsAndFolders
+TESTSAFE,This is the test safe,johndoe,acmedomain.com,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,1,true,true,true,true
+TESTSAFE,This is the test safe,localvaultuser,vault,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,1,true,true,true,true

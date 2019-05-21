@@ -44,6 +44,11 @@ If you want to Create a new safe and add a description to that safe:
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault"  -Add -SafeName "MySafe" -Description "This is My Safe that I Created using REST API"
 ```
 
+If you want to Create a list of safes from a file:
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault"  -Add -FilePath "C:\Temp\safes-sample.csv"
+```
+
 Members Command:
 ---------------
 ```powershell
