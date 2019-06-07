@@ -46,4 +46,4 @@ The authentication to the script needs to be with an LDAP user
 PSM needs to be installed and PSM Ad-Hoc Connection needs to be enabled (the script uses by default the PSMSecureConnect platform)
 
 ## Supported version
-CyberArk PAS version 10.5 and above
+CyberArk PAS version 10.6 and above
