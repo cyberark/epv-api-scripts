@@ -134,25 +134,23 @@ Function Write-LogMessage
 		{
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
+		$writeToFile = $true
 		# Check the message type
 		switch ($type)
 		{
 			"Info" { 
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
-				$msgToWrite | Out-File -Append -FilePath $LogFile
 				break
 			}
 			"Warning" {
 				Write-Host $MSG.ToString() -ForegroundColor DarkYellow
 				$msgToWrite += "[WARNING]`t$Msg"
-				$msgToWrite | Out-File -Append -FilePath $LogFile
 				break
 			}
 			"Error" {
 				Write-Host $MSG.ToString() -ForegroundColor Red
 				$msgToWrite += "[ERROR]`t$Msg"
-				$msgToWrite | Out-File -Append -FilePath $LogFile
 				break
 			}
 			"Debug" { 
@@ -160,20 +158,21 @@ Function Write-LogMessage
 				{
 					Write-Debug $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
-					$msgToWrite | Out-File -Append -FilePath $LogFile
+					break
 				}
-				break
+				else { $writeToFile = $False }
 			}
 			"Verbose" { 
 				if($InVerbose)
 				{
 					Write-Verbose $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
-					$msgToWrite | Out-File -Append -FilePath $LogFile
+					break
 				}
-				break
+				else { $writeToFile = $False }
 			}
 		}
+		If($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LogFile }
 		If ($Footer) { 
 			"=======================================" | Out-File -Append -FilePath $LogFile 
 		}
