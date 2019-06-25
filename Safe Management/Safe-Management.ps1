@@ -229,18 +229,15 @@ New-CyberArkSafe -safename "x0-Win-S-Admins" -safeDescription "Safe description 
     )
 
 
-$createSafeBody =@"
-{
-"safe":
-    { 
-    "SafeName":"$safename", 
-    "Description":"$safeDescription", 
-    "OLACEnabled":"$enableOLAC", 
-    "ManagingCPM":"$managingCPM", 
-    "NumberOfVersionsRetention":$numVersionRetention,
-    } 
-}
-"@
+$createSafeBody=@{
+            safe=@{
+            "SafeName"="$safename"; 
+            "Description"="$safeDescription"; 
+            "OLACEnabled"=$enableOLAC; 
+            "ManagingCPM"="$managingCPM";
+            "NumberOfVersionsRtention"=$numVersionRetention;
+            }
+} | ConvertTo-Json
 
 	try {
         Write-Host "Adding the safe $safename to the Vault..." -ForegroundColor Yellow #DEBUG
