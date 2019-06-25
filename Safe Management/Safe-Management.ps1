@@ -183,6 +183,17 @@ try {
 
 Function Get-Safe
 {
+<#
+.SYNOPSIS
+Get all Safe details on a specific safe
+
+.DESCRIPTION
+Get all Safe details on a specific safe
+
+.EXAMPLE
+Get-Safe -safeName "x0-Win-S-Admins"
+
+#>
 	param ($safeName)
 	$_safe = $null
 	try{
@@ -207,7 +218,7 @@ Allows a user to create a new cyberArk safe
 Creates a new cyberark safe
 
 .EXAMPLE
-New-CyberArkSafe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes here"
+Create-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes here"
 
 #>
     [CmdletBinding()]
@@ -367,6 +378,17 @@ $SafeMembersBody =@"
 
 Function Get-SafeMembers
 {
+<#
+.SYNOPSIS
+Returns the permissions of a member on a cyberark safe
+
+.DESCRIPTION
+Returns the permissions of a cyberArk safe of all members based on parameters sent to the command.
+
+.EXAMPLE
+Get-SafeMember -safename "Win-Local-Admins" 
+
+#> 
 	param (
 		[Parameter(Mandatory=$true)]
 		[String]$safeName
