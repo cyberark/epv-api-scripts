@@ -65,7 +65,13 @@ param
 	# User / Member Vault Location
 	[Parameter(ParameterSetName='Members',Mandatory=$false,HelpMessage="Enter the vault-integrated LDAP directory name the vault should search for the account. Must match one of the directory names defined in the LDAP Integration page of the PVWA. (Default: Search in Vault)")]
 	[Alias("Location")]
-	[String]$UserLocation = "Vault"
+	[String]$UserLocation = "Vault",
+	
+	# Support for Threading (Logon Connection Number)
+	[Parameter(Mandatory=$false,HelpMessage="Enter a thread connection number between 0-100. (Default: 0)")]
+	[Alias("Thread")]
+	[ValidateScript({ ($_ -ge 0) -and ($_ -lt 100) })]
+	[int]$ThreadNumber = 0
 )
 
 # Get Script Location 
@@ -117,11 +123,22 @@ Function Encode-URL($sText)
 Function Get-LogonHeader
 {
 	param(
-		[System.Management.Automation.CredentialAttribute()]$Credentials
+		[Parameter(Mandatory=$true)]
+		[System.Management.Automation.CredentialAttribute()]$Credentials,
+		[Parameter(Mandatory=$false)]
+		[ValidateScript({ ($_ -ge 0) -and ($_ -lt 100) })]
+		[int]$ConnectionNumber = 0
 	)
 	# Create the POST Body for the Logon
     # ----------------------------------
-    $logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
+    If($ConnectionNumber -eq 0)
+	{
+		$logonBody = @{ username=$Credentials.username.Replace('\',''); password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
+	}
+	elseif($ConnectionNumber -gt 0)
+	{
+		$logonBody = @{ username=$Credentials.username.Replace('\',''); password=$Credentials.GetNetworkCredential().password; connectionNumber=$ConnectionNumber } | ConvertTo-Json
+	}
 	try{
 		# Logon
 		Write-Debug "Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogon -ContentType 'application/json' -Body $($logonBody.Replace($Credentials.GetNetworkCredential().password,"****"))"
@@ -453,7 +470,7 @@ If (Test-CommandExists Invoke-RestMethod)
 	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 	if ($creds -ne $null)
 	{
-		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds)
+		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds -ConnectionNumber $ThreadNumber)
 		if([string]::IsNullOrEmpty($g_LogonHeader)) { break }
 	}
 	else { 
