@@ -13,7 +13,7 @@ Get-AccoutnsRiskReport.ps1 [-PVWAURL] <string> [[-AuthType] <string>] [[-EventsD
 
 Output Examples:
 ----------------
-## Report Sample to screen
+### Report Sample to screen
 ```powershell
 .\Get-AccoutnsRiskReport.ps1 -PVWAURL "https://mypvwaserver.mydomain.com/PasswordVault"
 ```
@@ -33,7 +33,7 @@ Output Examples:
 |bind_pta      |                      | AWS              | 400.0         | 5 | 3/18/2019 4:38:21 AM |  
 |administrator | 172.31.24.236         | Client Accounts  | 720.0         | 9 | 11/5/2017 5:52:36 AM | 
 
-## Report Sample to file
+### Report Sample to file
 ```powershell
 .\Get-AccoutnsRiskReport.ps1 -PVWAURL "https://mypvwaserver.mydomain.com/PasswordVault" -path .\output.csv
 ```
