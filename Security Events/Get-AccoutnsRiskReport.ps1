@@ -680,8 +680,11 @@ try {
 			}
 			else
 			{
-				Write-LogMessage -Type Verbose -MSG "Increasing Account risk score"
-				$AccountRiskReport[$accountName].Risk += $output.Risk
+				Write-LogMessage -Type Verbose -MSG "Assigning highest Account risk score"
+				if ($output.Risk -gt $AccountRiskReport[$accountName].Risk)
+				{
+					$AccountRiskReport[$accountName].Risk = $output.Risk
+				}
 				$AccountRiskReport[$accountName].NumberOfEvents++
 			}
 		} catch {
