@@ -23,6 +23,10 @@ param
 	[ValidateSet("cyberark","ldap","radius")]
 	[String]$AuthType="cyberark",
 	
+	[Parameter(Mandatory=$false,HelpMessage="Enter the RADIUS OTP")]
+	[ValidateScript({$AuthType -eq "radius"})]
+	[String]$OTP,
+	
 	[Parameter(Mandatory=$false,HelpMessage="Please enter Safe Template Name")]
 	[Alias("safe")]
 	[String]$TemplateSafe,
@@ -439,10 +443,14 @@ Function Test-Account
 
 Function Get-LogonHeader
 {
-	param($Credentials)
+	param($Credentials, $RadiusOTP)
 	# Create the POST Body for the Logon
     # ----------------------------------
     $logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
+	If(![string]::IsNullOrEmpty($RadiusOTP))
+	{
+		$logonBody.Password += ",$RadiusOTP"
+	}
 	write-Verbose $logonBody
 	try{
 	    # Logon
@@ -558,7 +566,14 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 	if ($creds -ne $null)
 	{
-		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds)
+		if($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP))
+		{
+			$g_LogonHeader = $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP)
+		}
+		else
+		{
+			$g_LogonHeader = $(Get-LogonHeader -Credentials $creds)
+		}
 	}
 	else { 
 		Log-Msg -Type Error -MSG "No Credentials were entered" -Footer
