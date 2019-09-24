@@ -630,7 +630,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 				$account.enableAutoMgmt = $false
 			}
 			# Check if there are custom properties
-			$excludedProperties = @("name","username","address","safe","platformid","password","key","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist")
+			$excludedProperties = @("name","username","address","safe","platformid","password","key","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist","sshkey")
 			$customProps = $($account.PSObject.Properties | Where { $_.Name.ToLower() -notin $excludedProperties })
 			#region [Account object mapping]
 			# Convert Account from CSV to Account Object (properties mapping)
