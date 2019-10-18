@@ -324,7 +324,7 @@ Function Create-Safe
 	If($templateSafeObject -ne $null)
 	{
 		# Using Template Safe
-		Log-Msg -Type Info -MSG "Creating Safe $safeName according to Tempalte"
+		Log-Msg -Type Info -MSG "Creating Safe $safeName according to Template"
 		# Update the safe name in the Safe Template Object
 		$templateSafeObject.SafeName = $safeName
 		$restBody = @{ safe=$templateSafeObject } | ConvertTo-Json -Depth 3
