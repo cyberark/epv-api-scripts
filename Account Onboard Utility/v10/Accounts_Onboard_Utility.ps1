@@ -372,18 +372,26 @@ Function Create-Safe
 Function Add-Owner
 {
 	param ($safeName, $members)
-	$urlOwnerAdd = $URL_SafeMembers -f $safeName
+
+	$restResponse = $null
 	ForEach ($bodyMember in $members)
 	{
 		$restBody = @{ member=$bodyMember } | ConvertTo-Json -Depth 3
 		# Add the Safe Owner
 		try {
+			Log-Msg -Type Verbose -MSG "Adding owner '$($bodyMember.MemberName)' to safe '$safeName'..."
 			# Add the Safe Owner
-			$restResponse = Invoke-Rest -Uri $urlOwnerAdd -Header $g_LogonHeader -Command "Post" -Body $restBody
+			$restResponse = Invoke-Rest -Uri $($URL_SafeMembers -f $safeName) -Header $g_LogonHeader -Command "Post" -Body $restBody
+			if($restResponse -ne $null)
+			{
+				Log-Msg -Type Verbose -MSG "Owner '$($bodyMember.MemberName)' was successfully added to safe '$safeName'"
+			}
 		} catch {
 			Log-Msg -Type Error -MSG "Failed to add Owner to safe $safeName with error: $($_.Exception.Response.StatusDescription)"
 		}
 	}
+	
+	return $restResponse
 }
 
 Function Get-Account
@@ -593,8 +601,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 			$TemplateSafeDetails = (Get-Safe -safeName $TemplateSafe)
 			$TemplateSafeDetails.Description = "Template Safe Created using Accounts Onboard Utility"
 			$TemplateSafeMembers = (Get-SafeMembers -safeName $TemplateSafe)
-			if($InDebug)
-			{$TemplateSafeMembers}
+			Log-Msg -Type Debug -MSG "Template safe ($TemplateSafe) members: $($TemplateSafeMembers -join '`n')"
 		}
 		else
 		{
@@ -671,7 +678,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 			}
 			$objAccount.secretManagement.automaticManagementEnabled = $account.enableAutoMgmt
 			if ($account.enableAutoMgmt -eq $false)
-			{ $objAccount.secretManagement.manualManagementReason = $account.manualManagementReason }
+			{ $objAccount.secretManagement.manualManagementReason = $account.manualMgmtReason }
 			$objAccount.remoteMachinesAccess = "" | select "remoteMachines", "accessRestrictedToRemoteMachines"
 			$objAccount.remoteMachinesAccess.remoteMachines = $account.remoteMachineAddresses
 			# Convert Restrict Machine Access To List from yes / true to $true
@@ -694,7 +701,13 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 					$shouldSkip = Create-Safe -TemplateSafe $TemplateSafeDetails -Safe $account.Safe
 					if ($TemplateSafeDetails -ne $null -and $TemplateSafeMembers -ne $null)
 					{
-						Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
+						$addOwnerResult = Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
+						if($addOwnerResult -eq $null)
+						{ throw }
+						else
+						{
+							Log-Msg -Type Debug -MSG "Template Safe members were added successfully to safe $($account.Safe)"
+						}
 					}
 				}
 				catch{
@@ -727,6 +740,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 							$s_AccountBody = @()
 							Foreach($sProp in $s_Account.Properties)
 							{
+								Log-Msg -Type Verbose -MSG "Inspecting Account Property $($sProp.Key)"
 								If($objAccount.$($sProp.Key) -ne $sProp.Value)
 								{
 									$_bodyOp = "" | select "op", "path", "value"
@@ -735,17 +749,27 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									$_bodyOp.value = $objAccount.$($sProp.Key)
 									$s_AccountBody += $_bodyOp
 								}
+								else
+								{
+									Log-Msg -Type Verbose -MSG "Current Account Property $($sProp.Key) value ($($objAccount.$($sProp.Key))) is identical to requested update value ($($sProp.Value))"
+								}
 							}
 							
-							if($InDebug) {$updateAccount}
-							# Update the existing account
-							$restBody = ConvertTo-Json @($s_AccountBody) -depth 5
-							$urlUpdateAccount = $URL_AccountsDetails -f $s_Account.id
-							$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "PATCH")
-							Log-Msg -Type Info -MSG "Account Updated Successfully"
-							# Increment counter
-							$counter++
-							Log-Msg -Type Info -MSG "[$counter/$rowCount] Updated $($objAccount.userName)@$($objAccount.address) successfully."
+							If($s_AccountBody.count -eq 0)
+							{
+								Log-Msg -Type Info -MSG "No Account updates detected"
+							}
+							else
+							{
+								# Update the existing account
+								$restBody = ConvertTo-Json @($s_AccountBody) -depth 5
+								$urlUpdateAccount = $URL_AccountsDetails -f $s_Account.id
+								$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "PATCH")
+								Log-Msg -Type Info -MSG "Account Updated Successfully"
+								# Increment counter
+								$counter++
+								Log-Msg -Type Info -MSG "[$counter/$rowCount] Updated $($objAccount.userName)@$($objAccount.address) successfully."
+							}
 						}
 						ElseIf($Create)
 						{
