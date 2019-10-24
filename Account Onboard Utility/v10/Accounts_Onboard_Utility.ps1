@@ -85,7 +85,7 @@ $URL_SafeDetails = $URL_PVWABaseAPI+"/Safes/{0}"
 $URL_SafeMembers = $URL_PVWABaseAPI+"/Safes/{0}/Members"
 $URL_Accounts = $URL_PVWAAPI+"/Accounts"
 $URL_AccountsDetails = $URL_PVWAAPI+"/Accounts/{0}"
-
+$URL_AccountsPassword = $URL_AccountsDetails+"/Password/Update"
 
 # Script Defaults
 # ---------------
@@ -178,7 +178,7 @@ Function Log-MSG
 		# Replace empty message with 'N/A'
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		# Mask Passwords
-		if($Msg -match '(password\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))')
+		if($Msg -match '((password|credentials)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))')
 		{
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
@@ -735,6 +735,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 					{
 						If($Update)
 						{
+							$updateChange = $false
 							# Get Existing Account Details
 							$s_Account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address)
 							$s_AccountBody = @()
@@ -765,7 +766,26 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								$restBody = ConvertTo-Json @($s_AccountBody) -depth 5
 								$urlUpdateAccount = $URL_AccountsDetails -f $s_Account.id
 								$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "PATCH")
-								Log-Msg -Type Info -MSG "Account Updated Successfully"
+								Log-Msg -Type Info -MSG "Account properties Updated Successfully"
+								$updateChange = $true
+							}
+							
+							# Check if Secret update is needed
+							If($null -ne $objAccount.Password)
+							{
+								# This account has a password and we are going to update item
+								$_passBody = "" | select  "ChangeEntireGroup", "NewCredentials"
+								$_passBody.ChangeEntireGroup = $false
+								$_passBody.NewCredentials = $objAccount.Password
+								# Update secret
+								$restBody = ConvertTo-Json @($_passBody) -depth 5
+								$urlUpdateAccount = $URL_AccountsPassword -f $s_Account.id
+								$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "POST")
+								Log-Msg -Type Info -MSG "Account Secret Updated Successfully"
+								$updateChange = $true
+							}
+							If($updateChange)
+							{
 								# Increment counter
 								$counter++
 								Log-Msg -Type Info -MSG "[$counter/$rowCount] Updated $($objAccount.userName)@$($objAccount.address) successfully."
