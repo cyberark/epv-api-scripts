@@ -771,8 +771,9 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 							}
 							
 							# Check if Secret update is needed
-							If($null -ne $objAccount.Password)
+							If($null -ne $objAccount.secret)
 							{
+								Log-Msg -Type Debug -MSG "Updating Account Secret..."
 								# This account has a password and we are going to update item
 								$_passBody = "" | select  "ChangeEntireGroup", "NewCredentials"
 								$_passBody.ChangeEntireGroup = $false
