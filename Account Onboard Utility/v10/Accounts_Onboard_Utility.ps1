@@ -81,10 +81,11 @@ $URL_Logoff = $URL_Authentication+"/Logoff"
 # URL Methods
 # -----------
 $URL_Safes = $URL_PVWABaseAPI+"/Safes"
-$URL_SafeDetails = $URL_PVWABaseAPI+"/Safes/{0}"
-$URL_SafeMembers = $URL_PVWABaseAPI+"/Safes/{0}/Members"
+$URL_SafeDetails = $URL_Safes+"/{0}"
+$URL_SafeMembers = $URL_SafeDetails+"/Members"
+$URL_SafeMemberDetails = $URL_SafeMembers+"/{1}"
 $URL_Accounts = $URL_PVWAAPI+"/Accounts"
-$URL_AccountsDetails = $URL_PVWAAPI+"/Accounts/{0}"
+$URL_AccountsDetails = $URL_Accounts+"/{0}"
 $URL_AccountsPassword = $URL_AccountsDetails+"/Password/Update"
 
 # Script Defaults
@@ -289,6 +290,13 @@ Function Get-SafeMembers
 		$_safeMembers = $(Invoke-Rest -Uri $accSafeMembersURL -Header $g_LogonHeader -Command "Get" -ErrorAction "SilentlyContinue")
 		# Remove default users and change UserName to MemberName
 		$_safeOwners = $_safeMembers.members | Where {$_.UserName -notin $_defaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
+		# Converting Permissions output object to Dictionary for later use
+		$dictPermissions = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+		ForEach($perm in $_safeMembers.Permissions.PSObject.Properties)
+		{
+			$dictPermissions.Add($perm.Name, $perm.Value)
+		}
+		$_safeOwners.Permissions = $dictPermissions
 	}
 	catch
 	{
@@ -777,7 +785,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								# This account has a password and we are going to update item
 								$_passBody = "" | select  "ChangeEntireGroup", "NewCredentials"
 								$_passBody.ChangeEntireGroup = $false
-								$_passBody.NewCredentials = $objAccount.Password
+								$_passBody.NewCredentials = $objAccount.secret
 								# Update secret
 								$restBody = ConvertTo-Json @($_passBody) -depth 5
 								$urlUpdateAccount = $URL_AccountsPassword -f $s_Account.id
