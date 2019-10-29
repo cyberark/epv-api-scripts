@@ -291,12 +291,13 @@ Function Get-SafeMembers
 		# Remove default users and change UserName to MemberName
 		$_safeOwners = $_safeMembers.members | Where {$_.UserName -notin $_defaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
 		# Converting Permissions output object to Dictionary for later use
-		$dictPermissions = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-		ForEach($perm in $_safeMembers.Permissions.PSObject.Properties)
+		$arrPermissions = @()
+		ForEach($perm in $_safeOwners.Permissions.PSObject.Properties)
 		{
-			$dictPermissions.Add($perm.Name, $perm.Value)
+			$arrPermissions += Add-NoteProperty -Name "Key" -Value $perm.Name
+			$arrPermissions += Add-NoteProperty -Name "Value" -Value $perm.Value
 		}
-		$_safeOwners.Permissions = $dictPermissions
+		$_safeOwners.Permissions = $arrPermissions
 	}
 	catch
 	{
