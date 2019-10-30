@@ -27,12 +27,15 @@ param
 	[Parameter(ParameterSetName='List',Mandatory=$true)][switch]$List,
 	# Use this switch to Add Safes
 	[Parameter(ParameterSetName='Add',Mandatory=$true)][switch]$Add,
+	# Use this switch to Delete Safes
+	[Parameter(ParameterSetName='Delete',Mandatory=$true)][switch]$Delete,
 	# Use this switch to Add Safe Members
 	[Parameter(ParameterSetName='Members',Mandatory=$true)][switch]$Members,
 		
 	# Safe Name
 	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Enter a Safe Name to filter by")]
 	[Parameter(ParameterSetName='Add',Mandatory=$false,HelpMessage="Enter a Safe Name to create")]
+	[Parameter(ParameterSetName='Delete',Mandatory=$true,HelpMessage="Enter a Safe Name to delete")]
 	[Parameter(ParameterSetName='Members',Mandatory=$true,HelpMessage="Enter a Safe Name to add members to")]
 	[ValidateScript({$_.Length -le 28})]
 	[Alias("Safe")]
@@ -45,6 +48,7 @@ param
 	
 	# Import File support
 	[Parameter(ParameterSetName='Add',Mandatory=$false,HelpMessage="Enter a file path for bulk safe creation")]
+	[Parameter(ParameterSetName='Delete',Mandatory=$false,HelpMessage="Enter a file path for bulk safe deletion")]
 	[ValidateScript( { Test-Path -Path $_ -PathType Leaf -IsValid})]
 	[ValidatePattern( '\.csv$' )]
 	[Alias("File")]
@@ -272,6 +276,36 @@ $createSafeBody=@{
         $safeadd = Invoke-RestMethod -Uri $URL_Safes -Body $createSafeBody -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
     }catch{
         Write-Host "Error adding $safename to the Vault. The error was:" -ForegroundColor Red #ERROR
+        Write-Error $_.Exception.Response.StatusDescription
+    }
+}
+
+Function Delete-Safe
+{
+<#
+.SYNOPSIS
+Allows a user to delete a cyberArk safe
+
+.DESCRIPTION
+Deletes a cyberark safe
+
+.EXAMPLE
+Delete-Safe -safename "x0-Win-S-Admins"
+
+#>
+    [CmdletBinding()]
+    [OutputType()]
+    Param
+    (
+        [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
+        [string]$safename
+    )
+
+	try {
+        Write-Host "Deleting the safe $safename from the Vault..." -ForegroundColor Yellow #DEBUG
+        $safedelete = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Method DELETE -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
+    }catch{
+        Write-Host "Error deleting $safename from the Vault. The error was:" -ForegroundColor Red #ERROR
         Write-Error $_.Exception.Response.StatusDescription
     }
 }
@@ -537,7 +571,34 @@ If (Test-CommandExists Invoke-RestMethod)
 					Create-Safe -SafeName $SafeName
 				}			
 			}catch{
-				Write-Host "Error adding $SafeName" -ForegroundColor Red #ERROR
+				Write-Host "Error adding safe '$SafeName'" -ForegroundColor Red #ERROR
+				Write-Error $_.Exception.Message
+			}
+		}
+		"Delete"
+		{
+			try{
+				if(![string]::IsNullOrEmpty($FilePath))
+				{
+					# Bulk Import of Safes
+					$csv = Import-Csv $FilePath
+
+					# For each line in the csv, import the safe
+					ForEach ($line in $csv)
+					{
+						Write-Host "Deleting safe $($line.safename)..." -ForegroundColor Yellow #DEBUG
+						Delete-Safe -safename $line.safename
+					}
+				}
+				else
+				{
+					# Deleting one Safe
+					Write-Host "Deleting the safe $SafeName..." -ForegroundColor Yellow
+					Delete-Safe -SafeName $SafeName
+				}
+			}
+			}catch{
+				Write-Host "Error deleting safe '$SafeName'" -ForegroundColor Red #ERROR
 				Write-Error $_.Exception.Message
 			}
 		}

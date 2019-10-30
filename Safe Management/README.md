@@ -1,4 +1,5 @@
-The content of the sample_safes.csv is for example only and does not represent real safes
+# Safe Management
+> **Note:**The content of the sample_safes.csv is for example only and does not represent real safes
 
 Main capabilities
 -----------------
@@ -8,11 +9,10 @@ Main capabilities
 - The tool can support comma delimited CSV files (default) or tab delimited CSV files
 
 In order to run the tool you need to run some simple commands in Powershell.
-The Tool supports three modes: [*List*](#list-command), [*Add*](#add-command) and [*Members*](#members-command)
+The Tool supports four modes: [*List*](#list-command), [*Add*](#add-command), [*Delete*](#delete-command) and [*Members*](#members-command)
 
 
-List Command:
----------------
+### List Command:
 ```powershell
 Safe-Management.ps1 -PVWAURL <string> -List [-SafeName <string>] [<CommonParameters>]
 ```
@@ -27,30 +27,42 @@ If you want to Filter a specific safe to see its details:
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -List -SafeName "MySafe"
 ```
 
-
-Add Command:
----------------
+### Add Command:
 ```powershell
 Safe-Management.ps1 -PVWAURL <string> -Add [-SafeName <string>] [-Description <string>] [-FilePath <string>] [<CommonParameters>]
 ```
 
 If you want to Create a new safe called 'MySafe':
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault"  -Add -SafeName "MySafe"
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -SafeName "MySafe"
 ```
 
 If you want to Create a new safe and add a description to that safe:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault"  -Add -SafeName "MySafe" -Description "This is My Safe that I Created using REST API"
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -SafeName "MySafe" -Description "This is My Safe that I Created using REST API"
 ```
 
 If you want to Create a list of safes from a file:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault"  -Add -FilePath "C:\Temp\safes-sample.csv"
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-sample.csv"
 ```
 
-Members Command:
----------------
+### Delete Command:
+```powershell
+Safe-Management.ps1 -PVWAURL <string> -Delete [-SafeName <string>] [-FilePath <string>] [<CommonParameters>]
+```
+
+If you want to Delete a specific safe called 'MySafe':
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Delete -SafeName "MySafe"
+```
+
+If you want to Delete a list of safes from a file:
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Delete -FilePath "C:\Temp\safes-sample.csv"
+```
+
+### Members Command:
 ```powershell
 Safe-Management.ps1 -PVWAURL <string> -Members -SafeName <string> [-UserName <string>] [-MemberRole <"Admin", "Auditor", "EndUser", "Owner">] [-UserLocation <string>] [<CommonParameters>]
 ```
