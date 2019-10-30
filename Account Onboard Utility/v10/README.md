@@ -11,6 +11,7 @@
 
 In order to run the tool you need to run some simple commands in Powershell.
 The Tool supports three modes: [*Create*](#create-command), [*Update*](#update-command) and [*Delete*](#delete-command)
+
 The tool will create a log file in the same folder of the script called: _"Account_Onboarding_Utility.log"_
 Running the toll with common parameters of Debug and Verbose will add more information to the log
 
