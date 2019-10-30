@@ -32,11 +32,9 @@ param
 	[Parameter(Mandatory=$false)]
 	[Switch]$DisableSSLVerify,
 	
-	
 	# Use this switch to Create accounts and Safes (no update)
 	[Parameter(ParameterSetName='Create',Mandatory=$false)]
 	[Switch]$Create,
-	
 	
 	# Use this switch to Create and Update accounts and Safes
 	[Parameter(ParameterSetName='Update',Mandatory=$false)]

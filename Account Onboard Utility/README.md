@@ -10,13 +10,13 @@
 - The tool can take a simple CSV file with only the relevant Account information
 
 In order to run the tool you need to run some simple commands in Powershell.
-The Tool supports three modes: [*Create*](#create-command), [*Update*](#update-command) and [*Delete*](#delete-command)
+The Tool supports two modes: [*Create*](#create-command) and [*Update*](#update-command)
 The tool will create a log file in the same folder of the script called: _"Account_Onboarding_Utility.log"_
 Running the toll with common parameters of Debug and Verbose will add more information to the log
 
 ## Parameters:
 ```powershell
-Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-AuthType] [-OTP] [-TemplateSafe] [-CsvPath] [-CsvDelimiter] [-DisableSSLVerify] [-NoSafeCreation]
+Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update>] [-TemplateSafe] [-CsvPath] [-CsvDelimiter] [-DisableSSLVerify] [-NoSafeCreation]
 ```
 - PVWAURL
 	- The URL of the PVWA that you are working with. 
@@ -25,14 +25,8 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-A
 - DisableSSLVerify
 	**(NOT RECOMMENDED)**
 	- In cases when you want to test the script on a PVWA environment that does not include a valid SSL certificate, you can use this parameter
-- AuthType
-	- Authentication types for logon. 
-	- Available values: _CyberArk, LDAP, RADIUS_
-	- Default value: _CyberArk_
-- OTP
-	- In cases where RADIUS authentication is used and one-time-password is needed, use this parameter to enter the OTP value
-- Create / Update / Delete
-	The supported actions for onboarding or offboarding of accounts
+- Create / Update 
+	The supported actions for onboarding of accounts
 - CsvPath
 	- The CSV Path for the accounts to be onboarded
 - CsvDelimiter
@@ -79,14 +73,4 @@ If you want to Create and Update Accounts (and safes):
 If you want to Create and Update Accounts (without Safe creation):
 ```powershell
 & .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\accounts.csv -Update -NoSafeCreation
-```
-
-### Delete Command:
-```powershell
-Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Delete [-AuthType <string>] [-OTP <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [<CommonParameters>]
-```
-
-If you want to delete all accounts in the file using RADIUS authentication with one-time-password
-```powershell
-& .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -AuthType "radius" -OTP 1234 -CsvPath .\accounts.csv -Delete
 ```
