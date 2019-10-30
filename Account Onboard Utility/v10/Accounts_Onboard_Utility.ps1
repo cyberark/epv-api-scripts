@@ -14,7 +14,7 @@
 [CmdletBinding(DefaultParametersetName="Create")]
 param
 (
-	[Parameter(Mandatory=$true,HelpMessage="Please enter your PVWA address (For example: https://pvwa.mydomain.com/passwordvault)")]
+	[Parameter(Mandatory=$true,HelpMessage="Please enter your PVWA address (For example: https://pvwa.mydomain.com/PasswordVault)")]
 	#[ValidateScript({Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30})]
 	[Alias("url")]
 	[String]$PVWAURL,
@@ -27,7 +27,8 @@ param
 	[ValidateScript({$AuthType -eq "radius"})]
 	[String]$OTP,
 	
-	[Parameter(Mandatory=$false,HelpMessage="Please enter Safe Template Name")]
+	[Parameter(ParameterSetName='Create',Mandatory=$false,HelpMessage="Please enter Safe Template Name")]
+	[Parameter(ParameterSetName='Update')]
 	[Alias("safe")]
 	[String]$TemplateSafe,
 	
@@ -47,13 +48,16 @@ param
 	
 	
 	# Use this switch to Create accounts and Safes (no update)
-	[Parameter(ParameterSetName='Create',Mandatory=$false)]
+	[Parameter(ParameterSetName='Create',Mandatory=$true)]
 	[Switch]$Create,
 	
-	
 	# Use this switch to Create and Update accounts and Safes
-	[Parameter(ParameterSetName='Update',Mandatory=$false)]
-	[Switch]$Update,
+	[Parameter(ParameterSetName='Update',Mandatory=$true)]
+	[Switch]$Update,	
+	
+	# Use this switch to Delete accounts
+	[Parameter(ParameterSetName='Delete',Mandatory=$true)]
+	[Switch]$Delete,
 	
 	# Use this switch to disable Safes creation
 	[Parameter(ParameterSetName='Create',Mandatory=$false)]
@@ -698,7 +702,8 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 				$objAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines = $false
 			}
 			#endregion [Account object mapping]
-
+			$tmpAccountName = ("{0}@{1}" -f $objAccount.userName, $objAccount.Address)
+			
 			# Check if the Safe Exists
 			$safeExists = $(Test-Safe -safeName $objAccount.safeName)
 			# Check if we can create safes or not
@@ -798,7 +803,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 							{
 								# Increment counter
 								$counter++
-								Log-Msg -Type Info -MSG "[$counter/$rowCount] Updated $($objAccount.userName)@$($objAccount.address) successfully."
+								Log-Msg -Type Info -MSG "[$counter/$rowCount] Updated $tmpAccountName successfully."
 							}
 						}
 						ElseIf($Create)
@@ -807,6 +812,26 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 							Write-Warning "The Account Exists, Creating the same account twice will cause duplications" -WarningAction Inquire
 							# If the user clicked yes, the account will be created
 							$createAccount = $true
+						}
+						ElseIf($Delete)
+						{
+							# Find the account for deletion
+							$d_account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address)
+							If($null -eq $d_account)
+							{
+								Log-Msg -Type Error -Msg "Account '$tmpAccountName' does not exists - skipping deletion"
+							}
+							ElseIf($d_account.Count -gt 1)
+							{
+								Log-Msg -Type Error -Msg "Too many accounts for '$tmpAccountName' in safe $($objAccount.safeName)"
+							}
+							Else
+							{
+								# Single account found for deletion
+								$urlDeleteAccount = $URL_AccountsDetails -f $s_Account.id
+								$DeleteAccountResult = $(Invoke-Rest -Uri $urlDeleteAccount -Header $g_LogonHeader -Command "DELETE")
+								Log-Msg -Type Info -MSG "Account deleted Successfully"
+							}
 						}
 					}
 					else { $createAccount = $true }
@@ -822,17 +847,17 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 							Log-Msg -Type Info -MSG "Account Onboarded Successfully"
 							# Increment counter
 							$counter++
-							Log-Msg -Type Info -MSG "[$counter/$rowCount] Added $($objAccount.userName)@$($objAccount.address) successfully."  
+							Log-Msg -Type Info -MSG "[$counter/$rowCount] Added $tmpAccountName successfully."  
 						}
 					}
 				}
 				catch{
-					Log-Msg -Type Error -MSG "There was an error onboarding $($objAccount.userName)@$($objAccount.address) into the Password Vault."
+					Log-Msg -Type Error -MSG "There was an error onboarding $tmpAccountName into the Password Vault."
 				}
 			}
 			else
 			{
-				Log-Msg -Type Info -MSG "Skipping onboarding $($objAccount.userName)@$($objAccount.address) into the Password Vault."
+				Log-Msg -Type Info -MSG "Skipping onboarding $tmpAccountName into the Password Vault."
 			}
 		}
 	}	
