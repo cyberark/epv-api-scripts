@@ -28,7 +28,6 @@ param
 	[String]$OTP,
 	
 	[Parameter(ParameterSetName='Create',Mandatory=$false,HelpMessage="Please enter Safe Template Name")]
-	[Parameter(ParameterSetName='Update')]
 	[Alias("safe")]
 	[String]$TemplateSafe,
 	
@@ -183,7 +182,7 @@ Function Log-MSG
 		# Replace empty message with 'N/A'
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		# Mask Passwords
-		if($Msg -match '((password|credentials)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))')
+		if($Msg -match '((?:password|credentials)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))')
 		{
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
@@ -279,6 +278,40 @@ Function Get-Safe
 	
 	return $_safe.GetSafeResult
 }
+Function Convert-PermissionName
+{
+# Safe Member List Permissions returns a specific set of permissions name
+# The required names for Add/Update Safe Memer is different
+# This function will convert from "List Permissions name set" to "Add Permission name set"
+	param (
+			[Parameter(Mandatory=$true)]
+			[String]$permName
+	)
+	
+	Switch($permName)
+	{
+		"ListContent" { return "ListAccounts" } 
+		"Retrieve" { return "RetrieveAccounts" } 
+		"Add" { return "AddAccounts" } 
+		"Update" { return "UpdateAccountContent" } 
+		"UpdateMetadata" { return "UpdateAccountProperties" } 
+		"Rename" { return "RenameAccounts" } 
+		"Delete" { return "DeleteAccounts" } 
+		"ViewAudit" { return "ViewAuditLog" } 
+		"ViewMembers" { return "ViewSafeMembers" } 
+		"RestrictedRetrieve" { return "UseAccounts" } 
+		"AddRenameFolder" { return "CreateFolders" } 
+		"DeleteFolder" { return "DeleteFolder" } 
+		"Unlock" { return "UnlockAccounts" } 
+		"MoveFilesAndFolders" { return "MoveAccountsAndFolders" } 
+		"ManageSafe" { return "ManageSafe" } 
+		"ManageSafeMembers" { return "ManageSafeMembers" } 
+		"ValidateSafeContent" { return "" } 
+		"BackupSafe" { return "BackupSafe" }
+		Default { return "" } 
+	}
+	
+}
 
 Function Get-SafeMembers
 {
@@ -291,24 +324,42 @@ Function Get-SafeMembers
 	try{
 		$_defaultUsers = @("Master","Batch","Backup Users","Auditors","Operators","DR Users","Notification Engines","PVWAGWAccounts","PasswordManager")
 		$accSafeMembersURL = $URL_SafeMembers -f $safeName
-		$_safeMembers = $(Invoke-Rest -Uri $accSafeMembersURL -Header $g_LogonHeader -Command "Get" -ErrorAction "SilentlyContinue")
+		$_safeMembers = $(Invoke-Rest -Uri $accSafeMembersURL -Header $g_LogonHeader -Command "Get")		
 		# Remove default users and change UserName to MemberName
 		$_safeOwners = $_safeMembers.members | Where {$_.UserName -notin $_defaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
+		$_retSafeOwners = @()
 		# Converting Permissions output object to Dictionary for later use
-		$arrPermissions = @()
-		ForEach($perm in $_safeOwners.Permissions.PSObject.Properties)
+		ForEach($item in $_safeOwners)
 		{
-			$arrPermissions += Add-NoteProperty -Name "Key" -Value $perm.Name
-			$arrPermissions += Add-NoteProperty -Name "Value" -Value $perm.Value
+			$arrPermissions = @()
+			# Adding Missing Permissions that are required for Add/Update Safe Member
+			$arrPermissions += @{"Key"="InitiateCPMAccountManagementOperations";"Value"=$false}
+			$arrPermissions += @{"Key"="SpecifyNextAccountContent";"Value"=$false}
+			$arrPermissions += @{"Key"="AccessWithoutConfirmation";"Value"=$false}
+			$arrPermissions += @{"Key"="RequestsAuthorizationLevel";"Value"=1}
+			ForEach($perm in $item.Permissions.PSObject.Properties)
+			{
+				$keyValue = "" | select Key, Value
+				$keyValue.Key = Convert-PermissionName -permName $perm.Name
+				$keyValue.Value = $perm.Value
+				If(![string]::IsNullOrEmpty($keyValue.Key))
+				{
+					$arrPermissions += $keyValue
+				}
+			}
+			$item.Permissions = $arrPermissions
+			$item | Add-Member -NotePropertyName "SearchIn" -NotePropertyValue "Vault"
+			$item | Add-Member -NotePropertyName "MembershipExpirationDate" -NotePropertyValue ""
+			$_retSafeOwners += $item
 		}
-		$_safeOwners.Permissions = $arrPermissions
 	}
 	catch
 	{
+		Log-Msg -Type Error -MSG $_.Exception.Message
 		Log-Msg -Type Error -MSG $_.Exception.Response.StatusDescription
 	}
 	
-	return $_safeOwners
+	return $_retSafeOwners
 }
 
 Function Test-Safe
@@ -389,7 +440,7 @@ Function Add-Owner
 	$restResponse = $null
 	ForEach ($bodyMember in $members)
 	{
-		$restBody = @{ member=$bodyMember } | ConvertTo-Json -Depth 3
+		$restBody = @{ member=$bodyMember } | ConvertTo-Json -Depth 5
 		# Add the Safe Owner
 		try {
 			Log-Msg -Type Verbose -MSG "Adding owner '$($bodyMember.MemberName)' to safe '$safeName'..."
@@ -614,7 +665,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 			$TemplateSafeDetails = (Get-Safe -safeName $TemplateSafe)
 			$TemplateSafeDetails.Description = "Template Safe Created using Accounts Onboard Utility"
 			$TemplateSafeMembers = (Get-SafeMembers -safeName $TemplateSafe)
-			Log-Msg -Type Debug -MSG "Template safe ($TemplateSafe) members: $($TemplateSafeMembers -join '`n')"
+			Log-Msg -Type Debug -MSG "Template safe ($TemplateSafe) members ($($TemplateSafeMembers.Count)): $(($TemplateSafeMembers | gm) -join ';')"
 		}
 		else
 		{
