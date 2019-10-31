@@ -386,11 +386,10 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
 
 $SafeMembersBody =@"
 {
-
 "member":{
     "MemberName":"$safeMember",
     "SearchIn":"$memberSearchInLocation",
-    "MembershipExpirationDate":null,
+    "MembershipExpirationDate":$null,
     "Permissions":[
         {"Key":"UseAccounts", "Value":$permUseAccounts},
         {"Key":"RetrieveAccounts", "Value":$permRetrieveAccounts},
@@ -419,7 +418,7 @@ $SafeMembersBody =@"
 "@
 
     try {
-        Write-Host "Setting safe membership for $safeMember located in $memberSearchInLocation on $safeName in the $caEnv vault..." -ForegroundColor Yellow #DEBUG
+        Write-Host "Setting safe membership for $safeMember located in $memberSearchInLocation on $safeName in the vault..." -ForegroundColor Yellow #DEBUG
         $setSafeMembers = Invoke-RestMethod -Uri $($URL_SafeMembers -f $(Encode-URL $safeName)) -Body $safeMembersBody -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
     }catch{
         Write-Host "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:" -ForegroundColor Red #ERROR
