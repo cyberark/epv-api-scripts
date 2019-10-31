@@ -77,7 +77,7 @@ If you want to add a new End User (default role) member to the safe 'MySafe':
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Members -SafeName "MySafe" -UserName "MyUser" -MemberRole "EndUser"
 ```
 
-If you want to add a new Auditor member from LDADP to the safe 'MySafe':
+If you want to add a new Auditor member from LDAP to the safe 'MySafe':
 ```powershell
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Members -SafeName "MySafe" -UserName "MyAuditUser" -MemberRole "Auditor" -UserLocation "MyLDAPDomain.com"
 ```
