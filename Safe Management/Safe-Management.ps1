@@ -596,7 +596,6 @@ If (Test-CommandExists Invoke-RestMethod)
 					Write-Host "Deleting the safe $SafeName..." -ForegroundColor Yellow
 					Delete-Safe -SafeName $SafeName
 				}
-			}
 			}catch{
 				Write-Host "Error deleting safe '$SafeName'" -ForegroundColor Red #ERROR
 				Write-Error $_.Exception.Message
