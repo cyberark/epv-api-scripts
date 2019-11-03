@@ -27,6 +27,8 @@ param
 	[Parameter(ParameterSetName='List',Mandatory=$true)][switch]$List,
 	# Use this switch to Add Safes
 	[Parameter(ParameterSetName='Add',Mandatory=$true)][switch]$Add,
+	# Use this switch to Update Safes
+	[Parameter(ParameterSetName='Update',Mandatory=$true)][switch]$Update,
 	# Use this switch to Delete Safes
 	[Parameter(ParameterSetName='Delete',Mandatory=$true)][switch]$Delete,
 	# Use this switch to Add Safe Members
@@ -35,6 +37,7 @@ param
 	# Safe Name
 	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Enter a Safe Name to filter by")]
 	[Parameter(ParameterSetName='Add',Mandatory=$false,HelpMessage="Enter a Safe Name to create")]
+	[Parameter(ParameterSetName='Update',Mandatory=$false,HelpMessage="Enter a Safe Name to update")]
 	[Parameter(ParameterSetName='Delete',Mandatory=$true,HelpMessage="Enter a Safe Name to delete")]
 	[Parameter(ParameterSetName='Members',Mandatory=$true,HelpMessage="Enter a Safe Name to add members to")]
 	[ValidateScript({$_.Length -le 28})]
@@ -43,16 +46,27 @@ param
 	
 	# Safe Description
 	[Parameter(ParameterSetName='Add',Mandatory=$false,HelpMessage="Enter a Safe Description")]
+	[Parameter(ParameterSetName='Update',Mandatory=$false,HelpMessage="Enter an updated Safe Description")]
 	[Alias("Description")]
 	[String]$SafeDescription,
 	
 	# Import File support
 	[Parameter(ParameterSetName='Add',Mandatory=$false,HelpMessage="Enter a file path for bulk safe creation")]
+	[Parameter(ParameterSetName='Update',Mandatory=$false,HelpMessage="Enter a file path for bulk safe update")]
 	[Parameter(ParameterSetName='Delete',Mandatory=$false,HelpMessage="Enter a file path for bulk safe deletion")]
 	[ValidateScript( { Test-Path -Path $_ -PathType Leaf -IsValid})]
 	[ValidatePattern( '\.csv$' )]
 	[Alias("File")]
 	[String]$FilePath,
+	
+	# Add / Update Safe options
+	[Parameter(ParameterSetName='Add',Mandatory=$false,HelpMessage="Enter the managing CPM name")]
+	[Parameter(ParameterSetName='Update',Mandatory=$false,HelpMessage="Enter the updated managing CPM name")]
+	[string]$ManagingCPM,
+	
+	[Parameter(ParameterSetName='Add',Mandatory=$false,HelpMessage="Enter the number of versions retention")]
+	[Parameter(ParameterSetName='Update',Mandatory=$false,HelpMessage="Enter the updated number of versions retention")]
+	[int]$NumVersionRetention,
 	
 	# Member Roles 
 	[Parameter(ParameterSetName='Members',Mandatory=$false,HelpMessage="Enter a role for the member to add (Default: EndUser)")]
@@ -280,6 +294,86 @@ $createSafeBody=@{
     }
 }
 
+Function Update-Safe
+{
+<#
+.SYNOPSIS
+Allows a user to update an existing cyberArk safe
+
+.DESCRIPTION
+Updates a new cyberark safe
+
+.EXAMPLE
+Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe description goes here" -managingCPM "PassManagerDMZ"
+
+#>
+    [CmdletBinding()]
+    [OutputType()]
+    Param
+    (
+        [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
+        [string]$safename,
+        [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
+        [string]$safedescription,
+        [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
+        [string]$managingCPM="PasswordManager",
+        [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
+        [int]$numVersionRetention=7,
+        [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
+        [int]$numDaysRetention=5,
+        [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
+        [bool]$EnableOLAC=$false
+    )
+	
+	# Get the current safe details and update when necessary
+	$getSafe = Get-Safe -safeName $safeName
+	$updateDescription = $getSafe.Description
+	$updateOLAC = $getSafe.OLACEnabled
+	$updateManageCPM = $getSafe.ManagingCPM
+	$updateRetVersions = $getSafe.NumberOfVersionsRtention
+	$updateRetDays = $getSafe.NumberOfDaysRtention
+	
+	If($getSafe.Description -ne $safeDescription)
+	{
+		$updateDescription = $safeDescription
+	}
+	If($getSafe.OLACEnabled -ne $EnableOLAC)
+	{
+		$updateOLAC = $EnableOLAC
+	}
+	If($getSafe.ManagingCPM -ne $managingCPM)
+	{
+		$updateManageCPM = $managingCPM
+	}
+	If($getSafe.NumberOfVersionsRtention -ne $numVersionRetention)
+	{
+		$updateRetVersions = $numVersionRetention
+	}
+	If($getSafe.NumberOfDaysRtention -ne $numDaysRetention)
+	{
+		$updateRetDays = $numDaysRetention
+	}
+	
+$updateSafeBody=@{
+            safe=@{
+            "SafeName"="$safename"; 
+            "Description"="$updateDescription"; 
+            "OLACEnabled"="$updateOLAC"; 
+            "ManagingCPM"="$updateManageCPM";
+            "NumberOfVersionsRtention"=$updateRetVersions;
+            "NumberOfDaysRtention"=$updateRetDays;
+            }
+} | ConvertTo-Json
+
+	try {
+        Write-Host "Updating safe $safename..." -ForegroundColor Yellow #DEBUG
+        $safeupdate = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
+    }catch{
+        Write-Host "Error updating $safename. The error was:" -ForegroundColor Red #ERROR
+        Write-Error $_.Exception.Response.StatusDescription
+    }
+}
+
 Function Delete-Safe
 {
 <#
@@ -389,7 +483,7 @@ $SafeMembersBody =@"
 "member":{
     "MemberName":"$safeMember",
     "SearchIn":"$memberSearchInLocation",
-    "MembershipExpirationDate":$null,
+    "MembershipExpirationDate":"",
     "Permissions":[
         {"Key":"UseAccounts", "Value":$permUseAccounts},
         {"Key":"RetrieveAccounts", "Value":$permRetrieveAccounts},
@@ -419,10 +513,14 @@ $SafeMembersBody =@"
 
     try {
         Write-Host "Setting safe membership for $safeMember located in $memberSearchInLocation on $safeName in the vault..." -ForegroundColor Yellow #DEBUG
-        $setSafeMembers = Invoke-RestMethod -Uri $($URL_SafeMembers -f $(Encode-URL $safeName)) -Body $safeMembersBody -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
+        $setSafeMembers = Invoke-RestMethod -Uri $($URL_SafeMembers -f $(Encode-URL $safeName)) -Body $safeMembersBody -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorVariable rMethodErr
     }catch{
-        Write-Host "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:" -ForegroundColor Red #ERROR
-        Write-Error $_.Exception.Response.StatusDescription
+		if ($rmethodErr.message -like "*User or Group is already a member*"){
+			Write-Host "The user $safeMember is already a member. Use the update member method instead" -ForegroundColor Red #ERROR
+		}else{
+			Write-Host "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:" -ForegroundColor Red #ERROR
+			Write-Host ("{0} ({1})" -f $rMethodErr.message, $_.Exception.Response.StatusDescription) -ForegroundColor Red #Error
+		}
     }
 }
 
@@ -534,7 +632,7 @@ If (Test-CommandExists Invoke-RestMethod)
 				Write-Error $_.Exception.Message
 			}
 		}
-		"Add"
+		{($_ -eq "Add") -or ($_ -eq "Update")} 
 		{
 			try{
 				if(![string]::IsNullOrEmpty($FilePath))
@@ -548,7 +646,14 @@ If (Test-CommandExists Invoke-RestMethod)
 						Write-Host "Importing safe $($line.safename) with safe member $($line.member)..." -ForegroundColor Yellow #DEBUG
 						#If safe doesn't exist, create the new safe
 						if (((Get-Safes).safename) -notcontains $line.safename) {
-							Create-Safe -safename $line.safename -safedescription $line.description
+							If($Add)
+							{
+								Create-Safe -safename $line.safename -safedescription $line.description
+							}
+							ElseIf($Update)
+							{
+								Update-Safe -safename $line.safename -safedescription $line.description
+							}
 						}
 							
 						# Add permissions to the safe
@@ -565,12 +670,41 @@ If (Test-CommandExists Invoke-RestMethod)
 				}
 				else
 				{
-					# Create one Safe
-					Write-Host "Adding the safe $SafeName..." -ForegroundColor Yellow
-					Create-Safe -SafeName $SafeName
+					$parameters = "" | select safeName, safeDescription, managingCPM, numVersionRetention
+					$parameters = New-Object -TypeName PSObject -Property @{ 
+						safeName=$SafeName; 
+						safeDescription=$SafeDescription;
+						managingCPM=$ManagingCPM;
+						numVersionRetention=$NumVersionRetention
+					}
+					# Keep only relevant properties (and keeping defaults when needed)
+					if([string]::IsNullOrEmpty($SafeDescription))
+					{
+						$parameters.PSObject.Properties.Remove('safeDescription')
+					}
+					if([string]::IsNullOrEmpty($ManagingCPM))
+					{
+						$parameters.PSObject.Properties.Remove('managingCPM')
+					}
+					if([string]::IsNullOrEmpty($NumVersionRetention))
+					{
+						$parameters.PSObject.Properties.Remove('numVersionRetention')
+					}
+					If($Add)
+					{
+						# Create one Safe
+						Write-Host "Adding the safe $SafeName..." -ForegroundColor Yellow
+						Create-Safe @parameters
+					}
+					ElseIf($Update)
+					{
+						# Update the Safe
+						Write-Host "Updating the safe $SafeName..." -ForegroundColor Yellow
+						Update-Safe @parameters
+					}
 				}			
 			}catch{
-				Write-Host "Error adding safe '$SafeName'" -ForegroundColor Red #ERROR
+				Write-Host "Error adding/updating safe '$SafeName'" -ForegroundColor Red #ERROR
 				Write-Error $_.Exception.Message
 			}
 		}

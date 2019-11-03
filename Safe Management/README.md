@@ -9,7 +9,7 @@ Main capabilities
 - The tool can support comma delimited CSV files (default) or tab delimited CSV files
 
 In order to run the tool you need to run some simple commands in Powershell.
-The Tool supports four modes: [*List*](#list-command), [*Add*](#add-command), [*Delete*](#delete-command) and [*Members*](#members-command)
+The Tool supports four modes: [*List*](#list-command), [*Add*](#add-command), [*Update*](#update-command), [*Delete*](#delete-command) and [*Members*](#members-command)
 
 
 ### List Command:
@@ -29,7 +29,7 @@ If you want to Filter a specific safe to see its details:
 
 ### Add Command:
 ```powershell
-Safe-Management.ps1 -PVWAURL <string> -Add [-SafeName <string>] [-Description <string>] [-FilePath <string>] [<CommonParameters>]
+Safe-Management.ps1 -PVWAURL <string> -Add [-SafeName <string>] [-Description <string>] [-ManagingCPM <string>] [-NumVersionRetention <int>] [-FilePath <string>] [<CommonParameters>]
 ```
 
 If you want to Create a new safe called 'MySafe':
@@ -42,10 +42,36 @@ If you want to Create a new safe and add a description to that safe:
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -SafeName "MySafe" -Description "This is My Safe that I Created using REST API"
 ```
 
+If you want to Create a new safe and set the Managing CPM and the number of versions for retention:
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -SafeName "MyDMZSafe" -ManagingCPM PassManagerDMZ -NumVersionRetention 5
+```
+
 If you want to Create a list of safes from a file:
 ```powershell
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-sample.csv"
 ```
+
+### Update Command:
+```powershell
+Safe-Management.ps1 -PVWAURL <string> -Update [-SafeName <string>] [-Description <string>] [-ManagingCPM <string>] [-NumVersionRetention <int>] [-FilePath <string>] [<CommonParameters>]
+```
+
+If you want to Update the safe called 'MySafe' with a new description:
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Update -SafeName "MySafe" -Description "This is My updated Safe description that I Created using REST API"
+```
+
+If you want to Update the safe Managing CPM:
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Update -SafeName "MyDMZSafe" -ManagingCPM PassManagerDMZ
+```
+
+If you want to Update the description and members of a list of safes from a file:
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-sample.csv"
+```
+> *Note*: This command will try to Add the members from the file to the safe. Any existing member will be skipped (will not update it's permissions)
 
 ### Delete Command:
 ```powershell
