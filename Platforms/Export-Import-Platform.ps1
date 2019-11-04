@@ -17,7 +17,7 @@
 
 param
 (
-	[Parameter(Mandatory=$true,HelpMessage="Please enter your PVWA address (For example: https://pvwa.mydomain.com)")]
+	[Parameter(Mandatory=$true,HelpMessage="Please enter your PVWA address (For example: https://pvwa.mydomain.com/PasswordVault)")]
 	#[ValidateScript({Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30})]
 	[Alias("url")]
 	[String]$PVWAURL,
@@ -66,18 +66,6 @@ Function Test-CommandExists
     Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
-Function EncodeForURL($sText)
-{
-	if ($sText.Trim() -ne "")
-	{
-		write-debug "Returning URL Encode of $sText"
-		return [System.Web.HttpUtility]::UrlEncode($sText)
-	}
-	else
-	{
-		return ""
-	}
-}
 #endregion
 
 If (Test-CommandExists Invoke-RestMethod)
@@ -94,7 +82,7 @@ If (Test-CommandExists Invoke-RestMethod)
     else
     {
         Write-Host -ForegroundColor Red "PVWA URL can not be empty"
-        exit
+        return
     }
 
 #region [Logon]
@@ -108,7 +96,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		$rstusername = $creds.username.Replace('\','');    
 		$rstpassword = $creds.GetNetworkCredential().password
 	}
-	else { exit }
+	else { return }
 
     # Create the POST Body for the Logon
     # ----------------------------------
@@ -126,7 +114,7 @@ If (Test-CommandExists Invoke-RestMethod)
     If ($logonToken -eq "")
     {
         Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-        exit
+        return
     }
 	
     # Create a Logon Token Header (This will be used through out all the script)
