@@ -73,7 +73,7 @@ Function Get-ZipContent
 			$zipContent = [System.IO.File]::ReadAllBytes($(Resolve-Path $zipPath))
 		}
 	} catch {
-		Write-Error "Error while reading ZIP file: $($_.Exception.Message)"
+		throw "Error while reading ZIP file: $($_.Exception.Message)"
 	}
 	
 	return $zipContent
@@ -84,30 +84,39 @@ Function AddPlatform-PSMConnectionComponent
 	Param($platformZipPath, $psmServerID = "PSMServer", $connectionComponentID)
 	
 	try{
-		# load ZIP methods
-		Add-Type -AssemblyName System.IO.Compression.FileSystem
-		Write-Debug "Extracting Platform ZIP ('$platformZipPath')"
-		# open ZIP archive for reading
-		$zip = [System.IO.Compression.ZipFile]::Open($platformZipPath, [System.IO.Compression.ZipArchiveMode]::Update)
-
-		# Find all XML files in the platform ZIP
-		$fileEntries = $zip.Entries | Where-Object { $_.FullName -like '*.xml' }
-		# There should be only one file
-		If($fileEntries -ne 1)
-		{ throw "Invalid Platform ZIP file" }
+		If(Test-Path $platformZipPath)
+		{
+			$Package = Get-Item -Path $platformZipPath
+			# load ZIP methods
+			Add-Type -AssemblyName System.IO.Compression.FileSystem
+			Write-Debug "Extracting Platform ZIP ('$platformZipPath')"
+			# Extract ZIP to temp folder
+			$tempFolder = Join-Path -Path $Package.Directory -ChildPath $Package.BaseName
+			if(Test-Path $tempFolder)
+			{
+				Remove-Item -Recurse $tempFolder
+			}
+			[System.IO.Compression.ZipFile]::ExtractToDirectory($Package.FullName,$tempFolder)
+		}
+		else
+		{
+			throw "Could not find Platform ZIP in '$platformZipPath'"
+		}
+		
 		Write-Debug "Adding PSM Connection component to platform $platformID"
-		# Open the XML file for read/write
-		$fileMode = [System.IO.FileMode]::Open
-		$fileAccess = [System.IO.FileAccess]::ReadWrite
-		$fileShare = [System.IO.FileShare]::None
-		$fileStream = New-Object -TypeName System.IO.FileStream $($zip.GetEntry($fileEntries[0])), $fileMode, $fileAccess, $fileShare
-
-		$reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $fileStream
-		[xml]$xmlContent = $reader.ReadToEnd()
+		# Find all XML files in the platform ZIP
+		$fileEntries = Get-ChildItem -Path $tempFolder -Filter '*.xml'
+		write-verbose $fileEntries
+		# There should be only one file
+		If($fileEntries.Count -ne 1)
+		{ throw "Invalid Platform ZIP file" }
+		[xml]$xmlContent = Get-Content $fileEntries[0].FullName
+		write-verbose $xmlContent
 		# Add PSM details to XML
+		write-verbose "Creating XML nodes"
 		$psmNode = $xmlContent.CreateNode("element","PrivilegedSessionManagement","")
 		$psmNode.SetAttribute("Enable","Yes")
-		$psmNode.SetAttribute("PSMServerID",$psmServerID)
+		$psmNode.SetAttribute("ID",$psmServerID)
 		$xmlContent.Device.Policies.Policy.AppendChild($psmNode)
 		
 		$concompNode = $xmlContent.CreateNode("element","ConnectionComponent","")
@@ -115,18 +124,17 @@ Function AddPlatform-PSMConnectionComponent
 		$conNode = $xmlContent.CreateNode("element","ConnectionComponents","")
 		$conNode.AppendChild($concompNode)
 		$xmlContent.Device.Policies.Policy.AppendChild($conNode)
+		write-verbose $xmlContent
+		$xmlContent.Save($fileEntries[0].FullName)
 		
-		$writer = New-Object System.IO.StreamWriter $fileStream, [System.Text.Encoding]::Unicode
-		$writer.Write($xmlContent)
-		
-		# Cleanup
-		$reader.Close()
-		$writer.Dispose()
-		$fileStream.Dispose()
-		# close ZIP file
-		$zip.Dispose()
+		Write-Debug "Delete original ZIP and Package the new Platform ZIP"
+		$zipFullPath = $Package.FullName
+		Remove-Item $zipFullPath
+		[System.IO.Compression.ZipFile]::CreateFromDirectory($tempFolder,$zipFullPath)
+		Write-Debug "Removing extracted ZIP folder"
+		Remove-Item -Recurse $tempFolder
 	} catch {
-		Write-Error "Error while linking connection component '$connectionComponentID' to platform: $($_.Exception.Message)"
+		throw "Error while linking connection component '$connectionComponentID' to platform: $($_.Exception.Message)"
 	}
 }
 #endregion
@@ -199,8 +207,14 @@ If (Test-Path $ConnectionComponentZipPath)
 		$connectionComponentID = ($ImportCCResponse.ConnectionComponentID)
 		Write-Debug "Connection Component ID imported: $connectionComponentID"
 	} catch {
-		Write-Error $_.Exception.Response
-		Write-Error $_.Exception.Response.StatusDescription
+		if($_.Exception.Response.StatusDescription -like "*Conflict*")
+		{
+			Write-Host "The requested connection component already exists" -ForegroundColor Yellow
+		}
+		Else{
+			Write-Error "Error importing the connection ID, Error: $($_.Exception.Response.StatusDescription)"
+		}
+		return
 	}
 }
 
@@ -208,18 +222,18 @@ If (Test-Path $PlatformZipPath)
 {
 	If([string]::IsNullOrEmpty($connectionComponentID))
 	{
-		throw "No Connection Component ID to link"
+		Write-Error "No Connection Component ID to link"
+		Return
 	}
 	# Link Connection Component to Platform
-	AddPlatform-PSMConnectionComponent -platformZipPath $PlatformZipPath -psmServerID $PSMServerID -connectionComponentID $connectionComponentID
+	AddPlatform-PSMConnectionComponent -platformZipPath $(Resolve-Path $PlatformZipPath) -psmServerID $PSMServerID -connectionComponentID $connectionComponentID
 	# Import Platform
 	$importBody = @{ ImportFile=$(Get-ZipContent $PlatformZipPath); } | ConvertTo-Json -Depth 3
 	try{
 		$ImportPlatformResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportPlatforms -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000 -Body $importBody
 		Write-Debug "Platform ID imported: $($ImportPlatformResponse.PlatformID)"
 	} catch {
-		Write-Error $_.Exception.Response
-		Write-Error $_.Exception.Response.StatusDescription
+		Write-Error "Error importing the platform, Error: $($_.Exception.Response.StatusDescription)"
 	}
 }
 
