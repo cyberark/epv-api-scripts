@@ -159,10 +159,12 @@ else
 	return
 }
 
+Write-Host "Import Platform and Connection Component: Script Started" -ForegroundColor Cyan
+
 #region [Logon]
 # Get Credentials to Login
 # ------------------------
-$caption = "Get accounts"
+$caption = "Import Platform and Connection Component"
 $msg = "Enter your User name and Password"; 
 $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 if ($creds -ne $null)
@@ -205,7 +207,7 @@ If (Test-Path $ConnectionComponentZipPath)
 	try{
 		$ImportCCResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportConnectionComponent -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000 -Body $importBody
 		$connectionComponentID = ($ImportCCResponse.ConnectionComponentID)
-		Write-Debug "Connection Component ID imported: $connectionComponentID"
+		Write-Host "Connection Component ID imported: $connectionComponentID"
 	} catch {
 		if($_.Exception.Response.StatusDescription -like "*Conflict*")
 		{
@@ -231,7 +233,7 @@ If (Test-Path $PlatformZipPath)
 	$importBody = @{ ImportFile=$(Get-ZipContent $PlatformZipPath); } | ConvertTo-Json -Depth 3
 	try{
 		$ImportPlatformResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportPlatforms -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000 -Body $importBody
-		Write-Debug "Platform ID imported: $($ImportPlatformResponse.PlatformID)"
+		Write-Host "Platform ID imported: $($ImportPlatformResponse.PlatformID)"
 	} catch {
 		Write-Error "Error importing the platform, Error: $($_.Exception.Response.StatusDescription)"
 	}
@@ -242,3 +244,4 @@ If (Test-Path $PlatformZipPath)
 Write-Host "Logoff Session..."
 Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogoff -Headers $logonHeader -ContentType "application/json" | Out-Null
 
+Write-Host "Import Platform and Connection Component: Script Ended" -ForegroundColor Cyan

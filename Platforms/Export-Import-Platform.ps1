@@ -85,10 +85,12 @@ If (Test-CommandExists Invoke-RestMethod)
         return
     }
 
+Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
+
 #region [Logon]
     # Get Credentials to Login
     # ------------------------
-    $caption = "Get accounts"
+    $caption = "Export / Import Platform"
     $msg = "Enter your User name and Password"; 
     $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 	if ($creds -ne $null)
@@ -170,3 +172,5 @@ else
 {
     Write-Error "This script requires PowerShell version 3 or above"
 }
+
+Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
