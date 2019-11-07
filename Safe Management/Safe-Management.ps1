@@ -89,7 +89,11 @@ param
 	[Parameter(Mandatory=$false,HelpMessage="Enter a thread connection number between 0-100. (Default: 0)")]
 	[Alias("Thread")]
 	[ValidateScript({ ($_ -ge 0) -and ($_ -lt 100) })]
-	[int]$ThreadNumber = 0
+	[int]$ThreadNumber = 0,
+	
+	# Use this switch to Disable SSL verification (NOT RECOMMENDED)
+	[Parameter(Mandatory=$false)]
+	[Switch]$DisableSSLVerify
 )
 
 # Get Script Location 
@@ -576,6 +580,47 @@ if ([bool]::TryParse($txt, [ref]$retBool)) {
 }
 #endregion
 
+Write-Host "Script Started"
+
+# Check if Powershell is running in Constrained Language Mode
+If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
+{
+	Write-Host -ForegroundColor Red "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
+	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
+	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
+	Write-Host "Script ended"
+	return
+}
+
+
+# Check if to disable SSL verification
+If($DisableSSLVerify)
+{
+	try{
+		Write-Warning "It is not Recommended to disable SSL verification" -WarningAction Inquire
+		# Using Proxy Default credentials if the Server needs Proxy credentials
+		[System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
+		# Using TLS 1.2 as security protocol verification
+		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls11
+		# Disable SSL Verification
+		[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
+	} catch {
+		Write-Host -ForegroundColor Red "Could not change SSL validation"
+		Write-Host -ForegroundColor Red $_.Exception -ErrorAction "SilentlyContinue"
+		return
+	}
+}
+Else
+{
+	try{
+		Write-Host -ForegroundColor Yellow "Setting script to use TLS 1.2"
+		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+	} catch {
+		Write-Host -ForegroundColor Red "Could not change SSL settings to use TLS 1.2"
+		Write-Host -ForegroundColor Red $_.Exception -ErrorAction "SilentlyContinue"
+	}
+}
+
 If (Test-CommandExists Invoke-RestMethod)
 {
 
@@ -798,3 +843,5 @@ else
 {
     Write-Error "This script requires PowerShell version 3 or above"
 }
+
+Write-Host "Script ended"
