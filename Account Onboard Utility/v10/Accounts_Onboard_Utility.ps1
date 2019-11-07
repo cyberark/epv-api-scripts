@@ -550,6 +550,9 @@ Function Get-LogonHeader
 }
 #endregion
 
+# Header
+Log-Msg -Type Info -MSG "Welcome to Accounts Onboard Utility" -Header
+
 # Check if Powershell is running in Constrained Language Mode
 If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 {
@@ -625,8 +628,6 @@ else
 	exit
 }
 
-# Header
-Log-Msg -Type Info -MSG "Welcome to Accounts Onboard Utility" -Header
 Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" -SubHeader
 
 
