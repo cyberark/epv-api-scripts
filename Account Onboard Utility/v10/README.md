@@ -4,7 +4,7 @@
 
 ## Main capabilities
 -----------------
-- The tool Uses REST API and can support v9.8 of PVWA and up
+- The tool Uses REST API and can support v10.4 of PVWA and up
 - The tool supports basic Account and Safe Creation, much like the Password Upload Utility
 - The tool supports Template Safe (currently one for all Accounts)
 - The tool can take a simple CSV file with only the relevant Account information
