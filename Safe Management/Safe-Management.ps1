@@ -482,42 +482,40 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
         [string]$permMoveAccountsAndFolders = "false"
     )
 
-$SafeMembersBody =@"
-{
-"member":{
-    "MemberName":"$safeMember",
-    "SearchIn":"$memberSearchInLocation",
-    "MembershipExpirationDate":"",
-    "Permissions":[
-        {"Key":"UseAccounts", "Value":$permUseAccounts},
-        {"Key":"RetrieveAccounts", "Value":$permRetrieveAccounts},
-        {"Key":"ListAccounts", "Value":$permListAccounts},
-        {"Key":"AddAccounts", "Value":$permAddAccounts},
-        {"Key":"UpdateAccountContent", "Value":$permUpdateAccountContent},
-        {"Key":"UpdateAccountProperties", "Value":$permUpdateAccountProperties},
-        {"Key":"InitiateCPMAccountManagementOperations","Value":$permInitiateCPMManagement},
-        {"Key":"SpecifyNextAccountContent", "Value":$permSpecifyNextAccountContent},
-        {"Key":"RenameAccounts", "Value":$permRenameAccounts},
-        {"Key":"DeleteAccounts", "Value":$permDeleteAccounts},
-        {"Key":"UnlockAccounts", "Value":$permUnlockAccounts},
-        {"Key":"ManageSafe", "Value":$permManageSafe},
-        {"Key":"ManageSafeMembers", "Value":$permManageSafeMembers},
-        {"Key":"BackupSafe", "Value":$permBackupSafe},
-        {"Key":"ViewAuditLog", "Value":$permViewAuditLog},
-        {"Key":"ViewSafeMembers", "Value":$permViewSafeMembers},
-        {"Key":"RequestsAuthorizationLevel", "Value":$permRequestsAuthorizationLevel},
-        {"Key":"AccessWithoutConfirmation", "Value":$permAccessWithoutConfirmation},
-        {"Key":"CreateFolders", "Value":$permCreateFolders},
-        {"Key":"DeleteFolders", "Value":$permDeleteFolders},
-        {"Key":"MoveAccountsAndFolders", "Value":$permMoveAccountsAndFolders}
-        ]
+$SafeMembersBody = @{
+        member = @{
+            MemberName = "$safeMember"
+            SearchIn = "$memberSearchInLocation"
+            MembershipExpirationDate = "$null"
+            Permissions = @(
+                @{Key="UseAccounts";Value=$permUseAccounts}
+                @{Key="RetrieveAccounts";Value=$permRetrieveAccounts}
+                @{Key="ListAccounts";Value=$permListAccounts}
+                @{Key="AddAccounts";Value=$permAddAccounts}
+                @{Key="UpdateAccountContent";Value=$permUpdateAccountContent}
+                @{Key="UpdateAccountProperties";Value=$permUpdateAccountProperties}
+                @{Key="InitiateCPMAccountManagementOperations";Value=$permInitiateCPMManagement}
+                @{Key="SpecifyNextAccountContent";Value=$permSpecifyNextAccountContent}
+                @{Key="RenameAccounts";Value=$permRenameAccounts}
+                @{Key="DeleteAccounts";Value=$permDeleteAccounts}
+                @{Key="UnlockAccounts";Value=$permUnlockAccounts}
+                @{Key="ManageSafe";Value=$permManageSafe}
+                @{Key="ManageSafeMembers";Value=$permManageSafeMembers}
+                @{Key="BackupSafe";Value=$permBackupSafe}
+                @{Key="ViewAuditLog";Value=$permViewAuditLog}
+                @{Key="ViewSafeMembers";Value=$permViewSafeMembers}
+                @{Key="RequestsAuthorizationLevel";Value=$permRequestsAuthorizationLevel}
+                @{Key="AccessWithoutConfirmation";Value=$permAccessWithoutConfirmation}
+                @{Key="CreateFolders";Value=$permCreateFolders}
+                @{Key="DeleteFolders";Value=$permDeleteFolders}
+                @{Key="MoveAccountsAndFolders";Value=$permMoveAccountsAndFolders}
+            )
+        }  
     }
-}
-"@
 
     try {
         Write-Host "Setting safe membership for $safeMember located in $memberSearchInLocation on $safeName in the vault..." -ForegroundColor Yellow #DEBUG
-        $setSafeMembers = Invoke-RestMethod -Uri $($URL_SafeMembers -f $(Encode-URL $safeName)) -Body $safeMembersBody -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorVariable rMethodErr
+        $setSafeMembers = Invoke-RestMethod -Uri $($URL_SafeMembers -f $(Encode-URL $safeName)) -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorVariable rMethodErr
     }catch{
 		if ($rmethodErr.message -like "*User or Group is already a member*"){
 			Write-Host "The user $safeMember is already a member. Use the update member method instead" -ForegroundColor Red #ERROR
