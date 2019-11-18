@@ -113,17 +113,42 @@ Function AddPlatform-PSMConnectionComponent
 		[xml]$xmlContent = Get-Content $fileEntries[0].FullName
 		write-verbose $xmlContent
 		# Add PSM details to XML
-		write-verbose "Creating XML nodes"
-		$psmNode = $xmlContent.CreateNode("element","PrivilegedSessionManagement","")
-		$psmNode.SetAttribute("Enable","Yes")
-		$psmNode.SetAttribute("ID",$psmServerID)
-		$xmlContent.Device.Policies.Policy.AppendChild($psmNode)
-		
-		$concompNode = $xmlContent.CreateNode("element","ConnectionComponent","")
-		$concompNode.SetAttribute("Id",$connectionComponentID)
-		$conNode = $xmlContent.CreateNode("element","ConnectionComponents","")
-		$conNode.AppendChild($concompNode)
-		$xmlContent.Device.Policies.Policy.AppendChild($conNode)
+		ForEach($item in $xmlContent.Device.Policies.Policy)
+		{
+			If($item.key -eq "PrivilegedSessionManagement")
+			{
+				$psmNodeExists = $true
+			}
+			If($item.key -eq "ConnectionComponent")
+			{
+				$ccNodeExists = $true
+			}
+		}
+		if($psmNodeExists -eq $false)
+		{
+			Write-Verbose "Adding PSM to Platform"
+			$psmNode = $xmlContent.CreateNode("element","PrivilegedSessionManagement","")
+			$psmNode.SetAttribute("Enable","Yes")
+			$psmNode.SetAttribute("ID",$psmServerID)
+			$xmlContent.Device.Policies.Policy.AppendChild($psmNode) | Out-Null
+		}
+		else
+		{
+			Write-Verbose "PSM Node already exists"
+		}
+		if($ccNodeExists -eq $false)
+		{
+			Write-Verbose "Adding Connection Component to Platform"
+			$concompNode = $xmlContent.CreateNode("element","ConnectionComponent","")
+			$concompNode.SetAttribute("Id",$connectionComponentID)
+			$conNode = $xmlContent.CreateNode("element","ConnectionComponents","")
+			$conNode.AppendChild($concompNode)
+			$xmlContent.Device.Policies.Policy.AppendChild($conNode) | Out-Null
+		}
+		else
+		{
+			Write-Verbose "Connection Component Node already exists"
+		}
 		write-verbose $xmlContent
 		$xmlContent.Save($fileEntries[0].FullName)
 		
