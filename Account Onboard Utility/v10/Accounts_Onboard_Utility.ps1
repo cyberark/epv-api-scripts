@@ -829,7 +829,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 							else
 							{
 								# Update the existing account
-								$restBody = ConvertTo-Json @($s_AccountBody) -depth 5
+								$restBody = ConvertTo-Json $s_AccountBody -depth 5
 								$urlUpdateAccount = $URL_AccountsDetails -f $s_Account.id
 								$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "PATCH")
 								Log-Msg -Type Info -MSG "Account properties Updated Successfully"
@@ -845,7 +845,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								$_passBody.ChangeEntireGroup = $false
 								$_passBody.NewCredentials = $objAccount.secret
 								# Update secret
-								$restBody = ConvertTo-Json @($_passBody) -depth 5
+								$restBody = ConvertTo-Json $_passBody -depth 5
 								$urlUpdateAccount = $URL_AccountsPassword -f $s_Account.id
 								$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "POST")
 								Log-Msg -Type Info -MSG "Account Secret Updated Successfully"
