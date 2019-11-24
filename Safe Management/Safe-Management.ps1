@@ -439,47 +439,47 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
                    Position=0)]
         $memberSearchInLocation,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permUseAccounts = "false",
+        [bool]$permUseAccounts = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permRetrieveAccounts = "false",
+        [bool]$permRetrieveAccounts = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permListAccounts = "false",
+        [bool]$permListAccounts = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permAddAccounts = "false",
+        [bool]$permAddAccounts = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permUpdateAccountContent = "false",
+        [bool]$permUpdateAccountContent = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permUpdateAccountProperties = "false",
+        [bool]$permUpdateAccountProperties = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permInitiateCPMManagement = "false",
+        [bool]$permInitiateCPMManagement = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permSpecifyNextAccountContent = "false",
+        [bool]$permSpecifyNextAccountContent = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permRenameAccounts = "false",
+        [bool]$permRenameAccounts = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permDeleteAccounts = "false",
+        [bool]$permDeleteAccounts = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permUnlockAccounts = "false",
+        [bool]$permUnlockAccounts = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permManageSafe = "false",
+        [bool]$permManageSafe = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permManageSafeMembers = "false",
+        [bool]$permManageSafeMembers = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permBackupSafe = "false",
+        [bool]$permBackupSafe = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permViewAuditLog = "false",
+        [bool]$permViewAuditLog = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permViewSafeMembers = "false",
+        [bool]$permViewSafeMembers = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
         [int]$permRequestsAuthorizationLevel = 0,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permAccessWithoutConfirmation = "false",
+        [bool]$permAccessWithoutConfirmation = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permCreateFolders = "false",
+        [bool]$permCreateFolders = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permDeleteFolders = "false",
+        [bool]$permDeleteFolders = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$permMoveAccountsAndFolders = "false"
+        [bool]$permMoveAccountsAndFolders = $false
     )
 
 $SafeMembersBody = @{
