@@ -210,7 +210,7 @@ Get-Safes
     )
 
 try {
-        Write-Host "Retrieving safes from the $caEnv vault..." -ForegroundColor Yellow #DEBUG
+        Write-Host "Retrieving safes from the vault..." -ForegroundColor Yellow #DEBUG
         $safes = (Invoke-RestMethod -Uri $URL_Safes -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000).GetSafesResult
         return $safes
     }catch{
@@ -570,10 +570,10 @@ Function Convert-ToBool
 	
 if ([bool]::TryParse($txt, [ref]$retBool)) {
     # parsed to a boolean
-    return $retBool.ToString().ToLower()
+    return [System.Convert]::ToBoolean($txt)
 	} else {
 		Write-Host "The input ""$txt"" is not in the correct format (true/false), defaulting to False" -ForegroundColor Red
-		return "false"
+		return $false
 	}
 }
 #endregion
@@ -698,7 +698,6 @@ If (Test-CommandExists Invoke-RestMethod)
 								Update-Safe -safename $line.safename -safedescription $line.description
 							}
 						}
-							
 						# Add permissions to the safe
 						Set-SafeMember -safename $line.safename -safeMember $line.member -memberSearchInLocation $line.MemberLocation `
 							-permUseAccounts $(Convert-ToBool $line.UseAccounts) -permRetrieveAccounts $(Convert-ToBool $line.RetrieveAccounts) -permListAccounts $(Convert-ToBool $line.ListAccounts) `
@@ -747,7 +746,7 @@ If (Test-CommandExists Invoke-RestMethod)
 					}
 				}			
 			}catch{
-				Write-Host "Error adding/updating safe '$SafeName'" -ForegroundColor Red #ERROR
+				Write-Host "Error adding/updating safe '$($line.SafeName)'" -ForegroundColor Red #ERROR
 				Write-Error $_.Exception.Message
 			}
 		}
@@ -787,17 +786,17 @@ If (Test-CommandExists Invoke-RestMethod)
 			else
 			{
 				# Add a member to a safe
-				[bool]$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = `
-					$permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafe = $permManageSafeMembers = $permBackupSafe = $permViewAuditLog = `
-					$permViewSafeMembers = $permAccessWithoutConfirmation = $permCreateFolders = $permDeleteFolders = $permMoveAccountsAndFolders = $false
+				$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = `
+				$permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafe = $permManageSafeMembers = $permBackupSafe = $permViewAuditLog = `
+				$permViewSafeMembers = $permAccessWithoutConfirmation = $permCreateFolders = $permDeleteFolders = $permMoveAccountsAndFolders = $false
 				[int]$permRequestsAuthorizationLevel = 0
 				switch($MemberRole)
 				{
 					"Admin"
 					{
 						$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = `
-							$permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafe = $permManageSafeMembers = $permBackupSafe = `
-							$permViewAuditLog = $permViewSafeMembers = $permAccessWithoutConfirmation = $permCreateFolders = $permDeleteFolders = $permMoveAccountsAndFolders = $true
+						$permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafe = $permManageSafeMembers = $permBackupSafe = `
+						$permViewAuditLog = $permViewSafeMembers = $permAccessWithoutConfirmation = $permCreateFolders = $permDeleteFolders = $permMoveAccountsAndFolders = $true
 						$permRequestsAuthorizationLevel = 1
 					}
 					"Auditor"
@@ -820,15 +819,15 @@ If (Test-CommandExists Invoke-RestMethod)
 					}
 				}
 				Set-SafeMember -safename $SafeName -safeMember $UserName -memberSearchInLocation $UserLocation `
-								-permUseAccounts $permUseAccounts -permRetrieveAccounts $permRetrieveAccounts -permListAccounts $permListAccounts `
-								-permAddAccounts $permAddAccounts -permUpdateAccountContent $permUpdateAccountContent -permUpdateAccountProperties $permUpdateAccountProperties `
-								-permInitiateCPMManagement $permInitiateCPMManagement -permSpecifyNextAccountContent $permSpecifyNextAccountContent `
-								-permRenameAccounts $permRenameAccounts -permDeleteAccounts $permDeleteAccounts -permUnlockAccounts $permUnlockAccounts `
-								-permManageSafe $permManageSafe -permManageSafeMembers $permManageSafeMembers -permBackupSafe $permBackupSafe `
-								-permViewAuditLog $permViewAuditLog -permViewSafeMembers $permViewSafeMembers `
-								-permRequestsAuthorizationLevel $permRequestsAuthorizationLevel -permAccessWithoutConfirmation $permAccessWithoutConfirmation `
-								-permCreateFolders $permCreateFolders -permDeleteFolders $permDeleteFolders -permMoveAccountsAndFolders $permMoveAccountsAndFolders
-			}
+							-permUseAccounts $($line.UseAccounts | Convert-ToBool) -permRetrieveAccounts $(Convert-ToBool $line.RetrieveAccounts) -permListAccounts $(Convert-ToBool $line.ListAccounts) `
+							-permAddAccounts $(Convert-ToBool $line.AddAccounts) -permUpdateAccountContent $(Convert-ToBool $line.UpdateAccountContent) -permUpdateAccountProperties $(Convert-ToBool $line.UpdateAccountProperties) `
+							-permInitiateCPMManagement $(Convert-ToBool $line.InitiateCPMAccountManagementOperations) -permSpecifyNextAccountContent $(Convert-ToBool $line.SpecifyNextAccountContent) `
+							-permRenameAccounts $(Convert-ToBool $line.RenameAccounts) -permDeleteAccounts $(Convert-ToBool $line.DeleteAccounts) -permUnlockAccounts $(Convert-ToBool $line.UnlockAccounts) `
+							-permManageSafe $(Convert-ToBool $line.ManageSafe) -permManageSafeMembers $(Convert-ToBool $line.ManageSafeMembers) -permBackupSafe $(Convert-ToBool $line.BackupSafe) `
+							-permViewAuditLog $(Convert-ToBool $line.ViewAuditLog) -permViewSafeMembers $(Convert-ToBool $line.ViewSafeMembers) `
+							-permRequestsAuthorizationLevel $line.RequestsAuthorizationLevel -permAccessWithoutConfirmation $(Convert-ToBool $line.AccessWithoutConfirmation) `
+							-permCreateFolders $(Convert-ToBool $line.CreateFolders) -permDeleteFolders $(Convert-ToBool $line.DeleteFolders) -permMoveAccountsAndFolders $(Convert-ToBool $line.MoveAccountsAndFolders)
+				}
 		}
 	}
 	
