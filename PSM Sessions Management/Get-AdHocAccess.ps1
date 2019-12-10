@@ -37,7 +37,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "1.0"
+$ScriptVersion = "1.1"
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -465,7 +465,7 @@ Function Get-AdminAccess
 	try{
 		Write-LogMessage -Type Debug -Msg "Granting Administrative Access..."
 		$grantAccessBody = @{ accountId=$AccountID } | ConvertTo-Json
-		$getAccessResult = $(Invoke-Rest -Uri ($URL_GrantAccess -f $AccountID) -Header $(Get-LogonHeader -Credentials $creds) -Command "POST" -Body $grantAccessBody)
+		$getAccessResult = $(Invoke-Rest -Uri ($URL_GrantAccess -f $AccountID) -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Command "POST" -Body $grantAccessBody)
 		return $true
 	} catch {
 		Throw $(New-Object System.Exception ("Get-AdminAccess: Failed to grant administrative access",$_.Exception))
@@ -502,6 +502,16 @@ Function Init-AdHocConnection
 	try{
 		$retConnectionType = "RDP"
 		Write-LogMessage -Type Debug -Msg "Initiating Ad-Hoc Connection Access for '$RemoteMachine'..."
+		$_domainName = $_userName = ""
+		if($VaultCredentials.username.Contains('\'))
+		{
+			$_domainName = $VaultCredentials.username.Split('\')[0]
+			$_userName = $VaultCredentials.username.Split('\')[1]
+		}
+		else
+		{
+			$_userName = $VaultCredentials.username.Replace('\','');
+		}
 		$adHocAccessBody = @{
 			  secret=$VaultCredentials.GetNetworkCredential().password;
 			  address=$RemoteMachine;
@@ -510,11 +520,13 @@ Function Init-AdHocConnection
 			  PSMConnectPrerequisites=@{
 				Reason="Get-AdHocAccess script";
 				ConnectionComponent="PSM-RDP";
+				ConnectionType="RDPFile";
 			  }
 			  extraFields=@{
 				Port=3389;
 				AllowMappingLocalDrives="No";
-				AllowConnectToConsole="No"
+				AllowConnectToConsole="No";
+				LogonDomain=$_domainName;
 			}
 		} | ConvertTo-Json
 		$adHocAccessResult = $(Invoke-Rest -Uri $URL_PSMAdHocConnect -Header $(Get-LogonHeader -Credentials $creds) -Command "POST" -Body $adHocAccessBody)
@@ -593,6 +605,10 @@ If (Test-CommandExists Invoke-RestMethod)
 				{
 					# Run the RDP File
 					Mstsc $(Join-Path -Path $ScriptLocation -ChildPath "$RemoteMachine.rdp")
+				}
+				Else
+				{
+					Write-LogMessages -Type Error -Msg "The current PSM server is configured to work with HTML5 Gateway which is not supported by this script"
 				}
 			}
 			Else
