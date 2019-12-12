@@ -247,6 +247,11 @@ Function Invoke-Rest
 		Log-Msg -Type Verbose -MSG "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body"
 		$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body
 	} catch [System.Net.WebException] {
+		If($_.Exception.Message.Contains("ErrorCode"))
+		{
+			$cybrError = $_.Exception.Message | ConvertFrom-Json
+			Log-Msg -Type Error -MSG ("Error {0}:{1}" -f $cybrError.ErrorCode, $cybError.ErrorMessage)
+		}
 		If($_.Exception.Response.StatusDescription -ne $null)
 		{
 			Log-Msg -Type Error -MSG $_.Exception.Response.StatusDescription -ErrorAction $ErrorAction
