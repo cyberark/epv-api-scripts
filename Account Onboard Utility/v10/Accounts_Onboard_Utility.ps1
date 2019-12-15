@@ -259,11 +259,11 @@ Function Invoke-Rest
 		else
 		{
 			Log-Msg -Type Error -Msg "StatusCode: $($_.Exception.Response.StatusCode.value__)"
-			Log-Msg -Type Error -Msg $_.Exception.Message
+			Log-Msg -Type Error -Msg "Error Message: $($_.Exception.Message)"
 		}
 		$restResponse = $null
 	} catch { 
-		Log-MSG -Type Error -MSG $_.Exception.Message
+		throw $_.Exception.Message
 	}
 	Log-Msg -Type Verbose -MSG $restResponse
 	return $restResponse
