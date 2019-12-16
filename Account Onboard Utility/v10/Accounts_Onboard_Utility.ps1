@@ -238,34 +238,70 @@ Function OpenFile-Dialog($initialDirectory)
     $OpenFileDialog.filename
 }
 
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Invoke-Rest
+# Description....: Invoke REST Method
+# Parameters.....: Command method, URI, Header, Body
+# Return Values..: REST response
+# =================================================================================================================================
 Function Invoke-Rest
 {
-	param ($Command, $URI, $Header, $Body, $ErrorAction="Continue")
+<# 
+.SYNOPSIS 
+	Invoke REST Method
+.DESCRIPTION
+	Invoke REST Method
+.PARAMETER Command
+	The REST Command method to run (GET, POST, PATCH, DELETE)
+.PARAMETER URI
+	The URI to use as REST API
+.PARAMETER Header
+	The Header as Dictionary object
+.PARAMETER Body
+	(Optional) The REST Body
+.PARAMETER ErrAction
+	(Optional) The Error Action to perform in case of error. By deault "Continue"
+#>
+	param (
+		[Parameter(Mandatory=$true)]
+		[ValidateSet("GET","POST","DELETE","PATCH")]
+		[String]$Command, 
+		[Parameter(Mandatory=$true)]
+		[String]$URI, 
+		[Parameter(Mandatory=$false)]
+		$Header, 
+		[Parameter(Mandatory=$false)]
+		[String]$Body, 
+		[Parameter(Mandatory=$false)]
+		[ValidateSet("Continue","Ignore","Inquire","SilentlyContinue","Stop","Suspend")]
+		[String]$ErrAction="Continue"
+	)
 	
+	If ((Test-CommandExists Invoke-RestMethod) -eq $false)
+	{
+	   Throw "This script requires PowerShell version 3 or above"
+	}
 	$restResponse = ""
 	try{
-		Log-Msg -Type Verbose -MSG "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body"
-		$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body
-	} catch [System.Net.WebException] {
-		If($_.Exception.Message.Contains("ErrorCode"))
+		if([string]::IsNullOrEmpty($Body))
 		{
-			$cybrError = $_.Exception.Message | ConvertFrom-Json
-			Log-Msg -Type Error -MSG ("Error {0}:{1}" -f $cybrError.ErrorCode, $cybError.ErrorMessage)
-		}
-		If($_.Exception.Response.StatusDescription -ne $null)
-		{
-			Log-Msg -Type Error -MSG $_.Exception.Response.StatusDescription -ErrorAction $ErrorAction
+			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 36000"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000
 		}
 		else
 		{
-			Log-Msg -Type Error -Msg "StatusCode: $($_.Exception.Response.StatusCode.value__)"
-			Log-Msg -Type Error -Msg "Error Message: $($_.Exception.Message)"
+			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 36000"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000
 		}
+	} catch [System.Net.WebException] {
+		Log-Msg -Type Error -Msg "Exception Message: $($_.Exception.Message)" -ErrorAction $ErrAction
+		Log-Msg -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
+		Log-Msg -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)" -ErrorAction $ErrAction
 		$restResponse = $null
 	} catch { 
-		throw $_.Exception.Message
+		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'",$_.Exception))
 	}
-	Log-Msg -Type Verbose -MSG $restResponse
+	Log-Msg -Type Verbose -Msg "Invoke-REST Response: $restResponse"
 	return $restResponse
 }
 
@@ -569,7 +605,6 @@ If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 	return
 }
 
-
 # Check if to disable SSL verification
 If($DisableSSLVerify)
 {
@@ -598,11 +633,6 @@ Else
 	}
 }
 
-If ((Test-CommandExists Invoke-RestMethod) -eq $false)
-{
-   Log-Msg -Type Error -MSG  "This script requires PowerShell version 3 or above"
-   exit
-}	
 
 # Check that the PVWA URL is OK
 If (![string]::IsNullOrEmpty($PVWAURL))
