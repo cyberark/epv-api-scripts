@@ -1,0 +1,6 @@
+username,address,platformType,domain,dependencyName,dependencyAddress,dependencyType,taskFolder
+svc_Backup,mydomain.com,Windows Domain,mydomain.com,MyBackupService,Server1.mydomain.com,Windows Service,
+svc_Backup,mydomain.com,Windows Domain,mydomain.com,MyBackupService,Server2.mydomain.com,Windows Service,
+svc_SchedTask,mydomain.com,Windows Domain,mydomain.com,MyTaskName,Server3.mydomain.com,Windows Scheduled Task,
+svc_SchedTask,mydomain.com,Windows Domain,mydomain.com,MyTaskNameInFolder,Server3.mydomain.com,Windows Scheduled Task,FolderName
+svc_IISLocalUser,Server4.mydomain.com,Windows Server Local,,MyWebAppPoolName,Server4.mydomain.com,IIS Application Pool,
