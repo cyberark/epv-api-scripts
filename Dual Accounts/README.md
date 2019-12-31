@@ -1,0 +1,45 @@
+# Dual Accounts
+
+> **General**
+> - These scripts Uses REST API and can support v10.6 of PVWA and up
+> - The goal for these scripts is to allow easy management for Dual Account use cases
+
+## Convert Platfrom DualAccount
+This script will convert an existing Platform to support Dual Account use cases.
+This will add to the relevant platform all needed properties and allow creating accounts for Dual Account use cases
+> This script can be supported from PVWA version 10.4 and above
+
+### Usage
+```powershell
+Convert-Platfrom-DualAccount.ps1 -PVWAURL <string> -PlatformID <string> [-AuthType <string>] [<CommonParameters>]
+```
+
+## Create Dual Account
+This script creates accounts for Dual Account and adds them to a Rotational Group
+This allows an application to work with two user accounts while one is active and the other passive
+More information here: https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/CP%20and%20ASCP/cv_Managing-Dual-Accounts.htm?tocpath=Integrations%7CCyberArk%20Vault%20Synchronizer%7CAccounts%20and%20Safes%7CManage%20Dual%20Accounts%7C_____0#ManageDualAccounts## 
+**Note:** Before running this script, make sure you have a Rotational Group Platform imported to your PVWA.
+> This script can be supported from PVWA version 10.6 and above
+
+This script supports two modes: [*Interactive*](#interactive) and [*NonInteractive*](#noninteractive)
+
+### Usage
+```powershell
+Create-DualAccount.ps1 -PVWAURL <string> -Interactive [-AuthType <string>] [-DisableSSLVerify] [<CommonParameters>]
+Create-DualAccount.ps1 -PVWAURL <string> -NonInteractive -CSVPath <string> -AccountPlatformID <string> -GroupPlatformID <string> -AccountSafeName <string> [-AuthType <string>] [-DisableSSLVerify] [<CommonParameters>]
+```
+
+#### Interactive
+```powershell
+Create-DualAccount.ps1 -PVWAURL <PVWA URL> -PlatformID <Platform ID>
+```
+
+#### NonInteractive
+```powershell
+Create-DualAccount.ps1 -NonInteractive -PVWAURL <PVWA URL> -CSVPath <CSV containing account details> -AccountPlatformID <Dual Account Platform ID> -GroupPlatformID <Rotational Group Platform ID> -AccountSafeName <Safe Name>
+```
+
+### Known issues
+Creation of Account Groups with a Rotational Group Platform Type is not yet supported
+Change the Rotational Group Platform type to Group (instead of RotationalGroup) before running this script
+After execution, change the platfomr type back to RotationGroup so Dual Account use case will work as expected
