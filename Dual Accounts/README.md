@@ -18,6 +18,7 @@ Convert-Platfrom-DualAccount.ps1 -PVWAURL <string> -PlatformID <string> [-AuthTy
 This script creates accounts for Dual Account and adds them to a Rotational Group
 This allows an application to work with two user accounts while one is active and the other passive
 More information [here](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/CP%20and%20ASCP/cv_Managing-Dual-Accounts.htm?tocpath=Integrations%7CCyberArk%20Vault%20Synchronizer%7CAccounts%20and%20Safes%7CManage%20Dual%20Accounts%7C_____0#ManageDualAccounts##)
+
 **Note:** Before running this script, make sure you have a Rotational Group Platform imported to your PVWA.
 You can download a Rotational Group sample platform from the [CyberArk Marketplace](https://cyberark-customers.force.com/mplace/s/#a352J000000pm6xQAA-a392J000001h4XZQAY) 
 > This script can be supported from PVWA version 10.6 and above
