@@ -1,15 +1,15 @@
-Main capabilities
------------------
-- The tool Uses REST API and can support v10.4 of PVWA and up
-- The goal for this script is to allow easy reporting or enumerating of Accounts
-- In this example script you will find examples of Get a list of Accounts, Get specific Account details, create a report of accounts
+# Get-Accounts
 
-Usage:
-------
+A script that allows easy reporting or enumerating of Accounts
+In this example script you will find examples of Get a list of Accounts, Get specific Account details, create a report of accounts
+
+## Usage
 ```powershell
 Get-Accounts.ps1 -PVWAURL <string> -List [-Report] [-SafeName <string>] [-Keywords <string>] [-SortBy <string>] [-Limit <int>] [-AutoNextPage] [-CSVPath <string>] [<CommonParameters>]
 Get-Accounts.ps1 -PVWAURL <string> -Details -AccountID <string> [-Report] [-CSVPath <string>] [<CommonParameters>]
 ```
+
+The script supports two modes [*List*](#list) and [*Details*](#account-details)
 
 List:
 -----
@@ -39,3 +39,43 @@ Allows to generate a report of the specific Account found
 ```powershell
 Get-Accounts.ps1 -PVWAURL <PVWA URL> -Details -Report -CSVPath <Path to the report CSV> -AccountID <Account ID> 
 ```
+
+## Supported version
+CyberArk PAS version 10.4 and above
+
+# Update-Accounts
+
+A script that allows updating of multiple account properties of a specific account
+
+## Usage
+```powershell
+Update-Account.ps1 -PVWAURL <string> -AccountID <string> -ParameterNames -ParameterValues [<CommonParameters>]
+```
+
+Examples:
+-----
+### Update one custom property of an account
+```powershell
+Update-Account.ps1 -PVWAURL https://mydomain.com/PasswordVault -AccountID 12_34 -ParameterNames "Environment" -ParameterValues "Production"
+```
+
+### Update multiple custom properties of an account with multiple values
+```powershell
+Update-Account.ps1 -PVWAURL https://mydomain.com/PasswordVault -AccountID 12_34 -ParameterNames "DataCenter","Building","ApplicationName" -ParameterValues "Washington","B1","FinancialApp"
+```
+The account will update the Properties with their values according to the order they were entered
+DataCenter = Washington
+Building = B1
+ApplicationName = FinancialApp
+
+### Update multiple custom properties of an account with partial values
+```powershell
+Update-Account.ps1 -PVWAURL https://mydomain.com/PasswordVault -AccountID 12_34 -ParameterNames "ApplicationName","ApplicationOwner","ApplicationTeam" -ParameterValues "FinancialApp","John Doe"
+```
+The account will update the Properties with their values according to the order they were entered
+ApplicationName = FinancialApp
+ApplicationOwner = John Doe 
+ApplicationTeam = John Doe
+
+## Supported version
+CyberArk PAS version 10.4 and above

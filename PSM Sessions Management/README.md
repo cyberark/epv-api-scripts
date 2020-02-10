@@ -9,7 +9,7 @@ This allows an Administrator to verify if a specific PSM server is available for
 PSM-SessionsManagement.ps1 -PVWAURL <string> [-AuthType <cyberark, ldap, radius>] [-List] [-Terminate] [-PSMServerName <string>] [<CommonParameters>]
 ```
 
-The script supports two modes	[*List*](#list-command) and [*Terminate*](#terminate-command)
+The script supports two modes [*List*](#list-command) and [*Terminate*](#terminate-command)
 
 
 List Command:
