@@ -171,7 +171,7 @@ If (Test-CommandExists Invoke-RestMethod)
     else
     {
         Write-Host -ForegroundColor Red "PVWA URL can not be empty"
-        exit
+        return
     }
 
 #region [Logon]
@@ -185,7 +185,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		$rstusername = $creds.username.Replace('\','');    
 		$rstpassword = $creds.GetNetworkCredential().password
 	}
-	else { exit }
+	else { return }
 
     # Create the POST Body for the Logon
     # ----------------------------------
@@ -203,7 +203,7 @@ If (Test-CommandExists Invoke-RestMethod)
     If ($logonToken -eq "")
     {
         Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-        exit
+        return
     }
 	
     # Create a Logon Token Header (This will be used through out all the script)
