@@ -157,7 +157,7 @@ If (Test-CommandExists Invoke-RestMethod)
 	{
 		$_bodyOp = "" | select "op", "path", "value"
 		$_bodyOp.op = "replace"
-		If ($prop.ToLower() -notin $excludedProperties)
+		If ($ParameterNames[$i].ToLower() -notin $excludedProperties)
 		{
 			$_bodyOp.path = "/platformAccountProperties/"+$ParameterNames[$i]
 		}
