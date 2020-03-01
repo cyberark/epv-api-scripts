@@ -285,7 +285,7 @@ $createSafeBody=@{
             "Description"="$safeDescription"; 
             "OLACEnabled"=$enableOLAC; 
             "ManagingCPM"="$managingCPM";
-            "NumberOfVersionsRtention"=$numVersionRetention;
+            "NumberOfVersionsRetention"=$numVersionRetention;
             }
 } | ConvertTo-Json
 
@@ -334,7 +334,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
 	$updateDescription = $getSafe.Description
 	$updateOLAC = $getSafe.OLACEnabled
 	$updateManageCPM = $getSafe.ManagingCPM
-	$updateRetVersions = $getSafe.NumberOfVersionsRtention
+	$updateRetVersions = $getSafe.NumberOfVersionsRetention
 	$updateRetDays = $getSafe.NumberOfDaysRtention
 	
 	If($getSafe.Description -ne $safeDescription)
@@ -349,7 +349,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
 	{
 		$updateManageCPM = $managingCPM
 	}
-	If($getSafe.NumberOfVersionsRtention -ne $numVersionRetention)
+	If($getSafe.NumberOfVersionsRetention -ne $numVersionRetention)
 	{
 		$updateRetVersions = $numVersionRetention
 	}
@@ -364,7 +364,7 @@ $updateSafeBody=@{
             "Description"="$updateDescription"; 
             "OLACEnabled"="$updateOLAC"; 
             "ManagingCPM"="$updateManageCPM";
-            "NumberOfVersionsRtention"=$updateRetVersions;
+            "NumberOfVersionsRetention"=$updateRetVersions;
             "NumberOfDaysRtention"=$updateRetDays;
             }
 } | ConvertTo-Json
