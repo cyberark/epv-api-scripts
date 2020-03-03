@@ -115,6 +115,10 @@ If ($logonToken -eq "")
 	Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
 	return
 }
+# Create a Logon Token Header (This will be used through out all the script)
+# ---------------------------
+$logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+$logonHeader.Add("Authorization", $logonToken)
 
 $arrConCompToImport = @()
 
