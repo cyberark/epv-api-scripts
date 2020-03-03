@@ -740,13 +740,16 @@ If (Test-CommandExists Invoke-RestMethod)
 					$csv = Import-Csv $FilePath
 					# Sort List by Safes
 					$sortedList = $csv | Sort-Object -Property safename
+					# Safe a Jobs List
+					$arrJobs = @()
 					# For each Safe, Run a thread to Create the safe
 					ForEach ($safeNameLine in ($sortedList | Sort-Object -Property safename -Unique | select safename))
 					{
 						Write-Host "Handling Safe '$safeNameLine'..." -ForegroundColor Yellow #DEBUG
 						$safeLineItems = $sortedList | Where { $_.safename -eq $safeNameLine }
-						Create-TaskSafeImport -SafeLines $safeLineItems
+						$arrJobs += Create-TaskSafeImport -SafeLines $safeLineItems -Credentials $creds
 					}
+					Recieve-Job $arrJobs
 				}
 				else
 				{
