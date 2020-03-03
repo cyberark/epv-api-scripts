@@ -261,6 +261,8 @@ Create-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes 
     [OutputType()]
     Param
     (
+		[Parameter(Mandatory=$false)]
+		$_LogonHeader = $g_LogonHeader,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
         [string]$safename,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
@@ -293,7 +295,7 @@ If($numDaysRetention -gt -1)
 
 	try {
         Write-Host "Adding the safe $safename to the Vault..." -ForegroundColor Yellow #DEBUG
-        $safeadd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
+        $safeadd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
     }catch{
         Write-Host "Error adding $safename to the Vault. The error was:" -ForegroundColor Red #ERROR
         Write-Error $_.Exception.Response.StatusDescription
@@ -317,6 +319,8 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     [OutputType()]
     Param
     (
+		[Parameter(Mandatory=$false)]
+		$_LogonHeader = $g_LogonHeader,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
         [string]$safename,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
@@ -373,7 +377,7 @@ $updateSafeBody=@{
 
 	try {
         Write-Host "Updating safe $safename..." -ForegroundColor Yellow #DEBUG
-        $safeupdate = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
+        $safeupdate = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
     }catch{
         Write-Host "Error updating $safename. The error was:" -ForegroundColor Red #ERROR
         Write-Error $_.Exception.Response.StatusDescription
@@ -430,8 +434,10 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
     [OutputType()]
     Param
     (
+		[Parameter(Mandatory=$false)]
+		$_LogonHeader = $g_LogonHeader
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [ValidateScript({((Get-Safes).safename) -contains $_})]
+        [ValidateScript({((Get-Safes -_LogonHeader $_LogonHeader).safename) -contains $_})]
         $safename,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
         $safeMember,
@@ -517,7 +523,7 @@ $SafeMembersBody = @{
 
     try {
         Write-Host "Setting safe membership for $safeMember located in $memberSearchInLocation on $safeName in the vault..." -ForegroundColor Yellow #DEBUG
-        $setSafeMembers = Invoke-RestMethod -Uri $($URL_SafeMembers -f $(Encode-URL $safeName)) -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorVariable rMethodErr
+        $setSafeMembers = Invoke-RestMethod -Uri $($URL_SafeMembers -f $(Encode-URL $safeName)) -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method POST -Headers $_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorVariable rMethodErr
     }catch{
 		if ($rmethodErr.message -like "*User or Group is already a member*"){
 			Write-Host "The user $safeMember is already a member. Use the update member method instead" -ForegroundColor Red #ERROR
