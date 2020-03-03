@@ -24,7 +24,7 @@ param
 	[Alias("ConnectionComponent")]
 	[string]$ConnectionComponentZipPath,
 	
-	[Parameter(Mandatory=$false,HelpMessage="Enter a fodler path for Connection Components Zip files to import")]
+	[Parameter(Mandatory=$false,HelpMessage="Enter a folder path for Connection Components Zip files to import")]
 	[Alias("Folder")]
 	[string]$ConnectionComponentFolderPath
 )
@@ -131,8 +131,7 @@ ElseIf ((![string]::IsNullOrEmpty($ConnectionComponentZipPath)) -and ([string]::
 Else
 {
 	Write-Host -ForegroundColor Red "No Connection Component path was entered."
-	Write-Host -ForegroundColor Yellow "Please enter a Connection Component ZIP path or a folder path that includes Connection Component ZIP files"
-	return
+	$arrConCompToImport = Read-Host "Please enter a Connection Component ZIP path"
 }
 
 ForEach($connCompItem in $arrConCompToImport)
