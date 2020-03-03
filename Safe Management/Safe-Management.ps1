@@ -273,11 +273,10 @@ Create-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes 
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
         [int]$numVersionRetention=7,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
-        [int]$numDaysRetention=5,
+        [int]$numDaysRetention=-1,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
         [bool]$EnableOLAC=$false
     )
-
 
 $createSafeBody=@{
             safe=@{
@@ -287,11 +286,17 @@ $createSafeBody=@{
             "ManagingCPM"="$managingCPM";
             "NumberOfVersionsRetention"=$numVersionRetention;
             }
-} | ConvertTo-Json
+}
+
+If($numDaysRetention -gt -1)
+{
+	$createSafeBody.Safe.Add("NumberOfDaysRetention",$numDaysRetention)
+	$createSafeBody.Safe.Remove("NumberOfVersionsRetention")
+}
 
 	try {
         Write-Host "Adding the safe $safename to the Vault..." -ForegroundColor Yellow #DEBUG
-        $safeadd = Invoke-RestMethod -Uri $URL_Safes -Body $createSafeBody -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
+        $safeadd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
     }catch{
         Write-Host "Error adding $safename to the Vault. The error was:" -ForegroundColor Red #ERROR
         Write-Error $_.Exception.Response.StatusDescription
@@ -691,10 +696,12 @@ If (Test-CommandExists Invoke-RestMethod)
 						if (((Get-Safes).safename) -notcontains $line.safename) {
 							If($Add)
 							{
+								Write-Host "Adding the safe $SafeName..." -ForegroundColor Yellow
 								Create-Safe -safename $line.safename -safedescription $line.description
 							}
 							ElseIf($Update)
 							{
+								Write-Host "Updating the safe $SafeName..." -ForegroundColor Yellow
 								Update-Safe -safename $line.safename -safedescription $line.description
 							}
 						}
