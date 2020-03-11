@@ -117,6 +117,7 @@ $URL_SafeMembers = $URL_SpecificSafe+"/Members"
 # Initialize Script Variables
 # ---------------------------
 $g_LogonHeader = ""
+$Global:g_SafesList = $null
 
 #region Functions
 Function Test-CommandExists
@@ -134,7 +135,7 @@ Function Encode-URL($sText)
 	if ($sText.Trim() -ne "")
 	{
 		write-debug "Returning URL Encode of $sText"
-		return [System.Web.HttpUtility]::UrlEncode($sText)
+		return [URI]::EscapeDataString($sText)
 	}
 	else
 	{
@@ -210,9 +211,14 @@ Get-Safes
     )
 
 try {
-        Write-Host "Retrieving safes from the vault..." -ForegroundColor Yellow #DEBUG
-        $safes = (Invoke-RestMethod -Uri $URL_Safes -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000).GetSafesResult
-        return $safes
+		If($g_SafesList -eq $null)
+		{
+			Write-Host "Retrieving safes from the vault..." -ForegroundColor Yellow #DEBUG
+			$safes = (Invoke-RestMethod -Uri $URL_Safes -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000).GetSafesResult
+			Set-Variable -Name g_SafesList -Value $safes -Scope Global
+		}
+		
+        return $g_SafesList
     }catch{
         Write-Host "There was an error retrieving the safes from the Vault. The error was:" -ForegroundColor Red #ERROR
         Write-Error $_.Exception.Response.StatusDescription
@@ -297,6 +303,10 @@ If($numDaysRetention -gt -1)
 	try {
         Write-Host "Adding the safe $safename to the Vault..." -ForegroundColor Yellow #DEBUG
         $safeadd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
+		# Reset cached Safes list
+		Set-Variable -Name g_SafesList -Value $null -Scope Global
+		# Update Safes list to include new safe
+		Get-Safes | out-null
     }catch{
         Write-Host "Error adding $safename to the Vault. The error was:" -ForegroundColor Red #ERROR
         Write-Error $_.Exception.Response.StatusDescription
@@ -696,12 +706,12 @@ If (Test-CommandExists Invoke-RestMethod)
 						if (((Get-Safes).safename) -notcontains $line.safename) {
 							If($Add)
 							{
-								Write-Host "Adding the safe $SafeName..." -ForegroundColor Yellow
+								Write-Host "Adding the safe $($line.safename)..." -ForegroundColor Yellow
 								Create-Safe -safename $line.safename -safedescription $line.description
 							}
 							ElseIf($Update)
 							{
-								Write-Host "Updating the safe $SafeName..." -ForegroundColor Yellow
+								Write-Host "Updating the safe $($line.safename)..." -ForegroundColor Yellow
 								Update-Safe -safename $line.safename -safedescription $line.description
 							}
 						}
