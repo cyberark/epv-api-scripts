@@ -868,8 +868,11 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								$restBody = ConvertTo-Json $s_AccountBody -depth 5
 								$urlUpdateAccount = $URL_AccountsDetails -f $s_Account.id
 								$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "PATCH")
-								Log-Msg -Type Info -MSG "Account properties Updated Successfully"
-								$updateChange = $true
+								if($UpdateAccountResult -ne $null)
+								{
+									Log-Msg -Type Info -MSG "Account properties Updated Successfully"
+									$updateChange = $true
+								}
 							}
 							
 							# Check if Secret update is needed
@@ -884,8 +887,11 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								$restBody = ConvertTo-Json $_passBody -depth 5
 								$urlUpdateAccount = $URL_AccountsPassword -f $s_Account.id
 								$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "POST")
-								Log-Msg -Type Info -MSG "Account Secret Updated Successfully"
-								$updateChange = $true
+								if($UpdateAccountResult -ne $null)
+								{
+									Log-Msg -Type Info -MSG "Account Secret Updated Successfully"
+									$updateChange = $true
+								}
 							}
 							If($updateChange)
 							{
@@ -918,7 +924,12 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								# Single account found for deletion
 								$urlDeleteAccount = $URL_AccountsDetails -f $s_Account.id
 								$DeleteAccountResult = $(Invoke-Rest -Uri $urlDeleteAccount -Header $g_LogonHeader -Command "DELETE")
-								Log-Msg -Type Info -MSG "Account deleted Successfully"
+								if($DeleteAccountResult -ne $null)
+								{
+									# Increment counter
+									$counter++
+									Log-Msg -Type Info -MSG "[$counter/$rowCount] Deleted $tmpAccountName successfully."
+								}
 							}
 						}
 					}
@@ -957,5 +968,5 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
     Write-Host "Logoff Session..."
     Invoke-Rest -Uri $URL_Logoff -Header $g_LogonHeader -Command "Post"
 	# Footer
-	Log-Msg -Type Info -MSG "Vaulted ${counter} out of ${rowCount} accounts successfully." -Footer
+	Log-Msg -Type Info -MSG "Vaulted $counter out of $rowCount accounts successfully." -Footer
 #endregion
