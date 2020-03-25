@@ -743,13 +743,18 @@ If (Test-CommandExists Invoke-RestMethod)
 					# Safe a Jobs List
 					$arrJobs = @()
 					# For each Safe, Run a thread to Create the safe
-					ForEach ($safeNameLine in ($sortedList | Sort-Object -Property safename -Unique | select safename))
+					$i = 1
+					$uniqueSafesList = ($sortedList | Sort-Object -Property safename -Unique | select safename)
+					ForEach ($safeNameLine in $uniqueSafesList)
 					{
 						Write-Host "Handling Safe '$safeNameLine'..." -ForegroundColor Yellow #DEBUG
 						$safeLineItems = $sortedList | Where { $_.safename -eq $safeNameLine }
 						$arrJobs += Create-TaskSafeImport -SafeLines $safeLineItems -Credentials $creds
+						Write-Host "Created a task for handling all Safe '$safeNameLine' tasks (Task $i/$($uniqueSafesList.count))"
 					}
+					Write-Host "Waiting for all tasks to finish"
 					Recieve-Job $arrJobs
+					Write-Host "All tasks finished!"
 				}
 				else
 				{
