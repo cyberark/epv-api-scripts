@@ -119,6 +119,7 @@ If ($logonToken -eq "")
 # ---------------------------
 $logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
 $logonHeader.Add("Authorization", $logonToken)
+#endregion
 
 $arrConCompToImport = @()
 
