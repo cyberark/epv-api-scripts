@@ -4,7 +4,7 @@
 #
 # AUTHOR:  Assaf Miron
 #
-# COMMENT: 
+# COMMENT:
 # This script will create two accounts to work as Dual Account for AAM
 # This allows an application to work with two user accounts while one is active and the other passive
 # More information here: https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/CP%20and%20ASCP/cv_Managing-Dual-Accounts.htm?tocpath=Integrations%7CCyberArk%20Vault%20Synchronizer%7CAccounts%20and%20Safes%7CManage%20Dual%20Accounts%7C_____0#ManageDualAccounts
@@ -24,38 +24,38 @@ param
 	[Parameter(Mandatory=$false,HelpMessage="Enter the Authentication type (Default:CyberArk)")]
 	[ValidateSet("cyberark","ldap","radius")]
 	[String]$AuthType="cyberark",
-	
+
 	# Use this switch to Disable SSL verification (NOT RECOMMENDED)
 	[Parameter(Mandatory=$false)]
 	[Switch]$DisableSSLVerify,
-	
+
 	# Use this switch to switch to interactive mode
 	[Parameter(ParameterSetName='Interactive',Mandatory=$true)]
 	[Switch]$Interactive,
-	
+
 	# Use this switch to switch to non-interactive mode
 	[Parameter(ParameterSetName='NonInteractive',Mandatory=$true)]
 	[Switch]$NonInteractive,
-	
+
 	[Parameter(ParameterSetName='NonInteractive', Mandatory=$true,ValueFromPipeline=$false,ValueFromPipelineByPropertyName=$true,HelpMessage="Enter a path to a file containing relevant accounts")]
 	[ValidateScript({Test-Path $_})]
 	[Alias("path")]
 	[String]$CsvPath,
-	
+
 	[Parameter(ParameterSetName='NonInteractive', Mandatory=$true,HelpMessage="Enter the Dual Account Platform ID")]
 	[Alias("platform")]
 	[String]$AccountPlatformID,
-	
+
 	[Parameter(ParameterSetName='NonInteractive', Mandatory=$true,HelpMessage="Enter the Dual Account Group Platform ID")]
 	[Alias("group")]
 	[String]$GroupPlatformID,
-	
+
 	[Parameter(ParameterSetName='NonInteractive', Mandatory=$true,HelpMessage="Enter the Dual Accounts Safe Name")]
 	[Alias("safe")]
 	[String]$AccountSafeName
 )
 
-# Get Script Location 
+# Get Script Location
 $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
 # Get Debug / Verbose parameters for Script
 $global:InDebug = $PSBoundParameters.Debug.IsPresent
@@ -94,12 +94,12 @@ $URL_PlatformDetails = $URL_PVWAAPI+"/Platforms/{0}"
 # =================================================================================================================================
 Function Write-LogMessage
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	Method to log a message on screen and in a log file
 
 .DESCRIPTION
-	Logging The input Message to the Screen and the Log File. 
+	Logging The input Message to the Screen and the Log File.
 	The Message Type is presented in colours on the screen based on the type
 
 .PARAMETER LogFile
@@ -137,18 +137,18 @@ Function Write-LogMessage
 			# Create a temporary log file
 			$LogFile = "$ScriptLocation\tmp.log"
 		}
-		
+
 		If ($Header) {
-			"=======================================" | Out-File -Append -FilePath $LogFile 
+			"=======================================" | Out-File -Append -FilePath $LogFile
 		}
-		ElseIf($SubHeader) { 
-			"------------------------------------" | Out-File -Append -FilePath $LogFile 
+		ElseIf($SubHeader) {
+			"------------------------------------" | Out-File -Append -FilePath $LogFile
 		}
-		
+
 		$msgToWrite = "[$(Get-Date -Format "yyyy-MM-dd hh:mm:ss")]`t"
 		# Replace empty message with 'N/A'
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
-		
+
 		# Mask Passwords
 		if($Msg -match '((?>password|secret)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))')
 		{
@@ -158,7 +158,7 @@ Function Write-LogMessage
 		# Check the message type
 		switch ($type)
 		{
-			"Info" { 
+			"Info" {
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
 				break
@@ -173,7 +173,7 @@ Function Write-LogMessage
 				$msgToWrite += "[ERROR]`t$Msg"
 				break
 			}
-			"Debug" { 
+			"Debug" {
 				if($InDebug -or $InVerbose)
 				{
 					Write-Debug $MSG
@@ -182,7 +182,7 @@ Function Write-LogMessage
 				}
 				else { $writeToFile = $False }
 			}
-			"Verbose" { 
+			"Verbose" {
 				if($InVerbose)
 				{
 					Write-Verbose $MSG
@@ -193,8 +193,8 @@ Function Write-LogMessage
 			}
 		}
 		If($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LogFile }
-		If ($Footer) { 
-			"=======================================" | Out-File -Append -FilePath $LogFile 
+		If ($Footer) {
+			"=======================================" | Out-File -Append -FilePath $LogFile
 		}
 	}
 	catch{
@@ -210,8 +210,8 @@ Function Write-LogMessage
 # =================================================================================================================================
 Function Collect-ExceptionMessage
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	Formats exception messages
 .DESCRIPTION
 	Formats exception messages
@@ -246,8 +246,8 @@ Function Collect-ExceptionMessage
 # =================================================================================================================================
 Function Test-CommandExists
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	Tests if a command exists
 .DESCRIPTION
 	Tests if a command exists
@@ -261,7 +261,7 @@ Function Test-CommandExists
     try { if(Get-Command $command){ return $true } }
     Catch { return $false }
     Finally {$ErrorActionPreference=$oldPreference}
-} 
+}
 
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Disable-SSLVerification
@@ -271,8 +271,8 @@ Function Test-CommandExists
 # =================================================================================================================================
 Function Disable-SSLVerification
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	Bypass SSL certificate validations
 .DESCRIPTION
 	Disables the SSL Verification (bypass self signed SSL certificates)
@@ -312,8 +312,8 @@ public static class DisableCertValidationCallback {
 # =================================================================================================================================
 Function Encode-URL($sText)
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	HTTP Encode test in URL
 .DESCRIPTION
 	HTTP Encode test in URL
@@ -338,8 +338,8 @@ Function Encode-URL($sText)
 # =================================================================================================================================
 Function Invoke-Rest
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	Invoke REST Method
 .DESCRIPTION
 	Invoke REST Method
@@ -352,23 +352,23 @@ Function Invoke-Rest
 .PARAMETER Body
 	(Optional) The REST Body
 .PARAMETER ErrAction
-	(Optional) The Error Action to perform in case of error. By deault "Continue"
+	(Optional) The Error Action to perform in case of error. By default "Continue"
 #>
 	param (
 		[Parameter(Mandatory=$true)]
 		[ValidateSet("GET","POST","DELETE","PATCH")]
-		[String]$Command, 
+		[String]$Command,
 		[Parameter(Mandatory=$true)]
-		[String]$URI, 
+		[String]$URI,
 		[Parameter(Mandatory=$false)]
-		$Header, 
+		$Header,
 		[Parameter(Mandatory=$false)]
-		[String]$Body, 
+		[String]$Body,
 		[Parameter(Mandatory=$false)]
 		[ValidateSet("Continue","Ignore","Inquire","SilentlyContinue","Stop","Suspend")]
 		[String]$ErrAction="Continue"
 	)
-	
+
 	If ((Test-CommandExists Invoke-RestMethod) -eq $false)
 	{
 	   Throw "This script requires PowerShell version 3 or above"
@@ -390,7 +390,7 @@ Function Invoke-Rest
 		Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
 		Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)" -ErrorAction $ErrAction
 		$restResponse = $null
-	} catch { 
+	} catch {
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'",$_.Exception))
 	}
 	Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $restResponse"
@@ -405,8 +405,8 @@ Function Invoke-Rest
 # =================================================================================================================================
 Function Get-LogonHeader
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	Get-LogonHeader
 .DESCRIPTION
 	Get-LogonHeader
@@ -417,7 +417,7 @@ Function Get-LogonHeader
 		[Parameter(Mandatory=$true)]
 		[PSCredential]$Credentials
 	)
-	
+
 	if([string]::IsNullOrEmpty($g_LogonHeader))
 	{
 		# Disable SSL Verification to contact PVWA
@@ -425,14 +425,14 @@ Function Get-LogonHeader
 		{
 			Disable-SSLVerification
 		}
-		
+
 		# Create the POST Body for the Logon
 		# ----------------------------------
 		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
 		try{
 			# Logon
 			$logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
-			
+
 			# Clear logon body
 			$logonBody = ""
 		} catch {
@@ -444,15 +444,15 @@ Function Get-LogonHeader
 		{
 			Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
 		}
-		
+
 		# Create a Logon Token Header (This will be used through out all the script)
 		# ---------------------------
 		$logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
 		$logonHeader.Add("Authorization", $logonToken)
-		
-		Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
+
+		Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global
 	}
-	
+
 	return $g_LogonHeader
 }
 
@@ -464,8 +464,8 @@ Function Get-LogonHeader
 # =================================================================================================================================
 Function Run-Logoff
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	Run-Logoff
 .DESCRIPTION
 	Logoff a PVWA session
@@ -489,8 +489,8 @@ Function Run-Logoff
 # =================================================================================================================================
 Function Add-DualAccount
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	Add-DualAccount -UserName appUser1 -UserPassword **** -Address 10.10.2.1 -PlatformID UnixDualAccount -SafeName DualAccountSafe -VirtualUserName BillingApp -Index 1 -VaultCredentials $Creds
 .DESCRIPTION
 	Create a new Dual Account
@@ -554,9 +554,9 @@ Function Add-DualAccount
 				$dualAccountStatusValue = "Active"
 			}
 			$objAccount.platformAccountProperties | Add-Member -NotePropertyName DualAccountStatus -NotePropertyValue $dualAccountStatusValue
-			
+
 			$addAccountResult = $(Invoke-Rest -Uri $URL_Accounts -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Body $($objAccount | ConvertTo-Json -Depth 5) -Command "Post")
-			
+
 			return $addAccountResult.id
 		}
 		else
@@ -576,8 +576,8 @@ Function Add-DualAccount
 # =================================================================================================================================
 Function Get-RotationalGroupIDFromSafe
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	Get-RotationalGroupIDFromSafe -GroupPlatformID GroupDualAccount -SafeName DualAccountSafe -GroupName BillingAppGroup -VaultCredentials $Creds
 .DESCRIPTION
 	Create a new Rotational group for Dual Accounts
@@ -620,7 +620,7 @@ Function Get-RotationalGroupIDFromSafe
 				}
 			}
 		}
-		
+
 		return $groupID
 	} catch {
 		Throw $(New-Object System.Exception ("Get-RotationalGroupIDFromSafe: Failed to get Rotational Group ID",$_.Exception))
@@ -635,8 +635,8 @@ Function Get-RotationalGroupIDFromSafe
 # =================================================================================================================================
 Function Add-RotationalGroup
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	Add-RotationalGroup -GroupPlatformID GroupDualAccount -SafeName DualAccountSafe -VirtualUserName BillingApp -VaultCredentials $Creds
 .DESCRIPTION
 	Create a new Rotational group for Dual Accounts
@@ -682,7 +682,7 @@ Function Add-RotationalGroup
 				$groupID = $addAccGroupResult.GroupID
 			}
 		}
-		# Check that a group was creadted or found
+		# Check that a group was created or found
 		if(![string]::IsNullOrEmpty($groupID))
 		{
 			# Add the Account to the Rotational Group
@@ -707,8 +707,8 @@ Function Add-RotationalGroup
 # =================================================================================================================================
 Function Get-Account
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	Get-Account -accountName user1 -accountAddress 1.1.1.1 -safeName MySafe -VaultCredentials $Creds
 .DESCRIPTION
 	Creates a new Account Object
@@ -721,9 +721,9 @@ Function Get-Account
 #>
 	param (
 		[Parameter(Mandatory=$true)]
-		[String]$accountName, 
+		[String]$accountName,
 		[Parameter(Mandatory=$true)]
-		[String]$accountAddress, 
+		[String]$accountAddress,
 		[Parameter(Mandatory=$true)]
 		[String]$safeName,
 		[Parameter(Mandatory=$true)]
@@ -749,7 +749,7 @@ Function Get-Account
 	} catch {
 		Throw $(New-Object System.Exception ("Get-Account: There was an error retreiving the account object.",$_.Exception))
 	}
-	
+
 	return $_retaccount
 }
 
@@ -761,8 +761,8 @@ Function Get-Account
 # =================================================================================================================================
 Function Test-Account
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	Test-Account -accountName user1 -accountAddress 1.1.1.1 -safeName MySafe -VaultCredentials $Creds
 .DESCRIPTION
 	Test if an accoutn exists (Search based on filters)
@@ -775,9 +775,9 @@ Function Test-Account
 #>
 	param (
 		[Parameter(Mandatory=$true)]
-		[String]$accountName, 
+		[String]$accountName,
 		[Parameter(Mandatory=$true)]
-		[String]$accountAddress, 
+		[String]$accountAddress,
 		[Parameter(Mandatory=$true)]
 		[String]$safeName,
 		[Parameter(Mandatory=$true)]
@@ -835,7 +835,7 @@ else
 # Get Credentials to Login
 # ------------------------
 $caption = "Create Dual Account"
-$msg = "Enter your PAS User name and Password ($AuthType)"; 
+$msg = "Enter your PAS User name and Password ($AuthType)";
 $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 
 try {
@@ -859,10 +859,10 @@ try {
 			Index=$ind;
 			}
 			Write-LogMessage -Type Info -MSG "Creating Account $('{0}@{1}' -f $account.userName, $account.address)"
-			$arrAccountId += Add-DualAccount @dualAccountParameters 
+			$arrAccountId += Add-DualAccount @dualAccountParameters
 			$ind++
 		}
-		
+
 		Write-LogMessage -Type Info -MSG "Creating the Rotational Group"
 		ForEach($id in $arrAccountId)
 		{
@@ -881,7 +881,7 @@ try {
 		$GroupPlatformID = Read-Host "Enter the Rotational Group Platform ID"
 		$user1 = $Host.UI.PromptForCredential($caption,($msg -f "first"),"","")
 		$user2 = $Host.UI.PromptForCredential($caption,($msg -f "second"),"","")
-		
+
 		# Create the Accounts
 		# Get User1 Details
 		$userName, $address = $user1.username.Replace('\','').Split('@')
@@ -897,23 +897,23 @@ try {
 		}
 		# Create User1
 		Write-LogMessage -Type Info -MSG "Creating Account $($user1.userName)"
-		$user1ID = Add-DualAccount @dualAccountParameters 
-		
+		$user1ID = Add-DualAccount @dualAccountParameters
+
 		# Get User2 Details
 		$dualAccountParameters.userName, $dualAccountParameters.address = $user2.username.Replace('\','').Split('@')
 		$dualAccountParameters.userPassword = $user2.GetNetworkCredential().password
 		$dualAccountParameters.Index = 2
 		# Create User2
 		Write-LogMessage -Type Info -MSG "Creating Account $($user2.userName)"
-		$user2ID = Add-DualAccount @dualAccountParameters 
-		
+		$user2ID = Add-DualAccount @dualAccountParameters
+
 		# Create the Roataional Group
 		Write-LogMessage -Type Info -MSG "Creating the Rotational Group"
 		Add-RotationalGroup -groupPlatformID $GroupPlatformID -safeName $AppSafeName -virtualUserName $AppVirtualUserName -accountID $user1ID -VaultCredentials $creds
 		Add-RotationalGroup -groupPlatformID $GroupPlatformID -safeName $AppSafeName -virtualUserName $AppVirtualUserName -accountID $user2ID -VaultCredentials $creds
-		
+
 		Write-LogMessage -Type Info -MSG "Rotational Group for $AppVirtualUserName was successfully created"
-	}	
+	}
 } catch {
 	Write-LogMessage -Type Error - MSG "There was an Error creating a Rotational Group for Dual Accounts. Error: $(Collect-ExceptionMessage $_.Exception)"
 }
