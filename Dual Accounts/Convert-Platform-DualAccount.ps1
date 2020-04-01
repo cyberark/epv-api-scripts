@@ -19,15 +19,18 @@ param
 	#[ValidateScript({Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30})]
 	[Alias("url")]
 	[String]$PVWAURL,
+
+	# Use this switch to Disable SSL verification (NOT RECOMMENDED)
+	[Parameter(Mandatory=$false)]
+	[Switch]$DisableSSLVerify,
 	
 	[Parameter(Mandatory=$false,HelpMessage="Enter the Authentication type (Default:CyberArk)")]
 	[ValidateSet("cyberark","ldap","radius")]
 	[String]$AuthType="cyberark",
 	
-	
 	[Parameter(Mandatory=$true,HelpMessage="Enter the platform ID to convert")]
 	[Alias("Platform")]
-	[string]$PlatformID	
+	[string]$PlatformID 
 )
 
 # Get Script Location 
@@ -37,7 +40,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "1.0"
+$ScriptVersion = "1.1"
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -464,6 +467,48 @@ Function Get-LogonHeader
 	
 	return $g_LogonHeader
 }
+
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Disable-SSLVerification
+# Description....: Disables the SSL Verification (bypass self signed SSL certificates)
+# Parameters.....: None
+# Return Values..: None
+# =================================================================================================================================
+Function Disable-SSLVerification
+{
+<# 
+.SYNOPSIS 
+	Bypass SSL certificate validations
+.DESCRIPTION
+	Disables the SSL Verification (bypass self signed SSL certificates)
+#>
+	# Using Proxy Default credentials if the Server needs Proxy credentials
+	[System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
+	# Using TLS 1.2 as security protocol verification
+	[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+	# Disable SSL Verification
+	if (-not("DisableCertValidationCallback" -as [type])) {
+    add-type -TypeDefinition @"
+using System;
+using System.Net;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+
+public static class DisableCertValidationCallback {
+    public static bool ReturnTrue(object sender,
+        X509Certificate certificate,
+        X509Chain chain,
+        SslPolicyErrors sslPolicyErrors) { return true; }
+
+    public static RemoteCertificateValidationCallback GetDelegate() {
+        return new RemoteCertificateValidationCallback(DisableCertValidationCallback.ReturnTrue);
+    }
+}
+"@ }
+
+	[System.Net.ServicePointManager]::ServerCertificateValidationCallback = [DisableCertValidationCallback]::GetDelegate()
+}
+
 
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Run-Logoff
