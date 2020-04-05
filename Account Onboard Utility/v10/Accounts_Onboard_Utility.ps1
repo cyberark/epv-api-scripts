@@ -381,17 +381,15 @@ Function Get-SafeMembers
 			$arrPermissions += @{"Key"="RequestsAuthorizationLevel";"Value"=1}
 			ForEach($perm in $item.Permissions.PSObject.Properties)
 			{
-				$keyValue = "" | select Key, Value
-				$keyValue.Key = Convert-PermissionName -permName $perm.Name
-				$keyValue.Value = $perm.Value
-				If(![string]::IsNullOrEmpty($keyValue.Key))
+				$keyName = Convert-PermissionName -permName $perm.Name
+				If(![string]::IsNullOrEmpty($keyName))
 				{
-					$arrPermissions += $keyValue
+					$arrPermissions += @{"Key"=$keyName; "Value"=$perm.Value}
 				}
 			}
 			$item.Permissions = $arrPermissions
 			$item | Add-Member -NotePropertyName "SearchIn" -NotePropertyValue "Vault"
-			$item | Add-Member -NotePropertyName "MembershipExpirationDate" -NotePropertyValue ""
+			$item | Add-Member -NotePropertyName "MembershipExpirationDate" -NotePropertyValue $null
 			$_retSafeOwners += $item
 		}
 	}
