@@ -925,7 +925,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								Else
 								{
 									# Single account found for deletion
-									$urlDeleteAccount = $URL_AccountsDetails -f $s_Account.id
+									$urlDeleteAccount = $URL_AccountsDetails -f $d_account.id
 									$DeleteAccountResult = $(Invoke-Rest -Uri $urlDeleteAccount -Header $g_LogonHeader -Command "DELETE")
 									if($DeleteAccountResult -ne $null)
 									{
