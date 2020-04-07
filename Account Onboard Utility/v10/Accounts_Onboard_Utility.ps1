@@ -844,20 +844,37 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								# Get Existing Account Details
 								$s_Account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address)
 								$s_AccountBody = @()
-								Foreach($sProp in $s_Account.Properties)
+								Foreach($sProp in $s_Account.PSObject.Properties)
 								{
-									Log-Msg -Type Verbose -MSG "Inspecting Account Property $($sProp.Key)"
-									If($objAccount.$($sProp.Key) -ne $sProp.Value)
+									Log-Msg -Type Verbose -MSG "Inspecting Account Property $($sProp.Name)"
+									If($sProp.TypeNameOfValue -eq "System.Management.Automation.PSCustomObject") 
 									{
-										$_bodyOp = "" | select "op", "path", "value"
-										$_bodyOp.op = "replace"
-										$_bodyOp.path = "/"+$sProp.Key
-										$_bodyOp.value = $objAccount.$($sProp.Key)
-										$s_AccountBody += $_bodyOp
-									}
-									else
-									{
-										Log-Msg -Type Verbose -MSG "Current Account Property $($sProp.Key) value ($($objAccount.$($sProp.Key))) is identical to requested update value ($($sProp.Value))"
+										# A Nested object
+										ForEach($subProp in $s_Account.($sProp.Name).PSObject.Properties) 
+										{ 
+											Log-Msg -Type Verbose -MSG "Inspecting Account Property $($subProp.Name)"
+											If($objAccount.$($sProp.Name).$($subProp.Name) -ne $subProp.Value)
+											{
+												Log-Msg -Type Verbose -MSG "Updating Account Property $($s_Account.$($sProp.Name)) value from: '$($objAccount.$($sProp.Name).$($subProp.Name))' to: '$($subProp.Value)'"
+												$_bodyOp = "" | select "op", "path", "value"
+												$_bodyOp.op = "replace"
+												$_bodyOp.path = "/"+$sProp.Name+"/"+$subProp.Name
+												$_bodyOp.value = $objAccount.$($sProp.Name).$($subProp.Name)
+												$s_AccountBody += $_bodyOp
+											}
+										} 
+									} 
+									else 
+									{ 
+										If($objAccount.$($sProp.Name) -ne $sProp.Value)
+										{
+											Log-Msg -Type Verbose -MSG "Updating Account Property $($sProp.Name) value from: '$($objAccount.$($sProp.Name))' to: '$($sProp.Value)'"
+											$_bodyOp = "" | select "op", "path", "value"
+											$_bodyOp.op = "replace"
+											$_bodyOp.path = "/"+$sProp.Name
+											$_bodyOp.value = $objAccount.$($sProp.Name)
+											$s_AccountBody += $_bodyOp
+										}
 									}
 								}
 								
