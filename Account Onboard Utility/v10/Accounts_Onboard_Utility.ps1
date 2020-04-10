@@ -182,7 +182,7 @@ Function Log-MSG
 		# Replace empty message with 'N/A'
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		# Mask Passwords
-		if($Msg -match '((?:password|credentials)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))')
+		if($Msg -match '((?:password|credentials)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
 		{
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
@@ -853,9 +853,9 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 										ForEach($subProp in $s_Account.($sProp.Name).PSObject.Properties) 
 										{ 
 											Log-Msg -Type Verbose -MSG "Inspecting Account Property $($subProp.Name)"
-											If($objAccount.$($sProp.Name).$($subProp.Name) -ne $subProp.Value)
+											If(($null -ne $objAccount.$($sProp.Name).$($subProp.Name)) -and ($objAccount.$($sProp.Name).$($subProp.Name) -ne $subProp.Value))
 											{
-												Log-Msg -Type Verbose -MSG "Updating Account Property $($s_Account.$($sProp.Name)) value from: '$($objAccount.$($sProp.Name).$($subProp.Name))' to: '$($subProp.Value)'"
+												Log-Msg -Type Verbose -MSG "Updating Account Property $($s_Account.$($sProp.Name)) value from: '$($subProp.Value)' to: '$($objAccount.$($sProp.Name).$($subProp.Name))'"
 												$_bodyOp = "" | select "op", "path", "value"
 												$_bodyOp.op = "replace"
 												$_bodyOp.path = "/"+$sProp.Name+"/"+$subProp.Name
@@ -866,9 +866,9 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									} 
 									else 
 									{ 
-										If($objAccount.$($sProp.Name) -ne $sProp.Value)
+										If(($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $sProp.Value))
 										{
-											Log-Msg -Type Verbose -MSG "Updating Account Property $($sProp.Name) value from: '$($objAccount.$($sProp.Name))' to: '$($sProp.Value)'"
+											Log-Msg -Type Verbose -MSG "Updating Account Property $($sProp.Name) value from: '$($sProp.Value)' to: '$($objAccount.$($sProp.Name))'"
 											$_bodyOp = "" | select "op", "path", "value"
 											$_bodyOp.op = "replace"
 											$_bodyOp.path = "/"+$sProp.Name
