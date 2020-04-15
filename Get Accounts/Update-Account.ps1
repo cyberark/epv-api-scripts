@@ -178,12 +178,11 @@ If (Test-CommandExists Invoke-RestMethod)
 	
 	
 	#Format the body to send
-    	$body = $arrProperties | ConvertTo-Json -Depth 5
-    	If($body[0] -ne '[') 
-    	{
-    	$body = "[" + $body + "]"
-    	}
-    	$body
+	$body = $arrProperties | ConvertTo-Json -Depth 5
+	If($body[0] -ne '[') 
+	{
+		$body = "[" + $body + "]"
+	}
 	
 	Write-Host "Properties that will change in Account:" -ForegroundColor Cyan
 	$arrProperties | Select-Object @{Name='Property'; Expression={"{0} = {1}" -f $_.path, $_.value}}
