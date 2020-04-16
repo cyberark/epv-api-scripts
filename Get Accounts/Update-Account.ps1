@@ -182,7 +182,7 @@ If (Test-CommandExists Invoke-RestMethod)
 					# Need to add the manualManagementReason
 					$_bodyOp.op = "add"
 					$_bodyOp.path = "/secretManagement/manualManagementReason"
-					if([string]::IsNullOrEmpty($ParameterValues[$i])
+					if([string]::IsNullOrEmpty($ParameterValues[$i]))
 					{
 						$_bodyOp.value = "[No Reason]"
 					}

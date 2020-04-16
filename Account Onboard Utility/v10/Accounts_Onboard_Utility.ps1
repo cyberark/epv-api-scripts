@@ -882,7 +882,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 													$_bodyOp = "" | select "op", "path", "value"
 													$_bodyOp.op = "add"
 													$_bodyOp.path = "/secretManagement/manualManagementReason"
-													if([string]::IsNullOrEmpty($objAccount.secretManagement.manualManagementReason)
+													if([string]::IsNullOrEmpty($objAccount.secretManagement.manualManagementReason))
 													{
 														$_bodyOp.value = "[No Reason]"
 													}
