@@ -157,6 +157,44 @@ If (Test-CommandExists Invoke-RestMethod)
 	{
 		$_bodyOp = "" | select "op", "path", "value"
 		$_bodyOp.op = "replace"
+		# Adding a specific case for "/secretManagement/automaticManagementEnabled"
+		If($ParameterNames[$i] -in @("automaticManagementEnabled","manualManagementReason"))
+		{
+			If($ParameterNames[$i] -like "manualManagementReason")
+			{
+				$_bodyOp.op = "replace"
+				$_bodyOp.path = "/secretManagement/manualManagementReason"
+				$_bodyOp.value = $ParameterValues[$i]
+				$arrProperties += $_bodyOp
+			}
+			else
+			{
+				If($ParameterValues[$i] -eq $true)
+				{
+					# Need to remove the manualManagementReason
+					$_bodyOp.op = "remove"
+					$_bodyOp.path = "/secretManagement/manualManagementReason"
+					$_bodyOp.value = ""
+					$arrProperties += $_bodyOp
+				}
+				else
+				{
+					# Need to add the manualManagementReason
+					$_bodyOp.op = "add"
+					$_bodyOp.path = "/secretManagement/manualManagementReason"
+					if([string]::IsNullOrEmpty($ParameterValues[$i])
+					{
+						$_bodyOp.value = "[No Reason]"
+					}
+					else
+					{
+						$_bodyOp.value = $ParameterValues[$i]
+					}
+					$arrProperties += $_bodyOp
+				}
+			}
+		}
+		# Handling all other properties
 		If ($ParameterNames[$i].ToLower() -notin $excludedProperties)
 		{
 			$_bodyOp.path = "/platformAccountProperties/"+$ParameterNames[$i]
@@ -186,8 +224,16 @@ If (Test-CommandExists Invoke-RestMethod)
 	
 	Write-Host "Properties that will change in Account:" -ForegroundColor Cyan
 	$arrProperties | Select-Object @{Name='Property'; Expression={"{0} = {1}" -f $_.path, $_.value}}
+	
+	#Format the body to send
+	$body = $arrProperties | ConvertTo-Json -Depth 5
+	If($body[0] -ne '[') 
+	{
+		$body = "[" + $body + "]"
+	}
+	
 	try{
-		$UpdateAccountDetailsResponse = Invoke-RestMethod -Method Patch -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -Body ($body) -ContentType "application/json" -TimeoutSec 3600000
+		$UpdateAccountDetailsResponse = Invoke-RestMethod -Method Patch -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -Body $body -ContentType "application/json" -TimeoutSec 3600000
 		$response = $UpdateAccountDetailsResponse
 	} catch {
 		Write-Error $_.Exception.Response.StatusDescription
