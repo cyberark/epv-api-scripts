@@ -934,11 +934,11 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									{
 										Log-Msg -Type Debug -MSG "Updating Account Secret..."
 										# This account has a password and we are going to update item
-										$_passBody = "" | select  "ChangeEntireGroup", "NewCredentials"
-										$_passBody.ChangeEntireGroup = $false
+										$_passBody = "" | select "NewCredentials"
+										# $_passBody.ChangeEntireGroup = $false
 										$_passBody.NewCredentials = $objAccount.secret
 										# Update secret
-										$restBody = ConvertTo-Json $_passBody -depth 5
+										$restBody = ConvertTo-Json $_passBody
 										$urlUpdateAccount = $URL_AccountsPassword -f $s_Account.id
 										$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "POST")
 										if($UpdateAccountResult -ne $null)
