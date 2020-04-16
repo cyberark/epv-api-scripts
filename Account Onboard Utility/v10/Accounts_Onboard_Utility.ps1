@@ -343,7 +343,7 @@ Function Convert-PermissionName
 		"ViewMembers" { return "ViewSafeMembers" } 
 		"RestrictedRetrieve" { return "UseAccounts" } 
 		"AddRenameFolder" { return "CreateFolders" } 
-		"DeleteFolder" { return "DeleteFolder" } 
+		"DeleteFolder" { return "DeleteFolders" } 
 		"Unlock" { return "UnlockAccounts" } 
 		"MoveFilesAndFolders" { return "MoveAccountsAndFolders" } 
 		"ManageSafe" { return "ManageSafe" } 
@@ -717,7 +717,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 	}
 	$delimiter = $(If ($CsvDelimiter -eq "Comma") { "," } else { "`t" } )
 	$accountsCSV = Import-CSV $csvPath -Delimiter $delimiter
-	$rowCount = $accountsCSV.Count
+	$rowCount = $($accountsCSV.Count)
 	$counter = 0
 	Log-Msg -Type Info -MSG "Starting to Onboard $rowCount accounts" -SubHeader
 	ForEach ($account in $accountsCSV)
@@ -862,6 +862,37 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 												$_bodyOp.value = $objAccount.$($sProp.Name).$($subProp.Name)
 												$s_AccountBody += $_bodyOp
 											}
+											# Adding a specific case for "/secretManagement/automaticManagementEnabled"
+											If("/secretManagement/automaticManagementEnabled" -eq ("/"+$sProp.Name+"/"+$subProp.Name))
+											{
+												If($objAccount.secretManagement.automaticManagementEnabled -eq $true)
+												{
+													# Need to remove the manualManagementReason
+													Log-Msg -Type Verbose -MSG "Since Account Automatic management is on, removing the Manual management reason"
+													$_bodyOp = "" | select "op", "path", "value"
+													$_bodyOp.op = "remove"
+													$_bodyOp.path = "/secretManagement/manualManagementReason"
+													$_bodyOp.value = ""
+													$s_AccountBody += $_bodyOp
+												}
+												else
+												{
+													# Need to add the manualManagementReason
+													Log-Msg -Type Verbose -MSG "Since Account Automatic management is off, adding the Manual management reason"
+													$_bodyOp = "" | select "op", "path", "value"
+													$_bodyOp.op = "add"
+													$_bodyOp.path = "/secretManagement/manualManagementReason"
+													if([string]::IsNullOrEmpty($objAccount.secretManagement.manualManagementReason)
+													{
+														$_bodyOp.value = "[No Reason]"
+													}
+													else
+													{
+														$_bodyOp.value = $objAccount.secretManagement.manualManagementReason
+													}
+													$s_AccountBody += $_bodyOp
+												}
+											}
 										} 
 									} 
 									else 
@@ -898,19 +929,25 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								# Check if Secret update is needed
 								If($null -ne $objAccount.secret)
 								{
-									Log-Msg -Type Debug -MSG "Updating Account Secret..."
-									# This account has a password and we are going to update item
-									$_passBody = "" | select  "ChangeEntireGroup", "NewCredentials"
-									$_passBody.ChangeEntireGroup = $false
-									$_passBody.NewCredentials = $objAccount.secret
-									# Update secret
-									$restBody = ConvertTo-Json $_passBody -depth 5
-									$urlUpdateAccount = $URL_AccountsPassword -f $s_Account.id
-									$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "POST")
-									if($UpdateAccountResult -ne $null)
+									# Verify that the secret type is a Password (Only type that is currently supported to update
+									if($objAccount.secretType -eq "password")
 									{
-										Log-Msg -Type Info -MSG "Account Secret Updated Successfully"
-										$updateChange = $true
+										Log-Msg -Type Debug -MSG "Updating Account Secret..."
+										# This account has a password and we are going to update item
+										$_passBody = "" | select "NewCredentials"
+										# $_passBody.ChangeEntireGroup = $false
+										$_passBody.NewCredentials = $objAccount.secret
+										# Update secret
+										$restBody = ConvertTo-Json $_passBody
+										$urlUpdateAccount = $URL_AccountsPassword -f $s_Account.id
+										$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "POST")
+										if($UpdateAccountResult -ne $null)
+										{
+											Log-Msg -Type Info -MSG "Account Secret Updated Successfully"
+											$updateChange = $true
+										}
+									} else {
+										Log-Msg -Type Warning -MSG "Account Secret Type is not a password, no support for updating the secret - skipping"
 									}
 								}
 								If($updateChange)
