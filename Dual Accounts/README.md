@@ -11,7 +11,7 @@ This will add to the relevant platform all needed properties and allow creating 
 
 ### Usage
 ```powershell
-Convert-Platform-DualAccount.ps1 -PVWAURL <string> -PlatformID <string> [-AuthType <string>] [-DisableSSLVerify][<CommonParameters>]
+Convert-Platform-DualAccount.ps1 -PVWAURL <string> -PlatformID <string> [-AuthType <string>] [-DisableSSLVerify] [<CommonParameters>]
 ```
 
 ## Create Dual Account
