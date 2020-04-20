@@ -39,6 +39,11 @@ param
 	[Parameter(ParameterSetName='List',Mandatory=$false)]
 	[Parameter(ParameterSetName='Details')]
 	[switch]$Report,
+
+    # Authentication method
+	[Parameter(ParameterSetName='List',Mandatory=$true)]
+    [Parameter(ParameterSetName='Details',Mandatory=$true)]
+    [String]$AuthMethod,
 	
 	# List accounts filters
 	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Enter a Safe Name to search in")]
@@ -75,7 +80,7 @@ $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
 # -----------
 $URL_PVWAAPI = $PVWAURL+"/api"
 $URL_Authentication = $URL_PVWAAPI+"/auth"
-$URL_CyberArkLogon = $URL_Authentication+"/cyberark/Logon"
+$URL_CyberArkLogon = $URL_Authentication+"/{0}/Logon"
 $URL_CyberArkLogoff = $URL_Authentication+"/Logoff"
 
 # URL Methods
@@ -91,6 +96,7 @@ $URL_Platforms = $URL_PVWAAPI+"/Platforms/{0}"
 # ---------------------------
 $rstusername = $rstpassword = ""
 $logonToken  = ""
+$authList = @("cyberark","ldap")
 
 #region Functions
 Function Test-CommandExists
@@ -155,7 +161,32 @@ Function AddSearchCriteria
 	return $retURL
 }
 
+Function Test-AvailableAuth
+{
+    param ([string]$authMethod)
+    return ($authMethod -in $authList)
+}
+
+Function Display-AuthMethods
+{
+    param ([string[]]$authList)
+    foreach($e in $authList)
+    {
+        Write-Host -ForegroundColor Red "*$e"
+    } 
+}
+
 #endregion
+
+
+# Check that the authentication method is allowed
+$AuthMethod = $AuthMethod.ToLower()
+If (-Not (Test-AvailableAuth $AuthMethod))
+{
+     Write-Host -ForegroundColor Red "Allowed methods are:"
+     Display-AuthMethods $authList
+     return
+}
 
 If (Test-CommandExists Invoke-RestMethod)
 {
@@ -193,7 +224,7 @@ If (Test-CommandExists Invoke-RestMethod)
     $logonBody = $logonBody | ConvertTo-Json
 	try{
 	    # Logon
-	    $logonToken = Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogon -Body $logonBody -ContentType "application/json"
+	    $logonToken = Invoke-RestMethod -Method Post -Uri $($URL_CyberArkLogon-f $AuthMethod) -Body $logonBody -ContentType "application/json"
 	}
 	catch
 	{
@@ -239,7 +270,10 @@ If (Test-CommandExists Invoke-RestMethod)
 				$GetAccountsList += $GetAccountsResponse.value
 				Write-Debug $GetAccountsList.count
 				$nextLink =  $GetAccountsResponse.nextLink
-				Write-Debug $nextLink
+                If ($nextLink -ne $null)
+                {
+                    Write-Debug $nextLink
+                }
 				
 				While ($nextLink -ne "" -and $nextLink -ne $null)
 				{
