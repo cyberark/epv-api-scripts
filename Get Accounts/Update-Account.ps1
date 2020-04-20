@@ -32,7 +32,11 @@ param
 	
 	[Parameter(Mandatory=$true,HelpMessage="Parameter value(s) to edit")]
 	[Alias("paramValue")]
-	[string[]]$ParameterValues
+	[string[]]$ParameterValues,
+
+    # Authentication method
+	[Parameter(Mandatory=$true,HelpMessage="The authentication method used")]
+    [String]$AuthMethod
 )
 
 # Get Script Location 
@@ -42,7 +46,7 @@ $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
 # -----------
 $URL_PVWAAPI = $PVWAURL+"/api"
 $URL_Authentication = $URL_PVWAAPI+"/auth"
-$URL_CyberArkLogon = $URL_Authentication+"/cyberark/Logon"
+$URL_CyberArkLogon = $URL_Authentication+"/{0}/Logon"
 $URL_CyberArkLogoff = $URL_Authentication+"/Logoff"
 
 # URL Methods
@@ -58,6 +62,7 @@ $URL_Platforms = $URL_PVWAAPI+"/Platforms/{0}"
 # ---------------------------
 $rstusername = $rstpassword = ""
 $logonToken  = ""
+$authList = @("cyberark","ldap")
 
 #region Functions
 Function Test-CommandExists
@@ -76,7 +81,33 @@ Function Convert-Date($epochdate)
 	else {return (Get-Date -Date "01/01/1970").AddSeconds($epochdate)}
 }
 
+Function Test-AvailableAuth
+{
+    param ([string]$authMethod)
+    return ($authMethod -in $authList)
+}
+
+Function Display-AuthMethods
+{
+    param ([string[]]$authList)
+    foreach($e in $authList)
+    {
+        Write-Host -ForegroundColor Red "*$e"
+    } 
+}
+
 #endregion
+
+
+# Check that the authentication method is allowed
+$AuthMethod = $AuthMethod.ToLower()
+If (-Not (Test-AvailableAuth $AuthMethod))
+{
+     Write-Host -ForegroundColor Red "Allowed methods are:"
+     Display-AuthMethods $authList
+     return
+}
+
 
 If (Test-CommandExists Invoke-RestMethod)
 {
@@ -114,7 +145,7 @@ If (Test-CommandExists Invoke-RestMethod)
     $logonBody = $logonBody | ConvertTo-Json
 	try{
 	    # Logon
-	    $logonToken = Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogon -Body $logonBody -ContentType "application/json"
+	    $logonToken = Invoke-RestMethod -Method Post -Uri $($URL_CyberArkLogon-f $AuthMethod) -Body $logonBody -ContentType "application/json"
 	}
 	catch
 	{
@@ -214,13 +245,6 @@ If (Test-CommandExists Invoke-RestMethod)
 		$arrProperties += $_bodyOp
 	}
 	
-	
-	#Format the body to send
-	$body = $arrProperties | ConvertTo-Json -Depth 5
-	If($body[0] -ne '[') 
-	{
-		$body = "[" + $body + "]"
-	}
 	
 	Write-Host "Properties that will change in Account:" -ForegroundColor Cyan
 	$arrProperties | Select-Object @{Name='Property'; Expression={"{0} = {1}" -f $_.path, $_.value}}
