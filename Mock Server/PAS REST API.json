@@ -906,7 +906,122 @@
                                         "isRegex": false
                                     }
                                 ]
-                            }
+                            },
+							{
+								"uuid": "",
+								"body": "{\n\t\"id\": \"28_8\",\n\t\"name\": \"Operating System-UnixviaSSHMisc-rhel2.cyberarkdemo.com-developer2\",\n\t\"address\": \"rhel2.cyberarkdemo.com\",\n\t\"userName\": \"developer2\",\n\t\"platformId\": \"UnixviaSSHMisc\",\n\t\"safeName\": \"Linux Root\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1546608853    \n\t\t},\n\t\"createdTime\": 1546608853\n}",
+								"latency": 0,
+								"statusCode": "200",
+								"label": "28_8",
+								"headers": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"filePath": "",
+								"sendFileAsBody": false,
+								"rules": [
+									{
+										"target": "params",
+										"modifier": "id",
+										"value": "28_8",
+										"isRegex": false
+									}
+								]
+							},
+							{
+								"uuid": "",
+								"body": "{\n\t\"id\": \"28_5\",\n\t\"name\": \"Operating System-UnixviaSSHMisc-rhel2.cyberarkdemo.com-firecall1\",\n\t\"address\": \"rhel2.cyberarkdemo.com\",\n\t\"userName\": \"firecall1\",\n\t\"platformId\": \"UnixviaSSHMisc\",\n\t\"safeName\": \"Linux Root\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1546608880    \n\t\t},\n\t\"createdTime\": 1546608880\n}",
+								"latency": 0,
+								"statusCode": "200",
+								"label": "28_5",
+								"headers": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"filePath": "",
+								"sendFileAsBody": false,
+								"rules": [
+									{
+										"target": "params",
+										"modifier": "id",
+										"value": "28_5",
+										"isRegex": false
+									}
+								]
+							},
+							{
+								"uuid": "",
+								"body": "{\n\t\"id\": \"28_6\",\n\t\"name\": \"Operating System-UnixviaSSHMisc-rhel2.cyberarkdemo.com-firecall2\",\n\t\"address\": \"rhel2.cyberarkdemo.com\",\n\t\"userName\": \"firecall2\",\n\t\"platformId\": \"UnixviaSSHMisc\",\n\t\"safeName\": \"Linux Root\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1546608894    \n\t\t},\n\t\"createdTime\": 1546608894\n}",
+								"latency": 0,
+								"statusCode": "200",
+								"label": "28_6",
+								"headers": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"filePath": "",
+								"sendFileAsBody": false,
+								"rules": [
+									{
+										"target": "params",
+										"modifier": "id",
+										"value": "28_6",
+										"isRegex": false
+									}
+								]
+							},
+							{
+								"uuid": "",
+								"body": "{\n\t\"id\": \"30_3\",\n\t\"name\": \"Operating System-UnixSSHKeys-rhel2-root\",\n\t\"address\": \"rhel2\",\n\t\"userName\": \"root\",\n\t\"platformId\": \"UnixSSHKeys\",\n\t\"safeName\": \"Linux SSH Keys\",\n\t\"secretType\": \"key\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1556884358    \n\t},\n\t\"createdTime\": 1556884358\n}",
+								"latency": 0,
+								"statusCode": "200",
+								"label": "30_3",
+								"headers": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"filePath": "",
+								"sendFileAsBody": false,
+								"rules": [
+									{
+										"target": "params",
+										"modifier": "id",
+										"value": "30_3",
+										"isRegex": false
+									}
+								]
+							},
+							{
+								"uuid": "",
+								"body": "{\n\t\"id\": \"31_3\",\n\t\"name\": \"demo-sa\",\n\t\"address\": \"epmsvr.cyberarkdemo.com\",\n\t\"userName\": \"sa\",\n\t\"platformId\": \"MSSql\",\n\t\"safeName\": \"MSSQL\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"Database\": \"master\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1513783971    \n\t},\n\t\"createdTime\": 1513783971\n}",
+								"latency": 0,
+								"statusCode": "200",
+								"label": "31_3",
+								"headers": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"filePath": "",
+								"sendFileAsBody": false,
+								"rules": [
+									{
+										"target": "params",
+										"modifier": "id",
+										"value": "31_3",
+										"isRegex": false
+									}
+								]
+							}
                         ],
                         "enabled": true
                     },
