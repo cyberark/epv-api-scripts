@@ -1,6 +1,8 @@
 # PAS REST API Mock Server
 
-Use a local mock API server to quicker debug of your CyberArk PAS REST API development
+Use a local mock API server to develop and debug a lot faster your CyberArk PAS REST API applications or scripts.
+Using a mock server you will not endanger any production environment and can real fast responses.
+Edit and contribute to this mock API JSON with additional information and rules.
 
 ![screenshot](https://github.com/cyberark/epv-api-scripts/blob/DebugWIP/Mock%20Server/images/mockoon_pas_restapi.png)
 
