@@ -5,7 +5,7 @@
 # AUTHOR:  Assaf Miron
 #
 # COMMENT: 
-# This script will update account roperties on a specified Account
+# This script will update account properties on a specified Account
 #
 # SUPPORTED VERSIONS:
 # CyberArk PVWA v10.4 and above
