@@ -162,7 +162,10 @@ ForEach($connCompItem in $arrConCompToImport)
 
 # Logoff the session
 # ------------------
-Write-Host "Logoff Session..."
-Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogoff -Headers $logonHeader -ContentType "application/json" | Out-Null
+if($null -ne $logonHeader)
+{
+	Write-Host "Logoff Session..."
+	Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogoff -Headers $logonHeader -ContentType "application/json" | Out-Null
+}
 
 Write-Host "Import Connection Component: Script Ended" -ForegroundColor Cyan
