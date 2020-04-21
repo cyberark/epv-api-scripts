@@ -23,8 +23,8 @@ param
 	[Alias("url")]
 	[String]$PVWAURL,
 	
-    [Parameter(Mandatory=$true,HelpMessage="The required input filed, containing Accounts IDs")]
-	[string]$ReportInput,
+    [Parameter(Mandatory=$true,HelpMessage="The required input field, containing Accounts IDs")]
+	[string]$ICSVPath,
 
     # Authentication method
     [Parameter(Mandatory=$true,HelpMessage="The authentication method used")]
@@ -108,8 +108,7 @@ If (-Not (Test-AvailableAuth $AuthMethod))
 }
 
 # Check that Input file is not empty
-#If (-Not (Test-InputFile $ReportInput))
-If ($ReportInput -eq $null -or -Not ((Test-Path $ReportInput -PathType Leaf)) -or (([IO.Path]::GetExtension($ReportInput) -ne ".csv" -and [IO.Path]::GetExtension($ReportInput) -ne ".txt")))
+If ($ICSVPath -eq $null -or -Not ((Test-Path $ICSVPath -PathType Leaf)) -or (([IO.Path]::GetExtension($ICSVPath) -ne ".csv" -and [IO.Path]::GetExtension($ICSVPath) -ne ".txt")))
 {
        
     Write-Host -ForegroundColor Red "Input file must be valid"
@@ -171,7 +170,7 @@ If (Test-CommandExists Invoke-RestMethod)
     $logonHeader.Add("Authorization", $logonToken)
 #endregion
 
-    $accounts = Import-Csv $ReportInput
+    $accounts = Import-Csv $ICSVPath
     foreach ($line in $accounts)
     {
    
