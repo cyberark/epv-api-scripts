@@ -106,7 +106,7 @@ Update-BulkAccounts.ps1 -PVWAURL https://mydomain.com/PasswordVault -AuthMethod 
 ```powershell
 Update-Account.ps1 -PVWAURL https://mydomain.com/PasswordVault -AuthMethod cyberark -ICSVPath <Path to the report CSV> -ParameterNames "DataCenter","Building","ApplicationName" -ParameterValues "Washington","B1","FinancialApp"
 ```
-The account will update the Properties with their values according to the order they were entered
+Accounts will update the Properties with their values according to the order they were entered
 DataCenter = Washington
 Building = B1
 ApplicationName = FinancialApp
@@ -115,7 +115,7 @@ ApplicationName = FinancialApp
 ```powershell
 Update-Account.ps1 -PVWAURL https://mydomain.com/PasswordVault -AuthMethod cyberark -ICSVPath <Path to the report CSV> -ParameterNames "ApplicationName","ApplicationOwner","ApplicationTeam" -ParameterValues "FinancialApp","John Doe"
 ```
-The account will update the Properties with their values according to the order they were entered
+Accounts will update the Properties with their values according to the order they were entered
 ApplicationName = FinancialApp
 ApplicationOwner = John Doe 
 ApplicationTeam = John Doe
