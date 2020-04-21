@@ -24,5 +24,4 @@ Start the local mock API server and use it to debug you CyberArk REST API develo
 ## License
 
 Mockoon is licensed as MIT
-
 The JSON file provided here is given based on the same license as the epv-api-scripts license
