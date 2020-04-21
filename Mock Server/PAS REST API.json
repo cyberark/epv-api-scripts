@@ -907,121 +907,1363 @@
                                     }
                                 ]
                             },
-							{
-								"uuid": "",
-								"body": "{\n\t\"id\": \"28_8\",\n\t\"name\": \"Operating System-UnixviaSSHMisc-rhel2.cyberarkdemo.com-developer2\",\n\t\"address\": \"rhel2.cyberarkdemo.com\",\n\t\"userName\": \"developer2\",\n\t\"platformId\": \"UnixviaSSHMisc\",\n\t\"safeName\": \"Linux Root\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1546608853    \n\t\t},\n\t\"createdTime\": 1546608853\n}",
-								"latency": 0,
-								"statusCode": "200",
-								"label": "28_8",
-								"headers": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"filePath": "",
-								"sendFileAsBody": false,
-								"rules": [
-									{
-										"target": "params",
-										"modifier": "id",
-										"value": "28_8",
-										"isRegex": false
-									}
-								]
-							},
-							{
-								"uuid": "",
-								"body": "{\n\t\"id\": \"28_5\",\n\t\"name\": \"Operating System-UnixviaSSHMisc-rhel2.cyberarkdemo.com-firecall1\",\n\t\"address\": \"rhel2.cyberarkdemo.com\",\n\t\"userName\": \"firecall1\",\n\t\"platformId\": \"UnixviaSSHMisc\",\n\t\"safeName\": \"Linux Root\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1546608880    \n\t\t},\n\t\"createdTime\": 1546608880\n}",
-								"latency": 0,
-								"statusCode": "200",
-								"label": "28_5",
-								"headers": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"filePath": "",
-								"sendFileAsBody": false,
-								"rules": [
-									{
-										"target": "params",
-										"modifier": "id",
-										"value": "28_5",
-										"isRegex": false
-									}
-								]
-							},
-							{
-								"uuid": "",
-								"body": "{\n\t\"id\": \"28_6\",\n\t\"name\": \"Operating System-UnixviaSSHMisc-rhel2.cyberarkdemo.com-firecall2\",\n\t\"address\": \"rhel2.cyberarkdemo.com\",\n\t\"userName\": \"firecall2\",\n\t\"platformId\": \"UnixviaSSHMisc\",\n\t\"safeName\": \"Linux Root\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1546608894    \n\t\t},\n\t\"createdTime\": 1546608894\n}",
-								"latency": 0,
-								"statusCode": "200",
-								"label": "28_6",
-								"headers": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"filePath": "",
-								"sendFileAsBody": false,
-								"rules": [
-									{
-										"target": "params",
-										"modifier": "id",
-										"value": "28_6",
-										"isRegex": false
-									}
-								]
-							},
-							{
-								"uuid": "",
-								"body": "{\n\t\"id\": \"30_3\",\n\t\"name\": \"Operating System-UnixSSHKeys-rhel2-root\",\n\t\"address\": \"rhel2\",\n\t\"userName\": \"root\",\n\t\"platformId\": \"UnixSSHKeys\",\n\t\"safeName\": \"Linux SSH Keys\",\n\t\"secretType\": \"key\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1556884358    \n\t},\n\t\"createdTime\": 1556884358\n}",
-								"latency": 0,
-								"statusCode": "200",
-								"label": "30_3",
-								"headers": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"filePath": "",
-								"sendFileAsBody": false,
-								"rules": [
-									{
-										"target": "params",
-										"modifier": "id",
-										"value": "30_3",
-										"isRegex": false
-									}
-								]
-							},
-							{
-								"uuid": "",
-								"body": "{\n\t\"id\": \"31_3\",\n\t\"name\": \"demo-sa\",\n\t\"address\": \"epmsvr.cyberarkdemo.com\",\n\t\"userName\": \"sa\",\n\t\"platformId\": \"MSSql\",\n\t\"safeName\": \"MSSQL\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"Database\": \"master\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1513783971    \n\t},\n\t\"createdTime\": 1513783971\n}",
-								"latency": 0,
-								"statusCode": "200",
-								"label": "31_3",
-								"headers": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"filePath": "",
-								"sendFileAsBody": false,
-								"rules": [
-									{
-										"target": "params",
-										"modifier": "id",
-										"value": "31_3",
-										"isRegex": false
-									}
-								]
-							}
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"28_8\",\n\t\"name\": \"Operating System-UnixviaSSHMisc-rhel2.cyberarkdemo.com-developer2\",\n\t\"address\": \"rhel2.cyberarkdemo.com\",\n\t\"userName\": \"developer2\",\n\t\"platformId\": \"UnixviaSSHMisc\",\n\t\"safeName\": \"Linux Root\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1546608853    \n\t\t},\n\t\"createdTime\": 1546608853\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "28_8",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "28_8",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"28_5\",\n\t\"name\": \"Operating System-UnixviaSSHMisc-rhel2.cyberarkdemo.com-firecall1\",\n\t\"address\": \"rhel2.cyberarkdemo.com\",\n\t\"userName\": \"firecall1\",\n\t\"platformId\": \"UnixviaSSHMisc\",\n\t\"safeName\": \"Linux Root\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1546608880    \n\t\t},\n\t\"createdTime\": 1546608880\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "28_5",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "28_5",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"28_6\",\n\t\"name\": \"Operating System-UnixviaSSHMisc-rhel2.cyberarkdemo.com-firecall2\",\n\t\"address\": \"rhel2.cyberarkdemo.com\",\n\t\"userName\": \"firecall2\",\n\t\"platformId\": \"UnixviaSSHMisc\",\n\t\"safeName\": \"Linux Root\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1546608894    \n\t\t},\n\t\"createdTime\": 1546608894\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "28_6",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "28_6",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"30_3\",\n\t\"name\": \"Operating System-UnixSSHKeys-rhel2-root\",\n\t\"address\": \"rhel2\",\n\t\"userName\": \"root\",\n\t\"platformId\": \"UnixSSHKeys\",\n\t\"safeName\": \"Linux SSH Keys\",\n\t\"secretType\": \"key\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1556884358    \n\t},\n\t\"createdTime\": 1556884358\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "30_3",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "30_3",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"31_3\",\n\t\"name\": \"demo-sa\",\n\t\"address\": \"epmsvr.cyberarkdemo.com\",\n\t\"userName\": \"sa\",\n\t\"platformId\": \"MSSql\",\n\t\"safeName\": \"MSSQL\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"Database\": \"master\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1513783971    \n\t},\n\t\"createdTime\": 1513783971\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "31_3",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "31_3",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"32_7\",\n\t\"name\": \"10.0.1.15-ben-1f02eba9-4a8f-473a-8b46-84882d78217a\",\n\t\"address\": \"10.0.1.15\",\n\t\"userName\": \"ben\",\n\t\"platformId\": \"UnixSSH\",\n\t\"safeName\": \"Oracle\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1513787623    \n\t},\n\t\"createdTime\": 1513787623\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "32_7",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "32_7",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"32_8\",\n\t\"name\": \"10.0.1.15-oracle-9180d3b6-b19b-4764-adfa-cd97c6a50c6c\",\n\t\"address\": \"10.0.1.15\",\n\t\"userName\": \"oracle\",\n\t\"platformId\": \"UnixSSH\",\n\t\"safeName\": \"Oracle\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1513787624    \n\t},\n\t\"createdTime\": 1513787624\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "32_8",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "32_8",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"32_3\",\n\t\"name\": \"HR\",\n\t\"address\": \"rhel2.cyberarkdemo.com\",\n\t\"userName\": \"HR\",\n\t\"platformId\": \"Oracle\",\n\t\"safeName\": \"Oracle\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"Port\": \"1521\",\n\t\t\"Database\": \"XE\"    \n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1549482297    \n\t},\n\t\"createdTime\": 1549482297\n}}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "32_3",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "32_3",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"32_12\",\n\t\"name\": \"SAMPLEAPPID1\",\n\t\"address\": \"rhel2\",\n\t\"userName\": \"SAMPLEAPPID1\",\n\t\"platformId\": \"Oracle\",\n\t\"safeName\": \"Oracle\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"Port\": \"1521\",\n\t\t\"Database\": \"XE\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1521820879    \n\t},\n\t\"createdTime\": 1521820879\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "32_12",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "32_12",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"64_5\",\n\t\"name\": \"Website-Amazon-PSM4C-Amazon.com-changeme@changem.com\",\n\t\"address\": \"Amazon.com\",\n\t\"userName\": \"changeme@changeme.com\",\n\t\"platformId\": \"AWS-PSM4C\",\n\t\"safeName\": \"PSM4C\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"WebApplicationID\": \"amazon-web-services\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"No Reason\",\n\t\t\"lastModifiedTime\": 1551278430    \n\t},\n\t\"createdTime\": 1551278430\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "64_5",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "64_5",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"64_4\",\n\t\"name\": \"Website-Facebook-PSM4C-facebook.com-changeme@changeme.com\",\n\t\"address\": \"Facebook.com\",\n\t\"userName\": \"changeme@changeme.com\",\n\t\"platformId\": \"Facebook-PSM4C\",\n\t\"safeName\": \"PSM4C\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"WebApplicationID\": \"facebook\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"No Reason\",\n\t\t\"lastModifiedTime\": 1556283330    \n\t},\n\t\"createdTime\": 1556283330\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "64_4",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "64_4",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"64_7\",\n\t\"name\": \"Website-GCP-PSM4C-GCP.com-changeme@changeme.com\",\n\t\"address\": \"Google.com\",\n\t\"userName\": \"changeme@changeme.com\",\n\t\"platformId\": \"GoogleCloudPlatform-PSM4C\",\n\t\"safeName\": \"PSM4C\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"WebApplicationID\": \"google-cloud-platform\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"No Reason\",\n\t\t\"status\": \"failure\",\n\t\t\"lastModifiedTime\": 1553193178    \n\t},\n\t\"createdTime\": 1553193178\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "64_7",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "64_7",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"64_8\",\n\t\"name\": \"Website-Instagram-PSM4C-Instagram.com-changeme@changeme.com\",\n\t\"address\": \"Instagram.com\",\n\t\"userName\": \"changeme@changeme.com\",\n\t\"platformId\": \"Instagram-PSM4C\",\n\t\"safeName\": \"PSM4C\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"WebApplicationID\": \"instagram\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"No Reason\",\n\t\t\"status\": \"failure\",\n\t\t\"lastModifiedTime\": 1551265368    \n\t},\n\t\"createdTime\": 1551265368\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "64_8",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "64_8",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"64_9\",\n\t\"name\": \"Website-Linkedin-PSM4C-Linkedin.com-changeme@changeme.com\",\n\t\"address\": \"Linkedin.com\",\n\t\"userName\": \"changeme@changeme.com\",\n\t\"platformId\": \"Linkedin-PSM4C\",\n\t\"safeName\": \"PSM4C\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"WebApplicationID\": \"linkedin\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"No Reason\",\n\t\t\"status\": \"failure\",\n\t\t\"lastModifiedTime\": 1551265386    \n\t},\n\t\"createdTime\": 1551265386\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "64_9",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "64_9",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"64_14\",\n\t\"name\": \"Website-MicrosoftAzure-PSM4C-Azure-changeme@changeme.com\",\n\t\"address\": \"Azure.com\",\n\t\"userName\": \"changeme@changeme.com\",\n\t\"platformId\": \"MicrosoftAzure-PSM4C\",\n\t\"safeName\": \"PSM4C\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"WebApplicationID\": \"Azure\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"NoReason\",\n\t\t\"status\": \"failure\",\n\t\t\"lastModifiedTime\": 1556614729    \n\t},\n\t\"createdTime\": 1556614729\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "64_14",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "64_14",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"64_11\",\n\t\"name\": \"Website-Reddit-PSM4C-Reddit.com-Changeme@changeme.com\",\n\t\"address\": \"Reddit.com\",\n\t\"userName\": \"changeme@changeme.com\",\n\t\"platformId\": \"Reddit-PSM4C\",\n\t\"safeName\": \"PSM4C\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"WebApplicationID\": \"reddit\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"No Reason\",\n\t\t\"lastModifiedTime\": 1551957075    \n\t},\n\t\"createdTime\": 1551957075\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "64_11",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "64_11",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"64_6\",\n\t\"name\": \"Website-Salesforce-PSM4C-Salesforce.com-changeme@changeme.com\",\n\t\"address\": \"Salesforce.com\",\n\t\"userName\": \"changeme@changeme.com\",\n\t\"platformId\": \"Salesforce-PSM4C\",\n\t\"safeName\": \"PSM4C\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"WebApplicationID\": \"salesforce\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"No Reason\",\n\t\t\"lastModifiedTime\": 1551265327    \n\t},\n\t\"createdTime\": 1551265327\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "64_6",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "64_6",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"64_3\",\n\t\"name\": \"Website-Twitter-PSM4C-Twitter.com-changeme@changeme.com\",\n\t\"address\": \"Twitter.com\",\n\t\"userName\": \"changeme@changeme.com\",\n\t\"platformId\": \"Twitter-PSM4C\",\n\t\"safeName\": \"PSM4C\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"WebApplicationID\": \"twitter\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"No Reason\",\n\t\t\"lastModifiedTime\": 1555565961    \n\t},\n\t\"createdTime\": 1555565961\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "64_3",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "64_3",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"21_4\",\n\t\"name\": \"PSMAdmin\",\n\t\"address\": \"10.0.1.12\",\n\t\"userName\": \"PSMAdminConnect\",\n\t\"platformId\": \"\",\n\t\"safeName\": \"PSM\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1513780039    \n\t},\n\t\"createdTime\": 1513780039\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "21_4",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "24_1",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"21_3\",\n\t\"name\": \"PSMServer\",\n\t\"address\": \"10.0.1.12\",\n\t\"userName\": \"PSMConnect\",\n\t\"platformId\": \"\",\n\t\"safeName\": \"PSM\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1513780038    \n\t},\n\t\"createdTime\": 1513780038\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "21_3",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "21_3",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"50_4\",\n\t\"name\": \"Operating System-WinServerLocal-epmsvr-localadmin\",\n\t\"address\": \"epmsvr\",\n\t\"userName\": \"localadmin\",\n\t\"platformId\": \"WinServerLocal\",\n\t\"safeName\": \"pta_reconcile\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"EPMSVR\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1531305051,\n\t\t\"lastReconciledTime\": 1531319451    \n\t},\n\t\"createdTime\": 1531305051\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "50_4",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "50_4",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"44_5\",\n\t\"name\": \"Application-CyberArkPTA-ptaserver-administrator\",\n\t\"address\": \"ptaserver\",\n\t\"userName\": \"administrator\",\n\t\"platformId\": \"CyberArkPTA\",\n\t\"safeName\": \"PTA\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"Port\": \"443\",\n\t\t\"IgnoreCertificate\": \"Yes\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"(CPM)MaxRetries\",\n\t\t\"status\": \"failure\",\n\t\t\"lastModifiedTime\": 1516961842    \n\t},\n\t\"createdTime\": 1516961842\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "44_5",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "44_5",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"44_4\",\n\t\"name\": \"Operating System-UnixSSH-pta-root\",\n\t\"address\": \"ptaserver.cyberarkdemo.com\",\n\t\"userName\": \"root\",\n\t\"platformId\": \"UnixSSH\",\n\t\"safeName\": \"PTA\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"PTA server rotation disabled\",\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1516961119    \n\t},\n\t\"createdTime\": 1516961119\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "44_4",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "44_4",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"44_3\",\n\t\"name\": \"pta_monitor\",\n\t\"address\": \"cyberarkdemo.com\",\n\t\"userName\": \"pta_monitor\",\n\t\"platformId\": \"WinDomain\",\n\t\"safeName\": \"PTA\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"CYBERARKDEMO\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1581680848,\n\t\t\"lastReconciledTime\": 1549340760    \n\t},\n\t\"createdTime\": 1581680848\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "44_3",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "44_3",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"74_8\",\n\t\"name\": \"Database-Oracle-FinDevORA01.exFinance.com-oraAdmin\",\n\t\"address\": \"FinDevORA01.exFinance.com\",\n\t\"userName\": \"oraAdmin\",\n\t\"platformId\": \"Oracle\",\n\t\"safeName\": \"Test-Safe\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"Port\": \"1521\",\n\t\t\"Database\": \"Master\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"Oracle Admin - Break Glass user\",\n\t\t\"lastModifiedTime\": 1584964869    \n\t},\n\t\"createdTime\": 1584964869\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "74_8",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "74_8",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"74_10\",\n\t\"name\": \"Database-Oracle-FinDevORA02.exFinance.com-oraAdmin\",\n\t\"address\": \"FinDevORA02.exFinance.com\",\n\t\"userName\": \"oraAdmin\",\n\t\"platformId\": \"Oracle\",\n\t\"safeName\": \"Test-Safe\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"Port\": \"1521\",\n\t\t\"Database\": \"Master\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"Oracle Admin - Break Glass user\",\n\t\t\"lastModifiedTime\": 1584964871    \n\t},\n\t\"createdTime\": 1584964871\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "74_10",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "74_10",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"74_7\",\n\t\"name\": \"Operating System-UnixSSH-FinDevORA01.exFinance.com-a-root\",\n\t\"address\": \"FinDevORA01.exFinance.com\",\n\t\"userName\": \"a-root\",\n\t\"platformId\": \"UnixSSH\",\n\t\"safeName\": \"Test-Safe\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1584964868    \n\t},\n\t\"createdTime\": 1584964868\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "74_7",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "74_7",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"74_9\",\n\t\"name\": \"Operating System-UnixSSH-FinDevORA02.exFinance.com-a-root\",\n\t\"address\": \"FinDevORA02.exFinance.com\",\n\t\"userName\": \"a-root\",\n\t\"platformId\": \"UnixSSH\",\n\t\"safeName\": \"Test-Safe\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1584964870    \n\t},\n\t\"createdTime\": 1584964870\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "74_9",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "74_9",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"74_11\",\n\t\"name\": \"Operating System-UnixSSH-FinDevWL01.exFinance.com-a-root\",\n\t\"address\": \"FinDevWL01.exFinance.com\",\n\t\"userName\": \"a-root\",\n\t\"platformId\": \"UnixSSH\",\n\t\"safeName\": \"Test-Safe\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1584964872    \n\t},\n\t\"createdTime\": 1584964872\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "74_11",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "74_11",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"74_12\",\n\t\"name\": \"Operating System-WinDomain-exFinance.com-srvAdmin\",\n\t\"address\": \"exFinance.com\",\n\t\"userName\": \"srvAdmin\",\n\t\"platformId\": \"WinDomain\",\n\t\"safeName\": \"Test-Safe\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"failure\",\n\t\t\"lastModifiedTime\": 1584964873    \n},\n\t\"remoteMachinesAccess\": {\n\t    \"remoteMachines\": \"FINAPP01.exFinance.com,FINAPP02.exFinance.com,FINAPP03.exFinance.com,FINAPP04.exFinance.com,FINAPP05.exFinance.com,FINAPP06.exFinance.com\",\n\t\t\"accessRestrictedToRemoteMachines\": true    \n\t},\n\t\"createdTime\": 1584964873\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "74_12",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "74_12",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"74_3\",\n\t\"name\": \"Operating System-WinServerLocal-FINAPP05.exFinance.com-Administrator\",\n\t\"address\": \"FINAPP05.exFinance.com\",\n\t\"userName\": \"Administrator\",\n\t\"platformId\": \"WinServerLocal\",\n\t\"safeName\": \"Test-Safe\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1584964864    \n\t},\n\t\"createdTime\": 1584964864\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "74_3",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "74_3",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"74_6\",\n\t\"name\": \"Operating System-WinServerLocal-FINAPP08.exFinance.com-Administrator\",\n\t\"address\": \"FINAPP08.exFinance.com\",\n\t\"userName\": \"Administrator\",\n\t\"platformId\": \"WinServerLocal\",\n\t\"safeName\": \"Test-Safe\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1584964867    \n\t},\n\t\"createdTime\": 1584964867\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "74_6",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "74_6",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"74_4\",\n\t\"name\": \"Operating System-WinServerLocal-JSmith.exFinance.com-Administrator\",\n\t\"address\": \"JSmith.exFinance.com\",\n\t\"userName\": \"Administrator\",\n\t\"platformId\": \"WinServerLocal\",\n\t\"safeName\": \"Test-Safe\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1584964865    \n\t},\n\t\"createdTime\": 1584964865\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "74_4",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "74_4",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"74_5\",\n\t\"name\": \"Operating System-WinServerLocal-TJones.exFinance.com-Administrator\",\n\t\"address\": \"TJones.exFinance.com\",\n\t\"userName\": \"Administrator\",\n\t\"platformId\": \"WinServerLocal\",\n\t\"safeName\": \"Test-Safe\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1584964866    \n\t},\n\t\"createdTime\": 1584964866\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "74_5",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "74_5",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"2_9\",\n\t\"name\": \"cyberarkdemo.com.pass\",\n\t\"userName\": \"VaultBind@cyberarkdemo.com\",\n\t\"platformId\": \"WinDomain\",\n\t\"safeName\": \"VaultInternal\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"NoReason\",\n\t\t\"lastModifiedTime\": 1581862179    \n\t},\n\t\"createdTime\": 1581862179\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "2_9",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "2_9",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"52_6\",\n\t\"name\": \"analucia-vault\",\n\t\"address\": \"10.0.1.10\",\n\t\"userName\": \"analucia\",\n\t\"platformId\": \"CyberArk\",\n\t\"safeName\": \"VaultUsers\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1522939469    \n\t},\n\t\"createdTime\": 1522939469\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "52_6",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "52_6",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"52_8\",\n\t\"name\": \"cindy-vault\",\n\t\"address\": \"10.0.1.10\",\n\t\"userName\": \"Cindy\",\n\t\"platformId\": \"CyberArk\",\n\t\"safeName\": \"VaultUsers\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1522939566    \n\t},\n\t\"createdTime\": 1522939566\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "52_8",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "52_8",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"52_3\",\n\t\"name\": \"John-Vault\",\n\t\"address\": \"10.0.1.10\",\n\t\"userName\": \"John\",\n\t\"platformId\": \"CyberArk\",\n\t\"safeName\": \"VaultUsers\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1522939308    \n\t},\n\t\"createdTime\": 1522939308\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "52_3",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "52_3",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"52_4\",\n\t\"name\": \"mike-vault\",\n\t\"address\": \"10.0.1.10\",\n\t\"userName\": \"mike\",\n\t\"platformId\": \"CyberArk\",\n\t\"safeName\": \"VaultUsers\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1522939357    \n\t},\n\t\"createdTime\": 1522939357\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "52_4",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "52_4",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"52_5\",\n\t\"name\": \"paul-vault\",\n\t\"address\": \"10.0.1.10\",\n\t\"userName\": \"paul\",\n\t\"platformId\": \"CyberArk\",\n\t\"safeName\": \"VaultUsers\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1522939405    \n\t},\n\t\"createdTime\": 1522939405\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "52_5",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "52_5",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"52_7\",\n\t\"name\": \"robert-vault\",\n\t\"address\": \"10.0.1.10\",\n\t\"userName\": \"Robert\",\n\t\"platformId\": \"CyberArk\",\n\t\"safeName\": \"VaultUsers\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"lastModifiedTime\": 1522939521    \n\t},\n\t\"createdTime\": 1522939521\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "52_7",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "52_7",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"27_10\",\n\t\"name\": \"CyberArkDemo.com-Contractor_1-43d86e15-e353-439b-9951-49d2f710a234\",\n\t\"address\": \"CyberArkDemo.com\",\n\t\"userName\": \"Contractor_1\",\n\t\"platformId\": \"WindowsDomainAccountGenericShared\",\n\t\"safeName\": \"Windows Domain Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1551383224,\n\t\t\"lastReconciledTime\": 1551401225    \n\t},\n\t\"createdTime\": 1551383224\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "27_10",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "27_10",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"27_9\",\n\t\"name\": \"CyberArkDemo.com-Contractor_2-9193af15-ff35-4adb-8eab-0c3148138dd6\",\n\t\"address\": \"CyberArkDemo.com\",\n\t\"userName\": \"Contractor_2\",\n\t\"platformId\": \"WindowsDomainAccountGenericShared\",\n\t\"safeName\": \"Windows Domain Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1551383224,\n\t\t\"lastReconciledTime\": 1551401225    \n\t},\n\t\"createdTime\": 1551383224\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "27_9",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "27_9",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"27_17\",\n\t\"name\": \"cyberarkdemo.com-g_s_admin-a834a20d-500f-4e05-81ec-4e8d81eebe41\",\n\t\"address\": \"cyberarkdemo.com\",\n\t\"userName\": \"g_s_admin\",\n\t\"platformId\": \"WindowsDomainAccountHTML5\",\n\t\"safeName\": \"Windows Domain Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"cyberarkdemo.com\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1581680853,\n\t\t\"lastReconciledTime\": 1551027964    \n\t},\n\t\"createdTime\": 1581680853\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "27_17",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "27_17",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"27_11\",\n\t\"name\": \"CyberArkDemo.com-h_admin-714dbd80-7a0c-4512-97a7-9b0233739b9f\",\n\t\"address\": \"CyberArkDemo.com\",\n\t\"userName\": \"h_admin\",\n\t\"platformId\": \"WinDomain\",\n\t\"safeName\": \"Windows Domain Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"CYBERARKDEMO\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"part of attack scenarios\",\n\t\t\"lastModifiedTime\": 1519753684    \n\t},\n\t\"createdTime\": 1519753684\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "27_11",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "27_11",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"27_15\",\n\t\"name\": \"CyberArkDemo.com-reconcile-fbc68faa-f983-4014-92b6-e2d9a9a4cbb9\",\n\t\"address\": \"CyberArkDemo.com\",\n\t\"userName\": \"reconcile\",\n\t\"platformId\": \"WinDomain\",\n\t\"safeName\": \"Windows Domain Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1581680848,\n\t\t\"lastReconciledTime\": 1556630430    \n\t},\n\t\"createdTime\": 1581680848\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "27_15",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "27_15",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"27_6\",\n\t\"name\": \"CyberArkDemo.com-s_admin-928221bb-1683-4c0d-9c69-70a7a8a791dd\",\n\t\"address\": \"CyberArkDemo.com\",\n\t\"userName\": \"s_admin\",\n\t\"platformId\": \"WinDomain\",\n\t\"safeName\": \"Windows Domain Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"CYBERARKDEMO\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1581680851,\n\t\t\"lastReconciledTime\": 1551033231    \n\t},\n\t\"createdTime\": 1581680851\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "27_6",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "27_6",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"27_8\",\n\t\"name\": \"CyberArkDemo.com-Vendor_1-7807a82d-052b-42a4-a62f-576bd11dcf3a\",\n\t\"address\": \"CyberArkDemo.com\",\n\t\"userName\": \"Vendor_1\",\n\t\"platformId\": \"WindowsDomainAccountGenericShared\",\n\t\"safeName\": \"Windows Domain Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1536592606,\n\t\t\"lastReconciledTime\": 1536607007    \n\t},\n\t\"createdTime\": 1536592606\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "27_8",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "27_8",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"27_7\",\n\t\"name\": \"CyberArkDemo.com-Vendor_2-2f87fe2c-a577-48c4-bf1c-2109d5d9d4dd\",\n\t\"address\": \"CyberArkDemo.com\",\n\t\"userName\": \"Vendor_2\",\n\t\"platformId\": \"WindowsDomainAccountGenericShared\",\n\t\"safeName\": \"Windows Domain Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1551383261,\n\t\t\"lastReconciledTime\": 1551401262    \n\t},\n\t\"createdTime\": 1551383261\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "27_7",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "27_7",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"27_3\",\n\t\"name\": \"Operating System-WinDomain-cyberarkdemo.com-Administrator\",\n\t\"address\": \"cyberarkdemo.com\",\n\t\"userName\": \"Administrator\",\n\t\"platformId\": \"WinDomain\",\n\t\"safeName\": \"Windows Domain Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"CYBERARKDEMO\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"Domain Administrator\",\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1524063082    \n\t},\n\t\"createdTime\": 1524063082\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "27_3",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "27_3",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"27_14\",\n\t\"name\": \"Operating System-WinDomain-cyberarkdemo.com-u_admin\",\n\t\"address\": \"cyberarkdemo.com\",\n\t\"userName\": \"u_admin\",\n\t\"platformId\": \"WinDomain\",\n\t\"safeName\": \"Windows Domain Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"CYBERARKDEMO\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"(CPM)MaxRetries\",\n\t\t\"status\": \"failure\",\n\t\t\"lastModifiedTime\": 1556746448,\n\t\t\"lastReconciledTime\": 1551399107    \n\t},\n\t\"createdTime\": 1556746448\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "27_14",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "27_14",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"27_16\",\n\t\"name\": \"Operating System-WindowsDomainAccountHTML5GW-cyberarkdemo.com-g_x_admin\",\n\t\"address\": \"cyberarkdemo.com\",\n\t\"userName\": \"g_x_admin\",\n\t\"platformId\": \"WindowsDomainAccountHTML5\",\n\t\"safeName\": \"Windows Domain Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"CYBERARKDEMO\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1581680853,\n\t\t\"lastReconciledTime\": 1555976231    \n\t},\n\t\"createdTime\": 1581680853\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "27_16",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "27_16",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"27_4\",\n\t\"name\": \"x_admin\",\n\t\"address\": \"cyberarkdemo.com\",\n\t\"userName\": \"x_admin\",\n\t\"platformId\": \"WinDomain\",\n\t\"safeName\": \"Windows Domain Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"CYBERARKDEMO\",\n\t\t\"Database\": \"epmsvr\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1581680850,\n\t\t\"lastReconciledTime\": 1551279770    \n\t},\n\t\"createdTime\": 1581680850\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "27_4",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "27_4",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"26_43\",\n\t\"name\": \"Operating System-WinDesktopLocal-69.9.37.21-admin\",\n\t\"address\": \"69.9.37.21\",\n\t\"userName\": \"admin\",\n\t\"platformId\": \"HostedMacDesktop\",\n\t\"safeName\": \"Windows Local Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"69.9.37.21\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"No Reason\",\n\t\t\"lastModifiedTime\": 1556631312    \n\t},\n\t\"createdTime\": 1556631312\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "26_43",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "26_43",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"26_30\",\n\t\"name\": \"Operating System-WinLooselyDevice-client.cyberarkdemo.com-looselyconnected\",\n\t\"address\": \"client.cyberarkdemo.com\",\n\t\"userName\": \"looselyconnected\",\n\t\"platformId\": \"WinLooselyDevice\",\n\t\"safeName\": \"Windows Local Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"client\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1551104063    \n\t},\n\t\"createdTime\": 1551104063\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "26_30",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "26_30",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"26_6\",\n\t\"name\": \"Operating System-WinServerLocal-10.0.1.10-Administrator\",\n\t\"address\": \"10.0.1.10\",\n\t\"userName\": \"Administrator\",\n\t\"platformId\": \"WinServerLocal\",\n\t\"safeName\": \"Windows Local Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"       Processing request...\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": false,\n\t\t\"manualManagementReason\": \"Vault\",\n\t\t\"lastModifiedTime\": 1513783006    \n\t},\n\t\"createdTime\": 1513783006\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "26_6",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "26_6",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"26_4\",\n\t\"name\": \"Operating System-WinServerLocal-client.cyberarkdemo.com-Administrator\",\n\t\"address\": \"client.cyberarkdemo.com\",\n\t\"userName\": \"Administrator\",\n\t\"platformId\": \"WinServerLocal\",\n\t\"safeName\": \"Windows Local Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"CLIENT\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1556815997,\n\t\t\"lastReconciledTime\": 1551289046    \n\t},\n\t\"createdTime\": 1556815997\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "26_4",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "26_4",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"26_3\",\n\t\"name\": \"Operating System-WinServerLocal-components.cyberarkdemo.com-Administrator\",\n\t\"address\": \"components.cyberarkdemo.com\",\n\t\"userName\": \"Administrator\",\n\t\"platformId\": \"WinServerLocal\",\n\t\"safeName\": \"Windows Local Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"COMPONENTS\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1549410766    \n\t},\n\t\"createdTime\": 1549410766\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "26_3",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "26_3",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\n\t\"id\": \"26_5\",\n\t\"name\": \"Operating System-WinServerLocal-epmsvr.cyberarkdemo.com-Administrator\",\n\t\"address\": \"epmsvr.cyberarkdemo.com\",\n\t\"userName\": \"Administrator\",\n\t\"platformId\": \"WinServerLocal\",\n\t\"safeName\": \"Windows Local Admin\",\n\t\"secretType\": \"password\",\n\t\"platformAccountProperties\": {\n\t    \"LogonDomain\": \"EPMSVR\"    \n},\n\t\"secretManagement\": {\n\t    \"automaticManagementEnabled\": true,\n\t\t\"status\": \"success\",\n\t\t\"lastModifiedTime\": 1556807943,\n\t\t\"lastReconciledTime\": 1556822343    \n\t},\n\t\"createdTime\": 1556807943                    \n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "26_5",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "params",
+                                        "modifier": "id",
+                                        "value": "26_5",
+                                        "isRegex": false
+                                    }
+                                ]
+                            }
                         ],
                         "enabled": true
                     },
