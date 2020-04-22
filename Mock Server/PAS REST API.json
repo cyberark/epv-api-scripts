@@ -2300,10 +2300,33 @@
                         "responses": [
                             {
                                 "uuid": "",
-                                "body": "",
+                                "body": "full address:s:\"{{ body 'address' '127.0.0.1' }}\"\r\nserver port:i:3389\r\nusername:s:\"{{ body 'username' }}\"\r\nalternate shell:s:\"{{ body 'username' }}\"\r\ndesktopwidth:i:1920\r\ndesktopheight:i:800\r\nscreen mode id:i:1\r\nredirectdrives:i:0\r\ndrivestoredirect:s:\"false\"\r\nredirectsmartcards:i:0\r\nEnableCredSspSupport:i:0\r\nredirectcomports:i:0\r\nremoteapplicationmode:i:1\r\nuse multimon:i:0\r\nspan monitors:i:0",
                                 "latency": 0,
                                 "statusCode": "200",
                                 "label": "The content of an RDP file. For example: full address: 10.10.11.70 server port: 3389 username: s:PSM@1d6de91f. Can also be PSMGW JSON response depending on the configuration for example: {\"PSMGWURL\": https://1.1.1.1:8443/guac/direct, \"PSMGWRequest\": <Base64EncodedRequest>}. The PSMGW can be connected via post request to the given URL with the body parameter as json",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "text/plain"
+                                    }
+                                ],
+                                "filePath": "",
+                                "sendFileAsBody": false,
+                                "rules": [
+                                    {
+                                        "target": "body",
+                                        "modifier": "PSMConnectPrerequisites.ConnectionType",
+                                        "value": "RDPFile",
+                                        "isRegex": false
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "",
+                                "body": "{\r\n\r\n\"PSMGWURL\":\"https://psmgw.com:8443/guac/direct\",\r\n\"PSMGWRequest\":\"eyJ1k2VybmFtZSI6IlBTTUkb...00tUkRQIn0=\"\r\n\r\n}",
+                                "latency": 0,
+                                "statusCode": "200",
+                                "label": "PSMGW",
                                 "headers": [
                                     {
                                         "key": "Content-Type",
@@ -2312,7 +2335,14 @@
                                 ],
                                 "filePath": "",
                                 "sendFileAsBody": false,
-                                "rules": []
+                                "rules": [
+                                    {
+                                        "target": "body",
+                                        "modifier": "PSMConnectPrerequisites.ConnectionType",
+                                        "value": "PSMGW",
+                                        "isRegex": false
+                                    }
+                                ]
                             }
                         ],
                         "enabled": true
@@ -2425,14 +2455,14 @@
                         "responses": [
                             {
                                 "uuid": "",
-                                "body": "",
+                                "body": "full address:s:\"{{ body 'address' '127.0.0.1' }}\"\r\nserver port:i:3389\r\nusername:s:\"{{ body 'username' }}\"\r\nalternate shell:s:\"{{ body 'username' }}\"\r\ndesktopwidth:i:1920\r\ndesktopheight:i:800\r\nscreen mode id:i:1\r\nredirectdrives:i:0\r\ndrivestoredirect:s:\"false\"\r\nredirectsmartcards:i:0\r\nEnableCredSspSupport:i:0\r\nredirectcomports:i:0\r\nremoteapplicationmode:i:1\r\nuse multimon:i:0\r\nspan monitors:i:0",
                                 "latency": 0,
                                 "statusCode": "200",
                                 "label": "The content of an RDP file. For example: full address: 10.10.11.70 server port: 3389 username: s:PSM@1d6de91fCan also be PSMGW JSON response depending on the configuration for example: {\"PSMGWURL\": https://1.1.1.1:8443/guac/direct, \"PSMGWRequest\": <Base64EncodedRequest>}The PSMGW can be connected via post request to the given URL with the body parameter as json",
                                 "headers": [
                                     {
                                         "key": "Content-Type",
-                                        "value": "application/json"
+                                        "value": "text/plain"
                                     }
                                 ],
                                 "filePath": "",
