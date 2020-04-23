@@ -4,7 +4,7 @@ Use a local mock API server to develop and debug a lot faster your CyberArk PAS 
 Using a mock server you will not endanger any production environment and can real fast responses.
 Edit and contribute to this mock API JSON with additional information and rules.
 
-![screenshot](https://github.com/cyberark/epv-api-scripts/blob/DebugWIP/Mock%20Server/images/mockoon_pas_restapi.png)
+![screenshot](https://github.com/cyberark/epv-api-scripts/blob/MockServer/Mock%20Server/images/mockoon_pas_restapi.png)
 
 ## Requirements
 
@@ -19,7 +19,7 @@ You can get Mockoon from the official [website](https://mockoon.com/#download). 
 
 After installing Mockoon, go to 'Import/export'->Mockoon's format->Import from a file (JSON)
 > The PAS REST API environment shuold be added to your mockoon server
-![screenshot](https://github.com/cyberark/epv-api-scripts/blob/DebugWIP/Mock%20Server/images/import_menu.png)
+![screenshot](https://github.com/cyberark/epv-api-scripts/blob/MockServer/Mock%20Server/images/import_menu.pngng)
 Start the local mock API server and use it to debug you CyberArk REST API development
 
 ## License
