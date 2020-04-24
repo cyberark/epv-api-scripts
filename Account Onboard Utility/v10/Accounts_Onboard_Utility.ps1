@@ -578,7 +578,7 @@ Function Get-LogonHeader
     If ([string]::IsNullOrEmpty($logonToken))
     {
         Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-        exit
+        return
     }
 	
     # Create a Logon Token Header (This will be used through out all the script)
