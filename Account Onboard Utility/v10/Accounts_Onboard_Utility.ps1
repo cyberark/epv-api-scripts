@@ -182,7 +182,7 @@ Function Log-MSG
 		# Replace empty message with 'N/A'
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		# Mask Passwords
-		if($Msg -match '((?:password|credentials)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
+		if($Msg -match '((?:password|credentials|secret)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
 		{
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
@@ -294,6 +294,7 @@ Function Invoke-Rest
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000
 		}
 	} catch [System.Net.WebException] {
+		Log-Msg -Type Error -Msg "Error Message: $_" -ErrorAction $ErrAction
 		Log-Msg -Type Error -Msg "Exception Message: $($_.Exception.Message)" -ErrorAction $ErrAction
 		Log-Msg -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
 		Log-Msg -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)" -ErrorAction $ErrAction
@@ -578,7 +579,7 @@ Function Get-LogonHeader
     If ([string]::IsNullOrEmpty($logonToken))
     {
         Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-        return
+        exit
     }
 	
     # Create a Logon Token Header (This will be used through out all the script)
