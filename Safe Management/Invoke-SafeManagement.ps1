@@ -119,7 +119,8 @@ $URL_SafeMembers = $URL_SpecificSafe+"/Members"
 
 # Initialize Script Variables
 # ---------------------------
-$g_LogonHeader = ""
+# Set a global Header Token parameter
+$global:g_LogonHeader = ""
 
 #region Functions
 Function Test-CommandExists
@@ -435,7 +436,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
     Param
     (
 		[Parameter(Mandatory=$false)]
-		$_LogonHeader = $g_LogonHeader
+		$_LogonHeader = $g_LogonHeader,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
         [ValidateScript({((Get-Safes -_LogonHeader $_LogonHeader).safename) -contains $_})]
         $safename,
@@ -700,7 +701,7 @@ If (Test-CommandExists Invoke-RestMethod)
 	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 	if ($creds -ne $null)
 	{
-		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds -UseConcurrentSessions $Threaded)
+		Set-Variable -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -UseConcurrentSessions $Threaded) -Scope global
 		if([string]::IsNullOrEmpty($g_LogonHeader)) { break }
 	}
 	else { 
