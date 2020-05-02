@@ -159,8 +159,8 @@ Function Get-LogonHeader
 	$logonBody = @{ username=$Credentials.username.Replace('\',''); password=$Credentials.GetNetworkCredential().password; concurrentSession=$UseConcurrentSessions } | ConvertTo-Json
 	try{
 		# Logon
-		Write-Debug "Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogon -ContentType 'application/json' -Body $($logonBody.Replace($Credentials.GetNetworkCredential().password,"****"))"
-	    $logonToken = (Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogon -ContentType "application/json" -Body $logonBody).CyberArkLogonResult
+		Write-Debug "Invoke-RestMethod -Method Post -Uri $URL_Logon -ContentType 'application/json' -Body $($logonBody.Replace($Credentials.GetNetworkCredential().password,"****"))"
+	    $logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -ContentType "application/json" -Body $logonBody
 				
 		# Clear logon body
 		$logonBody = ""
@@ -893,7 +893,7 @@ If (Test-CommandExists Invoke-RestMethod)
     # Logoff the session
     # ------------------
     Write-Host "Logoff Session..."
-    Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogoff -Headers $g_LogonHeader -ContentType "application/json" | Out-Null
+    Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" | Out-Null
 }
 else
 {
