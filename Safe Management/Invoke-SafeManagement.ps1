@@ -101,18 +101,18 @@ param
 # Get Script Location 
 $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-$URL_PVWAWebServices = $PVWAURL+"/WebServices"
-$URL_PVWABaseAPI = $URL_PVWAWebServices+"/PIMServices.svc"
-$URL_PVWAAPI = $PVWAURL+"/api"
-$URL_Authentication = $URL_PVWAAPI+"/auth"
-$URL_Logon = $URL_Authentication+"/$AuthType/Logon"
-$URL_Logoff = $URL_Authentication+"/Logoff"
+$global:URL_PVWAWebServices = $PVWAURL+"/WebServices"
+$global:URL_PVWABaseAPI = $URL_PVWAWebServices+"/PIMServices.svc"
+$global:URL_PVWAAPI = $PVWAURL+"/api"
+$global:URL_Authentication = $URL_PVWAAPI+"/auth"
+$global:URL_Logon = $URL_Authentication+"/$AuthType/Logon"
+$global:URL_Logoff = $URL_Authentication+"/Logoff"
 
 # URL Methods
 # -----------
-$URL_Safes = $URL_PVWABaseAPI+"/Safes"
-$URL_SpecificSafe = $URL_PVWABaseAPI+"/Safes/{0}"
-$URL_SafeMembers = $URL_SpecificSafe+"/Members"
+$global:URL_Safes = $URL_PVWABaseAPI+"/Safes"
+$global:URL_SpecificSafe = $URL_PVWABaseAPI+"/Safes/{0}"
+$global:URL_SafeMembers = $URL_SpecificSafe+"/Members"
 
 # Script Defaults
 # ---------------
@@ -120,7 +120,7 @@ $URL_SafeMembers = $URL_SpecificSafe+"/Members"
 # Initialize Script Variables
 # ---------------------------
 # Set a global Header Token parameter
-$global:g_LogonHeader = ""
+$g_LogonHeader = ""
 
 #region Functions
 Function Test-CommandExists
@@ -231,11 +231,16 @@ Get all Safe details on a specific safe
 Get-Safe -safeName "x0-Win-S-Admins"
 
 #>
-	param ($safeName)
+	param (
+		[Parameter(Mandatory=$false)]
+		$_LogonHeader = $g_LogonHeader,
+        [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
+        [string]$safename
+	)
 	$_safe = $null
 	try{
 		$accSafeURL = $URL_SpecificSafe -f $(Encode-URL $safeName)
-		$_safe = $(Invoke-RestMethod -Uri $accSafeURL -Method "Get" -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorAction "SilentlyContinue").GetSafeResult
+		$_safe = $(Invoke-RestMethod -Uri $accSafeURL -Method "Get" -Headers $_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorAction "SilentlyContinue").GetSafeResult
 	}
 	catch
 	{
@@ -601,8 +606,16 @@ Creates a threaded task to run for Safe Creation / Update
 		[object[]]$safeLines,
 		$Credentials
 		)
+	# Add all the relevant functions as definition as an Initialization script
+	$functions = @()
+	$functions += "function Get-LogonHeader { $(Get-Command Get-LogonHeader).Definition) }"
+	$functions += "function Get-Safe { $(Get-Command Get-Safe).Definition) }"
+	$functions += "function Create-Safe { $(Get-Command Create-Safe).Definition) }"
+	$functions += "function Update-Safe { $(Get-Command Update-Safer).Definition) }"
+	$functions += "function Set-SafeMember { $(Get-Command Set-SafeMember).Definition) }"
 	
-	return Start-Job -ScriptBlock {
+	# Create a new Job with the relevant functions and Arguments from this function
+	return Start-Job -ArgumentList @PsBoundParameters -InitializationScript $functions -ScriptBlock {
 		$sessionHeader = Get-LogonHeader $Credentials -UseConcurrentSessions $true
 		ForEach ($line in $safeLines)
 		{
@@ -744,14 +757,13 @@ If (Test-CommandExists Invoke-RestMethod)
 					# Safe a Jobs List
 					$arrJobs = @()
 					# For each Safe, Run a thread to Create the safe
-					$i = 1
 					$uniqueSafesList = ($sortedList | Sort-Object -Property safename -Unique | select safename)
 					ForEach ($safeNameLine in $uniqueSafesList)
 					{
 						Write-Host "Handling Safe '$safeNameLine'..." -ForegroundColor Yellow #DEBUG
 						$safeLineItems = $sortedList | Where { $_.safename -eq $safeNameLine }
 						$arrJobs += Create-TaskSafeImport -SafeLines $safeLineItems -Credentials $creds
-						Write-Host "Created a task for handling all Safe '$safeNameLine' tasks (Task $i/$($uniqueSafesList.count))"
+						Write-Host "Created a task for handling all Safe '$safeNameLine' tasks (Task $($arrJobs.Count)/$($uniqueSafesList.count))"
 					}
 					Write-Host "Waiting for all tasks to finish"
 					Recieve-Job $arrJobs
