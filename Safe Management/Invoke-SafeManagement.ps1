@@ -342,7 +342,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     )
 	
 	# Get the current safe details and update when necessary
-	$getSafe = Get-Safe -safeName $safeName
+	$getSafe = Get-Safe -safeName $safeName -_LogonHeader $_LogonHeader
 	$updateDescription = $getSafe.Description
 	$updateOLAC = $getSafe.OLACEnabled
 	$updateManageCPM = $getSafe.ManagingCPM
@@ -610,12 +610,18 @@ Creates a threaded task to run for Safe Creation / Update
 	$functions = @()
 	$functions += "function Get-LogonHeader { $(Get-Command Get-LogonHeader).Definition) }"
 	$functions += "function Get-Safe { $(Get-Command Get-Safe).Definition) }"
+	$functions += "function Get-Safes { $(Get-Command Get-Safes).Definition) }"
 	$functions += "function Create-Safe { $(Get-Command Create-Safe).Definition) }"
 	$functions += "function Update-Safe { $(Get-Command Update-Safer).Definition) }"
 	$functions += "function Set-SafeMember { $(Get-Command Set-SafeMember).Definition) }"
 	
 	# Create a new Job with the relevant functions and Arguments from this function
 	return Start-Job -ArgumentList @PsBoundParameters -InitializationScript $functions -ScriptBlock {
+		param (
+			[Parameter(Mandatory=$true)]
+			[object[]]$safeLines,
+			$Credentials
+		)
 		$sessionHeader = Get-LogonHeader $Credentials -UseConcurrentSessions $true
 		ForEach ($line in $safeLines)
 		{
@@ -758,15 +764,15 @@ If (Test-CommandExists Invoke-RestMethod)
 					$arrJobs = @()
 					# For each Safe, Run a thread to Create the safe
 					$uniqueSafesList = ($sortedList | Sort-Object -Property safename -Unique | select safename)
-					ForEach ($safeNameLine in $uniqueSafesList)
+					ForEach ($uniqueSafe in $uniqueSafesList)
 					{
-						Write-Host "Handling Safe '$safeNameLine'..." -ForegroundColor Yellow #DEBUG
-						$safeLineItems = $sortedList | Where { $_.safename -eq $safeNameLine }
+						Write-Host "Handling Safe '$($uniqueSafe.safeName)'..." -ForegroundColor Yellow #DEBUG
+						$safeLineItems = $sortedList | Where { $_.safename -eq $uniqueSafe.safeName }
 						$arrJobs += Create-TaskSafeImport -SafeLines $safeLineItems -Credentials $creds
-						Write-Host "Created a task for handling all Safe '$safeNameLine' tasks (Task $($arrJobs.Count)/$($uniqueSafesList.count))"
+						Write-Host "Created a task for handling Safe '$($uniqueSafe.safeName)' tasks (Task $($arrJobs.Count)/$($uniqueSafesList.count))"
 					}
 					Write-Host "Waiting for all tasks to finish"
-					Recieve-Job $arrJobs
+					Receive-Job $arrJobs
 					Write-Host "All tasks finished!"
 				}
 				else
