@@ -616,7 +616,7 @@ Creates a threaded task to run for Safe Creation / Update
 	$functions += "function Set-SafeMember { $(Get-Command Set-SafeMember).Definition) }"
 	
 	# Create a new Job with the relevant functions and Arguments from this function
-	return Start-Job -ArgumentList @PsBoundParameters -InitializationScript ([Scriptblock]::Create($functions)) -ScriptBlock {
+	return Start-Job -ArgumentList @($safeLines, $Credentials) -InitializationScript ([Scriptblock]::Create($functions)) -ScriptBlock {
 		param (
 			[Parameter(Mandatory=$true,Position=0)]
 			[object[]]$safeLines,
