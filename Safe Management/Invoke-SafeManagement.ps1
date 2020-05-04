@@ -612,20 +612,21 @@ Creates a threaded task to run for Safe Creation / Update
 	$functions += "function Get-Safe { $(Get-Command Get-Safe).Definition) }"
 	$functions += "function Get-Safes { $(Get-Command Get-Safes).Definition) }"
 	$functions += "function Create-Safe { $(Get-Command Create-Safe).Definition) }"
-	$functions += "function Update-Safe { $(Get-Command Update-Safer).Definition) }"
+	$functions += "function Update-Safe { $(Get-Command Update-Safe).Definition) }"
 	$functions += "function Set-SafeMember { $(Get-Command Set-SafeMember).Definition) }"
 	
 	# Create a new Job with the relevant functions and Arguments from this function
 	return Start-Job -ArgumentList @PsBoundParameters -InitializationScript ([Scriptblock]::Create($functions)) -ScriptBlock {
 		param (
-			[Parameter(Mandatory=$true)]
+			[Parameter(Mandatory=$true,Position=0)]
 			[object[]]$safeLines,
+			[Parameter(Position=1)]
 			$Credentials
 		)
 		$sessionHeader = Get-LogonHeader $Credentials -UseConcurrentSessions $true
 		ForEach ($line in $safeLines)
 		{
-			Write-Host "Importing safe $($line.safename) with safe member $($line.member)..." -ForegroundColor Yellow #DEBUG
+			Write-Host "Importing safe $($line.safename) with safe member $($line.member)..." -ForegroundColor Yellow
 			#If safe doesn't exist, create the new safe
 			if (((Get-Safes -_LogonHeader $sessionHeader).safename) -notcontains $line.safename) {
 				If($Add)
@@ -720,8 +721,12 @@ If (Test-CommandExists Invoke-RestMethod)
 	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 	if ($creds -ne $null)
 	{
-		Set-Variable -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -UseConcurrentSessions $Threaded) -Scope global
-		if([string]::IsNullOrEmpty($g_LogonHeader)) { break }
+		Write-Verbose 'Getting logon header...'
+        Set-Variable -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -UseConcurrentSessions $Threaded) #-Scope global
+        if([string]::IsNullOrEmpty($g_LogonHeader)) { 
+            Write-Error -Message "Logonheader is empty. Aborting."
+            break 
+        }
 	}
 	else { 
 		Write-Error "No Credentials were entered"
