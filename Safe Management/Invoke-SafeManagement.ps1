@@ -610,12 +610,12 @@ Creates a threaded task to run for Safe Creation / Update
 		)
 	# Add all the relevant functions as definition as an Initialization script
 	$functions = @()
-	$functions += "function Get-LogonHeader { $(Get-Command Get-LogonHeader).Definition) }"
-	$functions += "function Get-Safe { $(Get-Command Get-Safe).Definition) }"
-	$functions += "function Get-Safes { $(Get-Command Get-Safes).Definition) }"
-	$functions += "function Create-Safe { $(Get-Command Create-Safe).Definition) }"
-	$functions += "function Update-Safe { $(Get-Command Update-Safe).Definition) }"
-	$functions += "function Set-SafeMember { $(Get-Command Set-SafeMember).Definition) }"
+	$functions += "function Get-LogonHeader { $(Get-Command Get-LogonHeader).Definition }"
+	$functions += "function Get-Safe { $(Get-Command Get-Safe).Definition }"
+	$functions += "function Get-Safes { $(Get-Command Get-Safes).Definition }"
+	$functions += "function Create-Safe { $(Get-Command Create-Safe).Definition }"
+	$functions += "function Update-Safe { $(Get-Command Update-Safe).Definition }"
+	$functions += "function Set-SafeMember { $(Get-Command Set-SafeMember).Definition }"
 	
 	# Create a new Job with the relevant functions and Arguments from this function
 	return Start-Job -ArgumentList @($safeLines, $Credentials) -InitializationScript ([Scriptblock]::Create($functions)) -ScriptBlock {
