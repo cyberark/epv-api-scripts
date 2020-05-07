@@ -749,11 +749,11 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 				$objAccount = "" | Select "name", "address", "userName", "platformId", "safeName", "secretType", "secret", "platformAccountProperties", "secretManagement", "remoteMachinesAccess"
 				$objAccount.platformAccountProperties = $null
 				$objAccount.secretManagement = "" | Select "automaticManagementEnabled", "manualManagementReason"
-				$objAccount.name = $account.name
-				$objAccount.address = $account.address
-				$objAccount.userName = $account.userName
-				$objAccount.platformId = $account.platformID
-				$objAccount.safeName = $account.safe
+				$objAccount.name = $account.name.Trim()
+				$objAccount.address = $account.address.Trim()
+				$objAccount.userName = $account.userName.Trim()
+				$objAccount.platformId = $account.platformID.Trim()
+				$objAccount.safeName = $account.safe.Trim()
 				if ((![string]::IsNullOrEmpty($account.password)) -and ([string]::IsNullOrEmpty($account.SSHKey)))
 				{ 
 					$objAccount.secretType = "password"
