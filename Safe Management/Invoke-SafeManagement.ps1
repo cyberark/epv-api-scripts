@@ -407,7 +407,9 @@ Delete-Safe -safename "x0-Win-S-Admins"
     [OutputType()]
     Param
     (
-        [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory=$false)]
+		$_LogonHeader = $g_LogonHeader,
+		[Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
         [string]$safename
     )
 
@@ -745,11 +747,11 @@ If (Test-CommandExists Invoke-RestMethod)
 			try{
 				If (![string]::IsNullOrEmpty($SafeName))
 				{
-					Get-Safe -SafeName $SafeName
+					Get-Safe -SafeName $SafeName -_LogonHeader $g_LogonHeader
 				}
 				else
 				{
-					Get-Safes
+					Get-Safes -_LogonHeader $g_LogonHeader
 				}
 			} catch {
 				Write-Host "Error retrieving safes" -ForegroundColor Red #ERROR
@@ -782,12 +784,13 @@ If (Test-CommandExists Invoke-RestMethod)
 				}
 				else
 				{
-					$parameters = "" | select safeName, safeDescription, managingCPM, numVersionRetention
+					$parameters = "" | select safeName, safeDescription, managingCPM, numVersionRetention, _LogonHeader
 					$parameters = New-Object -TypeName PSObject -Property @{ 
 						safeName=$SafeName; 
 						safeDescription=$SafeDescription;
 						managingCPM=$ManagingCPM;
-						numVersionRetention=$NumVersionRetention
+						numVersionRetention=$NumVersionRetention;
+						_LogonHeader=$g_LogonHeader;
 					}
 					# Keep only relevant properties (and keeping defaults when needed)
 					if([string]::IsNullOrEmpty($SafeDescription))
@@ -832,7 +835,7 @@ If (Test-CommandExists Invoke-RestMethod)
 					ForEach ($line in $csv)
 					{
 						Write-Host "Deleting safe $($line.safename)..." -ForegroundColor Yellow #DEBUG
-						Delete-Safe -safename $line.safename
+						Delete-Safe -safename $line.safename -_LogonHeader $g_LogonHeader
 					}
 				}
 				else
@@ -851,7 +854,7 @@ If (Test-CommandExists Invoke-RestMethod)
 			if([string]::IsNullOrEmpty($UserName))
 			{
 				# List all members of a safe
-				Get-SafeMembers -SafeName $SafeName
+				Get-SafeMembers -SafeName $SafeName -_LogonHeader $g_LogonHeader
 			}
 			else
 			{
@@ -888,7 +891,7 @@ If (Test-CommandExists Invoke-RestMethod)
 						$permRequestsAuthorizationLevel = 1
 					}
 				}
-				Set-SafeMember -safename $SafeName -safeMember $UserName -memberSearchInLocation $UserLocation `
+				Set-SafeMember -_LogonHeader $g_LogonHeader -safename $SafeName -safeMember $UserName -memberSearchInLocation $UserLocation `
 							-permUseAccounts $($line.UseAccounts | Convert-ToBool) -permRetrieveAccounts $(Convert-ToBool $line.RetrieveAccounts) -permListAccounts $(Convert-ToBool $line.ListAccounts) `
 							-permAddAccounts $(Convert-ToBool $line.AddAccounts) -permUpdateAccountContent $(Convert-ToBool $line.UpdateAccountContent) -permUpdateAccountProperties $(Convert-ToBool $line.UpdateAccountProperties) `
 							-permInitiateCPMManagement $(Convert-ToBool $line.InitiateCPMAccountManagementOperations) -permSpecifyNextAccountContent $(Convert-ToBool $line.SpecifyNextAccountContent) `
