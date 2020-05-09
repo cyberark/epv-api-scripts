@@ -134,6 +134,16 @@ Function Encode-URL($sText)
 	}
 }
 
+Function Get-TrimmedString($sText)
+{
+	if($sText -ne $null)
+	{
+		return $sText.Trim()
+	}
+	# Else
+	return $sText
+}
+
 Function Log-MSG
 {
 <# 
@@ -225,6 +235,34 @@ Function Log-MSG
 			Write-Host "======================================="
 		}
 	} catch { Write-Error "Error in writing log: $($_.Exception.Message)" }
+}
+
+Function Collect-ExceptionMessage
+{
+<# 
+.SYNOPSIS 
+	Formats exception messages
+.DESCRIPTION
+	Formats exception messages
+.PARAMETER Exception
+	The Exception object to format
+#>
+	param(
+		[Exception]$e
+	)
+
+	Begin {
+	}
+	Process {
+		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		while ($e.InnerException) {
+		  $e = $e.InnerException
+		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		}
+		return $msg
+	}
+	End {
+	}
 }
 
 Function OpenFile-Dialog($initialDirectory)
@@ -617,7 +655,7 @@ If($DisableSSLVerify)
 		[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
 	} catch {
 		Log-Msg -Type Error -MSG "Could not change SSL validation"
-		Log-Msg -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
+		Log-Msg -Type Error -MSG (Collect-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 		return
 	}
 }
@@ -628,7 +666,7 @@ Else
 		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 	} catch {
 		Log-Msg -Type Error -MSG "Could not change SSL settings to use TLS 1.2"
-		Log-Msg -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
+		Log-Msg -Type Error -MSG (Collect-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 	}
 }
 
@@ -653,7 +691,7 @@ If (![string]::IsNullOrEmpty($PVWAURL))
 	}
 	catch {		
 		Log-Msg -Type Error -MSG "PVWA URL could not be validated"
-		Log-Msg -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
+		Log-Msg -Type Error -MSG (Collect-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 	}
 	
 }
@@ -718,7 +756,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 	}
 	$delimiter = $(If ($CsvDelimiter -eq "Comma") { "," } else { "`t" } )
 	$accountsCSV = Import-CSV $csvPath -Delimiter $delimiter
-	$rowCount = $($accountsCSV.Count)
+	$rowCount = $($accountsCSV.Safe.Count)
 	$counter = 0
 	Log-Msg -Type Info -MSG "Starting to Onboard $rowCount accounts" -SubHeader
 	ForEach ($account in $accountsCSV)
@@ -749,11 +787,11 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 				$objAccount = "" | Select "name", "address", "userName", "platformId", "safeName", "secretType", "secret", "platformAccountProperties", "secretManagement", "remoteMachinesAccess"
 				$objAccount.platformAccountProperties = $null
 				$objAccount.secretManagement = "" | Select "automaticManagementEnabled", "manualManagementReason"
-				$objAccount.name = $account.name.Trim()
-				$objAccount.address = $account.address.Trim()
-				$objAccount.userName = $account.userName.Trim()
-				$objAccount.platformId = $account.platformID.Trim()
-				$objAccount.safeName = $account.safe.Trim()
+				$objAccount.name = (Get-TrimmedString $account.name)
+				$objAccount.address = (Get-TrimmedString $account.address)
+				$objAccount.userName = (Get-TrimmedString $account.userName)
+				$objAccount.platformId = (Get-TrimmedString $account.platformID)
+				$objAccount.safeName = (Get-TrimmedString $account.safe)
 				if ((![string]::IsNullOrEmpty($account.password)) -and ([string]::IsNullOrEmpty($account.SSHKey)))
 				{ 
 					$objAccount.secretType = "password"
@@ -1017,7 +1055,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 					Log-Msg -Type Info -MSG "Skipping onboarding $tmpAccountName into the Password Vault."
 				}
 			} catch {
-				Log-Msg -Type Info -MSG "Skipping onboarding account into the Password Vault. Error: $($_.Exception.Message)"
+				Log-Msg -Type Info -MSG "Skipping onboarding account into the Password Vault. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 		}
 	}	
