@@ -324,18 +324,20 @@ Function Invoke-Rest
 		if([string]::IsNullOrEmpty($Body))
 		{
 			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000 -ErrorAction $ErrAction
 		}
 		else
 		{
 			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000 -ErrorAction $ErrAction
 		}
 	} catch [System.Net.WebException] {
-		Log-Msg -Type Error -Msg "Error Message: $_" -ErrorAction $ErrAction
-		Log-Msg -Type Error -Msg "Exception Message: $($_.Exception.Message)" -ErrorAction $ErrAction
-		Log-Msg -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
-		Log-Msg -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)" -ErrorAction $ErrAction
+		if($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")){
+			Log-Msg -Type Error -Msg "Error Message: $_"
+			Log-Msg -Type Error -Msg "Exception Message: $($_.Exception.Message)"
+			Log-Msg -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
+			Log-Msg -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
+		}
 		$restResponse = $null
 	} catch { 
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'",$_.Exception))
@@ -359,6 +361,7 @@ Function Get-Safe
 	
 	return $_safe.GetSafeResult
 }
+
 Function Convert-PermissionName
 {
 # Safe Member List Permissions returns a specific set of permissions name
@@ -843,7 +846,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 						# The target safe does not exist
 						# The user chose to create safes during this process
 						$shouldSkip = Create-Safe -TemplateSafe $TemplateSafeDetails -Safe $account.Safe
-						if ($TemplateSafeDetails -ne $null -and $TemplateSafeMembers -ne $null)
+						if (($shouldSkip -eq $false) -and ($TemplateSafeDetails -ne $null) -and ($TemplateSafeMembers -ne $null))
 						{
 							$addOwnerResult = Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
 							if($addOwnerResult -eq $null)
