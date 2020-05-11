@@ -127,7 +127,9 @@ Function Write-LogMessage
 		[Switch]$Footer,
 		[Parameter(Mandatory=$false)]
 		[ValidateSet("Info","Warning","Error","Debug","Verbose")]
-		[String]$type = "Info"
+		[String]$type = "Info",
+		[Parameter(Mandatory=$false)]
+		[String]$LogFile = $LOG_FILE_PATH
 	)
 	try{
 		If ($Header) {
