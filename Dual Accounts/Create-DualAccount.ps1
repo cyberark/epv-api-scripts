@@ -116,7 +116,7 @@ Function Write-LogMessage
 	The type of the message to log (Info, Warning, Error, Debug)
 #>
 	param(
-		[Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+		[Parameter(Mandatory=$true)]
 		[AllowEmptyString()]
 		[String]$MSG,
 		[Parameter(Mandatory=$false)]
@@ -127,79 +127,66 @@ Function Write-LogMessage
 		[Switch]$Footer,
 		[Parameter(Mandatory=$false)]
 		[ValidateSet("Info","Warning","Error","Debug","Verbose")]
-		[String]$type = "Info",
-		[Parameter(Mandatory=$false)]
-		[String]$LogFile = $LOG_FILE_PATH
+		[String]$type = "Info"
 	)
-	Try{
-		If([string]::IsNullOrEmpty($LogFile))
-		{
-			# Create a temporary log file
-			$LogFile = "$ScriptLocation\tmp.log"
-		}
-
+	try{
 		If ($Header) {
-			"=======================================" | Out-File -Append -FilePath $LogFile
+			"=======================================" | Out-File -Append -FilePath $LOG_FILE_PATH 
+			Write-Host "======================================="
 		}
-		ElseIf($SubHeader) {
-			"------------------------------------" | Out-File -Append -FilePath $LogFile
+		ElseIf($SubHeader) { 
+			"------------------------------------" | Out-File -Append -FilePath $LOG_FILE_PATH 
+			Write-Host "------------------------------------"
 		}
-
+	
 		$msgToWrite = "[$(Get-Date -Format "yyyy-MM-dd hh:mm:ss")]`t"
+		$writeToFile = $true
 		# Replace empty message with 'N/A'
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
-
 		# Mask Passwords
-		if($Msg -match '((?>password|secret)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))')
+		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
 		{
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
-		$writeToFile = $true
 		# Check the message type
 		switch ($type)
 		{
-			"Info" {
+			"Info" { 
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
-				break
 			}
 			"Warning" {
 				Write-Host $MSG.ToString() -ForegroundColor DarkYellow
 				$msgToWrite += "[WARNING]`t$Msg"
-				break
 			}
 			"Error" {
 				Write-Host $MSG.ToString() -ForegroundColor Red
 				$msgToWrite += "[ERROR]`t$Msg"
-				break
 			}
-			"Debug" {
-				if($InDebug -or $InVerbose)
+			"Debug" { 
+				if($InDebug)
 				{
 					Write-Debug $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
-					break
 				}
 				else { $writeToFile = $False }
 			}
-			"Verbose" {
+			"Verbose" { 
 				if($InVerbose)
 				{
 					Write-Verbose $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
-					break
 				}
 				else { $writeToFile = $False }
 			}
 		}
-		If($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LogFile }
-		If ($Footer) {
-			"=======================================" | Out-File -Append -FilePath $LogFile
+		
+		If($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LOG_FILE_PATH }
+		If ($Footer) { 
+			"=======================================" | Out-File -Append -FilePath $LOG_FILE_PATH 
+			Write-Host "======================================="
 		}
-	}
-	catch{
-		Throw $(New-Object System.Exception ("Cannot write message '$Msg' to file '$Logfile'",$_.Exception))
-	}
+	} catch { Write-Error "Error in writing log: $($_.Exception.Message)" }
 }
 
 # @FUNCTION@ ======================================================================================================================
@@ -378,17 +365,20 @@ Function Invoke-Rest
 		if([string]::IsNullOrEmpty($Body))
 		{
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000 -ErrorAction $ErrAction
 		}
 		else
 		{
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000 -ErrorAction $ErrAction
 		}
 	} catch [System.Net.WebException] {
-		Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)" -ErrorAction $ErrAction
-		Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
-		Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)" -ErrorAction $ErrAction
+		if($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")){
+			Write-LogMessage -Type Error -Msg "Error Message: $_"
+			Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
+			Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
+			Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
+		}
 		$restResponse = $null
 	} catch {
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'",$_.Exception))
@@ -726,6 +716,9 @@ Function Get-Account
 		[String]$accountAddress,
 		[Parameter(Mandatory=$true)]
 		[String]$safeName,
+		[Parameter(Mandatory=$false)]
+		[ValidateSet("Continue","Ignore","Inquire","SilentlyContinue","Stop","Suspend")]
+		[String]$ErrAction="Continue",
 		[Parameter(Mandatory=$true)]
 		[PSCredential]$VaultCredentials
 	)
@@ -734,7 +727,7 @@ Function Get-Account
 	try{
 		$urlSearchAccount = $URL_Accounts+"?filter=safename eq "+$(Encode-URL $safeName)+"&search="+$(Encode-URL "$accountName $accountAddress")
 		# Search for created account
-		$_accounts = $(Invoke-Rest -Uri $urlSearchAccount -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Command "Get")
+		$_accounts = $(Invoke-Rest -Uri $urlSearchAccount -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Command "Get" -ErrAction $ErrAction)
 		if($null -ne $_accounts)
 		{
 			foreach ($item in $_accounts.value)
@@ -784,7 +777,7 @@ Function Test-Account
 		[PSCredential]$VaultCredentials
 	)
 	try {
-		$accResult = $(Get-Account -accountName $accountName -accountAddress $accountAddress -safeName $safeName -VaultCredentials $VaultCredentials)
+		$accResult = $(Get-Account -accountName $accountName -accountAddress $accountAddress -safeName $safeName -VaultCredentials $VaultCredentials -ErrAction "SilentlyContinue")
 		If (($null -eq $accResult) -or ($accResult.count -eq 0))
 		{
 			# No accounts found
