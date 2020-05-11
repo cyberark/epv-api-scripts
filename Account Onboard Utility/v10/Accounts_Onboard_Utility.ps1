@@ -348,11 +348,17 @@ Function Invoke-Rest
 
 Function Get-Safe
 {
-	param ($safeName)
+	param (
+		[Parameter(Mandatory=$true)]
+		[String]$safeName,
+		[Parameter(Mandatory=$false)]
+		[ValidateSet("Continue","Ignore","Inquire","SilentlyContinue","Stop","Suspend")]
+		[String]$ErrAction="Continue"
+	)
 	$_safe = $null
 	try{
 		$accSafeURL = $URL_SafeDetails -f $safeName
-		$_safe = $(Invoke-Rest -Uri $accSafeURL -Header $g_LogonHeader -Command "Get" -ErrorAction "SilentlyContinue")
+		$_safe = $(Invoke-Rest -Uri $accSafeURL -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
 	}
 	catch
 	{
@@ -452,7 +458,7 @@ Function Test-Safe
 		)
 		
 	try{
-		If ($null -eq $(Get-Safe -safeName $safeName))
+		If ($null -eq $(Get-Safe -safeName $safeName -ErrAction "SilentlyContinue"))
 		{
 			# Safe does not exist
 			Log-Msg -Type Warning -MSG "Safe $safeName does not exist"
@@ -542,13 +548,23 @@ Function Add-Owner
 
 Function Get-Account
 {
-	param ($accountName, $accountAddress, $safeName)
+	param (
+		[Parameter(Mandatory=$false)]
+		[String]$accountName, 
+		[Parameter(Mandatory=$false)]
+		[String]$accountAddress, 
+		[Parameter(Mandatory=$false)]
+		[String]$safeName,
+		[Parameter(Mandatory=$false)]
+		[ValidateSet("Continue","Ignore","Inquire","SilentlyContinue","Stop","Suspend")]
+		[String]$ErrAction="Continue"
+		)
 	$_retaccount = $null
 	$_accounts = $null
 	try{
 		$urlSearchAccount = $URL_Accounts+"?filter=safename eq "+$(Encode-URL $safeName)+"&search="+$(Encode-URL "$accountName $accountAddress")
 		# Search for created account
-		$_accounts = $(Invoke-Rest -Uri $urlSearchAccount -Header $g_LogonHeader -Command "Get")
+		$_accounts = $(Invoke-Rest -Uri $urlSearchAccount -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
 		if($null -ne $_accounts)
 		{
 			foreach ($item in $_accounts.value)
@@ -575,7 +591,7 @@ Function Test-Account
 {
 	param ($accountName, $accountAddress, $safeName)
 	try{
-		$accResult = $(Get-Account -accountName $accountName -accountAddress $accountAddress -safeName $safeName)
+		$accResult = $(Get-Account -accountName $accountName -accountAddress $accountAddress -safeName $safeName -ErrAction "SilentlyContinue")
 		If (($null -eq $accResult) -or ($accResult.count -eq 0))
 		{
 			# No accounts found
