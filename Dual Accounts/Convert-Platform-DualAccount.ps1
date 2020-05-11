@@ -396,7 +396,7 @@ Function AddPlatform-DualAccount
 		# Found the Platform name, add Dual Accounts to it
 		$iniContent = $iniContent.Replace($platformName,$platformName+" Dual Account")
 		
-		$iniContent | Out-File $fileEntries[0].FullName -Force
+		$iniContent | Out-File $fileEntries[0].FullName -Force -Encoding ASCII
 		
 		Write-LogMessage -Type Debug -Msg "Delete original ZIP and Package the new Platform ZIP"
 		$zipFullPath = $Package.FullName
