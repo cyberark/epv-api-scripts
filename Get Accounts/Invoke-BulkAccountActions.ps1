@@ -84,8 +84,8 @@ $global:g_LogonHeader = $null
 # -----------
 $URL_PVWAAPI = $PVWAURL+"/api"
 $URL_Authentication = $URL_PVWAAPI+"/auth"
-$URL_CyberArkLogon = $URL_Authentication+"/cyberark/Logon"
-$URL_CyberArkLogoff = $URL_Authentication+"/Logoff"
+$URL_Logon = $URL_Authentication+"/$AuthType/Logon"
+$URL_Logoff = $URL_Authentication+"/Logoff"
 
 # URL Methods
 # -----------
