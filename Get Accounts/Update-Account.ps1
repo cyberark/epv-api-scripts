@@ -160,26 +160,20 @@ If (Test-CommandExists Invoke-RestMethod)
 		# Adding a specific case for "/secretManagement/automaticManagementEnabled"
 		If($ParameterNames[$i] -in @("automaticManagementEnabled","manualManagementReason"))
 		{
-			If($ParameterNames[$i] -like "manualManagementReason")
+			# User wants to change Secret Management properties
+			# Check if Account already has them set
+			If($response.secretManagement.automaticManagementEnabled -eq $true)
 			{
-				$_bodyOp.op = "replace"
-				$_bodyOp.path = "/secretManagement/manualManagementReason"
-				$_bodyOp.value = $ParameterValues[$i]
-				$arrProperties += $_bodyOp
-			}
-			else
-			{
-				If($ParameterValues[$i] -eq $true)
+				If($ParameterNames[$i] -like "automaticManagementEnabled")
 				{
-					# Need to remove the manualManagementReason
-					$_bodyOp.op = "remove"
-					$_bodyOp.path = "/secretManagement/manualManagementReason"
-					$_bodyOp.value = ""
+					$_bodyOp.op = "replace"
+					$_bodyOp.path = "/secretManagement/automaticManagementEnabled"
+					$_bodyOp.value = $ParameterValues[$i]
 					$arrProperties += $_bodyOp
 				}
-				else
+				# Need to add the manualManagementReason
+				If($ParameterNames[$i] -like "manualManagementReason")
 				{
-					# Need to add the manualManagementReason
 					$_bodyOp.op = "add"
 					$_bodyOp.path = "/secretManagement/manualManagementReason"
 					if([string]::IsNullOrEmpty($ParameterValues[$i]))
@@ -190,7 +184,47 @@ If (Test-CommandExists Invoke-RestMethod)
 					{
 						$_bodyOp.value = $ParameterValues[$i]
 					}
+				}
+			}
+			Else
+			{
+				If($ParameterNames[$i] -like "manualManagementReason")
+				{
+					$_bodyOp.op = "replace"
+					$_bodyOp.path = "/secretManagement/manualManagementReason"
+					$_bodyOp.value = $ParameterValues[$i]
 					$arrProperties += $_bodyOp
+				}
+				else
+				{
+					If($ParameterValues[$i] -eq $true)
+					{
+						# Need to remove the manualManagementReason
+						$_bodyOp.op = "remove"
+						$_bodyOp.path = "/secretManagement/manualManagementReason"
+						$_bodyOp.value = ""
+						$arrProperties += $_bodyOp
+						# Need to add the automaticManagementEnabled
+						$_bodyOp.op = "replace"
+						$_bodyOp.path = "/secretManagement/automaticManagementEnabled"
+						$_bodyOp.value = $ParameterValues[$i]
+						$arrProperties += $_bodyOp
+					}
+					else
+					{
+						# Need to add the manualManagementReason
+						$_bodyOp.op = "add"
+						$_bodyOp.path = "/secretManagement/manualManagementReason"
+						if([string]::IsNullOrEmpty($ParameterValues[$i]))
+						{
+							$_bodyOp.value = "[No Reason]"
+						}
+						else
+						{
+							$_bodyOp.value = $ParameterValues[$i]
+						}
+						$arrProperties += $_bodyOp
+					}
 				}
 			}
 		}
