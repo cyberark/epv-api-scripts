@@ -134,7 +134,7 @@ If (Test-CommandExists Invoke-RestMethod)
 #endregion
 
 	# List common properties
-	$excludedProperties = @("name","username","address","safe","platformid","password","key","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist","sshkey")
+	$excludedProperties = @("name","username","address","safe","platformid","password","key","automaticManagementEnabled","manualManagementReason","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist","sshkey")
 	$response = ""
 	if($AccountID -ne "")
 	{
@@ -158,28 +158,22 @@ If (Test-CommandExists Invoke-RestMethod)
 		$_bodyOp = "" | select "op", "path", "value"
 		$_bodyOp.op = "replace"
 		# Adding a specific case for "/secretManagement/automaticManagementEnabled"
-		If($ParameterNames[$i] -in @("automaticManagementEnabled","manualManagementReason"))
+		If($ParameterNames[$i] -in ("automaticManagementEnabled","manualManagementReason"))
 		{
-			If($ParameterNames[$i] -like "manualManagementReason")
+			# User wants to change Secret Management properties
+			# Check if Account already has them set
+			If($response.secretManagement.automaticManagementEnabled -eq $true)
 			{
-				$_bodyOp.op = "replace"
-				$_bodyOp.path = "/secretManagement/manualManagementReason"
-				$_bodyOp.value = $ParameterValues[$i]
-				$arrProperties += $_bodyOp
-			}
-			else
-			{
-				If($ParameterValues[$i] -eq $true)
+				If($ParameterNames[$i] -like "automaticManagementEnabled")
 				{
-					# Need to remove the manualManagementReason
-					$_bodyOp.op = "remove"
-					$_bodyOp.path = "/secretManagement/manualManagementReason"
-					$_bodyOp.value = ""
+					$_bodyOp.op = "replace"
+					$_bodyOp.path = "/secretManagement/automaticManagementEnabled"
+					$_bodyOp.value = $ParameterValues[$i]
 					$arrProperties += $_bodyOp
 				}
-				else
+				# Need to add the manualManagementReason
+				If($ParameterNames[$i] -like "manualManagementReason")
 				{
-					# Need to add the manualManagementReason
 					$_bodyOp.op = "add"
 					$_bodyOp.path = "/secretManagement/manualManagementReason"
 					if([string]::IsNullOrEmpty($ParameterValues[$i]))
@@ -190,28 +184,72 @@ If (Test-CommandExists Invoke-RestMethod)
 					{
 						$_bodyOp.value = $ParameterValues[$i]
 					}
-					$arrProperties += $_bodyOp
 				}
 			}
+			Else
+			{
+				If($ParameterNames[$i] -like "manualManagementReason")
+				{
+					$_bodyOp.op = "replace"
+					$_bodyOp.path = "/secretManagement/manualManagementReason"
+					$_bodyOp.value = $ParameterValues[$i]
+					$arrProperties += $_bodyOp
+				}
+				else
+				{
+					If($ParameterValues[$i] -eq $true)
+					{
+						# Need to remove the manualManagementReason
+						$_bodyOp.op = "remove"
+						$_bodyOp.path = "/secretManagement/manualManagementReason"
+						$_bodyOp.value = ""
+						$arrProperties += $_bodyOp
+						# Need to add the automaticManagementEnabled
+						$_bodyOp.op = "replace"
+						$_bodyOp.path = "/secretManagement/automaticManagementEnabled"
+						$_bodyOp.value = $ParameterValues[$i]
+						$arrProperties += $_bodyOp
+					}
+					else
+					{
+						# Need to add the manualManagementReason
+						$_bodyOp.op = "add"
+						$_bodyOp.path = "/secretManagement/manualManagementReason"
+						if([string]::IsNullOrEmpty($ParameterValues[$i]))
+						{
+							$_bodyOp.value = "[No Reason]"
+						}
+						else
+						{
+							$_bodyOp.value = $ParameterValues[$i]
+						}
+						$arrProperties += $_bodyOp
+					}
+				}
+			}
+			break
 		}
-		# Handling all other properties
-		If ($ParameterNames[$i].ToLower() -notin $excludedProperties)
+		Else
 		{
-			$_bodyOp.path = "/platformAccountProperties/"+$ParameterNames[$i]
+			# Handling all other properties
+			If ($ParameterNames[$i].ToLower() -notin $excludedProperties)
+			{
+				$_bodyOp.path = "/platformAccountProperties/"+$ParameterNames[$i]
+			}
+			else
+			{
+				$_bodyOp.path = "/"+$ParameterNames[$i]
+			}
+			if($i -lt $ParameterValues.Count)
+			{
+				$_bodyOp.value = $ParameterValues[$i]
+			}
+			else
+			{
+				$_bodyOp.value = $ParameterValues[-1]
+			}
+			$arrProperties += $_bodyOp
 		}
-		else
-		{
-			$_bodyOp.path = "/"+$ParameterNames[$i]
-		}
-		if($i -lt $ParameterValues.Count)
-		{
-			$_bodyOp.value = $ParameterValues[$i]
-		}
-		else
-		{
-			$_bodyOp.value = $ParameterValues[-1]
-		}
-		$arrProperties += $_bodyOp
 	}
 	
 	
