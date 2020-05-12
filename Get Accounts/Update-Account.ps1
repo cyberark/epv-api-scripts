@@ -134,7 +134,7 @@ If (Test-CommandExists Invoke-RestMethod)
 #endregion
 
 	# List common properties
-	$excludedProperties = @("name","username","address","safe","platformid","password","key","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist","sshkey")
+	$excludedProperties = @("name","username","address","safe","platformid","password","key","automaticManagementEnabled","manualManagementReason","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist","sshkey")
 	$response = ""
 	if($AccountID -ne "")
 	{
@@ -158,7 +158,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		$_bodyOp = "" | select "op", "path", "value"
 		$_bodyOp.op = "replace"
 		# Adding a specific case for "/secretManagement/automaticManagementEnabled"
-		If($ParameterNames[$i] -in @("automaticManagementEnabled","manualManagementReason"))
+		If($ParameterNames[$i] -in ("automaticManagementEnabled","manualManagementReason"))
 		{
 			# User wants to change Secret Management properties
 			# Check if Account already has them set
@@ -227,25 +227,29 @@ If (Test-CommandExists Invoke-RestMethod)
 					}
 				}
 			}
+			break
 		}
-		# Handling all other properties
-		If ($ParameterNames[$i].ToLower() -notin $excludedProperties)
+		Else
 		{
-			$_bodyOp.path = "/platformAccountProperties/"+$ParameterNames[$i]
+			# Handling all other properties
+			If ($ParameterNames[$i].ToLower() -notin $excludedProperties)
+			{
+				$_bodyOp.path = "/platformAccountProperties/"+$ParameterNames[$i]
+			}
+			else
+			{
+				$_bodyOp.path = "/"+$ParameterNames[$i]
+			}
+			if($i -lt $ParameterValues.Count)
+			{
+				$_bodyOp.value = $ParameterValues[$i]
+			}
+			else
+			{
+				$_bodyOp.value = $ParameterValues[-1]
+			}
+			$arrProperties += $_bodyOp
 		}
-		else
-		{
-			$_bodyOp.path = "/"+$ParameterNames[$i]
-		}
-		if($i -lt $ParameterValues.Count)
-		{
-			$_bodyOp.value = $ParameterValues[$i]
-		}
-		else
-		{
-			$_bodyOp.value = $ParameterValues[-1]
-		}
-		$arrProperties += $_bodyOp
 	}
 	
 	
