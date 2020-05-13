@@ -23,6 +23,7 @@ param
 	[String]$PVWAURL,
 	
 	[Parameter(Mandatory=$true,HelpMessage="The required Account ID")]
+	[ValidateScript({ $_ -match "\d{1,}_\d{1,}" })]
 	[Alias("id")]
 	[string]$AccountID,
 	
