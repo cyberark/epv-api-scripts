@@ -252,6 +252,16 @@ Function Collect-ExceptionMessage
 #endregion
 
 #region Helper Functions
+Function Test-CommandExists
+{
+    Param ($command)
+    $oldPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'stop'
+    try {if(Get-Command $command){RETURN $true}}
+    Catch {Write-Host "$command does not exist"; RETURN $false}
+    Finally {$ErrorActionPreference=$oldPreference}
+} #end function test-CommandExists
+
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Disable-SSLVerification
 # Description....: Disables the SSL Verification (bypass self signed SSL certificates)
