@@ -736,8 +736,7 @@ If (Test-CommandExists Invoke-RestMethod)
 				}
 				else
 				{
-					$parameters = "" | select safeName, safeDescription, managingCPM, numVersionRetention
-					$parameters = New-Object -TypeName PSObject -Property @{ 
+					$parameters = @{ 
 						safeName=$SafeName; 
 						safeDescription=$SafeDescription;
 						managingCPM=$ManagingCPM;
@@ -746,27 +745,27 @@ If (Test-CommandExists Invoke-RestMethod)
 					# Keep only relevant properties (and keeping defaults when needed)
 					if([string]::IsNullOrEmpty($SafeDescription))
 					{
-						$parameters.PSObject.Properties.Remove('safeDescription')
+						$parameters.Remove('safeDescription')
 					}
 					if([string]::IsNullOrEmpty($ManagingCPM))
 					{
-						$parameters.PSObject.Properties.Remove('managingCPM')
+						$parameters.Remove('managingCPM')
 					}
 					if([string]::IsNullOrEmpty($NumVersionRetention))
 					{
-						$parameters.PSObject.Properties.Remove('numVersionRetention')
+						$parameters.Remove('numVersionRetention')
 					}
 					If($Add)
 					{
 						# Create one Safe
 						Write-Host "Adding the safe $SafeName..." -ForegroundColor Yellow
-						Create-Safe -SafeName $parameters.SafeName -SafeDescription $parameters.SafeDescription -ManagingCPM $parameters.managingCPM -numVersionRetention $parameters.numVersionRetention
+						Create-Safe @parameters
 					}
 					ElseIf($Update)
 					{
 						# Update the Safe
 						Write-Host "Updating the safe $SafeName..." -ForegroundColor Yellow
-						Update-Safe -SafeName $parameters.SafeName -SafeDescription $parameters.SafeDescription -ManagingCPM $parameters.managingCPM -numVersionRetention $parameters.numVersionRetention
+						Update-Safe @parameters
 					}
 				}			
 			}catch{
