@@ -334,7 +334,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     Param
     (
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$safename,
+        [string]$safeName,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
         [string]$safedescription,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
