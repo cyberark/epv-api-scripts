@@ -657,7 +657,7 @@ try {
 	# Run Account Action on relevant Accounts
 	ForEach ($account in $filteredAccounts)
 	{
-		Invoke-Rest -Uri ($accountAction -f $account.id) -Command POST -Boby "" -Header (Get-LogonHeader $creds)
+		Invoke-Rest -Uri ($accountAction -f $account.id) -Command POST -Body "" -Header (Get-LogonHeader $creds)
 	}
 } catch {
 	Write-LogMessage -Type Error -MSG "There was an Error running bulk account actions. Error: $(Collect-ExceptionMessage $_.Exception)"
