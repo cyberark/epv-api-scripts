@@ -760,13 +760,13 @@ If (Test-CommandExists Invoke-RestMethod)
 					{
 						# Create one Safe
 						Write-Host "Adding the safe $SafeName..." -ForegroundColor Yellow
-						Create-Safe @parameters
+						Create-Safe -SafeName $parameters.SafeName -SafeDescription $parameters.SafeDescription -ManagingCPM $parameters.managingCPM -numVersionRetention $parameters.numVersionRetention
 					}
 					ElseIf($Update)
 					{
 						# Update the Safe
 						Write-Host "Updating the safe $SafeName..." -ForegroundColor Yellow
-						Update-Safe @parameters
+						Update-Safe -SafeName $parameters.SafeName -SafeDescription $parameters.SafeDescription -ManagingCPM $parameters.managingCPM -numVersionRetention $parameters.numVersionRetention
 					}
 				}			
 			}catch{
