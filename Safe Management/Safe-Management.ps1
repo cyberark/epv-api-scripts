@@ -736,8 +736,7 @@ If (Test-CommandExists Invoke-RestMethod)
 				}
 				else
 				{
-					$parameters = "" | select safeName, safeDescription, managingCPM, numVersionRetention
-					$parameters = New-Object -TypeName PSObject -Property @{ 
+					$parameters = @{ 
 						safeName=$SafeName; 
 						safeDescription=$SafeDescription;
 						managingCPM=$ManagingCPM;
@@ -746,15 +745,15 @@ If (Test-CommandExists Invoke-RestMethod)
 					# Keep only relevant properties (and keeping defaults when needed)
 					if([string]::IsNullOrEmpty($SafeDescription))
 					{
-						$parameters.PSObject.Properties.Remove('safeDescription')
+						$parameters.Remove('safeDescription')
 					}
 					if([string]::IsNullOrEmpty($ManagingCPM))
 					{
-						$parameters.PSObject.Properties.Remove('managingCPM')
+						$parameters.Remove('managingCPM')
 					}
 					if([string]::IsNullOrEmpty($NumVersionRetention))
 					{
-						$parameters.PSObject.Properties.Remove('numVersionRetention')
+						$parameters.Remove('numVersionRetention')
 					}
 					If($Add)
 					{
