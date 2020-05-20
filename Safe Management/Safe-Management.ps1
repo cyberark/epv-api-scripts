@@ -239,7 +239,10 @@ Get all Safe details on a specific safe
 Get-Safe -safeName "x0-Win-S-Admins"
 
 #>
-	param ($safeName)
+	param (
+		[ValidateScript({$_.Length -le 28})]
+		[String]$safeName
+	)
 	$_safe = $null
 	try{
 		$accSafeURL = $URL_SpecificSafe -f $(Encode-URL $safeName)
@@ -343,9 +346,13 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
         [bool]$EnableOLAC=$false
     )
-	
-	# Get the current safe details and update when necessary
-	$getSafe = Get-Safe -safeName $safeName
+	try {
+		# Get the current safe details and update when necessary
+		$getSafe = Get-Safe -safeName $safeName
+	} catch {
+		Write-Host "Error getting current details on safe '$safeName'. The error was:" -ForegroundColor Red #ERROR
+        Write-Error $_.Exception.Response.StatusDescription
+	}
 	$updateDescription = $getSafe.Description
 	$updateOLAC = $getSafe.OLACEnabled
 	$updateManageCPM = $getSafe.ManagingCPM
@@ -375,7 +382,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
 	
 $updateSafeBody=@{
             safe=@{
-            "SafeName"="$safename"; 
+            "SafeName"="$safeName"; 
             "Description"="$updateDescription"; 
             "OLACEnabled"="$updateOLAC"; 
             "ManagingCPM"="$updateManageCPM";
@@ -388,7 +395,7 @@ $updateSafeBody=@{
         Write-Host "Updating safe $safename..." -ForegroundColor Yellow #DEBUG
         $safeupdate = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
     }catch{
-        Write-Host "Error updating $safename. The error was:" -ForegroundColor Red #ERROR
+        Write-Host "Error updating $safeName. The error was:" -ForegroundColor Red #ERROR
         Write-Error $_.Exception.Response.StatusDescription
     }
 }
