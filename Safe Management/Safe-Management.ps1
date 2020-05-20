@@ -563,7 +563,7 @@ Get-SafeMember -safename "Win-Local-Admins"
 	try{
 		$_defaultUsers = @("Master","Batch","Backup Users","Auditors","Operators","DR Users","Notification Engines","PVWAGWAccounts","PasswordManager")
 		$accSafeMembersURL = $URL_SafeMembers -f $(Encode-URL $safeName)
-		$_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL-Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorAction "SilentlyContinue")
+		$_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorAction "SilentlyContinue")
 		# Remove default users and change UserName to MemberName
 		$_safeOwners = $_safeMembers.members | Where {$_.UserName -notin $_defaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
 	}
