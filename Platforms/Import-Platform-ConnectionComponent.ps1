@@ -228,7 +228,7 @@ $logonHeader.Add("Authorization", $logonToken)
 $connectionComponentID = $null
 If (Test-Path $ConnectionComponentZipPath)
 {
-	$importBody = @{ ImportFile=$(Get-ZipContent $ConnectionComponentZipPath); } | ConvertTo-Json -Depth 3
+	$importBody = @{ ImportFile=$(Get-ZipContent $ConnectionComponentZipPath); } | ConvertTo-Json -Depth 3 -Compress
 	try{
 		$ImportCCResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportConnectionComponent -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000 -Body $importBody
 		$connectionComponentID = ($ImportCCResponse.ConnectionComponentID)
@@ -255,7 +255,7 @@ If (Test-Path $PlatformZipPath)
 	# Link Connection Component to Platform
 	AddPlatform-PSMConnectionComponent -platformZipPath $(Resolve-Path $PlatformZipPath) -psmServerID $PSMServerID -connectionComponentID $connectionComponentID
 	# Import Platform
-	$importBody = @{ ImportFile=$(Get-ZipContent $PlatformZipPath); } | ConvertTo-Json -Depth 3
+	$importBody = @{ ImportFile=$(Get-ZipContent $PlatformZipPath); } | ConvertTo-Json -Depth 3 -Compress
 	try{
 		$ImportPlatformResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportPlatforms -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000 -Body $importBody
 		Write-Host "Platform ID imported: $($ImportPlatformResponse.PlatformID)"
