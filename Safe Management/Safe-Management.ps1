@@ -338,13 +338,13 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
         [string]$safedescription,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
-        [string]$managingCPM="PasswordManager",
+        [string]$managingCPM,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
-        [int]$numVersionRetention=7,
+        [int]$numVersionRetention=-1,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
-        [int]$numDaysRetention=5,
+        [int]$numDaysRetention=-1,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
-        [bool]$EnableOLAC=$false
+        [bool]$EnableOLAC
     )
 	try {
 		# Get the current safe details and update when necessary
@@ -359,7 +359,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
 	$updateRetVersions = $getSafe.NumberOfVersionsRetention
 	$updateRetDays = $getSafe.NumberOfDaysRtention
 	
-	If($getSafe.Description -ne $safeDescription)
+	If(![string]::IsNullOrEmpty($safedescription) -and $getSafe.Description -ne $safeDescription)
 	{
 		$updateDescription = $safeDescription
 	}
@@ -367,15 +367,15 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
 	{
 		$updateOLAC = $EnableOLAC
 	}
-	If($getSafe.ManagingCPM -ne $managingCPM)
+	If(![string]::IsNullOrEmpty($managingCPM) -and $getSafe.ManagingCPM -ne $managingCPM)
 	{
 		$updateManageCPM = $managingCPM
 	}
-	If($getSafe.NumberOfVersionsRetention -ne $numVersionRetention)
+	If($numVersionRetention -gt 0 -and $getSafe.NumberOfVersionsRetention -ne $numVersionRetention)
 	{
 		$updateRetVersions = $numVersionRetention
 	}
-	If($getSafe.NumberOfDaysRtention -ne $numDaysRetention)
+	If($numDaysRetention -gt 0 -and $getSafe.NumberOfDaysRtention -ne $numDaysRetention)
 	{
 		$updateRetDays = $numDaysRetention
 	}
@@ -395,8 +395,9 @@ $updateSafeBody=@{
         Write-Host "Updating safe $safename..." -ForegroundColor Yellow #DEBUG
         $safeupdate = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
     }catch{
-        Write-Host "Error updating $safeName. The error was:" -ForegroundColor Red #ERROR
+        Write-Host "Error updating $safeName. The error was: $_" -ForegroundColor Red #ERROR
         Write-Error $_.Exception.Response.StatusDescription
+		
     }
 }
 
