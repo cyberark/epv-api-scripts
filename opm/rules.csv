@@ -1,3 +1,0 @@
-PlatformId,Command,CommandGroup,UserName,PermissionType,Restrictions
-UnixSSH,/usr/bin/cat /etc/passwd,false,Paul,Allow,,
-UnixSSH,SHELLS,true,Unix Admins,Allow,,
