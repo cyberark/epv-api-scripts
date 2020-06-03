@@ -36,12 +36,11 @@ opm-rule-onboarding.ps1 -PVWAURL <string> [-AuthType] [-OTP]  [-CsvPath] [-CsvDe
 	- The CSV delimiter to be used.
 	- Available values: comma, tab
 	- Default value: _comma delimited_
-
+### Create Command:
 Running the script with no parameters will cause it to prompt the user for input.
 
 ```powershell opm-rule-onboarding.ps1``` 
 
-### Create Command:
 ```powershell
 opm-rule-onboarding.ps1 -PVWAURL <string> [-OTP <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [<CommonParameters>]
 ```
