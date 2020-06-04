@@ -498,7 +498,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding OPM Rules"
 				}
 				
 				if ($objRule.commandGroup -eq $false -and -Not $objRule.command.StartsWith("/") -and -Not $objRule.command -eq ".*") {
-					Write-Warning "Rule Number $counter : It is a recommended security best practice to define commands with an absolute path. Please reconfigure rules like (cat /etc/passwd) to (/usr/bin/cat /etc/passwd)" -WarningAction Inquire
+					Log-Msg -Type Warning -Msg "Rule Number $counter : It is a recommended security best practice to define commands with an absolute path. Please reconfigure rules like (cat /etc/passwd) to (/usr/bin/cat /etc/passwd)" -WarningAction Inquire
 				}
 				try {
 					# Create the rule
@@ -507,23 +507,23 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding OPM Rules"
 					Log-Msg -Type Debug -Msg $restBody
 					$addRuleResult = $(Invoke-RestMethod -Method Put -Uri $URL_PlatformCommands -Headers $g_LogonHeader -Body $restBody -ContentType "application/json" -TimeoutSec 60)
 					if($addRuleResult -ne $null) {
-						Log-Msg -Type Info -MSG "Rule Onboarded Successfully"
+						Log-Msg -Type Info -Msg "Rule Onboarded Successfully"
 						# Increment counter
 						$successCounter++
-						Log-Msg -Type Info -MSG "[$counter/$rowCount] Added successfully."  
+						Log-Msg -Type Info -Msg "[$counter/$rowCount] Added successfully."  
 					}
 				} catch {
 					if ($_.Exception.Response.StatusDescription.StartsWith("ITATS903E OlacObjectRuleAdd failed, because the same rule already exists")) {
 						Log-Msg -Type Warning -Msg "Skipping rule $counter. Rule already exists."
 					} else {
-						Log-Msg -Type Error -MSG "There was an error onboarding $counter rule into the Password Vault."
-						Log-Msg -Type Error -MSG "StatusCode: $($_.Exception.Response.StatusCode.value__) "
-						Log-Msg -Type Error -MSG "StatusDescription: $($_.Exception.Response.StatusDescription)"
+						Log-Msg -Type Error -Msg "There was an error onboarding $counter rule into the Password Vault."
+						Log-Msg -Type Error -Msg "StatusCode: $($_.Exception.Response.StatusCode.value__) "
+						Log-Msg -Type Error -Msg "StatusDescription: $($_.Exception.Response.StatusDescription)"
 					}
 				}
 			} catch {
 				$l_c = $_.InvocationInfo.ScriptLineNumber
-				Log-Msg -Type Info -MSG "Line $l_c : Skipping onboarding rule into the Password Vault. Error: $(Collect-ExceptionMessage $_.Exception)"
+				Log-Msg -Type Error -Msg "Line $l_c : Skipping onboarding rule into the Password Vault. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 		}
 		$counter++
