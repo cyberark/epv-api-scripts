@@ -498,7 +498,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding OPM Rules"
 				}
 				
 				if ($objRule.commandGroup -eq $false -and -Not $objRule.command.StartsWith("/") -and -Not $objRule.command -eq ".*") {
-					Log-Msg -Type Warning -Msg "Rule Number $counter : It is a recommended security best practice to define commands with an absolute path. Please reconfigure rules like (cat /etc/passwd) to (/usr/bin/cat /etc/passwd)" -WarningAction Inquire
+					Log-Msg -Type Warning -Msg "Rule Number $counter : It is a recommended security best practice to define commands with an absolute path. Please reconfigure rules like (cat /etc/passwd) to (/usr/bin/cat /etc/passwd)"
 				}
 				try {
 					# Create the rule
