@@ -510,7 +510,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding OPM Rules"
 						Log-Msg -Type Info -Msg "Rule Onboarded Successfully"
 						# Increment counter
 						$successCounter++
-						Log-Msg -Type Info -Msg "[$counter/$rowCount] Added successfully."  
+						Log-Msg -Type Info -Msg "Row [$counter/$rowCount] Added successfully."  
 					}
 				} catch {
 					if ($_.Exception.Response.StatusDescription.StartsWith("ITATS903E OlacObjectRuleAdd failed, because the same rule already exists")) {
