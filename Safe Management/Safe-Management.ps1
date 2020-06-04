@@ -357,7 +357,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
 	$updateOLAC = $getSafe.OLACEnabled
 	$updateManageCPM = $getSafe.ManagingCPM
 	$updateRetVersions = $getSafe.NumberOfVersionsRetention
-	$updateRetDays = $getSafe.NumberOfDaysRtention
+	$updateRetDays = $getSafe.NumberOfDaysRetention
 	
 	If(![string]::IsNullOrEmpty($safedescription) -and $getSafe.Description -ne $safeDescription)
 	{
@@ -371,11 +371,11 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
 	{
 		$updateManageCPM = $managingCPM
 	}
-	If($numVersionRetention -gt 0 -and $getSafe.NumberOfVersionsRetention -ne $numVersionRetention)
+	If($numVersionRetention -ne $null -and $numVersionRetention -gt 0 -and $getSafe.NumberOfVersionsRetention -ne $numVersionRetention)
 	{
 		$updateRetVersions = $numVersionRetention
 	}
-	If($numDaysRetention -gt 0 -and $getSafe.NumberOfDaysRtention -ne $numDaysRetention)
+	If($numDaysRetention -ne $null -and $numDaysRetention -gt 0 -and $getSafe.NumberOfDaysRtention -ne $numDaysRetention)
 	{
 		$updateRetDays = $numDaysRetention
 	}
@@ -384,15 +384,16 @@ $updateSafeBody=@{
             safe=@{
             "SafeName"="$safeName"; 
             "Description"="$updateDescription"; 
-            "OLACEnabled"="$updateOLAC"; 
+            "OLACEnabled"=$updateOLAC; 
             "ManagingCPM"="$updateManageCPM";
             "NumberOfVersionsRetention"=$updateRetVersions;
-            "NumberOfDaysRtention"=$updateRetDays;
+            "NumberOfDaysRetention"=$updateRetDays;
             }
 } | ConvertTo-Json
 
 	try {
         Write-Host "Updating safe $safename..." -ForegroundColor Yellow #DEBUG
+        Write-Debug "Update Safe Body: $updateSafeBody" 
         $safeupdate = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
     }catch{
         Write-Host "Error updating $safeName. The error was: $_" -ForegroundColor Red #ERROR
