@@ -32,7 +32,7 @@ param
 	[String]$TemplateSafe,
 	
 	[Parameter(Mandatory=$false,ValueFromPipeline=$false,ValueFromPipelineByPropertyName=$true)]
-	[ValidateScript({Test-Path $_})]
+	[ValidateScript( { Test-Path -Path $_ -PathType Leaf -IsValid})]
 	[Alias("path")]
 	[String]$CsvPath,
 	
