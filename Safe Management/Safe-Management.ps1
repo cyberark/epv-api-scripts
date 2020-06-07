@@ -711,17 +711,30 @@ If (Test-CommandExists Invoke-RestMethod)
 					ForEach ($line in $csv)
 					{
 						Write-Host "Importing safe $($line.safename) with safe member $($line.member)..." -ForegroundColor Yellow #DEBUG
+						$parameters = @{ 
+							safeName=$line.safename; 
+							safeDescription=$line.description;
+							managingCPM=$line.ManagingCPM;
+						}
+						if([string]::IsNullOrEmpty($parameters.safeDescription))
+						{
+							$parameters.Remove('safeDescription')
+						}
+						if([string]::IsNullOrEmpty($parameters.ManagingCPM))
+						{
+							$parameters.Remove('managingCPM')
+						}
 						#If safe doesn't exist, create the new safe
 						if (((Get-Safes).safename) -notcontains $line.safename) {
 							If($Add)
 							{
 								Write-Host "Adding the safe $($line.safename)..." -ForegroundColor Yellow
-								Create-Safe -safename $line.safename -safedescription $line.description
+								Create-Safe @parameters
 							}
 							ElseIf($Update)
 							{
 								Write-Host "Updating the safe $($line.safename)..." -ForegroundColor Yellow
-								Update-Safe -safename $line.safename -safedescription $line.description
+								Update-Safe @parameters
 							}
 						}
 						# Add permissions to the safe
