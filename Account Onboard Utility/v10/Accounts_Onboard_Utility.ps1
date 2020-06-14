@@ -1017,10 +1017,16 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 							}
 							ElseIf($Create)
 							{
-								# Account Exists, Creating the same account again will cause duplications - Verify with user
-								Write-Warning "The Account Exists, Creating the same account twice will cause duplications" -WarningAction Inquire
-								# If the user clicked yes, the account will be created
-								$createAccount = $true
+								try{
+									# Account Exists, Creating the same account again will cause duplications - Verify with user
+									Write-Warning "The Account Exists, Creating the same account twice will cause duplications" -WarningAction Inquire
+									# If the user clicked yes, the account will be created
+									$createAccount = $true
+								} catch {
+									# User probably chose to Halt/Stop the action and not create a duplicate account
+									Log-Msg -Type Info -MSG "Skipping onboarding account '$tmpAccountName' to avoid duplication."
+									$createAccount = $false
+								}
 							}
 							ElseIf($Delete)
 							{
@@ -1066,7 +1072,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 						}
 					}
 					catch{
-						Log-Msg -Type Error -MSG "There was an error onboarding $tmpAccountName into the Password Vault."
+						Log-Msg -Type Error -MSG "There was an error onboarding $tmpAccountName into the Password Vault. Error: $(Collect-ExceptionMessage $_.Exception)"
 					}
 				}
 				else
