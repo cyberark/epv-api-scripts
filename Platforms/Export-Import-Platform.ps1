@@ -159,6 +159,7 @@ Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
 				$exportURL = $URL_ExportPlatforms -f $PlatformID
 				Invoke-RestMethod -Method POST -Uri $exportURL -Headers $logonHeader -ContentType "application/zip" -TimeoutSec 3600000 -OutFile $PlatformZipPath 
 			} catch {
+				Write-Error $_.Exception.Response
 				Write-Error $_.Exception.Response.StatusDescription
 			}
 		}
