@@ -15,7 +15,13 @@ The Tool supports three modes: [*Create*](#create-command), [*Update*](#update-c
 The tool will create a log file in the same folder of the script called: _"Account_Onboarding_Utility.log"_
 Running the tool with common parameters of Debug and Verbose will add more information to the log
 
-With the newer verson of the REST API's (now seen as 2nd gen in the CyberArk documentation), in order to be able to upload accounts that have custom file catergories these need to be already enabled/set at the platform level of the platform that the accounts will be linked with. This is also relevant to be able to upload accounts that have have linked 'login' and 'reconcile' accounts. If you try to upload accounts that have custom file catergories as columns in the csv a meaningful error will be seen relating to the FC not being linked with the platform. There are six FC's that needed to be added to the platform. three are for the linked 'login' account and three are for the linked 'reconcile' account. Further information on how to do this can be found in this CyberArk KB: https://cyberark-customers.force.com/s/article/Add-Reconcile-and-Login-Accounts-to-an-Account-using-V10-REST-API
+## Additional Platform Properties / File Catergories
+With the newer verson of the REST API's (seen as 2nd gen in the CyberArk documentation), in order to be able to upload accounts that have custom platform properties (file catergories) these need to be already enabled/set at the platform level of the platform that the accounts will be linked with. This is also relevant to be able to upload accounts that have have linked 'login' and 'reconcile' accounts listed in the CSV file.
+
+When accounts are attempted to be onboarded that have custom platform properties listed in the relevant columns in the csv however have not been already added at the platform level, a meaningful error will be seen relating to the fact that the account property has noot been account to the platform.
+
+There are six FC's that are required to be added to the platform if an account has a linked 'login' and 'reconcile' account set, three are for the linked 'login' account and three are for the linked 'reconcile' account. Further information on how to do this can be found in this CyberArk KB:
+ "https://cyberark-customers.force.com/s/article/Add-Reconcile-and-Login-Accounts-to-an-Account-using-V10-REST-API"
 
 ## Parameters:
 ```powershell
