@@ -902,15 +902,19 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								# Get Existing Account Details
 								$s_Account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address)
 								$s_AccountBody = @()
+								$s_ExcludeProperties = @()
+								# Check for existing properties needed update
 								Foreach($sProp in $s_Account.PSObject.Properties)
 								{
 									Log-Msg -Type Verbose -MSG "Inspecting Account Property $($sProp.Name)"
+									$s_ExcludeProperties += $sProp.Name
 									If($sProp.TypeNameOfValue -eq "System.Management.Automation.PSCustomObject") 
 									{
 										# A Nested object
 										ForEach($subProp in $s_Account.($sProp.Name).PSObject.Properties) 
 										{ 
 											Log-Msg -Type Verbose -MSG "Inspecting Account Property $($subProp.Name)"
+											$s_ExcludeProperties += $subProp.Name
 											If(($null -ne $objAccount.$($sProp.Name).$($subProp.Name)) -and ($objAccount.$($sProp.Name).$($subProp.Name) -ne $subProp.Value))
 											{
 												Log-Msg -Type Verbose -MSG "Updating Account Property $($s_Account.$($sProp.Name)) value from: '$($subProp.Value)' to: '$($objAccount.$($sProp.Name).$($subProp.Name))'"
@@ -966,6 +970,36 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 										}
 									}
 								}
+								# Check for new Account Properties
+								ForEach($sProp in ($objAccount.PSObject.Properties | where { $_.Name -notin $s_ExcludeProperties }))
+								{
+									Log-Msg -Type Verbose -MSG "Updating Account Property $($sProp.Name) value to: '$($objAccount.$($sProp.Name))'"
+									If($sProp.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines")))
+									{
+										# Handle Remote Machine properties
+										$_bodyOp = "" | select "op", "path", "value"
+										$_bodyOp.op = "replace"
+										if($param.Name -in("remotemachineaddresses", "remoteMachines"))
+										{
+											$_bodyOp.path = "/remoteMachinesAccess/remoteMachines"
+										}
+										if($param.Name -in("restrictmachineaccesstolist", "accessRestrictedToRemoteMachines"))
+										{
+											$_bodyOp.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
+										}
+										$_bodyOp.value = $objAccount.$($sProp.Name)
+										$s_AccountBody += $_bodyOp
+									}
+									Else
+									{
+										# Handle new Account Platform properties
+										$_bodyOp = "" | select "op", "path", "value"
+										$_bodyOp.op = "replace"
+										$_bodyOp.path = "/platformAccountProperties/"+$sProp.Name
+										$_bodyOp.value = $objAccount.$($sProp.Name)
+										$s_AccountBody += $_bodyOp
+									}
+								}
 								
 								If($s_AccountBody.count -eq 0)
 								{
@@ -985,7 +1019,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								}
 								
 								# Check if Secret update is needed
-								If($null -ne $objAccount.secret)
+								If(![string]::IsNullOrEmpty($objAccount.secret))
 								{
 									# Verify that the secret type is a Password (Only type that is currently supported to update
 									if($objAccount.secretType -eq "password")
