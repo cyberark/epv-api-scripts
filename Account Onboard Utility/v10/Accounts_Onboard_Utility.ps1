@@ -902,7 +902,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								# Get Existing Account Details
 								$s_Account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address)
 								$s_AccountBody = @()
-								$s_ExcludeProperties = @()
+								$s_ExcludeProperties = @("secret", "remotemachinesaccess", "platformAccountProperties")
 								# Check for existing properties needed update
 								Foreach($sProp in $s_Account.PSObject.Properties)
 								{
@@ -974,7 +974,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								ForEach($sProp in ($objAccount.PSObject.Properties | where { $_.Name -notin $s_ExcludeProperties }))
 								{
 									Log-Msg -Type Verbose -MSG "Updating Account Property $($sProp.Name) value to: '$($objAccount.$($sProp.Name))'"
-									If($sProp.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines")))
+									If($sProp.Name -in ("remotemachinesaccess","remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines"))
 									{
 										# Handle Remote Machine properties
 										$_bodyOp = "" | select "op", "path", "value"
