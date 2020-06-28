@@ -983,15 +983,15 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 												# Handle Remote Machine properties
 												$_bodyOp = "" | select "op", "path", "value"
 												$_bodyOp.op = "replace"
-												if($param.Name -in("remotemachineaddresses", "remoteMachines"))
+												if($sSubProp.Name -in("remotemachineaddresses", "remoteMachines"))
 												{
 													$_bodyOp.path = "/remoteMachinesAccess/remoteMachines"
 												}
-												if($param.Name -in("restrictmachineaccesstolist", "accessRestrictedToRemoteMachines"))
+												if($sSubProp.Name -in("restrictmachineaccesstolist", "accessRestrictedToRemoteMachines"))
 												{
 													$_bodyOp.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
 												}
-												$_bodyOp.value = $objAccount.remoteMachinesAccess.$($sSubProp.Name)
+												$_bodyOp.value = $objAccount.remoteMachinesAccess.$($sSubProp.Name) -join ';'
 												$s_AccountBody += $_bodyOp
 											}
 										}
