@@ -902,7 +902,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								# Get Existing Account Details
 								$s_Account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address)
 								$s_AccountBody = @()
-								$s_ExcludeProperties = @("secret", "remotemachinesaccess", "platformAccountProperties")
+								$s_ExcludeProperties = @("secret")
 								# Check for existing properties needed update
 								Foreach($sProp in $s_Account.PSObject.Properties)
 								{
@@ -973,31 +973,41 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								# Check for new Account Properties
 								ForEach($sProp in ($objAccount.PSObject.Properties | where { $_.Name -notin $s_ExcludeProperties }))
 								{
-									Log-Msg -Type Verbose -MSG "Updating Account Property $($sProp.Name) value to: '$($objAccount.$($sProp.Name))'"
-									If($sProp.Name -in ("remotemachinesaccess","remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines"))
+									If($sProp.Name -eq "remoteMachinesAccess")
 									{
-										# Handle Remote Machine properties
-										$_bodyOp = "" | select "op", "path", "value"
-										$_bodyOp.op = "replace"
-										if($param.Name -in("remotemachineaddresses", "remoteMachines"))
+										ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties)
 										{
-											$_bodyOp.path = "/remoteMachinesAccess/remoteMachines"
+											Log-Msg -Type Verbose -MSG "Updating Account Remote Machine Access Properties $($sSubProp.Name) value to: '$($objAccount.remoteMachinesAccess.$($sSubProp.Name))'"
+											If($sSubProp.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines"))
+											{
+												# Handle Remote Machine properties
+												$_bodyOp = "" | select "op", "path", "value"
+												$_bodyOp.op = "replace"
+												if($param.Name -in("remotemachineaddresses", "remoteMachines"))
+												{
+													$_bodyOp.path = "/remoteMachinesAccess/remoteMachines"
+												}
+												if($param.Name -in("restrictmachineaccesstolist", "accessRestrictedToRemoteMachines"))
+												{
+													$_bodyOp.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
+												}
+												$_bodyOp.value = $objAccount.remoteMachinesAccess.$($sSubProp.Name)
+												$s_AccountBody += $_bodyOp
+											}
 										}
-										if($param.Name -in("restrictmachineaccesstolist", "accessRestrictedToRemoteMachines"))
-										{
-											$_bodyOp.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
-										}
-										$_bodyOp.value = $objAccount.$($sProp.Name)
-										$s_AccountBody += $_bodyOp
 									}
-									Else
+									ElseIf($sProp.Name -eq "platformAccountProperties")
 									{
-										# Handle new Account Platform properties
-										$_bodyOp = "" | select "op", "path", "value"
-										$_bodyOp.op = "replace"
-										$_bodyOp.path = "/platformAccountProperties/"+$sProp.Name
-										$_bodyOp.value = $objAccount.$($sProp.Name)
-										$s_AccountBody += $_bodyOp
+										ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties)
+										{
+											Log-Msg -Type Verbose -MSG "Updating Platform Account Properties $($sSubProp.Name) value to: '$($objAccount.platformAccountProperties.$($sSubProp.Name))'"
+											# Handle new Account Platform properties
+											$_bodyOp = "" | select "op", "path", "value"
+											$_bodyOp.op = "replace"
+											$_bodyOp.path = "/platformAccountProperties/"+$sProp.Name
+											$_bodyOp.value = $objAccount.platformAccountProperties.$($sProp.Name)
+											$s_AccountBody += $_bodyOp
+										}
 									}
 								}
 								
