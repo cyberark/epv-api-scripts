@@ -4698,14 +4698,14 @@
                         "responses": [
                             {
                                 "uuid": "",
-                                "body": "{}",
+                                "body": "{\r\n\"Count\":88,\r\n\"accounts\":[\r\n{\r\n\"AccountID\":\"51_3\",\r\n\"Properties\":\r\n[\r\n{\"Key\":\"Safe\", \"Value\":\"Cisco\"},\r\n{\"Key\":\"Folder\", \"Value\":\"Root\"},\r\n{\"Key\":\"Name\", \"Value\":\"Network Device-CiscoSSH-10.0.1.30\"},\r\n{\"Key\":\"UserName\", \"Value\":\"login\"},\r\n{\"Key\":\"Address\", \"Value\":\"10.0.1.30\"}\r\n]\r\n\"Internal Properties\":\r\n[\r\n]\r\n}\r\n]\r\n}",
                                 "latency": 0,
                                 "statusCode": "200",
                                 "label": "",
                                 "headers": [
                                     {
-                                        "key": "",
-                                        "value": ""
+                                        "key": "Content-Type",
+                                        "value": "application/json"
                                     }
                                 ],
                                 "filePath": "",
