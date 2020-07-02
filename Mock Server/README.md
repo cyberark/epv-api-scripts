@@ -18,10 +18,13 @@ You can get Mockoon from the official [website](https://mockoon.com/#download). 
 ## Importing the environment
 
 After installing Mockoon, go to 'Import/export'->Mockoon's format->Import from a file (JSON)
-> The PAS REST API environment shuold be added to your mockoon server
+> The PAS REST API environment should be added to your mockoon server
 ![screenshot](https://github.com/cyberark/epv-api-scripts/blob/MockServer/Mock%20Server/images/import_menu.png)
 
 Start the local mock API server and use it to debug you CyberArk REST API development
+
+## Mock PVWA Server version
+PVWA version 11.1
 
 ## License
 
