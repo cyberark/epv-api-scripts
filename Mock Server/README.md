@@ -25,6 +25,7 @@ Start the local mock API server and use it to debug you CyberArk REST API develo
 
 ## Mock PVWA Server version
 PVWA version 11.1
+All API will work with versions higher than 11.1, some might have more properties
 
 ## License
 
