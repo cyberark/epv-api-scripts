@@ -8,4 +8,4 @@ oraAdmin,FinDevORA01.exFinance.com,DEV-FIN-DB-ADMIN,Oracle,x7NB[|Nv,FALSE,Oracle
 a-root,FinDevORA02.exFinance.com,DEV-UNX-LCL-ROOT,UnixSSH,P6]xlE7L,TRUE,,,,,,,,,
 oraAdmin,FinDevORA02.exFinance.com,DEV-FIN-DB-ADMIN,Oracle,Sj3HN/T(,No,Oracle Admin - Break Glass user,,,,,,Master,,1521
 a-root,FinDevWL01.exFinance.com,DEV-UNX-LCL-ROOT,UnixSSH,QcQih6%h,Yes,,,,,,,,,
-srvAdmin,exFinance.com,IT-DOM-ADMIN,WinDomain,Df465fh%ds2q213d,Yes,,"FINAPP01.exFinance.com,FINAPP02.exFinance.com,FINAPP03.exFinance.com,FINAPP04.exFinance.com,FINAPP05.exFinance.com,FINAPP06.exFinance.com",Yes,,,,,,
+srvAdmin,exFinance.com,IT-DOM-ADMIN,WinDomain,Df465fh%ds2q213d,Yes,,"FINAPP01.exFinance.com;FINAPP02.exFinance.com;FINAPP03.exFinance.com;FINAPP04.exFinance.com;FINAPP05.exFinance.com;FINAPP06.exFinance.com",Yes,,,,,,
