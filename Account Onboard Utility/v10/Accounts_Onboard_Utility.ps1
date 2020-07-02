@@ -32,7 +32,7 @@ param
 	[String]$TemplateSafe,
 	
 	[Parameter(Mandatory=$false,ValueFromPipeline=$false,ValueFromPipelineByPropertyName=$true)]
-	[ValidateScript({Test-Path $_})]
+	[ValidateScript( { Test-Path -Path $_ -PathType Leaf -IsValid})]
 	[Alias("path")]
 	[String]$CsvPath,
 	
@@ -134,6 +134,16 @@ Function Encode-URL($sText)
 	}
 }
 
+Function Get-TrimmedString($sText)
+{
+	if($sText -ne $null)
+	{
+		return $sText.Trim()
+	}
+	# Else
+	return $sText
+}
+
 Function Log-MSG
 {
 <# 
@@ -182,7 +192,7 @@ Function Log-MSG
 		# Replace empty message with 'N/A'
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		# Mask Passwords
-		if($Msg -match '((?:password|credentials)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
+		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
 		{
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
@@ -225,6 +235,34 @@ Function Log-MSG
 			Write-Host "======================================="
 		}
 	} catch { Write-Error "Error in writing log: $($_.Exception.Message)" }
+}
+
+Function Collect-ExceptionMessage
+{
+<# 
+.SYNOPSIS 
+	Formats exception messages
+.DESCRIPTION
+	Formats exception messages
+.PARAMETER Exception
+	The Exception object to format
+#>
+	param(
+		[Exception]$e
+	)
+
+	Begin {
+	}
+	Process {
+		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		while ($e.InnerException) {
+		  $e = $e.InnerException
+		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		}
+		return $msg
+	}
+	End {
+	}
 }
 
 Function OpenFile-Dialog($initialDirectory)
@@ -286,17 +324,20 @@ Function Invoke-Rest
 		if([string]::IsNullOrEmpty($Body))
 		{
 			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000 -ErrorAction $ErrAction
 		}
 		else
 		{
 			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000 -ErrorAction $ErrAction
 		}
 	} catch [System.Net.WebException] {
-		Log-Msg -Type Error -Msg "Exception Message: $($_.Exception.Message)" -ErrorAction $ErrAction
-		Log-Msg -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
-		Log-Msg -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)" -ErrorAction $ErrAction
+		if($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")){
+			Log-Msg -Type Error -Msg "Error Message: $_"
+			Log-Msg -Type Error -Msg "Exception Message: $($_.Exception.Message)"
+			Log-Msg -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
+			Log-Msg -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
+		}
 		$restResponse = $null
 	} catch { 
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'",$_.Exception))
@@ -307,11 +348,17 @@ Function Invoke-Rest
 
 Function Get-Safe
 {
-	param ($safeName)
+	param (
+		[Parameter(Mandatory=$true)]
+		[String]$safeName,
+		[Parameter(Mandatory=$false)]
+		[ValidateSet("Continue","Ignore","Inquire","SilentlyContinue","Stop","Suspend")]
+		[String]$ErrAction="Continue"
+	)
 	$_safe = $null
 	try{
 		$accSafeURL = $URL_SafeDetails -f $safeName
-		$_safe = $(Invoke-Rest -Uri $accSafeURL -Header $g_LogonHeader -Command "Get" -ErrorAction "SilentlyContinue")
+		$_safe = $(Invoke-Rest -Uri $accSafeURL -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
 	}
 	catch
 	{
@@ -320,6 +367,7 @@ Function Get-Safe
 	
 	return $_safe.GetSafeResult
 }
+
 Function Convert-PermissionName
 {
 # Safe Member List Permissions returns a specific set of permissions name
@@ -410,7 +458,7 @@ Function Test-Safe
 		)
 		
 	try{
-		If ($null -eq $(Get-Safe -safeName $safeName))
+		If ($null -eq $(Get-Safe -safeName $safeName -ErrAction "SilentlyContinue"))
 		{
 			# Safe does not exist
 			Log-Msg -Type Warning -MSG "Safe $safeName does not exist"
@@ -500,13 +548,23 @@ Function Add-Owner
 
 Function Get-Account
 {
-	param ($accountName, $accountAddress, $safeName)
+	param (
+		[Parameter(Mandatory=$false)]
+		[String]$accountName, 
+		[Parameter(Mandatory=$false)]
+		[String]$accountAddress, 
+		[Parameter(Mandatory=$false)]
+		[String]$safeName,
+		[Parameter(Mandatory=$false)]
+		[ValidateSet("Continue","Ignore","Inquire","SilentlyContinue","Stop","Suspend")]
+		[String]$ErrAction="Continue"
+		)
 	$_retaccount = $null
 	$_accounts = $null
 	try{
 		$urlSearchAccount = $URL_Accounts+"?filter=safename eq "+$(Encode-URL $safeName)+"&search="+$(Encode-URL "$accountName $accountAddress")
 		# Search for created account
-		$_accounts = $(Invoke-Rest -Uri $urlSearchAccount -Header $g_LogonHeader -Command "Get")
+		$_accounts = $(Invoke-Rest -Uri $urlSearchAccount -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
 		if($null -ne $_accounts)
 		{
 			foreach ($item in $_accounts.value)
@@ -533,7 +591,7 @@ Function Test-Account
 {
 	param ($accountName, $accountAddress, $safeName)
 	try{
-		$accResult = $(Get-Account -accountName $accountName -accountAddress $accountAddress -safeName $safeName)
+		$accResult = $(Get-Account -accountName $accountName -accountAddress $accountAddress -safeName $safeName -ErrAction "SilentlyContinue")
 		If (($null -eq $accResult) -or ($accResult.count -eq 0))
 		{
 			# No accounts found
@@ -616,7 +674,7 @@ If($DisableSSLVerify)
 		[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
 	} catch {
 		Log-Msg -Type Error -MSG "Could not change SSL validation"
-		Log-Msg -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
+		Log-Msg -Type Error -MSG (Collect-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 		return
 	}
 }
@@ -627,7 +685,7 @@ Else
 		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 	} catch {
 		Log-Msg -Type Error -MSG "Could not change SSL settings to use TLS 1.2"
-		Log-Msg -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
+		Log-Msg -Type Error -MSG (Collect-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 	}
 }
 
@@ -652,7 +710,7 @@ If (![string]::IsNullOrEmpty($PVWAURL))
 	}
 	catch {		
 		Log-Msg -Type Error -MSG "PVWA URL could not be validated"
-		Log-Msg -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
+		Log-Msg -Type Error -MSG (Collect-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 	}
 	
 }
@@ -717,7 +775,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 	}
 	$delimiter = $(If ($CsvDelimiter -eq "Comma") { "," } else { "`t" } )
 	$accountsCSV = Import-CSV $csvPath -Delimiter $delimiter
-	$rowCount = $($accountsCSV.Count)
+	$rowCount = $($accountsCSV.Safe.Count)
 	$counter = 0
 	Log-Msg -Type Info -MSG "Starting to Onboard $rowCount accounts" -SubHeader
 	ForEach ($account in $accountsCSV)
@@ -748,11 +806,11 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 				$objAccount = "" | Select "name", "address", "userName", "platformId", "safeName", "secretType", "secret", "platformAccountProperties", "secretManagement", "remoteMachinesAccess"
 				$objAccount.platformAccountProperties = $null
 				$objAccount.secretManagement = "" | Select "automaticManagementEnabled", "manualManagementReason"
-				$objAccount.name = $account.name
-				$objAccount.address = $account.address
-				$objAccount.userName = $account.userName
-				$objAccount.platformId = $account.platformID
-				$objAccount.safeName = $account.safe
+				$objAccount.name = (Get-TrimmedString $account.name)
+				$objAccount.address = (Get-TrimmedString $account.address)
+				$objAccount.userName = (Get-TrimmedString $account.userName)
+				$objAccount.platformId = (Get-TrimmedString $account.platformID)
+				$objAccount.safeName = (Get-TrimmedString $account.safe)
 				if ((![string]::IsNullOrEmpty($account.password)) -and ([string]::IsNullOrEmpty($account.SSHKey)))
 				{ 
 					$objAccount.secretType = "password"
@@ -804,7 +862,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 						# The target safe does not exist
 						# The user chose to create safes during this process
 						$shouldSkip = Create-Safe -TemplateSafe $TemplateSafeDetails -Safe $account.Safe
-						if ($TemplateSafeDetails -ne $null -and $TemplateSafeMembers -ne $null)
+						if (($shouldSkip -eq $false) -and ($TemplateSafeDetails -ne $null) -and ($TemplateSafeMembers -ne $null))
 						{
 							$addOwnerResult = Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
 							if($addOwnerResult -eq $null)
@@ -844,15 +902,19 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								# Get Existing Account Details
 								$s_Account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address)
 								$s_AccountBody = @()
+								$s_ExcludeProperties = @("secret")
+								# Check for existing properties needed update
 								Foreach($sProp in $s_Account.PSObject.Properties)
 								{
 									Log-Msg -Type Verbose -MSG "Inspecting Account Property $($sProp.Name)"
+									$s_ExcludeProperties += $sProp.Name
 									If($sProp.TypeNameOfValue -eq "System.Management.Automation.PSCustomObject") 
 									{
 										# A Nested object
 										ForEach($subProp in $s_Account.($sProp.Name).PSObject.Properties) 
 										{ 
 											Log-Msg -Type Verbose -MSG "Inspecting Account Property $($subProp.Name)"
+											$s_ExcludeProperties += $subProp.Name
 											If(($null -ne $objAccount.$($sProp.Name).$($subProp.Name)) -and ($objAccount.$($sProp.Name).$($subProp.Name) -ne $subProp.Value))
 											{
 												Log-Msg -Type Verbose -MSG "Updating Account Property $($s_Account.$($sProp.Name)) value from: '$($subProp.Value)' to: '$($objAccount.$($sProp.Name).$($subProp.Name))'"
@@ -908,6 +970,46 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 										}
 									}
 								}
+								# Check for new Account Properties
+								ForEach($sProp in ($objAccount.PSObject.Properties | where { $_.Name -notin $s_ExcludeProperties }))
+								{
+									If($sProp.Name -eq "remoteMachinesAccess")
+									{
+										ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties)
+										{
+											Log-Msg -Type Verbose -MSG "Updating Account Remote Machine Access Properties $($sSubProp.Name) value to: '$($objAccount.remoteMachinesAccess.$($sSubProp.Name))'"
+											If($sSubProp.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines"))
+											{
+												# Handle Remote Machine properties
+												$_bodyOp = "" | select "op", "path", "value"
+												$_bodyOp.op = "replace"
+												if($sSubProp.Name -in("remotemachineaddresses", "remoteMachines"))
+												{
+													$_bodyOp.path = "/remoteMachinesAccess/remoteMachines"
+												}
+												if($sSubProp.Name -in("restrictmachineaccesstolist", "accessRestrictedToRemoteMachines"))
+												{
+													$_bodyOp.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
+												}
+												$_bodyOp.value = $objAccount.remoteMachinesAccess.$($sSubProp.Name) -join ';'
+												$s_AccountBody += $_bodyOp
+											}
+										}
+									}
+									ElseIf($sProp.Name -eq "platformAccountProperties")
+									{
+										ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties)
+										{
+											Log-Msg -Type Verbose -MSG "Updating Platform Account Properties $($sSubProp.Name) value to: '$($objAccount.platformAccountProperties.$($sSubProp.Name))'"
+											# Handle new Account Platform properties
+											$_bodyOp = "" | select "op", "path", "value"
+											$_bodyOp.op = "replace"
+											$_bodyOp.path = "/platformAccountProperties/"+$sProp.Name
+											$_bodyOp.value = $objAccount.platformAccountProperties.$($sProp.Name)
+											$s_AccountBody += $_bodyOp
+										}
+									}
+								}
 								
 								If($s_AccountBody.count -eq 0)
 								{
@@ -927,7 +1029,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								}
 								
 								# Check if Secret update is needed
-								If($null -ne $objAccount.secret)
+								If(![string]::IsNullOrEmpty($objAccount.secret))
 								{
 									# Verify that the secret type is a Password (Only type that is currently supported to update
 									if($objAccount.secretType -eq "password")
@@ -959,10 +1061,16 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 							}
 							ElseIf($Create)
 							{
-								# Account Exists, Creating the same account again will cause duplications - Verify with user
-								Write-Warning "The Account Exists, Creating the same account twice will cause duplications" -WarningAction Inquire
-								# If the user clicked yes, the account will be created
-								$createAccount = $true
+								try{
+									# Account Exists, Creating the same account again will cause duplications - Verify with user
+									Write-Warning "The Account Exists, Creating the same account twice will cause duplications" -WarningAction Inquire
+									# If the user clicked yes, the account will be created
+									$createAccount = $true
+								} catch {
+									# User probably chose to Halt/Stop the action and not create a duplicate account
+									Log-Msg -Type Info -MSG "Skipping onboarding account '$tmpAccountName' to avoid duplication."
+									$createAccount = $false
+								}
 							}
 							ElseIf($Delete)
 							{
@@ -1008,7 +1116,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 						}
 					}
 					catch{
-						Log-Msg -Type Error -MSG "There was an error onboarding $tmpAccountName into the Password Vault."
+						Log-Msg -Type Error -MSG "There was an error onboarding $tmpAccountName into the Password Vault. Error: $(Collect-ExceptionMessage $_.Exception)"
 					}
 				}
 				else
@@ -1016,7 +1124,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 					Log-Msg -Type Info -MSG "Skipping onboarding $tmpAccountName into the Password Vault."
 				}
 			} catch {
-				Log-Msg -Type Info -MSG "Skipping onboarding account into the Password Vault. Error: $($_.Exception.Message)"
+				Log-Msg -Type Info -MSG "Skipping onboarding account into the Password Vault. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 		}
 	}	

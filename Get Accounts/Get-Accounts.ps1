@@ -103,12 +103,12 @@ Function Test-CommandExists
     Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
-Function EncodeForURL($sText)
+Function Encode-URL($sText)
 {
 	if ($sText.Trim() -ne "")
 	{
 		write-debug "Returning URL Encode of $sText"
-		return [System.Web.HttpUtility]::UrlEncode($sText)
+		return [System.Web.HttpUtility]::UrlEncode($sText.Trim())
 	}
 	else
 	{
@@ -122,26 +122,26 @@ Function Convert-Date($epochdate)
 	else {return (Get-Date -Date "01/01/1970").AddSeconds($epochdate)}
 }
 
-Function AddSearchCriteria
+Function Create-SearchCriteria
 {
 	param ([string]$sURL, [string]$sSearch, [string]$sSortParam, [string]$sSafeName, [int]$iLimitPage, [int]$iOffsetPage)
 	[string]$retURL = $sURL
 	$retURL += "?"
 	
-	if($sSearch.Trim() -ne "")
+	if(![string]::IsNullOrEmpty($sSearch))
 	{
 		write-debug "Search: $sSearch"
-		$retURL += "search=$(EncodeForURL $sSearch)&"
+		$retURL += "search=$(Encode-URL $sSearch)&"
 	}
-	if($sSafeName.Trim() -ne "")
+	if(![string]::IsNullOrEmpty($sSafeName))
 	{
 		write-debug "Safe: $sSafeName"
-		$retURL += "filter=safename eq $(EncodeForURL $sSafeName)&"
+		$retURL += "filter=safename eq $(Encode-URL $sSafeName)&"
 	}
-	if($sSortParam.Trim() -ne "")
+	if(![string]::IsNullOrEmpty($sSortParam))
 	{
 		write-debug "Sort: $sSortParam"
-		$retURL += "sort=$(EncodeForURL $sSortParam)&"
+		$retURL += "sort=$(Encode-URL $sSortParam)&"
 	}
 	if($iLimitPage -gt 0)
 	{
@@ -222,7 +222,7 @@ If (Test-CommandExists Invoke-RestMethod)
 			
 			try {
 				$AccountsURLWithFilters = ""
-				$AccountsURLWithFilters = $(AddSearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSortParam $SortBy -sSafeName $SafeName -iLimitPage $Limit)
+				$AccountsURLWithFilters = $(Create-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSortParam $SortBy -sSafeName $SafeName -iLimitPage $Limit)
 				Write-Debug $AccountsURLWithFilters
 			} catch {
 				Write-Error $_.Exception

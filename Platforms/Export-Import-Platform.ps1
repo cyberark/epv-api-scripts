@@ -132,7 +132,7 @@ Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
 			If (Test-Path $PlatformZipPath)
 			{
 				$zipContent = [System.IO.File]::ReadAllBytes($(Resolve-Path $PlatformZipPath))
-				$importBody = @{ ImportFile=$zipContent; } | ConvertTo-Json -Depth 3
+				$importBody = @{ ImportFile=$zipContent; } | ConvertTo-Json -Depth 3 -Compress
 				try{
 					$ImportPlatformResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportPlatforms -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000 -Body $importBody
 					Write-Debug "Platform ID imported: $($ImportPlatformResponse.PlatformID)"
@@ -159,6 +159,7 @@ Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
 				$exportURL = $URL_ExportPlatforms -f $PlatformID
 				Invoke-RestMethod -Method POST -Uri $exportURL -Headers $logonHeader -ContentType "application/zip" -TimeoutSec 3600000 -OutFile $PlatformZipPath 
 			} catch {
+				Write-Error $_.Exception.Response
 				Write-Error $_.Exception.Response.StatusDescription
 			}
 		}

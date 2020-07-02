@@ -239,7 +239,10 @@ Get all Safe details on a specific safe
 Get-Safe -safeName "x0-Win-S-Admins"
 
 #>
-	param ($safeName)
+	param (
+		[ValidateScript({$_.Length -le 28})]
+		[String]$safeName
+	)
 	$_safe = $null
 	try{
 		$accSafeURL = $URL_SpecificSafe -f $(Encode-URL $safeName)
@@ -331,28 +334,32 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     Param
     (
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [string]$safename,
+        [string]$safeName,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
         [string]$safedescription,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
-        [string]$managingCPM="PasswordManager",
+        [string]$managingCPM,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
-        [int]$numVersionRetention=7,
+        [int]$numVersionRetention=-1,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
-        [int]$numDaysRetention=5,
+        [int]$numDaysRetention=-1,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
-        [bool]$EnableOLAC=$false
+        [bool]$EnableOLAC
     )
-	
-	# Get the current safe details and update when necessary
-	$getSafe = Get-Safe -safeName $safeName
+	try {
+		# Get the current safe details and update when necessary
+		$getSafe = Get-Safe -safeName $safeName
+	} catch {
+		Write-Host "Error getting current details on safe '$safeName'. The error was:" -ForegroundColor Red #ERROR
+        Write-Error $_.Exception.Response.StatusDescription
+	}
 	$updateDescription = $getSafe.Description
 	$updateOLAC = $getSafe.OLACEnabled
 	$updateManageCPM = $getSafe.ManagingCPM
 	$updateRetVersions = $getSafe.NumberOfVersionsRetention
-	$updateRetDays = $getSafe.NumberOfDaysRtention
+	$updateRetDays = $getSafe.NumberOfDaysRetention
 	
-	If($getSafe.Description -ne $safeDescription)
+	If(![string]::IsNullOrEmpty($safedescription) -and $getSafe.Description -ne $safeDescription)
 	{
 		$updateDescription = $safeDescription
 	}
@@ -360,36 +367,38 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
 	{
 		$updateOLAC = $EnableOLAC
 	}
-	If($getSafe.ManagingCPM -ne $managingCPM)
+	If(![string]::IsNullOrEmpty($managingCPM) -and $getSafe.ManagingCPM -ne $managingCPM)
 	{
 		$updateManageCPM = $managingCPM
 	}
-	If($getSafe.NumberOfVersionsRetention -ne $numVersionRetention)
+	If($numVersionRetention -ne $null -and $numVersionRetention -gt 0 -and $getSafe.NumberOfVersionsRetention -ne $numVersionRetention)
 	{
 		$updateRetVersions = $numVersionRetention
 	}
-	If($getSafe.NumberOfDaysRtention -ne $numDaysRetention)
+	If($numDaysRetention -ne $null -and $numDaysRetention -gt 0 -and $getSafe.NumberOfDaysRtention -ne $numDaysRetention)
 	{
 		$updateRetDays = $numDaysRetention
 	}
 	
 $updateSafeBody=@{
             safe=@{
-            "SafeName"="$safename"; 
+            "SafeName"="$safeName"; 
             "Description"="$updateDescription"; 
-            "OLACEnabled"="$updateOLAC"; 
+            "OLACEnabled"=$updateOLAC; 
             "ManagingCPM"="$updateManageCPM";
             "NumberOfVersionsRetention"=$updateRetVersions;
-            "NumberOfDaysRtention"=$updateRetDays;
+            "NumberOfDaysRetention"=$updateRetDays;
             }
 } | ConvertTo-Json
 
 	try {
         Write-Host "Updating safe $safename..." -ForegroundColor Yellow #DEBUG
+        Write-Debug "Update Safe Body: $updateSafeBody" 
         $safeupdate = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
     }catch{
-        Write-Host "Error updating $safename. The error was:" -ForegroundColor Red #ERROR
+        Write-Host "Error updating $safeName. The error was: $_" -ForegroundColor Red #ERROR
         Write-Error $_.Exception.Response.StatusDescription
+		
     }
 }
 
@@ -563,7 +572,7 @@ Get-SafeMember -safename "Win-Local-Admins"
 	try{
 		$_defaultUsers = @("Master","Batch","Backup Users","Auditors","Operators","DR Users","Notification Engines","PVWAGWAccounts","PasswordManager")
 		$accSafeMembersURL = $URL_SafeMembers -f $(Encode-URL $safeName)
-		$_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL-Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorAction "SilentlyContinue")
+		$_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorAction "SilentlyContinue")
 		# Remove default users and change UserName to MemberName
 		$_safeOwners = $_safeMembers.members | Where {$_.UserName -notin $_defaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
 	}
@@ -702,17 +711,30 @@ If (Test-CommandExists Invoke-RestMethod)
 					ForEach ($line in $csv)
 					{
 						Write-Host "Importing safe $($line.safename) with safe member $($line.member)..." -ForegroundColor Yellow #DEBUG
+						$parameters = @{ 
+							safeName=$line.safename; 
+							safeDescription=$line.description;
+							managingCPM=$line.ManagingCPM;
+						}
+						if([string]::IsNullOrEmpty($parameters.safeDescription))
+						{
+							$parameters.Remove('safeDescription')
+						}
+						if([string]::IsNullOrEmpty($parameters.ManagingCPM))
+						{
+							$parameters.Remove('managingCPM')
+						}
 						#If safe doesn't exist, create the new safe
 						if (((Get-Safes).safename) -notcontains $line.safename) {
 							If($Add)
 							{
 								Write-Host "Adding the safe $($line.safename)..." -ForegroundColor Yellow
-								Create-Safe -safename $line.safename -safedescription $line.description
+								Create-Safe @parameters
 							}
 							ElseIf($Update)
 							{
 								Write-Host "Updating the safe $($line.safename)..." -ForegroundColor Yellow
-								Update-Safe -safename $line.safename -safedescription $line.description
+								Update-Safe @parameters
 							}
 						}
 						# Add permissions to the safe
@@ -729,8 +751,7 @@ If (Test-CommandExists Invoke-RestMethod)
 				}
 				else
 				{
-					$parameters = "" | select safeName, safeDescription, managingCPM, numVersionRetention
-					$parameters = New-Object -TypeName PSObject -Property @{ 
+					$parameters = @{ 
 						safeName=$SafeName; 
 						safeDescription=$SafeDescription;
 						managingCPM=$ManagingCPM;
@@ -739,15 +760,15 @@ If (Test-CommandExists Invoke-RestMethod)
 					# Keep only relevant properties (and keeping defaults when needed)
 					if([string]::IsNullOrEmpty($SafeDescription))
 					{
-						$parameters.PSObject.Properties.Remove('safeDescription')
+						$parameters.Remove('safeDescription')
 					}
 					if([string]::IsNullOrEmpty($ManagingCPM))
 					{
-						$parameters.PSObject.Properties.Remove('managingCPM')
+						$parameters.Remove('managingCPM')
 					}
 					if([string]::IsNullOrEmpty($NumVersionRetention))
 					{
-						$parameters.PSObject.Properties.Remove('numVersionRetention')
+						$parameters.Remove('numVersionRetention')
 					}
 					If($Add)
 					{
@@ -836,14 +857,14 @@ If (Test-CommandExists Invoke-RestMethod)
 					}
 				}
 				Set-SafeMember -safename $SafeName -safeMember $UserName -memberSearchInLocation $UserLocation `
-							-permUseAccounts $($line.UseAccounts | Convert-ToBool) -permRetrieveAccounts $(Convert-ToBool $line.RetrieveAccounts) -permListAccounts $(Convert-ToBool $line.ListAccounts) `
-							-permAddAccounts $(Convert-ToBool $line.AddAccounts) -permUpdateAccountContent $(Convert-ToBool $line.UpdateAccountContent) -permUpdateAccountProperties $(Convert-ToBool $line.UpdateAccountProperties) `
-							-permInitiateCPMManagement $(Convert-ToBool $line.InitiateCPMAccountManagementOperations) -permSpecifyNextAccountContent $(Convert-ToBool $line.SpecifyNextAccountContent) `
-							-permRenameAccounts $(Convert-ToBool $line.RenameAccounts) -permDeleteAccounts $(Convert-ToBool $line.DeleteAccounts) -permUnlockAccounts $(Convert-ToBool $line.UnlockAccounts) `
-							-permManageSafe $(Convert-ToBool $line.ManageSafe) -permManageSafeMembers $(Convert-ToBool $line.ManageSafeMembers) -permBackupSafe $(Convert-ToBool $line.BackupSafe) `
-							-permViewAuditLog $(Convert-ToBool $line.ViewAuditLog) -permViewSafeMembers $(Convert-ToBool $line.ViewSafeMembers) `
-							-permRequestsAuthorizationLevel $line.RequestsAuthorizationLevel -permAccessWithoutConfirmation $(Convert-ToBool $line.AccessWithoutConfirmation) `
-							-permCreateFolders $(Convert-ToBool $line.CreateFolders) -permDeleteFolders $(Convert-ToBool $line.DeleteFolders) -permMoveAccountsAndFolders $(Convert-ToBool $line.MoveAccountsAndFolders)
+							-permUseAccounts $permUseAccounts -permRetrieveAccounts $permRetrieveAccounts -permListAccounts $permListAccounts `
+							-permAddAccounts $permAddAccounts -permUpdateAccountContent $permUpdateAccountContent -permUpdateAccountProperties $permUpdateAccountProperties `
+							-permInitiateCPMManagement $permInitiateCPMManagement -permSpecifyNextAccountContent $permSpecifyNextAccountContent `
+							-permRenameAccounts $permRenameAccounts -permDeleteAccounts $permDeleteAccounts -permUnlockAccounts $permUnlockAccounts `
+							-permManageSafe $permManageSafe -permManageSafeMembers $permManageSafeMembers -permBackupSafe $permBackupSafe `
+							-permViewAuditLog $permViewAuditLog -permViewSafeMembers $permViewSafeMembers `
+							-permRequestsAuthorizationLevel $permRequestsAuthorizationLevel -permAccessWithoutConfirmation $permAccessWithoutConfirmation `
+							-permCreateFolders $permCreateFolders -permDeleteFolders $permDeleteFolders -permMoveAccountsAndFolders $permMoveAccountsAndFolders
 				}
 		}
 	}

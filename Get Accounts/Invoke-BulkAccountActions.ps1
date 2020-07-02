@@ -84,8 +84,8 @@ $global:g_LogonHeader = $null
 # -----------
 $URL_PVWAAPI = $PVWAURL+"/api"
 $URL_Authentication = $URL_PVWAAPI+"/auth"
-$URL_CyberArkLogon = $URL_Authentication+"/cyberark/Logon"
-$URL_CyberArkLogoff = $URL_Authentication+"/Logoff"
+$URL_Logon = $URL_Authentication+"/$AuthType/Logon"
+$URL_Logoff = $URL_Authentication+"/Logoff"
 
 # URL Methods
 # -----------
@@ -252,6 +252,16 @@ Function Collect-ExceptionMessage
 #endregion
 
 #region Helper Functions
+Function Test-CommandExists
+{
+    Param ($command)
+    $oldPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'stop'
+    try {if(Get-Command $command){RETURN $true}}
+    Catch {Write-Host "$command does not exist"; RETURN $false}
+    Finally {$ErrorActionPreference=$oldPreference}
+} #end function test-CommandExists
+
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Disable-SSLVerification
 # Description....: Disables the SSL Verification (bypass self signed SSL certificates)
@@ -548,7 +558,7 @@ Function Get-FilteredAccounts
 	}
 	try{
 		# Get all Accounts
-		$GetAccountsResponse = Invoke-Rest -Command Get -Uri $AccountsURLWithFilters -Headers (Get-LogonHeader $VaultCredentials)
+		$GetAccountsResponse = Invoke-Rest -Command Get -Uri $AccountsURLWithFilters -Header (Get-LogonHeader $VaultCredentials)
 		$GetAccountsList += $GetAccountsResponse.value
 		Write-LogMessage -Type Debug -MSG "Found $($GetAccountsList.count) accounts so far..."
 		$nextLink = $GetAccountsResponse.nextLink
@@ -556,7 +566,7 @@ Function Get-FilteredAccounts
 		
 		While (-not [string]::IsNullOrEmpty($nextLink))
 		{
-			$GetAccountsResponse = Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Headers (Get-LogonHeader $VaultCredentials)
+			$GetAccountsResponse = Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header (Get-LogonHeader $VaultCredentials)
 			$nextLink = $GetAccountsResponse.nextLink
 			Write-LogMessage -Type Debug -MSG "Getting accounts next link: $nextLink"
 			$GetAccountsList += $GetAccountsResponse.value
@@ -647,7 +657,7 @@ try {
 	# Run Account Action on relevant Accounts
 	ForEach ($account in $filteredAccounts)
 	{
-		Invoke-Rest -Uri ($accountAction -f $account.id) -Command POST -Boby "" -Headers (Get-LogonHeader $creds)
+		Invoke-Rest -Uri ($accountAction -f $account.id) -Command POST -Body "" -Header (Get-LogonHeader $creds)
 	}
 } catch {
 	Write-LogMessage -Type Error -MSG "There was an Error running bulk account actions. Error: $(Collect-ExceptionMessage $_.Exception)"

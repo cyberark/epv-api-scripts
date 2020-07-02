@@ -5,7 +5,7 @@
 # AUTHOR:  Assaf Miron
 #
 # COMMENT: 
-# This script will update account roperties on a specified Account
+# This script will update account properties on a specified Account
 #
 # SUPPORTED VERSIONS:
 # CyberArk PVWA v10.4 and above
@@ -23,6 +23,7 @@ param
 	[String]$PVWAURL,
 	
 	[Parameter(Mandatory=$true,HelpMessage="The required Account ID")]
+	[ValidateScript({ $_ -match "\d{1,}_\d{1,}" })]
 	[Alias("id")]
 	[string]$AccountID,
 	
@@ -134,7 +135,7 @@ If (Test-CommandExists Invoke-RestMethod)
 #endregion
 
 	# List common properties
-	$excludedProperties = @("name","username","address","safe","platformid","password","key","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist","sshkey")
+	$excludedProperties = @("name","username","address","safe","platformid","password","key","automaticManagementEnabled","manualManagementReason","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist","remoteMachines","accessRestrictedToRemoteMachines","sshkey")
 	$response = ""
 	if($AccountID -ne "")
 	{
@@ -151,86 +152,127 @@ If (Test-CommandExists Invoke-RestMethod)
 		Write-Host "Account Details (before change):" -ForegroundColor Cyan
 		$response
 	}
-	# Prepare the parameters body
-	$arrProperties = @()
+	$arrProperties = @{}
+	$arrPropertiesBody = @()
+	# Prepare the parameters with their values
 	For($i=0; $i -lt $ParameterNames.Count; $i++)
 	{
-		$_bodyOp = "" | select "op", "path", "value"
-		$_bodyOp.op = "replace"
-		# Adding a specific case for "/secretManagement/automaticManagementEnabled"
-		If($ParameterNames[$i] -in @("automaticManagementEnabled","manualManagementReason"))
+		if($i -lt $ParameterValues.Count)
+		{
+			$arrProperties.Add($ParameterNames[$i],$ParameterValues[$i])
+		}
+		else
 		{
 			If($ParameterNames[$i] -like "manualManagementReason")
 			{
-				$_bodyOp.op = "replace"
-				$_bodyOp.path = "/secretManagement/manualManagementReason"
-				$_bodyOp.value = $ParameterValues[$i]
-				$arrProperties += $_bodyOp
+				$arrProperties.Add($ParameterNames[$i],"[No Reason]")
 			}
-			else
+			Else
 			{
-				If($ParameterValues[$i] -eq $true)
+				$arrProperties.Add($ParameterNames[$i],$ParameterValues[-1])
+			}
+		}
+	}
+	# Filter excluded Properties and go over regular properties
+	ForEach($param in ($arrProperties.GetEnumerator() | where { $_.Name -notin $excludedProperties }))
+	{
+		$_bodyOp = "" | select "op", "path", "value"
+		$_bodyOp.op = "replace"
+		$_bodyOp.path = "/platformAccountProperties/"+$param.Name
+		$_bodyOp.value = $param.Value
+		$arrPropertiesBody += $_bodyOp
+	}
+	# Go over only excluded Properties
+	ForEach($param in ($arrProperties.GetEnumerator() | where { $_.Name -in $excludedProperties }))
+	{
+		$_bodyOp = "" | select "op", "path", "value"
+		If($param.Name -in ("automaticManagementEnabled","manualManagementReason"))
+		# Handle Secret Management section
+		{
+			# Check if Account already has them set
+			If($response.secretManagement.automaticManagementEnabled -eq $true)
+			{
+				If($param.Name -like "automaticManagementEnabled" -and $param.Value -like "false")
 				{
-					# Need to remove the manualManagementReason
+					# Change to Manual Management
+					$_bodyOp.op = "replace"
+					$_bodyOp.path = "/secretManagement/automaticManagementEnabled"
+					$_bodyOp.value = $false
+					$arrProperties += $_bodyOp
+					# Need to add the manualManagementReason
+					$_bodyOp.op = "add"
+					$_bodyOp.path = "/secretManagement/manualManagementReason"
+					$_bodyOp.value = "[No Reason]"
+					$arrProperties += $_bodyOp
+				}
+				If($param.Name -like "manualManagementReason")
+				{
+					# Update Manual management reason
+					$_bodyOp.op = "replace"
+					$_bodyOp.path = "/secretManagement/manualManagementReason"
+					$_bodyOp.value = $param.Value
+					$arrProperties += $_bodyOp
+				}
+			}
+			Else # Current Automatic Management is False
+			{
+				If($param.Name -like "automaticManagementEnabled" -and $param.Value -like "true")
+				{
+					# Change to Manual Management
+					$_bodyOp.op = "replace"
+					$_bodyOp.path = "/secretManagement/automaticManagementEnabled"
+					$_bodyOp.value = $true
+					$arrProperties += $_bodyOp
+					# Need to add the manualManagementReason
 					$_bodyOp.op = "remove"
 					$_bodyOp.path = "/secretManagement/manualManagementReason"
 					$_bodyOp.value = ""
 					$arrProperties += $_bodyOp
 				}
-				else
+				If($param.Name -like "manualManagementReason")
 				{
-					# Need to add the manualManagementReason
-					$_bodyOp.op = "add"
+					# Update Manual management reason
+					$_bodyOp.op = "replace"
 					$_bodyOp.path = "/secretManagement/manualManagementReason"
-					if([string]::IsNullOrEmpty($ParameterValues[$i]))
-					{
-						$_bodyOp.value = "[No Reason]"
-					}
-					else
-					{
-						$_bodyOp.value = $ParameterValues[$i]
-					}
+					$_bodyOp.value = $param.Value
 					$arrProperties += $_bodyOp
 				}
 			}
 		}
-		# Handling all other properties
-		If ($ParameterNames[$i].ToLower() -notin $excludedProperties)
+		ElseIf($param.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines"))
+		# Handle Remote Machine section
 		{
-			$_bodyOp.path = "/platformAccountProperties/"+$ParameterNames[$i]
+			$_bodyOp.op = "replace"
+			if($param.Name -in("remotemachineaddresses", "remoteMachines"))
+			{
+				$_bodyOp.path = "/remoteMachinesAccess/remoteMachines"
+				$_bodyOp.value = $param.value
+			}
+			if($param.Name -in("restrictmachineaccesstolist", "accessRestrictedToRemoteMachines"))
+			{
+				$_bodyOp.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
+				$_bodyOp.value = $param.value
+			}
+			$arrPropertiesBody += $_bodyOp
 		}
-		else
+		Else
+		# Handle Account basic properties
 		{
-			$_bodyOp.path = "/"+$ParameterNames[$i]
+			$_bodyOp.path = "/"+$param.Name
+			$_bodyOp.value = $param.Value
 		}
-		if($i -lt $ParameterValues.Count)
-		{
-			$_bodyOp.value = $ParameterValues[$i]
-		}
-		else
-		{
-			$_bodyOp.value = $ParameterValues[-1]
-		}
-		$arrProperties += $_bodyOp
+		$arrPropertiesBody += $_bodyOp
 	}
 	
-	
 	#Format the body to send
-	$body = $arrProperties | ConvertTo-Json -Depth 5
+	$body = $arrPropertiesBody | ConvertTo-Json -Depth 5
 	If($body[0] -ne '[') 
 	{
 		$body = "[" + $body + "]"
 	}
 	
 	Write-Host "Properties that will change in Account:" -ForegroundColor Cyan
-	$arrProperties | Select-Object @{Name='Property'; Expression={"{0} = {1}" -f $_.path, $_.value}}
-	
-	#Format the body to send
-	$body = $arrProperties | ConvertTo-Json -Depth 5
-	If($body[0] -ne '[') 
-	{
-		$body = "[" + $body + "]"
-	}
+	$arrPropertiesBody | Select-Object @{Name='Property'; Expression={"{0} = {1}" -f $_.path, $_.value}}
 	
 	try{
 		$UpdateAccountDetailsResponse = Invoke-RestMethod -Method Patch -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -Body $body -ContentType "application/json" -TimeoutSec 3600000
