@@ -25,11 +25,11 @@ param
 	[String]$AuthType="ldap",
 	
 	# Remote Machine
-	[Parameter(Mandatory=$true,HelpMessage="Enter a remote machine to connect to")]
+	[Parameter(Mandatory=$false,HelpMessage="Enter a remote machine to connect to")]
 	[Alias("Computer")]
 	[String]$RemoteMachine,
 	
-	[Parameter(Mandatory=$true,HelpMessage="Enter a path to a file (.txt) containing list of machines to connect to")]
+	[Parameter(Mandatory=$false,HelpMessage="Enter a path to a file (.txt) containing list of machines to connect to")]
 	[ValidateScript( { Test-Path -Path $_ -PathType Leaf -IsValid})]
 	[Alias("path")]
 	[String]$MachinesFilePath
@@ -581,11 +581,17 @@ If (Test-CommandExists Invoke-RestMethod)
     }
     else
     {
-        Write-Host -ForegroundColor Red "PVWA URL can not be empty"
+        Write-LogMessage -Type Error -MSG "PVWA URL can not be empty"
         return
     }
 	
 	$machinesList = @()
+	If([string]::IsNullOrEmpty($MachinesFilePath) -and [string]::IsNullOrEmpty($RemoteMachine)) 
+	{ 
+		Write-LogMessage -Type Error -MSG "You must choose either one remote machine or a list of machines from a file" 
+		return
+	}
+	
     # Get Credentials to Login
     # ------------------------
 	If([string]::IsNullOrEmpty($MachinesFilePath))
@@ -641,12 +647,13 @@ If (Test-CommandExists Invoke-RestMethod)
 
     # Logoff the session
     # ------------------
-    Write-Host "Logoff Session..."
+    Write-LogMessage -Type Info -MSG "Logoff Session..."
     Run-Logoff
 	Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
 	return
 }
 else
 {
-    Write-Error "This script requires PowerShell version 3 or above"
+    Write-LogMessage -Type Error -MSG "This script requires PowerShell version 3 or above"
+	return
 }
