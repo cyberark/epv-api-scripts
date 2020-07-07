@@ -27,7 +27,12 @@ param
 	# Remote Machine
 	[Parameter(Mandatory=$true,HelpMessage="Enter a remote machine to connect to")]
 	[Alias("Computer")]
-	[String]$RemoteMachine
+	[String]$RemoteMachine,
+	
+	[Parameter(Mandatory=$true,HelpMessage="Enter a path to a file (.txt) containing list of machines to connect to")]
+	[ValidateScript( { Test-Path -Path $_ -PathType Leaf -IsValid})]
+	[Alias("path")]
+	[String]$MachinesFilePath
 )
 
 # Get Script Location 
@@ -580,45 +585,58 @@ If (Test-CommandExists Invoke-RestMethod)
         return
     }
 	
+	$machinesList = @()
     # Get Credentials to Login
     # ------------------------
-    $caption = "Ad-Hoc Access to machine $RemoteMachine"
+	If([string]::IsNullOrEmpty($MachinesFilePath))
+	{
+		$caption = "Ad-Hoc Access to machine $RemoteMachine"
+		$machinesList += $RemoteMachine
+	}
+	else
+	{
+		$caption = "Ad-Hoc Access to list of machines"
+		$machinesList += (Get-Content $MachinesFilePath)
+	}
     $msg = "Enter your LDAP User name and Password"; 
     $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 
-	try {
-		# Find the relevant Account
-		$accountsList = Get-AccountByMachine -VaultCredentials $creds -RemoteMachine $RemoteMachine
-		if($accountsList.Count -gt 1)
-		{
-			Write-LogMessages -Type Error -Msg "There are too many results for '$RemoteMachine' ($($accountsList.Count) results)"
-		}
-		else
-		{
-			# Get Administrative Access for the Machine
-			If (Get-AdminAccess -AccountID $accountsList.id -VaultCredentials $creds)
+	ForEach ($machine in $machinesList)
+	{
+		try {
+			# Find the relevant Account
+			$accountsList = Get-AccountByMachine -VaultCredentials $creds -RemoteMachine $machine
+			if($accountsList.Count -gt 1)
 			{
-				# Wait for 5 seconds
-				Start-Sleep -seconds 5
-				# Initiate PSM AD-Hoc Connection to the machine
-				If((Init-AdHocConnection -VaultCredentials $creds -RemoteMachine $RemoteMachine -outFilePath $ScriptLocation) -eq "RDP")
+				Write-LogMessages -Type Error -Msg "There are too many results for '$machine' ($($accountsList.Count) results)"
+			}
+			else
+			{
+				# Get Administrative Access for the Machine
+				If (Get-AdminAccess -AccountID $accountsList.id -VaultCredentials $creds)
 				{
-					# Run the RDP File
-					Mstsc $(Join-Path -Path $ScriptLocation -ChildPath "$RemoteMachine.rdp")
+					# Wait for 5 seconds
+					Start-Sleep -seconds 5
+					# Initiate PSM AD-Hoc Connection to the machine
+					If((Init-AdHocConnection -VaultCredentials $creds -RemoteMachine $machine -outFilePath $ScriptLocation) -eq "RDP")
+					{
+						# Run the RDP File
+						Mstsc $(Join-Path -Path $ScriptLocation -ChildPath "$machine.rdp")
+					}
+					Else
+					{
+						Write-LogMessages -Type Error -Msg "The current PSM server is configured to work with HTML5 Gateway which is not supported by this script"
+					}
 				}
 				Else
 				{
-					Write-LogMessages -Type Error -Msg "The current PSM server is configured to work with HTML5 Gateway which is not supported by this script"
+					Write-LogMessages -Type Error -Msg "Could not get Administrative access for '$machine'"
 				}
+				
 			}
-			Else
-			{
-				Write-LogMessages -Type Error -Msg "Could not get Administrative access for '$RemoteMachine'"
-			}
-			
+		} catch {
+			Write-LogMessage -Type Error - MSG "There was an Error connecting to Remote Machine: $machine. Error: $(Collect-ExceptionMessage $_.Exception)"
 		}
-	} catch {
-		Write-LogMessage -Type Error - MSG "There was an Error connecting to Remote Machine: $RemoteMachine. Error: $(Collect-ExceptionMessage $_.Exception)"
 	}
 
     # Logoff the session
