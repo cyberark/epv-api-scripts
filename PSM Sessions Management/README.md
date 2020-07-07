@@ -34,16 +34,17 @@ CyberArk PAS version 10.5 and above
 # Get-AdHocAccess
 
 A script that will grant the user administrative access on a target and then opens a PSM connection to that target using the user credentials.
-Using th Just-in-Time Access in CyberArk this session will be limited according to the defined timeframe on the requested target platform.
+Using the Just-in-Time Access in CyberArk this session will be limited according to the defined time frame on the requested target platform.
 
 ## Usage
 ```powershell
-Get-AdHocAccess.ps1 -PVWAURL <string> [-AuthType <ldap, radius>] [-RemoteMachine <string>] [<CommonParameters>]
+Get-AdHocAccess.ps1 -PVWAURL <string> [-AuthType <ldap, radius>] [-RemoteMachine <string>] [-MachinesFilePath <string>][<CommonParameters>]
 ```
 
-In order to use this script, the RemoteMachine needs to be a Windows target machinethat has the AdHocAccess parameter turned on the account platform.
-The authentication to the script needs to be with an LDAP user
+In order to use this script, the RemoteMachine needs to be a Windows target machine that has the AdHocAccess parameter turned on the account platform.
+The authentication to the script needs to be with an LDAP user (using either LDAP or RADIUS authentication)
 PSM needs to be installed and PSM Ad-Hoc Connection needs to be enabled (the script uses by default the PSMSecureConnect platform)
+In order to run the script on a list of machines, have a text file ready with a list of remote machines (each on a speprate line) and use the MachinesFilePath parameter
 
 ## Supported version
 CyberArk PAS version 10.6 and above
