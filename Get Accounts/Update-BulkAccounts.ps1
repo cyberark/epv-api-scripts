@@ -5,7 +5,7 @@
 # AUTHOR:  Nicolas Dos Santos
 #
 # COMMENT: 
-# This script will update account roperties on list of Accounts, according
+# This script will update account properties on list of Accounts, according
 # a list of Accounts Ids. This one can be provided by Get-Accounts script.
 #
 # SUPPORTED VERSIONS:
