@@ -1,4 +1,4 @@
-﻿###########################################################################
+###########################################################################
 #
 # NAME: Update Properties to a list of Accounts using REST API
 #
@@ -28,6 +28,7 @@ param
 
     # Authentication method
     [Parameter(Mandatory=$true,HelpMessage="The authentication method used")]
+	[ValidateSet("cyberark","ldap","radius")]
     [String]$AuthMethod,
 	
 	[Parameter(Mandatory=$true,HelpMessage="Parameter name(s) to edit")]
@@ -62,7 +63,6 @@ $URL_Platforms = $URL_PVWAAPI+"/Platforms/{0}"
 # ---------------------------
 $rstusername = $rstpassword = ""
 $logonToken  = ""
-$authList = @("cyberark","ldap")
 
 #region Functions
 Function Test-CommandExists
@@ -75,45 +75,7 @@ Function Test-CommandExists
     Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
-Function Convert-Date($epochdate)
-{
-	if (($epochdate).length -gt 10 ) {return (Get-Date -Date "01/01/1970").AddMilliseconds($epochdate)}
-	else {return (Get-Date -Date "01/01/1970").AddSeconds($epochdate)}
-}
-
-Function Test-AvailableAuth
-{
-    param ([string]$authMethod)
-    return ($authMethod -in $authList)
-}
-
-Function Display-AuthMethods
-{
-    param ([string[]]$authList)
-    foreach($e in $authList)
-    {
-        Write-Host -ForegroundColor Red "*$e"
-    } 
-}
-
 #endregion
-
-# Check that the authentication method is allowed
-$AuthMethod = $AuthMethod.ToLower()
-If (-Not (Test-AvailableAuth $AuthMethod))
-{
-     Write-Host -ForegroundColor Red "Allowed methods are:"
-     Display-AuthMethods $authList
-     return
-}
-
-# Check that Input file is not empty
-If ($ICSVPath -eq $null -or -Not ((Test-Path $ICSVPath -PathType Leaf)) -or (([IO.Path]::GetExtension($ICSVPath) -ne ".csv" -and [IO.Path]::GetExtension($ICSVPath) -ne ".txt")))
-{
-       
-    Write-Host -ForegroundColor Red "Input file must be valid"
-    return
-}
 
 If (Test-CommandExists Invoke-RestMethod)
 {
@@ -151,7 +113,7 @@ If (Test-CommandExists Invoke-RestMethod)
     $logonBody = $logonBody | ConvertTo-Json
 	try{
 	    # Logon
-	    $logonToken = Invoke-RestMethod -Method Post -Uri $($URL_CyberArkLogon-f $AuthMethod) -Body $logonBody -ContentType "application/json"
+	    $logonToken = Invoke-RestMethod -Method Post -Uri $($URL_CyberArkLogon -f $AuthMethod) -Body $logonBody -ContentType "application/json"
 	}
 	catch
 	{
@@ -174,82 +136,84 @@ If (Test-CommandExists Invoke-RestMethod)
     foreach ($line in $accounts)
     {
    
-	# List common properties
-	$excludedProperties = @("name","username","address","safe","platformid","password","key","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist","sshkey")
-	$response = ""
+		# List common properties
+		$excludedProperties = @("name","username","address","safe","platformid","password","key","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist","sshkey")
+		$response = ""
 
-	if($line.id -ne "")
-	{
-		$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $line.id) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
-		$response = $GetAccountDetailsResponse
-        #return
-	}
-	If([string]::IsNullOrEmpty($response))
-	{
-		Write-Host "Account was not found!" -ForegroundColor Red
-		return
-	}
-	else
-	{
-		Write-Host "Account Details (before change):" -ForegroundColor Cyan
-		$response
-	}
-	# Prepare the parameters body
-	$arrProperties = @()
-	For($i=0; $i -lt $ParameterNames.Count; $i++)
-	{
-		$_bodyOp = "" | select "op", "path", "value"
-		$_bodyOp.op = "replace"
-		If ($ParameterNames[$i].ToLower() -notin $excludedProperties)
+		if(![string]::IsNullOrEmpty($line.id))
 		{
-			$_bodyOp.path = "/platformAccountProperties/"+$ParameterNames[$i]
+			$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $line.id) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+			$response = $GetAccountDetailsResponse
+			#return
+		}
+		If([string]::IsNullOrEmpty($response))
+		{
+			Write-Host "Account was not found!" -ForegroundColor Red
+			return
 		}
 		else
 		{
-			$_bodyOp.path = "/"+$ParameterNames[$i]
+			Write-Host "Account Details (before change):" -ForegroundColor Cyan
+			$response
 		}
-		if($i -lt $ParameterValues.Count)
+		# Prepare the parameters body
+		$arrProperties = @()
+		For($i=0; $i -lt $ParameterNames.Count; $i++)
 		{
-			$_bodyOp.value = $ParameterValues[$i]
+			$_bodyOp = "" | select "op", "path", "value"
+			$_bodyOp.op = "replace"
+			If ($ParameterNames[$i].ToLower() -notin $excludedProperties)
+			{
+				$_bodyOp.path = "/platformAccountProperties/"+$ParameterNames[$i]
+			}
+			else
+			{
+				$_bodyOp.path = "/"+$ParameterNames[$i]
+			}
+			if($i -lt $ParameterValues.Count)
+			{
+				$_bodyOp.value = $ParameterValues[$i]
+			}
+			else
+			{
+				$_bodyOp.value = $ParameterValues[-1]
+			}
+			$arrProperties += $_bodyOp
+		}
+
+		#Format the body to send
+		$body = $arrProperties | ConvertTo-Json -Depth 5
+		If($body[0] -ne '[') 
+		{
+			$body = "[" + $body + "]"
+		}
+
+		Write-Host "Properties that will change in Account:" -ForegroundColor Cyan
+		$arrProperties | Select-Object @{Name='Property'; Expression={"{0} = {1}" -f $_.path, $_.value}}
+		try{
+			$UpdateAccountDetailsResponse = Invoke-RestMethod -Method Patch -Uri $($URL_AccountsDetails -f $line.id) -Headers $logonHeader -Body ($body) -ContentType "application/json" -TimeoutSec 3600000
+			$response = $UpdateAccountDetailsResponse
+		} catch {
+			Write-Error $_.Exception.Response.StatusDescription
+		}
+		If([string]::IsNullOrEmpty($response))
+		{
+			Write-Host "Error occurred, Account was not updated!" -ForegroundColor Red
 		}
 		else
 		{
-			$_bodyOp.value = $ParameterValues[-1]
+			Write-Host "Account Details (after change):" -ForegroundColor Cyan
+			$response
 		}
-		$arrProperties += $_bodyOp
 	}
-
-    #Format the body to send
-    $body = $arrProperties | ConvertTo-Json -Depth 5
-    If($body[0] -ne '[') 
-    {
-    $body = "[" + $body + "]"
-    }
-
-	Write-Host "Properties that will change in Account:" -ForegroundColor Cyan
-	$arrProperties | Select-Object @{Name='Property'; Expression={"{0} = {1}" -f $_.path, $_.value}}
-	try{
-		$UpdateAccountDetailsResponse = Invoke-RestMethod -Method Patch -Uri $($URL_AccountsDetails -f $line.id) -Headers $logonHeader -Body ($body) -ContentType "application/json" -TimeoutSec 3600000
-		$response = $UpdateAccountDetailsResponse
-	} catch {
-		Write-Error $_.Exception.Response.StatusDescription
-	}
-	If([string]::IsNullOrEmpty($response))
-	{
-		Write-Host "Error occurred, Account was not updated!" -ForegroundColor Red
-	}
-	else
-	{
-		Write-Host "Account Details (after change):" -ForegroundColor Cyan
-		$response
-	}
-
-   }
 
     # Logoff the session
     # ------------------
-    Write-Host "Logoff Session..."
-    Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogoff -Headers $logonHeader -ContentType "application/json" | Out-Null
+	If($logonHeader -ne $null)
+	{
+		Write-Host "Logoff Session..."
+		Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogoff -Headers $logonHeader -ContentType "application/json" | Out-Null
+	}
 }
 else
 {
