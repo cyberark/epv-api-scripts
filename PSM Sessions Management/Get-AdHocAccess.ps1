@@ -129,7 +129,7 @@ Function Write-LogMessage
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		
 		# Mask Passwords
-		if($Msg -match '((?>password|secret)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))')
+		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
 		{
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
@@ -407,6 +407,48 @@ Function Run-Logoff
 }
 
 # @FUNCTION@ ======================================================================================================================
+# Name...........: Test-PlatformAdHocAccess
+# Description....: Returns True if the platform contains the AllowDomainUserAdHocAccess set to Yes
+# Parameters.....: Vault Credentials, PlatformID
+# Return Values..: True/False
+# =================================================================================================================================
+Function Test-PlatformAdHocAccess
+{
+<# 
+.SYNOPSIS 
+	Test-PlatformAdHocAccess
+.DESCRIPTION
+	Returns True if the platform contains the AllowDomainUserAdHocAccess set to Yes
+.PARAMETER VaultCredentials
+	The Vault Credentials to be used
+.PARAMETER PlatformID
+	The Account Platform ID to check
+#>
+	param(
+		[Parameter(Mandatory=$true)]
+		[PSCredential]$VaultCredentials,
+		[Parameter(Mandatory=$true)]
+		[String]$PlatformID
+	)
+	$retTestAdHocAccess = $false
+	try{
+		Write-LogMessage -Type Debug -Msg "Checking $PlatformID platform for AllowDomainUserAdHocAccess..."
+		$getPlatformDetails = $(Invoke-Response -Uri ($URL_Platforms -f $PlatformID) -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Command "GET").Details
+		If(![string]::IsNullOrEmpty($getPlatformDetails.AllowDomainUserAdHocAccess))
+		{
+			Write-LogMessage -Type Debug -Msg "$PlatformID platform has AllowDomainUserAdHocAccess set to $($getPlatformDetails.AllowDomainUserAdHocAccess)"
+			if($getPlatformDetails.AllowDomainUserAdHocAccess -eq "Yes") 
+			{ 
+				$retTestAdHocAccess = $True 
+			}
+		}
+		return $retTestAdHocAccess
+	} catch {
+		Throw $(New-Object System.Exception ("Test-PlatformAdHocAccess: Failed to retrieve platform details of '$PlatformID'",$_.Exception))
+	}
+}
+
+# @FUNCTION@ ======================================================================================================================
 # Name...........: Get-AccountByMachine
 # Description....: Return an Account ID by machine name
 # Parameters.....: Vault Credentials, Remote Machine Name
@@ -435,8 +477,18 @@ Function Get-AccountByMachine
 		Write-LogMessage -Type Debug -Msg "Finding Account for '$RemoteMachine'..."
 		[string]$AccountsURLWithFilters = $URL_Accounts
 		$AccountsURLWithFilters += "?search=$(Encode-URL $RemoteMachine)"
-		$GetAccountsResponse = $(Invoke-Rest -Uri $AccountsURLWithFilters -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Command "GET")
-		return $GetAccountsResponse.value
+		$GetAccountsResponse = $(Invoke-Rest -Uri $AccountsURLWithFilters -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Command "GET").value
+		$retRelevatAccounts = @()
+		# Filter only accounts with AllowDomainUserAdHocAccess in the Account Platform
+		ForEach ($account in $GetAccountsResponse)
+		{
+			If(Test-PlatformAdHocAccess -VaultCredentials $VaultCredentials -PlatformID $account.platformId)
+			{
+				$retRelevatAccounts += $account
+			}
+		}
+		
+		return $retRelevatAccounts
 	} catch {
 		Throw $(New-Object System.Exception ("Get-AccountByMachine: Failed to find account for '$RemoteMachine'",$_.Exception))
 	}
@@ -614,7 +666,7 @@ If (Test-CommandExists Invoke-RestMethod)
 			$accountsList = Get-AccountByMachine -VaultCredentials $creds -RemoteMachine $machine
 			if($accountsList.Count -gt 1)
 			{
-				Write-LogMessages -Type Error -Msg "There are too many results for '$machine' ($($accountsList.Count) results)"
+				Write-LogMessage -Type Error -Msg "There are too many results for '$machine' ($($accountsList.Count) results)"
 			}
 			else
 			{
@@ -631,12 +683,12 @@ If (Test-CommandExists Invoke-RestMethod)
 					}
 					Else
 					{
-						Write-LogMessages -Type Error -Msg "The current PSM server is configured to work with HTML5 Gateway which is not supported by this script"
+						Write-LogMessage -Type Error -Msg "The current PSM server is configured to work with HTML5 Gateway which is not supported by this script"
 					}
 				}
 				Else
 				{
-					Write-LogMessages -Type Error -Msg "Could not get Administrative access for '$machine'"
+					Write-LogMessage -Type Error -Msg "Could not get Administrative access for '$machine'"
 				}
 				
 			}
