@@ -923,36 +923,36 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 												$_bodyOp.path = "/"+$sProp.Name+"/"+$subProp.Name
 												$_bodyOp.value = $objAccount.$($sProp.Name).$($subProp.Name)
 												$s_AccountBody += $_bodyOp
-											}
-											# Adding a specific case for "/secretManagement/automaticManagementEnabled"
-											If("/secretManagement/automaticManagementEnabled" -eq ("/"+$sProp.Name+"/"+$subProp.Name))
-											{
-												If($objAccount.secretManagement.automaticManagementEnabled -eq $true)
+												# Adding a specific case for "/secretManagement/automaticManagementEnabled"
+												If("/secretManagement/automaticManagementEnabled" -eq ("/"+$sProp.Name+"/"+$subProp.Name))
 												{
-													# Need to remove the manualManagementReason
-													Log-Msg -Type Verbose -MSG "Since Account Automatic management is on, removing the Manual management reason"
-													$_bodyOp = "" | select "op", "path", "value"
-													$_bodyOp.op = "remove"
-													$_bodyOp.path = "/secretManagement/manualManagementReason"
-													$_bodyOp.value = ""
-													$s_AccountBody += $_bodyOp
-												}
-												else
-												{
-													# Need to add the manualManagementReason
-													Log-Msg -Type Verbose -MSG "Since Account Automatic management is off, adding the Manual management reason"
-													$_bodyOp = "" | select "op", "path", "value"
-													$_bodyOp.op = "add"
-													$_bodyOp.path = "/secretManagement/manualManagementReason"
-													if([string]::IsNullOrEmpty($objAccount.secretManagement.manualManagementReason))
+													If($objAccount.secretManagement.automaticManagementEnabled -eq $true)
 													{
-														$_bodyOp.value = "[No Reason]"
+														# Need to remove the manualManagementReason
+														Log-Msg -Type Verbose -MSG "Since Account Automatic management is on, removing the Manual management reason"
+														$_bodyOp = "" | select "op", "path", "value"
+														$_bodyOp.op = "remove"
+														$_bodyOp.path = "/secretManagement/manualManagementReason"
+														$_bodyOp.value = ""
+														$s_AccountBody += $_bodyOp
 													}
 													else
 													{
-														$_bodyOp.value = $objAccount.secretManagement.manualManagementReason
+														# Need to add the manualManagementReason
+														Log-Msg -Type Verbose -MSG "Since Account Automatic management is off, adding the Manual management reason"
+														$_bodyOp = "" | select "op", "path", "value"
+														$_bodyOp.op = "add"
+														$_bodyOp.path = "/secretManagement/manualManagementReason"
+														if([string]::IsNullOrEmpty($objAccount.secretManagement.manualManagementReason))
+														{
+															$_bodyOp.value = "[No Reason]"
+														}
+														else
+														{
+															$_bodyOp.value = $objAccount.secretManagement.manualManagementReason
+														}
+														$s_AccountBody += $_bodyOp
 													}
-													$s_AccountBody += $_bodyOp
 												}
 											}
 										} 
