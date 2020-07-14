@@ -434,10 +434,10 @@ Function Test-PlatformAdHocAccess
 		[Parameter(Mandatory=$true)]
 		[String]$PlatformID
 	)
-	$retTestAdHocAccess = $false
+	$retTestAdHocAccess = $False
 	try{
 		Write-LogMessage -Type Debug -Msg "Checking $PlatformID platform for AllowDomainUserAdHocAccess..."
-		$getPlatformDetails = $(Invoke-Response -Uri ($URL_Platforms -f $PlatformID) -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Command "GET").Details
+		$getPlatformDetails = $(Invoke-Rest -Command "GET" -Uri ($URL_Platforms -f $PlatformID) -Header $(Get-LogonHeader -Credentials $VaultCredentials)).Details
 		If(![string]::IsNullOrEmpty($getPlatformDetails.AllowDomainUserAdHocAccess))
 		{
 			Write-LogMessage -Type Debug -Msg "$PlatformID platform has AllowDomainUserAdHocAccess set to $($getPlatformDetails.AllowDomainUserAdHocAccess)"
