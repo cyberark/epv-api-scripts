@@ -358,7 +358,7 @@ Function Get-LogonHeader
 		# Disable SSL Verification to contact PVWA
 		# Create the POST Body for the Logon
 		# ----------------------------------
-		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
+		$logonBody = @{ username=$Credentials.GetNetworkCredential().username;password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
 		try{
 			# Logon
 			$logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
@@ -562,22 +562,15 @@ Function Init-AdHocConnection
 	
 	try{
 		$retConnectionType = "RDP"
-		Write-LogMessage -Type Debug -Msg "Initiating Ad-Hoc Connection Access for '$RemoteMachine'..."
-		$_domainName = $_userName = ""
-		if($VaultCredentials.username.Contains('\'))
-		{
-			$_domainName = $VaultCredentials.username.Split('\')[0]
-			$_userName = $VaultCredentials.username.Split('\')[1]
-		}
-		else
-		{
-			$_userName = $VaultCredentials.username.Replace('\','');
-		}
+		Write-LogMessage -Type Debug -Msg "Initiating Ad-Hoc Connection Access for '$RemoteMachine'..."	
+		$_domainName = $VaultCredentials.GetNetworkCredential().domain
+		$_userName = $VaultCredentials.GetNetworkCredential().username
+		
 		$adHocAccessBody = @{
 			  secret=$VaultCredentials.GetNetworkCredential().password;
 			  address=$RemoteMachine;
 			  platformId="PSMSecureConnect";
-			  userName=$VaultCredentials.username.Replace('\','');
+			  userName=$_userName
 			  PSMConnectPrerequisites=@{
 				Reason="Get-AdHocAccess script";
 				ConnectionComponent="PSM-RDP";
@@ -590,7 +583,7 @@ Function Init-AdHocConnection
 				LogonDomain=$_domainName;
 			}
 		} | ConvertTo-Json
-		$adHocAccessResult = $(Invoke-Rest -Uri $URL_PSMAdHocConnect -Header $(Get-LogonHeader -Credentials $creds) -Command "POST" -Body $adHocAccessBody)
+		$adHocAccessResult = $(Invoke-Rest -Uri $URL_PSMAdHocConnect -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Command "POST" -Body $adHocAccessBody)
 		If($adHocAccessResult -contains "PSMGWURL")
 		{
 			$retConnectionType = "HTML5"
