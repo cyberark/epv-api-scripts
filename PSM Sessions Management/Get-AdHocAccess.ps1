@@ -250,6 +250,10 @@ Function Test-CommandExists
 # =================================================================================================================================
 Function Encode-URL($sText)
 {
+	try{ [System.Web.HttpUtility] -as [type] | out-null }
+	catch{
+		Add-Type -AssemblyName System.Web
+	}
 	if ($sText.Trim() -ne "")
 	{
 		Write-LogMessage -Type Debug -Msg "Returning URL Encode of '$sText'"
@@ -693,15 +697,19 @@ If (Test-CommandExists Invoke-RestMethod)
 				
 			}
 		} catch {
-			Write-LogMessage -Type Error - MSG "There was an Error connecting to Remote Machine: $machine. Error: $(Collect-ExceptionMessage $_.Exception)"
+			Write-LogMessage -Type Error -MSG "There was an Error connecting to Remote Machine: $machine. Error: $(Collect-ExceptionMessage $_.Exception)"
 		}
 	}
-
-    # Logoff the session
-    # ------------------
-    Write-LogMessage -Type Info -MSG "Logoff Session..."
-    Run-Logoff
-	Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
+	
+	try{
+		# Logoff the session
+		# ------------------
+		Write-LogMessage -Type Info -MSG "Logoff Session..."
+		Run-Logoff
+		Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
+	} catch {
+		Write-LogMessage -Type Error -MSG "There was an Error Logging off. Error: $(Collect-ExceptionMessage $_.Exception)"
+	}
 	return
 }
 else
