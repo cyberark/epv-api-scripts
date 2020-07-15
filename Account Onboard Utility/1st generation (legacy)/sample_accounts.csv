@@ -1,0 +1,5 @@
+username,address,safe,platformID,password,disableAutoMgmt,disableAutoMgmtReason
+Administrator,myDomain.com,IT-DOM-ADMIN,WinDomain,pz3Rsd!iwef8,,
+Administrator,APP01.myDomain.com,WIN-LCL-SRV-ADMIN,WinServerLocal,P6]xlE7L,,
+root,DevORA01.myDomain.com,DEV-UNX-LCL-ROOT,UnixSSH,QcQih6%h,true,"Do not manage"
+sys,DevORA01.myDomain.com,DEV-DB-ADMIN,Oracle,x7NB[|Nv,,
