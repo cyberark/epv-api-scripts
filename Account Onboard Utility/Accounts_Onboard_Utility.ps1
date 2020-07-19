@@ -846,7 +846,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 				# Convert Restrict Machine Access To List from yes / true to $true
 				if ($account.restrictMachineAccessToList -eq "yes" -or $account.restrictMachineAccessToList -eq "true") 
 				{
-					$objAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines =  $true
+					$objAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines = $true
 				} else {
 					$objAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines = $false
 				}
@@ -982,7 +982,6 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 											{
 												# Handle Remote Machine properties
 												$_bodyOp = "" | select "op", "path", "value"
-												$_bodyOp.op = "replace"
 												if($sSubProp.Name -in("remotemachineaddresses", "remoteMachines"))
 												{
 													$_bodyOp.path = "/remoteMachinesAccess/remoteMachines"
@@ -991,7 +990,15 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 												{
 													$_bodyOp.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
 												}
-												$_bodyOp.value = $objAccount.remoteMachinesAccess.$($sSubProp.Name) -join ';'
+												If([string]::IsNullOrEmpty($objAccount.remoteMachinesAccess.$($sSubProp.Name)))
+												{
+													$_bodyOp.op = "remove"
+												}
+												else
+												{
+													$_bodyOp.op = "replace"
+													$_bodyOp.value = $objAccount.remoteMachinesAccess.$($sSubProp.Name) -join ';'
+												}
 												$s_AccountBody += $_bodyOp
 											}
 										}
