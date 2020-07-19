@@ -98,26 +98,35 @@ param
 
 # Get Script Location 
 $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
+# Get Debug / Verbose parameters for Script
+$global:InDebug = $PSBoundParameters.Debug.IsPresent
+$global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
+# Script Version
+$ScriptVersion = "1.5"
+
+# ------ SET global parameters ------
+# Set Log file path
+$global:LOG_DATE = $(get-date -format yyyyMMdd) + "-" + $(get-date -format HHmmss)
+$global:LOG_FILE_PATH = "$ScriptLocation\SafeManagement_$LOG_DATE.log"
+# Set a global Header Token parameter
+$global:g_LogonHeader = ""
+# Set a global safes list to improve performance
+$global:g_SafesList = $null
+
+# Global URLS
+# -----------
 $URL_PVWAWebServices = $PVWAURL+"/WebServices"
 $URL_PVWABaseAPI = $URL_PVWAWebServices+"/PIMServices.svc"
 $URL_CyberArkAuthentication = $URL_PVWAWebServices+"/auth/cyberark/CyberArkAuthenticationService.svc"
-$URL_CyberArkLogon = $URL_CyberArkAuthentication+"/Logon"
-$URL_CyberArkLogoff = $URL_CyberArkAuthentication+"/Logoff"
+$URL_Logon = $URL_CyberArkAuthentication+"/Logon"
+$URL_Logoff = $URL_CyberArkAuthentication+"/Logoff"
 
 # URL Methods
 # -----------
 $URL_Safes = $URL_PVWABaseAPI+"/Safes"
 $URL_SpecificSafe = $URL_PVWABaseAPI+"/Safes/{0}"
 $URL_SafeMembers = $URL_SpecificSafe+"/Members"
-
-# Script Defaults
-# ---------------
-
-# Initialize Script Variables
-# ---------------------------
-$g_LogonHeader = ""
-$Global:g_SafesList = $null
 
 #region Functions
 Function Test-CommandExists
@@ -134,7 +143,7 @@ Function Encode-URL($sText)
 {
 	if ($sText.Trim() -ne "")
 	{
-		write-debug "Returning URL Encode of $sText"
+		Write-LogMessage -Type Verbose -Msg "Returning URL Encode of $sText"
 		return [URI]::EscapeDataString($sText)
 	}
 	else
@@ -143,51 +152,267 @@ Function Encode-URL($sText)
 	}
 }
 
-Function Get-LogonHeader
+Function Write-LogMessage
 {
+<#
+.SYNOPSIS
+	Method to log a message on screen and in a log file
+
+.DESCRIPTION
+	Logging The input Message to the Screen and the Log File.
+	The Message Type is presented in colours on the screen based on the type
+
+.PARAMETER LogFile
+	The Log File to write to. By default using the LOG_FILE_PATH
+.PARAMETER MSG
+	The message to log
+.PARAMETER Header
+	Adding a header line before the message
+.PARAMETER SubHeader
+	Adding a Sub header line before the message
+.PARAMETER Footer
+	Adding a footer line after the message
+.PARAMETER Type
+	The type of the message to log (Info, Warning, Error, Debug)
+#>
 	param(
 		[Parameter(Mandatory=$true)]
-		[System.Management.Automation.CredentialAttribute()]$Credentials,
+		[AllowEmptyString()]
+		[String]$MSG,
+		[Parameter(Mandatory=$false)]
+		[Switch]$Header,
+		[Parameter(Mandatory=$false)]
+		[Switch]$SubHeader,
+		[Parameter(Mandatory=$false)]
+		[Switch]$Footer,
+		[Parameter(Mandatory=$false)]
+		[ValidateSet("Info","Warning","Error","Debug","Verbose")]
+		[String]$type = "Info",
+		[Parameter(Mandatory=$false)]
+		[String]$LogFile = $LOG_FILE_PATH
+	)
+	try{
+		If ($Header) {
+			"=======================================" | Out-File -Append -FilePath $LOG_FILE_PATH 
+			Write-Host "======================================="
+		}
+		ElseIf($SubHeader) { 
+			"------------------------------------" | Out-File -Append -FilePath $LOG_FILE_PATH 
+			Write-Host "------------------------------------"
+		}
+	
+		$msgToWrite = "[$(Get-Date -Format "yyyy-MM-dd hh:mm:ss")]`t"
+		$writeToFile = $true
+		# Replace empty message with 'N/A'
+		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
+		# Mask Passwords
+		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
+		{
+			$Msg = $Msg.Replace($Matches[2],"****")
+		}
+		# Check the message type
+		switch ($type)
+		{
+			"Info" { 
+				Write-Host $MSG.ToString()
+				$msgToWrite += "[INFO]`t$Msg"
+			}
+			"Warning" {
+				Write-Host $MSG.ToString() -ForegroundColor DarkYellow
+				$msgToWrite += "[WARNING]`t$Msg"
+			}
+			"Error" {
+				Write-Host $MSG.ToString() -ForegroundColor Red
+				$msgToWrite += "[ERROR]`t$Msg"
+			}
+			"Debug" { 
+				if($InDebug)
+				{
+					Write-Debug $MSG
+					$msgToWrite += "[DEBUG]`t$Msg"
+				}
+				else { $writeToFile = $False }
+			}
+			"Verbose" { 
+				if($InVerbose)
+				{
+					Write-Verbose $MSG
+					$msgToWrite += "[VERBOSE]`t$Msg"
+				}
+				else { $writeToFile = $False }
+			}
+		}
+		
+		If($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LOG_FILE_PATH }
+		If ($Footer) { 
+			"=======================================" | Out-File -Append -FilePath $LOG_FILE_PATH 
+			Write-Host "======================================="
+		}
+	} catch { Write-Error "Error in writing log: $($_.Exception.Message)" }
+}
+
+Function Collect-ExceptionMessage
+{
+<#
+.SYNOPSIS
+	Formats exception messages
+.DESCRIPTION
+	Formats exception messages
+.PARAMETER Exception
+	The Exception object to format
+#>
+	param(
+		[Exception]$e
+	)
+
+	Begin {
+	}
+	Process {
+		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		while ($e.InnerException) {
+		  $e = $e.InnerException
+		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		}
+		return $msg
+	}
+	End {
+	}
+}
+
+Function Get-LogonHeader
+{
+<# 
+.SYNOPSIS 
+	Get-LogonHeader
+.DESCRIPTION
+	Get-LogonHeader
+.PARAMETER Credentials
+	The REST API Credentials to authenticate
+#>
+	param(
+		[Parameter(Mandatory=$true)]
+		[PSCredential]$Credentials,
 		[Parameter(Mandatory=$false)]
 		[ValidateScript({ ($_ -ge 0) -and ($_ -lt 100) })]
 		[int]$ConnectionNumber = 0
 	)
-	# Create the POST Body for the Logon
-    # ----------------------------------
-    If($ConnectionNumber -eq 0)
+	
+	if([string]::IsNullOrEmpty($g_LogonHeader))
 	{
-		$logonBody = @{ username=$Credentials.username.Replace('\',''); password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
-	}
-	elseif($ConnectionNumber -gt 0)
-	{
-		$logonBody = @{ username=$Credentials.username.Replace('\',''); password=$Credentials.GetNetworkCredential().password; connectionNumber=$ConnectionNumber } | ConvertTo-Json
-	}
-	try{
-		# Logon
-		Write-Debug "Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogon -ContentType 'application/json' -Body $($logonBody.Replace($Credentials.GetNetworkCredential().password,"****"))"
-	    $logonToken = (Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogon -ContentType "application/json" -Body $logonBody).CyberArkLogonResult
-				
-		# Clear logon body
-		$logonBody = ""
-	}
-	catch
-	{
-		Write-Host -ForegroundColor Red $_.Exception.Message
-		$logonToken = ""
-	}
+		# Disable SSL Verification to contact PVWA
+		If($DisableSSLVerify)
+		{
+			Disable-SSLVerification
+		}
+		
+		# Create the POST Body for the Logon
+		# ----------------------------------
+		If($ConnectionNumber -eq 0)
+		{
+			$logonBody = @{ username=$Credentials.username.Replace('\',''); password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
+		}
+		elseif($ConnectionNumber -gt 0)
+		{
+			$logonBody = @{ username=$Credentials.username.Replace('\',''); password=$Credentials.GetNetworkCredential().password; connectionNumber=$ConnectionNumber } | ConvertTo-Json
+		}
+		try{
+			# Logon
+			$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json" -TimeoutSec 3600000
+			
+			# Clear logon body
+			$logonBody = ""
+		} catch {
+			Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)",$_.Exception))
+		}
 
-    If ([string]::IsNullOrEmpty($logonToken))
-    {
-        Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-        break
+		$logonHeader = $null
+		If ([string]::IsNullOrEmpty($logonToken))
+		{
+			Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
+		}
+		
+		# Create a Logon Token Header (This will be used through out all the script)
+		# ---------------------------
+		$logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+		$logonHeader.Add("Authorization", $logonToken)
+		
+		Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
+	}
+}
+
+Function Run-Logoff
+{
+<# 
+.SYNOPSIS 
+	Run-Logoff
+.DESCRIPTION
+	Logoff a PVWA session
+#>
+	try{
+		# Logoff the session
+		# ------------------
+		If($null -ne $g_LogonHeader)
+		{
+			Write-LogMessage -Type Info -Msg "Logoff Session..."
+			Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 | out-null
+			Set-Variable -Name g_LogonHeader -Value $null -Scope global
+		}
+	} catch {
+		Throw $(New-Object System.Exception ("Run-Logoff: Failed to logoff session",$_.Exception))
+	}
+}
+
+Function Disable-SSLVerification
+{
+<# 
+.SYNOPSIS 
+	Bypass SSL certificate validations
+.DESCRIPTION
+	Disables the SSL Verification (bypass self signed SSL certificates)
+#>
+	# Check if to disable SSL verification
+	If($DisableSSLVerify)
+	{
+		try{
+			Write-Warning "It is not Recommended to disable SSL verification" -WarningAction Inquire
+			# Using Proxy Default credentials if the Server needs Proxy credentials
+			[System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
+			# Using TLS 1.2 as security protocol verification
+			[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+			# Disable SSL Verification
+			if (-not("DisableCertValidationCallback" -as [type])) {
+    add-type -TypeDefinition @"
+using System;
+using System.Net;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+
+public static class DisableCertValidationCallback {
+    public static bool ReturnTrue(object sender,
+        X509Certificate certificate,
+        X509Chain chain,
+        SslPolicyErrors sslPolicyErrors) { return true; }
+
+    public static RemoteCertificateValidationCallback GetDelegate() {
+        return new RemoteCertificateValidationCallback(DisableCertValidationCallback.ReturnTrue);
     }
-	
-    # Create a Logon Token Header (This will be used through out all the script)
-    # ---------------------------
-    $logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-    $logonHeader.Add("Authorization", $logonToken)
-	
-	return $logonHeader
+}
+"@ }
+
+			[System.Net.ServicePointManager]::ServerCertificateValidationCallback = [DisableCertValidationCallback]::GetDelegate()
+		} catch {
+			Write-LogMessage -Type Error -Msg "Could not change SSL validation. Error: $(Collect-ExceptionMessage $_.Exception)"
+		}
+	}
+	Else
+	{
+		try{
+			Write-LogMessage -Type Info -Msg "Setting script to use TLS 1.2"
+			[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+		} catch {
+			Write-LogMessage -Type Error -Msg "Could not change SSL setting to use TLS 1.2. Error: $(Collect-ExceptionMessage $_.Exception)"
+		}
+	}
 }
 
 Function Get-Safes 
@@ -213,15 +438,14 @@ Get-Safes
 try {
 		If($g_SafesList -eq $null)
 		{
-			Write-Host "Retrieving safes from the vault..." -ForegroundColor Yellow #DEBUG
+			Write-LogMessage -Type Debug -Msg "Retrieving safes from the vault..."
 			$safes = (Invoke-RestMethod -Uri $URL_Safes -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000).GetSafesResult
 			Set-Variable -Name g_SafesList -Value $safes -Scope Global
 		}
 		
         return $g_SafesList
     }catch{
-        Write-Host "There was an error retrieving the safes from the Vault. The error was:" -ForegroundColor Red #ERROR
-        Write-Error $_.Exception.Response.StatusDescription
+		Throw $(New-Object System.Exception ("Get-Safes: There was an error retrieving the safes from the Vault.",$_.Exception))
     }
 
 }
@@ -250,7 +474,7 @@ Get-Safe -safeName "x0-Win-S-Admins"
 	}
 	catch
 	{
-		Write-Error $_.Exception.Response.StatusDescription
+		Throw $(New-Object System.Exception ("Get-Safe: Error retrieving safe '$safename' details.",$_.Exception))
 	}
 	
 	return $_safe
@@ -304,15 +528,14 @@ If($numDaysRetention -gt -1)
 }
 
 	try {
-        Write-Host "Adding the safe $safename to the Vault..." -ForegroundColor Yellow #DEBUG
+        Write-LogMessage -Type Debug -Msg "Adding the safe $safename to the Vault..."
         $safeadd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
 		# Reset cached Safes list
 		Set-Variable -Name g_SafesList -Value $null -Scope Global
 		# Update Safes list to include new safe
 		Get-Safes | out-null
     }catch{
-        Write-Host "Error adding $safename to the Vault. The error was:" -ForegroundColor Red #ERROR
-        Write-Error $_.Exception.Response.StatusDescription
+		Throw $(New-Object System.Exception ("Create-Safe: Error adding $safename to the Vault.",$_.Exception))
     }
 }
 
@@ -350,8 +573,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
 		# Get the current safe details and update when necessary
 		$getSafe = Get-Safe -safeName $safeName
 	} catch {
-		Write-Host "Error getting current details on safe '$safeName'. The error was:" -ForegroundColor Red #ERROR
-        Write-Error $_.Exception.Response.StatusDescription
+		Throw $(New-Object System.Exception ("Update-Safe: Error getting current details on safe '$safeName'",$_.Exception))
 	}
 	$updateDescription = $getSafe.Description
 	$updateOLAC = $getSafe.OLACEnabled
@@ -392,13 +614,11 @@ $updateSafeBody=@{
 } | ConvertTo-Json
 
 	try {
-        Write-Host "Updating safe $safename..." -ForegroundColor Yellow #DEBUG
-        Write-Debug "Update Safe Body: $updateSafeBody" 
+        Write-LogMessage -Type Debug -Msg "Updating safe $safename..."
+        Write-LogMessage -Type Debug -Msg "Update Safe Body: $updateSafeBody" 
         $safeupdate = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
     }catch{
-        Write-Host "Error updating $safeName. The error was: $_" -ForegroundColor Red #ERROR
-        Write-Error $_.Exception.Response.StatusDescription
-		
+		Throw $(New-Object System.Exception ("Update-Safe: Error updating $safeName.",$_.Exception))
     }
 }
 
@@ -424,11 +644,10 @@ Delete-Safe -safename "x0-Win-S-Admins"
     )
 
 	try {
-        Write-Host "Deleting the safe $safename from the Vault..." -ForegroundColor Yellow #DEBUG
+        Write-LogMessage -Type Debug -Msg "Deleting the safe $safename from the Vault..."
         $safedelete = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Method DELETE -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
     }catch{
-        Write-Host "Error deleting $safename from the Vault. The error was:" -ForegroundColor Red #ERROR
-        Write-Error $_.Exception.Response.StatusDescription
+		Throw $(New-Object System.Exception ("Delete-Safe: Error deleting $safename from the Vault.",$_.Exception))
     }
 }
 
@@ -538,14 +757,14 @@ $SafeMembersBody = @{
     }
 
     try {
-        Write-Host "Setting safe membership for $safeMember located in $memberSearchInLocation on $safeName in the vault..." -ForegroundColor Yellow #DEBUG
+        Write-LogMessage -Type Debug -Msg "Setting safe membership for $safeMember located in $memberSearchInLocation on $safeName in the vault..."
         $setSafeMembers = Invoke-RestMethod -Uri $($URL_SafeMembers -f $(Encode-URL $safeName)) -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorVariable rMethodErr
     }catch{
 		if ($rmethodErr.message -like "*User or Group is already a member*"){
-			Write-Host "The user $safeMember is already a member. Use the update member method instead" -ForegroundColor Red #ERROR
+			Write-LogMessage -Type Error -Msg "The user $safeMember is already a member. Use the update member method instead"
 		}else{
-			Write-Host "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:" -ForegroundColor Red #ERROR
-			Write-Host ("{0} ({1})" -f $rMethodErr.message, $_.Exception.Response.StatusDescription) -ForegroundColor Red #Error
+			Write-LogMessage -Type Error -Msg "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:"
+			Write-LogMessage -Type Error -Msg ("{0} ({1})" -f $rMethodErr.message, $_.Exception.Response.StatusDescription)
 		}
     }
 }
@@ -578,8 +797,7 @@ Get-SafeMember -safename "Win-Local-Admins"
 	}
 	catch
 	{
-		Write-Host "There was an error getting the safe $safeName Members. The error was:" -ForegroundColor Red #ERROR
-        Write-Error $_.Exception.Response.StatusDescription
+		Throw $(New-Object System.Exception ("Get-SafeMembers: There was an error getting the safe $safeName Members.",$_.Exception))
 	}
 	
 	return $_safeOwners
@@ -596,51 +814,25 @@ if ([bool]::TryParse($txt, [ref]$retBool)) {
     # parsed to a boolean
     return [System.Convert]::ToBoolean($txt)
 	} else {
-		Write-Host "The input ""$txt"" is not in the correct format (true/false), defaulting to False" -ForegroundColor Red
+		Write-LogMessage -Type Error -Msg "The input ""$txt"" is not in the correct format (true/false), defaulting to False"
 		return $false
 	}
 }
 #endregion
 
-Write-Host "Script Started"
+Write-LogMessage -Type Info -MSG "Starting script (v$ScriptVersion)" -Header -LogFile $LOG_FILE_PATH
+if($InDebug) { Write-LogMessage -Type Info -MSG "Running in Debug Mode" -LogFile $LOG_FILE_PATH }
+if($InVerbose) { Write-LogMessage -Type Info -MSG "Running in Verbose Mode" -LogFile $LOG_FILE_PATH }
+Write-LogMessage -Type Debug -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ", ")" -LogFile $LOG_FILE_PATH
 
 # Check if Powershell is running in Constrained Language Mode
 If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 {
-	Write-Host -ForegroundColor Red "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
+	Write-LogMessage -Type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
 	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
-	Write-Host "Script ended"
+	Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
 	return
-}
-
-
-# Check if to disable SSL verification
-If($DisableSSLVerify)
-{
-	try{
-		Write-Warning "It is not Recommended to disable SSL verification" -WarningAction Inquire
-		# Using Proxy Default credentials if the Server needs Proxy credentials
-		[System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
-		# Using TLS 1.2 as security protocol verification
-		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls11
-		# Disable SSL Verification
-		[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
-	} catch {
-		Write-Host -ForegroundColor Red "Could not change SSL validation"
-		Write-Host -ForegroundColor Red $_.Exception -ErrorAction "SilentlyContinue"
-		return
-	}
-}
-Else
-{
-	try{
-		Write-Host -ForegroundColor Yellow "Setting script to use TLS 1.2"
-		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-	} catch {
-		Write-Host -ForegroundColor Red "Could not change SSL settings to use TLS 1.2"
-		Write-Host -ForegroundColor Red $_.Exception -ErrorAction "SilentlyContinue"
-	}
 }
 
 If (Test-CommandExists Invoke-RestMethod)
@@ -656,24 +848,27 @@ If (Test-CommandExists Invoke-RestMethod)
     }
     else
     {
-        Write-Host -ForegroundColor Red "PVWA URL can not be empty"
-        break
+        Write-LogMessage -Type Error -Msg "PVWA URL can not be empty"
+        return
     }
 
 #region [Logon]
-	# Get Credentials to Login
-	# ------------------------
-	$caption = "Safe Management"
-	$msg = "Enter your User name and Password"; 
-	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($creds -ne $null)
-	{
-		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds -ConnectionNumber $ThreadNumber)
-		if([string]::IsNullOrEmpty($g_LogonHeader)) { break }
-	}
-	else { 
-		Write-Error "No Credentials were entered"
-		break
+	try{
+		# Get Credentials to Login
+		# ------------------------
+		$caption = "Safe Management"
+		$msg = "Enter your User name and Password"; 
+		$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
+		if ($creds -ne $null)
+		{
+			Get-LogonHeader -Credentials $creds -ConnectionNumber $ThreadNumber
+		}
+		else { 
+			Write-LogMessage -Type Error -Msg "No Credentials were entered"
+			return
+		}
+	} catch {
+		Write-LogMessage -Type Error -Msg "Error Logging on. Error: $(Collect-ExceptionMessage $_.Exception)"
 	}
 #endregion
 
@@ -683,7 +878,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		"List"
 		{
 			# List all Safes
-			Write-Host "Retrieving Safes..." -ForegroundColor Yellow
+			Write-LogMessage -Type Info -Msg "Retrieving Safes..."
 			
 			try{
 				If (![string]::IsNullOrEmpty($SafeName))
@@ -695,8 +890,7 @@ If (Test-CommandExists Invoke-RestMethod)
 					Get-Safes
 				}
 			} catch {
-				Write-Host "Error retrieving safes" -ForegroundColor Red #ERROR
-				Write-Error $_.Exception.Message
+				Write-LogMessage -Type Error -Msg "Error retrieving safes. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 		}
 		{($_ -eq "Add") -or ($_ -eq "Update")} 
@@ -706,11 +900,12 @@ If (Test-CommandExists Invoke-RestMethod)
 				{
 					# Bulk Import of Safes
 					$csv = Import-Csv $FilePath
-
+					# Sort List by Safes
+					$sortedList = $csv | Sort-Object -Property safename
 					# For each line in the csv, import the safe
-					ForEach ($line in $csv)
+					ForEach ($line in $sortedList)
 					{
-						Write-Host "Importing safe $($line.safename) with safe member $($line.member)..." -ForegroundColor Yellow #DEBUG
+						Write-LogMessage -Type Info -Msg "Importing safe $($line.safename) with safe member $($line.member)..."
 						$parameters = @{ 
 							safeName=$line.safename; 
 							safeDescription=$line.description;
@@ -728,12 +923,12 @@ If (Test-CommandExists Invoke-RestMethod)
 						if (((Get-Safes).safename) -notcontains $line.safename) {
 							If($Add)
 							{
-								Write-Host "Adding the safe $($line.safename)..." -ForegroundColor Yellow
+								Write-LogMessage -Type Info -Msg "Adding the safe $($line.safename)..."
 								Create-Safe @parameters
 							}
 							ElseIf($Update)
 							{
-								Write-Host "Updating the safe $($line.safename)..." -ForegroundColor Yellow
+								Write-LogMessage -Type Info -Msg "Updating the safe $($line.safename)..."
 								Update-Safe @parameters
 							}
 						}
@@ -773,19 +968,18 @@ If (Test-CommandExists Invoke-RestMethod)
 					If($Add)
 					{
 						# Create one Safe
-						Write-Host "Adding the safe $SafeName..." -ForegroundColor Yellow
+						Write-LogMessage -Type Info -Msg "Adding the safe $SafeName..."
 						Create-Safe @parameters
 					}
 					ElseIf($Update)
 					{
 						# Update the Safe
-						Write-Host "Updating the safe $SafeName..." -ForegroundColor Yellow
+						Write-LogMessage -Type Info -Msg "Updating the safe $SafeName..."
 						Update-Safe @parameters
 					}
 				}			
 			}catch{
-				Write-Host "Error adding/updating safe '$($line.SafeName)'" -ForegroundColor Red #ERROR
-				Write-Error $_.Exception.Message
+				Write-LogMessage -Type Error -Msg "Error adding/updating safe '$($line.SafeName)'. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 		}
 		"Delete"
@@ -799,84 +993,88 @@ If (Test-CommandExists Invoke-RestMethod)
 					# For each line in the csv, import the safe
 					ForEach ($line in $csv)
 					{
-						Write-Host "Deleting safe $($line.safename)..." -ForegroundColor Yellow #DEBUG
+						Write-LogMessage -Type Info -Msg "Deleting safe $($line.safename)..."
 						Delete-Safe -safename $line.safename
 					}
 				}
 				else
 				{
 					# Deleting one Safe
-					Write-Host "Deleting the safe $SafeName..." -ForegroundColor Yellow
+					Write-LogMessage -Type Info -Msg "Deleting the safe $SafeName..."
 					Delete-Safe -SafeName $SafeName
 				}
 			}catch{
-				Write-Host "Error deleting safe '$SafeName'" -ForegroundColor Red #ERROR
-				Write-Error $_.Exception.Message
+				Write-LogMessage -Type Error -Msg "Error deleting safe '$SafeName'. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 		}
 		"Members"
 		{
-			if([string]::IsNullOrEmpty($UserName))
-			{
-				# List all members of a safe
-				Get-SafeMembers -SafeName $SafeName
-			}
-			else
-			{
-				# Add a member to a safe
-				$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = `
-				$permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafe = $permManageSafeMembers = $permBackupSafe = $permViewAuditLog = `
-				$permViewSafeMembers = $permAccessWithoutConfirmation = $permCreateFolders = $permDeleteFolders = $permMoveAccountsAndFolders = $false
-				[int]$permRequestsAuthorizationLevel = 0
-				switch($MemberRole)
+			try{
+				if([string]::IsNullOrEmpty($UserName))
 				{
-					"Admin"
-					{
-						$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = `
-						$permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafe = $permManageSafeMembers = $permBackupSafe = `
-						$permViewAuditLog = $permViewSafeMembers = $permAccessWithoutConfirmation = $permCreateFolders = $permDeleteFolders = $permMoveAccountsAndFolders = $true
-						$permRequestsAuthorizationLevel = 1
-					}
-					"Auditor"
-					{
-						$permListAccounts = $permViewAuditLog = $permViewSafeMembers = $true
-					}
-					"EndUser"
-					{
-						$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permViewAuditLog = $permViewSafeMembers = $true
-					}
-					"Approver"
-					{
-						$permListAccounts = $permViewAuditLog = $permViewSafeMembers = $true
-						$permRequestsAuthorizationLevel = 1
-					}
-					"Owner"
-					{
-						$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = $permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafeMembers = $permViewAuditLog = $permViewSafeMembers = $permMoveAccountsAndFolders = $true
-						$permRequestsAuthorizationLevel = 1
-					}
+					# List all members of a safe
+					Get-SafeMembers -SafeName $SafeName
 				}
-				Set-SafeMember -safename $SafeName -safeMember $UserName -memberSearchInLocation $UserLocation `
-							-permUseAccounts $permUseAccounts -permRetrieveAccounts $permRetrieveAccounts -permListAccounts $permListAccounts `
-							-permAddAccounts $permAddAccounts -permUpdateAccountContent $permUpdateAccountContent -permUpdateAccountProperties $permUpdateAccountProperties `
-							-permInitiateCPMManagement $permInitiateCPMManagement -permSpecifyNextAccountContent $permSpecifyNextAccountContent `
-							-permRenameAccounts $permRenameAccounts -permDeleteAccounts $permDeleteAccounts -permUnlockAccounts $permUnlockAccounts `
-							-permManageSafe $permManageSafe -permManageSafeMembers $permManageSafeMembers -permBackupSafe $permBackupSafe `
-							-permViewAuditLog $permViewAuditLog -permViewSafeMembers $permViewSafeMembers `
-							-permRequestsAuthorizationLevel $permRequestsAuthorizationLevel -permAccessWithoutConfirmation $permAccessWithoutConfirmation `
-							-permCreateFolders $permCreateFolders -permDeleteFolders $permDeleteFolders -permMoveAccountsAndFolders $permMoveAccountsAndFolders
+				else
+				{
+					# Add a member to a safe
+					$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = `
+					$permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafe = $permManageSafeMembers = $permBackupSafe = $permViewAuditLog = `
+					$permViewSafeMembers = $permAccessWithoutConfirmation = $permCreateFolders = $permDeleteFolders = $permMoveAccountsAndFolders = $false
+					[int]$permRequestsAuthorizationLevel = 0
+					switch($MemberRole)
+					{
+						Write-LogMessage -Type Verbose -Msg "Adding member '$UserName' to safe $SafeName with Role '$MemberRole'..."
+						"Admin"
+						{
+							$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = `
+							$permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafe = $permManageSafeMembers = $permBackupSafe = `
+							$permViewAuditLog = $permViewSafeMembers = $permAccessWithoutConfirmation = $permCreateFolders = $permDeleteFolders = $permMoveAccountsAndFolders = $true
+							$permRequestsAuthorizationLevel = 1
+						}
+						"Auditor"
+						{
+							$permListAccounts = $permViewAuditLog = $permViewSafeMembers = $true
+						}
+						"EndUser"
+						{
+							$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permViewAuditLog = $permViewSafeMembers = $true
+						}
+						"Approver"
+						{
+							$permListAccounts = $permViewAuditLog = $permViewSafeMembers = $true
+							$permRequestsAuthorizationLevel = 1
+						}
+						"Owner"
+						{
+							$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = $permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafeMembers = $permViewAuditLog = $permViewSafeMembers = $permMoveAccountsAndFolders = $true
+							$permRequestsAuthorizationLevel = 1
+						}
+					}
+					Set-SafeMember -safename $SafeName -safeMember $UserName -memberSearchInLocation $UserLocation `
+								-permUseAccounts $permUseAccounts -permRetrieveAccounts $permRetrieveAccounts -permListAccounts $permListAccounts `
+								-permAddAccounts $permAddAccounts -permUpdateAccountContent $permUpdateAccountContent -permUpdateAccountProperties $permUpdateAccountProperties `
+								-permInitiateCPMManagement $permInitiateCPMManagement -permSpecifyNextAccountContent $permSpecifyNextAccountContent `
+								-permRenameAccounts $permRenameAccounts -permDeleteAccounts $permDeleteAccounts -permUnlockAccounts $permUnlockAccounts `
+								-permManageSafe $permManageSafe -permManageSafeMembers $permManageSafeMembers -permBackupSafe $permBackupSafe `
+								-permViewAuditLog $permViewAuditLog -permViewSafeMembers $permViewSafeMembers `
+								-permRequestsAuthorizationLevel $permRequestsAuthorizationLevel -permAccessWithoutConfirmation $permAccessWithoutConfirmation `
+								-permCreateFolders $permCreateFolders -permDeleteFolders $permDeleteFolders -permMoveAccountsAndFolders $permMoveAccountsAndFolders
 				}
+			} catch {
+				Write-LogMessage -Type Error -Msg "Error updating Members for safe '$SafeName'. Error: $(Collect-ExceptionMessage $_.Exception)"
+			}
 		}
 	}
 	
     # Logoff the session
     # ------------------
-    Write-Host "Logoff Session..."
-    Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogoff -Headers $g_LogonHeader -ContentType "application/json" | Out-Null
+	Run-Logoff
 }
 else
 {
-    Write-Error "This script requires PowerShell version 3 or above"
+    Write-LogMessage -Type Error -Msg "This script requires PowerShell version 3 or above"
 }
 
-Write-Host "Script ended"
+Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
+return
