@@ -1022,9 +1022,9 @@ If (Test-CommandExists Invoke-RestMethod)
 					$permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafe = $permManageSafeMembers = $permBackupSafe = $permViewAuditLog = `
 					$permViewSafeMembers = $permAccessWithoutConfirmation = $permCreateFolders = $permDeleteFolders = $permMoveAccountsAndFolders = $false
 					[int]$permRequestsAuthorizationLevel = 0
+					Write-LogMessage -Type Verbose -Msg "Adding member '$UserName' to safe $SafeName with Role '$MemberRole'..."
 					switch($MemberRole)
 					{
-						Write-LogMessage -Type Verbose -Msg "Adding member '$UserName' to safe $SafeName with Role '$MemberRole'..."
 						"Admin"
 						{
 							$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = `
