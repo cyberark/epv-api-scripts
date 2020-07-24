@@ -695,7 +695,7 @@ Function Create-Safe
 		$createSafeResult = $(Invoke-Rest -Uri $URL_Safes -Header $g_LogonHeader -Command "Post" -Body $restBody)
 		if ($createSafeResult)
 		{
-			Log-Msg -Type Debug -MSG "Safe $($account.Safe) created"
+			Log-Msg -Type Debug -MSG "Safe $safeName created"
 			return $false
 		}
 		else { 
@@ -786,7 +786,12 @@ Function Get-Account
 		# Filter Accounts based on input properties
 		$WhereFilter = [scriptblock]::Create( ($WhereArray -join " -and ") )
 		$_retaccount = ( $GetAccountsList | Where $WhereFilter )
-		
+		# Verify that we have only one result
+		If ($_retaccount.count -gt 1)
+		{ 
+			$_retaccount = $null
+			throw "Found $($_retaccount.count) accounts in search - fix duplications" 
+		}
 	}
 	catch [System.WebException] {
 		Log-Msg -Type Error -MSG $_.Exception.Response.StatusDescription
@@ -1079,7 +1084,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 				If($shouldSkip -eq $False)
 				{
 					# Check if the Account exists
-					$accExists = $(Test-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address)
+					$accExists = $(Test-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address -accountObjectName $objAccount.name)
 					
 					try{
 						If($Create)
