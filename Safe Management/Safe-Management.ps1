@@ -331,12 +331,16 @@ Function Get-LogonHeader
 			Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
 		}
 		
-		# Create a Logon Token Header (This will be used through out all the script)
-		# ---------------------------
-		$logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-		$logonHeader.Add("Authorization", $logonToken)
-		
-		Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
+		try{
+			# Create a Logon Token Header (This will be used through out all the script)
+			# ---------------------------
+			$logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+			$logonHeader.Add("Authorization", $logonToken)
+			
+			Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
+		} catch {
+			Throw $(New-Object System.Exception ("Get-LogonHeader: Could not create Logon Headers Dictionary",$_.Exception))
+		}
 	}
 }
 
@@ -869,6 +873,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		}
 	} catch {
 		Write-LogMessage -Type Error -Msg "Error Logging on. Error: $(Collect-ExceptionMessage $_.Exception)"
+		return
 	}
 #endregion
 
