@@ -236,7 +236,7 @@ Function New-AccountObject
 		[PSObject]$AccountLine
 	)
 	try{
-		# Check mandatory fields 
+		# Check mandatory fields
 		If([string]::IsNullOrEmpty($AccountLine.safeName)) { throw "Missing mandatory field: Safe Name" }
 		if($Create) {
 			# Check mandatory fields for account creation
