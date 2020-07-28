@@ -621,7 +621,7 @@ Function Get-LogonHeader
 	{
 		$logonBody.Password += ",$RadiusOTP"
 	}
-	write-Verbose $logonBody
+	
 	try{
 	    # Logon
 	    $logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
@@ -636,7 +636,7 @@ Function Get-LogonHeader
     If ([string]::IsNullOrEmpty($logonToken))
     {
         Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-        exit
+        return
     }
 	
     # Create a Logon Token Header (This will be used through out all the script)
@@ -717,7 +717,7 @@ If (![string]::IsNullOrEmpty($PVWAURL))
 else
 {
 	Log-Msg -Type Error -MSG "PVWA URL can not be empty"
-	exit
+	return
 }
 
 Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" -SubHeader
@@ -739,10 +739,14 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 		{
 			$g_LogonHeader = $(Get-LogonHeader -Credentials $creds)
 		}
+		# Verify that we successfully logged on
+		If ($null -eq $g_LogonHeader) { 
+			return # No logon header, end script 
+		}
 	}
 	else { 
 		Log-Msg -Type Error -MSG "No Credentials were entered" -Footer
-		exit
+		return
 	}
 #endregion
 
