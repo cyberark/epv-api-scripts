@@ -776,7 +776,7 @@ Function Get-Account
 		$urlSearchAccount = $URL_Accounts+"?filter=safename eq $(Encode-URL $safeName)&search=$(Encode-URL $accountName) $(Encode-URL $accountAddress)"
 		# Search for created account
 		$GetAccountsList = $(Invoke-Rest -Uri $urlSearchAccount -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction).value
-		Log-Msg -Type Debug -MSG "Found $($GetAccountsList.count) accounts..."
+		Log-Msg -Type Debug -MSG "Found $($GetAccountsList.count) accounts, filtering based on account properties..."
 		
 		# Create a dynamic filter array
 		$WhereArray = @()
@@ -790,6 +790,7 @@ Function Get-Account
 		# Verify that we have only one result
 		If ($_retaccount.count -gt 1)
 		{ 
+			Log-Msg -Type Debug -MSG "Found duplicate accounts"
 			$_retaccount = $null
 			throw "Found $($_retaccount.count) accounts in search - fix duplications" 
 		}
@@ -1165,11 +1166,11 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									}
 								}
 								# Check for new Account Properties
-								ForEach($sProp in ($objAccount.PSObject.Properties | where { $_.Name -notin $s_ExcludeProperties }))
+								ForEach($sProp in ($s_Account.PSObject.Properties | where { $_.Name -notin $s_ExcludeProperties }))
 								{
 									If($sProp.Name -eq "remoteMachinesAccess")
 									{
-										ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties)
+										ForEach($sSubProp in $s_Account.remoteMachinesAccess.PSObject.Properties)
 										{
 											Log-Msg -Type Verbose -MSG "Updating Account Remote Machine Access Properties $($sSubProp.Name) value to: '$($objAccount.remoteMachinesAccess.$($sSubProp.Name))'"
 											If($sSubProp.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines"))
@@ -1187,6 +1188,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 												If([string]::IsNullOrEmpty($objAccount.remoteMachinesAccess.$($sSubProp.Name)))
 												{
 													$_bodyOp.op = "remove"
+													$_bodyOp.value = ""
 												}
 												else
 												{
@@ -1199,7 +1201,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									}
 									ElseIf($sProp.Name -eq "platformAccountProperties")
 									{
-										ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties)
+										ForEach($sSubProp in $s_Account.platformAccountProperties.PSObject.Properties)
 										{
 											Log-Msg -Type Verbose -MSG "Updating Platform Account Properties $($sSubProp.Name) value to: '$($objAccount.platformAccountProperties.$($sSubProp.Name))'"
 											# Handle new Account Platform properties
