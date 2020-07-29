@@ -67,6 +67,9 @@ param
 # Get Script Location 
 $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
 
+# Script Version
+$ScriptVersion = "2.1"
+
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
 
@@ -536,8 +539,22 @@ Function Invoke-Rest
 	return $restResponse
 }
 
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Get-Safe
+# Description....: Returns an existing Safe object
+# Parameters.....: Safe Name
+# Return Values..: Safe object
+# =================================================================================================================================
 Function Get-Safe
 {
+<# 
+.SYNOPSIS 
+	Returns an existing Safe object
+.DESCRIPTION
+	Returns an existing Safe object
+.PARAMETER SafeName
+	The Safe Name to return
+#>
 	param (
 		[Parameter(Mandatory=$true)]
 		[String]$safeName,
@@ -558,11 +575,25 @@ Function Get-Safe
 	return $_safe.GetSafeResult
 }
 
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Convert-PermissionName
+# Description....: Converts a permission key name from List Safe member permission to Add Safe member permission
+# Parameters.....: Permission name
+# Return Values..: The converted name of the permission
+# =================================================================================================================================
 Function Convert-PermissionName
 {
-# Safe Member List Permissions returns a specific set of permissions name
-# The required names for Add/Update Safe Memer is different
-# This function will convert from "List Permissions name set" to "Add Permission name set"
+<# 
+.SYNOPSIS 
+	Returns an existing Safe object
+.DESCRIPTION
+	Safe Member List Permissions returns a specific set of permissions name
+	The required names for Add/Update Safe Memer is different
+	This function will convert from "List Permissions name set" to "Add Permission name set"
+.PARAMETER PermName
+	The Permission name to convert
+#>
+
 	param (
 			[Parameter(Mandatory=$true)]
 			[String]$permName
@@ -593,8 +624,22 @@ Function Convert-PermissionName
 	
 }
 
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Get-SafeMembers
+# Description....: Returns the Safe members
+# Parameters.....: Safe name
+# Return Values..: The Members of the input safe
+# =================================================================================================================================
 Function Get-SafeMembers
 {
+<# 
+.SYNOPSIS 
+	Returns the Safe members
+.DESCRIPTION
+	Returns the Safe members
+.PARAMETER SafeName
+	The Safe Name to return its Members
+#>
 	param (
 		[Parameter(Mandatory=$true)]
 		[String]$safeName
@@ -640,12 +685,26 @@ Function Get-SafeMembers
 	return $_retSafeOwners
 }
 
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Test-Safe
+# Description....: Check if the safe exists
+# Parameters.....: Safe name
+# Return Values..: Bool
+# =================================================================================================================================
 Function Test-Safe
 {
+<# 
+.SYNOPSIS 
+	Returns the Safe members
+.DESCRIPTION
+	Returns the Safe members
+.PARAMETER SafeName
+	The Safe Name check if exists
+#>
 	param (
 		[Parameter(Mandatory=$true)]
 		[String]$safeName
-		)
+	)
 		
 	try{
 		If ($null -eq $(Get-Safe -safeName $safeName -ErrAction "SilentlyContinue"))
@@ -667,8 +726,26 @@ Function Test-Safe
 	}
 }
 
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Create-Safe
+# Description....: Creates a new Safe
+# Parameters.....: Safe name, (optional) CPM name, (optional) Template Safe
+# Return Values..: Bool
+# =================================================================================================================================
 Function Create-Safe
 {
+<# 
+.SYNOPSIS 
+	Creates a new Safe
+.DESCRIPTION
+	Creates a new Safe
+.PARAMETER SafeName
+	The Safe Name to create
+.PARAMETER CPMName
+	The CPM Name to add to the safe. if not entered, the default (first) CPM will be chosen
+.PARAMETER TemplateSafeObject
+	The Template Safe object (returned from the Get-Safe method). If entered the new safe will be created based on this safe (including members)
+#>
 	param (
 		[Parameter(Mandatory=$true)]
 		[String]$safeName,
@@ -676,7 +753,7 @@ Function Create-Safe
 		[String]$cpmName,
 		[Parameter(Mandatory=$false)]
 		[PSObject]$templateSafeObject
-		)
+	)
 	
 	# Check if Template Safe is in used
 	If($templateSafeObject -ne $null)
@@ -711,9 +788,30 @@ Function Create-Safe
 	}
 }
 
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Add-Owner
+# Description....: Add a new owner to an existing safe
+# Parameters.....: Safe name, Member to add
+# Return Values..: The Member object after added to the safe
+# =================================================================================================================================
 Function Add-Owner
 {
-	param ($safeName, $members)
+<# 
+.SYNOPSIS 
+	Add a new owner to an existing safe
+.DESCRIPTION
+	Add a new owner to an existing safe
+.PARAMETER SafeName
+	The Safe Name to add a member to
+.PARAMETER Members
+	A List of members to add to the safe
+#>
+	param (
+		[Parameter(Mandatory=$true)]
+		[String]$safeName,
+		[Parameter(Mandatory=$true)]
+		$members
+	)
 
 	$restResponse = $null
 	ForEach ($bodyMember in $members)
@@ -912,7 +1010,8 @@ Function Get-LogonHeader
 #endregion
 
 # Header
-Log-Msg -Type Info -MSG "Welcome to Accounts Onboard Utility" -Header
+Log-Msg -Type Info -MSG "Welcome to Accounts Onboard Utility" -Header -LogFile $LOG_FILE_PATH
+Log-Msg -Type Info -MSG "Starting script (v$ScriptVersion)" -SubHeader -LogFile $LOG_FILE_PATH
 
 # Check if Powershell is running in Constrained Language Mode
 If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
