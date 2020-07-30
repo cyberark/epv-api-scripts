@@ -1317,7 +1317,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								
 								If($s_AccountBody.count -eq 0)
 								{
-									Log-Msg -Type Info -MSG "No Account updates detected"
+									Log-Msg -Type Info -MSG "No Account updates detected - Skipping"
 								}
 								else
 								{
