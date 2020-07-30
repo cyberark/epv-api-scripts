@@ -240,7 +240,7 @@ Function New-AccountObject
 	)
 	try{
 		# Check mandatory fields
-		If([string]::IsNullOrEmpty($AccountLine.safeName)) { throw "Missing mandatory field: Safe Name" }
+		If([string]::IsNullOrEmpty($AccountLine.safe)) { throw "Missing mandatory field: Safe Name" }
 		if($Create) {
 			# Check mandatory fields for account creation
 			If([string]::IsNullOrEmpty($AccountLine.userName)) { throw "Missing mandatory field: user Name" }
