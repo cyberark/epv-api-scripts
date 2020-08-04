@@ -787,76 +787,79 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 		if ($null -ne $account)
 		{
 			try{
-				# Check mandatory fields
-				If([string]::IsNullOrEmpty($account.userName)) { throw "Missing mandatory field: user Name" }
-				If([string]::IsNullOrEmpty($account.address)) { throw "Missing mandatory field: Address" }
-				If([string]::IsNullOrEmpty($account.platformId)) { throw "Missing mandatory field: Platform ID" }
-				# Create some internal variables
-				$shouldSkip = $false
-				$safeExists = $false
-				$createAccount = $false
-				# Convert EnableAutoMgmt from yes / true to $true
-				if ($account.enableAutoMgmt.ToLower() -eq "yes" -or $account.enableAutoMgmt.ToLower() -eq "true") 
-				{
-					$account.enableAutoMgmt = $true
-				} else {
-					$account.enableAutoMgmt = $false
-				}
-				# Check if there are custom properties
-				$excludedProperties = @("name","username","address","safe","platformid","password","key","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist","sshkey")
-				$customProps = $($account.PSObject.Properties | Where { $_.Name.ToLower() -notin $excludedProperties })
-				#region [Account object mapping]
-				# Convert Account from CSV to Account Object (properties mapping)
-				$objAccount = "" | Select "name", "address", "userName", "platformId", "safeName", "secretType", "secret", "platformAccountProperties", "secretManagement", "remoteMachinesAccess"
-				$objAccount.platformAccountProperties = $null
-				$objAccount.secretManagement = "" | Select "automaticManagementEnabled", "manualManagementReason"
-				$objAccount.name = (Get-TrimmedString $account.name)
-				$objAccount.address = (Get-TrimmedString $account.address)
-				$objAccount.userName = (Get-TrimmedString $account.userName)
-				$objAccount.platformId = (Get-TrimmedString $account.platformID)
-				$objAccount.safeName = (Get-TrimmedString $account.safe)
-				if ((![string]::IsNullOrEmpty($account.password)) -and ([string]::IsNullOrEmpty($account.SSHKey)))
-				{ 
-					$objAccount.secretType = "password"
-					$objAccount.secret = $account.password
-				} elseif(![string]::IsNullOrEmpty($account.SSHKey)) { 
-					$objAccount.secretType = "key" 
-					$objAccount.secret = $account.SSHKey
-				}
-				else
-				{
-					# Empty password
-					$objAccount.secretType = "password"
-					$objAccount.secret = $account.password
-				}
-				if(![string]::IsNullOrEmpty($customProps))
-				{
-					$customProps.count
-					# Convert any non-default property in the CSV as a new platform account property
-					if($objAccount.platformAccountProperties -eq $null) { $objAccount.platformAccountProperties =  New-Object PSObject }
-					For ($i = 0; $i -lt $customProps.count; $i++){
-						$prop = $customProps[$i]
-						If(![string]::IsNullOrEmpty($prop.Value))
-						{
-							$objAccount.platformAccountProperties | Add-Member -MemberType NoteProperty -Name $prop.Name -Value $prop.Value 
+				try{
+					# Check mandatory fields
+					If([string]::IsNullOrEmpty($account.userName)) { throw "Missing mandatory field: user Name" }
+					If([string]::IsNullOrEmpty($account.address)) { throw "Missing mandatory field: Address" }
+					If([string]::IsNullOrEmpty($account.platformId)) { throw "Missing mandatory field: Platform ID" }
+					# Create some internal variables
+					$shouldSkip = $false
+					$safeExists = $false
+					$createAccount = $false
+					# Convert EnableAutoMgmt from yes / true to $true
+					if ($account.enableAutoMgmt.ToLower() -eq "yes" -or $account.enableAutoMgmt.ToLower() -eq "true") 
+					{
+						$account.enableAutoMgmt = $true
+					} else {
+						$account.enableAutoMgmt = $false
+					}
+					# Check if there are custom properties
+					$excludedProperties = @("name","username","address","safe","platformid","password","key","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist","sshkey")
+					$customProps = $($account.PSObject.Properties | Where { $_.Name.ToLower() -notin $excludedProperties })
+					#region [Account object mapping]
+					# Convert Account from CSV to Account Object (properties mapping)
+					$objAccount = "" | Select "name", "address", "userName", "platformId", "safeName", "secretType", "secret", "platformAccountProperties", "secretManagement", "remoteMachinesAccess"
+					$objAccount.platformAccountProperties = $null
+					$objAccount.secretManagement = "" | Select "automaticManagementEnabled", "manualManagementReason"
+					$objAccount.name = (Get-TrimmedString $account.name)
+					$objAccount.address = (Get-TrimmedString $account.address)
+					$objAccount.userName = (Get-TrimmedString $account.userName)
+					$objAccount.platformId = (Get-TrimmedString $account.platformID)
+					$objAccount.safeName = (Get-TrimmedString $account.safe)
+					if ((![string]::IsNullOrEmpty($account.password)) -and ([string]::IsNullOrEmpty($account.SSHKey)))
+					{ 
+						$objAccount.secretType = "password"
+						$objAccount.secret = $account.password
+					} elseif(![string]::IsNullOrEmpty($account.SSHKey)) { 
+						$objAccount.secretType = "key" 
+						$objAccount.secret = $account.SSHKey
+					}
+					else
+					{
+						# Empty password
+						$objAccount.secretType = "password"
+						$objAccount.secret = $account.password
+					}
+					if(![string]::IsNullOrEmpty($customProps))
+					{
+						$customProps.count
+						# Convert any non-default property in the CSV as a new platform account property
+						if($objAccount.platformAccountProperties -eq $null) { $objAccount.platformAccountProperties =  New-Object PSObject }
+						For ($i = 0; $i -lt $customProps.count; $i++){
+							$prop = $customProps[$i]
+							If(![string]::IsNullOrEmpty($prop.Value))
+							{
+								$objAccount.platformAccountProperties | Add-Member -MemberType NoteProperty -Name $prop.Name -Value $prop.Value 
+							}
 						}
 					}
+					$objAccount.secretManagement.automaticManagementEnabled = $account.enableAutoMgmt
+					if ($account.enableAutoMgmt -eq $false)
+					{ $objAccount.secretManagement.manualManagementReason = $account.manualMgmtReason }
+					$objAccount.remoteMachinesAccess = "" | select "remoteMachines", "accessRestrictedToRemoteMachines"
+					$objAccount.remoteMachinesAccess.remoteMachines = $account.remoteMachineAddresses
+					# Convert Restrict Machine Access To List from yes / true to $true
+					if ($account.restrictMachineAccessToList -eq "yes" -or $account.restrictMachineAccessToList -eq "true") 
+					{
+						$objAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines = $true
+					} else {
+						$objAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines = $false
+					}
+					#endregion [Account object mapping]
+					$tmpAccountName = ("{0}@{1}" -f $objAccount.userName, $objAccount.Address)
+				} catch {
+					throw "Error Creating account object on row $($counter+1)"
 				}
-				$objAccount.secretManagement.automaticManagementEnabled = $account.enableAutoMgmt
-				if ($account.enableAutoMgmt -eq $false)
-				{ $objAccount.secretManagement.manualManagementReason = $account.manualMgmtReason }
-				$objAccount.remoteMachinesAccess = "" | select "remoteMachines", "accessRestrictedToRemoteMachines"
-				$objAccount.remoteMachinesAccess.remoteMachines = $account.remoteMachineAddresses
-				# Convert Restrict Machine Access To List from yes / true to $true
-				if ($account.restrictMachineAccessToList -eq "yes" -or $account.restrictMachineAccessToList -eq "true") 
-				{
-					$objAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines = $true
-				} else {
-					$objAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines = $false
-				}
-				#endregion [Account object mapping]
-				$tmpAccountName = ("{0}@{1}" -f $objAccount.userName, $objAccount.Address)
-				
 				# Check if the Safe Exists
 				$safeExists = $(Test-Safe -safeName $objAccount.safeName)
 				# Check if we can create safes or not
@@ -1113,16 +1116,20 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 						
 						if($createAccount)
 						{
-							# Create the Account
-							$restBody = $objAccount | ConvertTo-Json -Depth 5
-							Log-Msg -Type Debug -Msg $restBody
-							$addAccountResult = $(Invoke-Rest -Uri $URL_Accounts -Header $g_LogonHeader -Body $restBody -Command "Post")
-							if($addAccountResult -ne $null)
-							{
-								Log-Msg -Type Info -MSG "Account Onboarded Successfully"
-								# Increment counter
-								$counter++
-								Log-Msg -Type Info -MSG "[$counter/$rowCount] Added $tmpAccountName successfully."  
+							try{
+								# Create the Account
+								$restBody = $objAccount | ConvertTo-Json -Depth 5
+								Log-Msg -Type Debug -Msg $restBody
+								$addAccountResult = $(Invoke-Rest -Uri $URL_Accounts -Header $g_LogonHeader -Body $restBody -Command "Post")
+								if($addAccountResult -ne $null)
+								{
+									Log-Msg -Type Info -MSG "Account Onboarded Successfully"
+									# Increment counter
+									$counter++
+									Log-Msg -Type Info -MSG "[$counter/$rowCount] Added $tmpAccountName successfully."  
+								}
+							} catch {
+								Throw $(New-Object System.Exception ("There was an error creating the account",$_.Exception))
 							}
 						}
 					}
