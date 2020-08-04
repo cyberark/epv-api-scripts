@@ -28,7 +28,7 @@ param
 	[Parameter(Mandatory=$false)]
 	[Switch]$DisableSSLVerify,
 	
-	# Security Events Days filter
+	# Inactive Days filter
 	[Parameter(Mandatory=$false,HelpMessage="Enter the number of days of inactivity (default: 30 days)")]
 	[Alias("Days")]
 	[int]$InactiveDays=30,
