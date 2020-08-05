@@ -236,6 +236,7 @@ Function New-AccountObject
 #>
 	param (
 		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
 		[PSObject]$AccountLine
 	)
 	try{
@@ -321,6 +322,7 @@ Function OpenFile-Dialog
 #>
 	param (
 		[Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true,Position=0)]
+		[ValidateNotNullOrEmpty()] 
 		[string]$LocationPath
 	)
     [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
@@ -498,6 +500,7 @@ Function Invoke-Rest
 		[ValidateSet("GET","POST","DELETE","PATCH")]
 		[String]$Command, 
 		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
 		[String]$URI, 
 		[Parameter(Mandatory=$false)]
 		$Header, 
@@ -557,6 +560,7 @@ Function Get-Safe
 #>
 	param (
 		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
 		[String]$safeName,
 		[Parameter(Mandatory=$false)]
 		[ValidateSet("Continue","Ignore","Inquire","SilentlyContinue","Stop","Suspend")]
@@ -642,6 +646,7 @@ Function Get-SafeMembers
 #>
 	param (
 		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
 		[String]$safeName
 		)
 	$_safeMembers = $null
@@ -703,6 +708,7 @@ Function Test-Safe
 #>
 	param (
 		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
 		[String]$safeName
 	)
 		
@@ -748,6 +754,7 @@ Function Create-Safe
 #>
 	param (
 		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
 		[String]$safeName,
 		[Parameter(Mandatory=$false)]
 		[String]$cpmName,
@@ -808,6 +815,7 @@ Function Add-Owner
 #>
 	param (
 		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
 		[String]$safeName,
 		[Parameter(Mandatory=$true)]
 		$members
@@ -855,12 +863,13 @@ Function Get-Account
 	The Account Safe Name to search in
 #>
 	param (
+		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
+		[String]$safeName,
 		[Parameter(Mandatory=$false)]
 		[String]$accountName, 
 		[Parameter(Mandatory=$false)]
 		[String]$accountAddress, 
-		[Parameter(Mandatory=$false)]
-		[String]$safeName,
 		[Parameter(Mandatory=$false)]
 		[String]$accountPlatformID,
 		[Parameter(Mandatory=$false)]
@@ -926,12 +935,13 @@ Function Test-Account
 	The Account Safe Name to search in
 #>
 	param (
+		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
+		[String]$safeName,
 		[Parameter(Mandatory=$false)]
 		[String]$accountName, 
 		[Parameter(Mandatory=$false)]
 		[String]$accountAddress, 
-		[Parameter(Mandatory=$false)]
-		[String]$safeName,
 		[Parameter(Mandatory=$false)]
 		[String]$accountPlatformID,
 		[Parameter(Mandatory=$false)]
