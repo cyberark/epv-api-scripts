@@ -802,17 +802,21 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 					$shouldSkip = $false
 					$safeExists = $false
 					$createAccount = $false
-					# Convert EnableAutoMgmt from yes / true to $true
-					if ($account.enableAutoMgmt.ToLower() -eq "yes" -or $account.enableAutoMgmt.ToLower() -eq "true") 
+					If($null -ne $account.enableAutoMgmt)
 					{
-						$account.enableAutoMgmt = $true
-					} else {
-						$account.enableAutoMgmt = $false
+						# Convert EnableAutoMgmt from yes / true to $true
+						if ($account.enableAutoMgmt.ToLower() -eq "yes" -or $account.enableAutoMgmt.ToLower() -eq "true") 
+						{
+							$account.enableAutoMgmt = $true
+						} else {
+							$account.enableAutoMgmt = $false
+						}
 					}
 					# Check if there are custom properties
 					$excludedProperties = @("name","username","address","safe","platformid","password","key","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist","sshkey")
 					$customProps = $($account.PSObject.Properties | Where { $_.Name.ToLower() -notin $excludedProperties })
 					#region [Account object mapping]
+					Log-MSG -Type Verbose -Msg "Creating the account object mapping..."
 					# Convert Account from CSV to Account Object (properties mapping)
 					$objAccount = "" | Select "name", "address", "userName", "platformId", "safeName", "secretType", "secret", "platformAccountProperties", "secretManagement", "remoteMachinesAccess"
 					$objAccount.platformAccountProperties = $null
@@ -836,9 +840,10 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 						$objAccount.secretType = "password"
 						$objAccount.secret = $account.password
 					}
+					Log-MSG -Type Verbose -Msg "Handling Account custom properties..."
 					if(![string]::IsNullOrEmpty($customProps))
 					{
-						$customProps.count
+						Log-MSG -Type Verbose -Msg "Inspecting $($customProps.count) custom properties"
 						# Convert any non-default property in the CSV as a new platform account property
 						if($objAccount.platformAccountProperties -eq $null) { $objAccount.platformAccountProperties =  New-Object PSObject }
 						For ($i = 0; $i -lt $customProps.count; $i++){
@@ -849,9 +854,11 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 							}
 						}
 					}
+					Log-MSG -Type Verbose -Msg "Handling Account secret management..."
 					$objAccount.secretManagement.automaticManagementEnabled = $account.enableAutoMgmt
 					if ($account.enableAutoMgmt -eq $false)
 					{ $objAccount.secretManagement.manualManagementReason = $account.manualMgmtReason }
+					Log-MSG -Type Verbose -Msg "Handling Account remote machines access..."
 					$objAccount.remoteMachinesAccess = "" | select "remoteMachines", "accessRestrictedToRemoteMachines"
 					$objAccount.remoteMachinesAccess.remoteMachines = $account.remoteMachineAddresses
 					# Convert Restrict Machine Access To List from yes / true to $true
