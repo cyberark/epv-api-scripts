@@ -864,7 +864,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 					#endregion [Account object mapping]
 					$tmpAccountName = ("{0}@{1}" -f $objAccount.userName, $objAccount.Address)
 				} catch {
-					throw "Error Creating account object on row $($counter+1)"
+					Throw $(New-Object System.Exception ("Error Creating account object on row $($counter+1)",$_.Exception))
 				}
 				# Check if the Safe Exists
 				$safeExists = $(Test-Safe -safeName $objAccount.safeName)
