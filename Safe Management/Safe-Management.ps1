@@ -291,7 +291,7 @@ Function Get-LogonHeader
 #>
 	param(
 		[Parameter(Mandatory=$true)]
-		[PSCredential]$Credentials,
+		[System.Management.Automation.CredentialAttribute()]$Credentials,
 		[Parameter(Mandatory=$false)]
 		[ValidateScript({ ($_ -ge 0) -and ($_ -lt 100) })]
 		[int]$ConnectionNumber = 0
@@ -334,7 +334,7 @@ Function Get-LogonHeader
 		try{
 			# Create a Logon Token Header (This will be used through out all the script)
 			# ---------------------------
-			$logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+			$logonHeader = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
 			$logonHeader.Add("Authorization", $logonToken)
 			
 			Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
