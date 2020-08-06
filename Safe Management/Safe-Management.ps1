@@ -29,6 +29,8 @@ param
 	[Parameter(ParameterSetName='Add',Mandatory=$true)][switch]$Add,
 	# Use this switch to Update Safes
 	[Parameter(ParameterSetName='Update',Mandatory=$true)][switch]$Update,
+	# Use this switch to Update Safe Members
+	[Parameter(ParameterSetName='UpdateMembers',Mandatory=$true)][switch]$UpdateMembers,
 	# Use this switch to Delete Safes
 	[Parameter(ParameterSetName='Delete',Mandatory=$true)][switch]$Delete,
 	# Use this switch to Add Safe Members
@@ -38,6 +40,7 @@ param
 	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Enter a Safe Name to filter by")]
 	[Parameter(ParameterSetName='Add',Mandatory=$false,HelpMessage="Enter a Safe Name to create")]
 	[Parameter(ParameterSetName='Update',Mandatory=$false,HelpMessage="Enter a Safe Name to update")]
+	[Parameter(ParameterSetName='UpdateMembers',Mandatory=$false,HelpMessage="Enter a Safe Name to update")]
 	[Parameter(ParameterSetName='Delete',Mandatory=$true,HelpMessage="Enter a Safe Name to delete")]
 	[Parameter(ParameterSetName='Members',Mandatory=$true,HelpMessage="Enter a Safe Name to add members to")]
 	[ValidateScript({$_.Length -le 28})]
@@ -53,6 +56,7 @@ param
 	# Import File support
 	[Parameter(ParameterSetName='Add',Mandatory=$false,HelpMessage="Enter a file path for bulk safe creation")]
 	[Parameter(ParameterSetName='Update',Mandatory=$false,HelpMessage="Enter a file path for bulk safe update")]
+	[Parameter(ParameterSetName='UpdateMembers',Mandatory=$false,HelpMessage="Enter a file path for bulk safe membership update")]
 	[Parameter(ParameterSetName='Delete',Mandatory=$false,HelpMessage="Enter a file path for bulk safe deletion")]
 	[ValidateScript( { Test-Path -Path $_ -PathType Leaf -IsValid})]
 	[ValidatePattern( '\.csv$' )]
@@ -680,11 +684,13 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
         $safename,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
         $safeMember,
+        [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
+        [bool]$updateMember,
         [Parameter(Mandatory=$true,
                    ValueFromPipelineByPropertyName=$true,
                    HelpMessage="Which vault-integrated LDAP directory name the vault should search for the account. Must match one of the directory names defined in the LDAP Integration page of the PVWA.",
                    Position=0)]
-        $memberSearchInLocation,
+		$memberSearchInLocation,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
         [bool]$permUseAccounts = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
@@ -762,7 +768,14 @@ $SafeMembersBody = @{
 
     try {
         Write-LogMessage -Type Debug -Msg "Setting safe membership for $safeMember located in $memberSearchInLocation on $safeName in the vault..."
-        $setSafeMembers = Invoke-RestMethod -Uri $($URL_SafeMembers -f $(Encode-URL $safeName)) -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorVariable rMethodErr
+		$urlSafeMembers = ($URL_SafeMembers -f $(Encode-URL $safeName))
+		$restMethod = "POST"
+		If($updateMember)
+		{
+			$urlSafeMembers = ("$URL_SafeMembers\$safeMember" -f $(Encode-URL $safeName))
+			$restMethod = "PUT"
+		}
+        $setSafeMembers = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorVariable rMethodErr
     }catch{
 		if ($rmethodErr.message -like "*User or Group is already a member*"){
 			Write-LogMessage -Type Error -Msg "The user $safeMember is already a member. Use the update member method instead"
@@ -898,7 +911,7 @@ If (Test-CommandExists Invoke-RestMethod)
 				Write-LogMessage -Type Error -Msg "Error retrieving safes. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 		}
-		{($_ -eq "Add") -or ($_ -eq "Update")} 
+		{($_ -eq "Add") -or ($_ -eq "Update") -or ($_ -eq "UpdateMembers")} 
 		{
 			try{
 				if(![string]::IsNullOrEmpty($FilePath))
@@ -938,7 +951,7 @@ If (Test-CommandExists Invoke-RestMethod)
 							}
 						}
 						# Add permissions to the safe
-						Set-SafeMember -safename $line.safename -safeMember $line.member -memberSearchInLocation $line.MemberLocation `
+						Set-SafeMember -safename $line.safename -safeMember $line.member -updateMember $UpdateMembers -memberSearchInLocation $line.MemberLocation `
 							-permUseAccounts $(Convert-ToBool $line.UseAccounts) -permRetrieveAccounts $(Convert-ToBool $line.RetrieveAccounts) -permListAccounts $(Convert-ToBool $line.ListAccounts) `
 							-permAddAccounts $(Convert-ToBool $line.AddAccounts) -permUpdateAccountContent $(Convert-ToBool $line.UpdateAccountContent) -permUpdateAccountProperties $(Convert-ToBool $line.UpdateAccountProperties) `
 							-permInitiateCPMManagement $(Convert-ToBool $line.InitiateCPMAccountManagementOperations) -permSpecifyNextAccountContent $(Convert-ToBool $line.SpecifyNextAccountContent) `
