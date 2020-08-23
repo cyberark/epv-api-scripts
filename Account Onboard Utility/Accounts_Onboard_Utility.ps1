@@ -992,7 +992,7 @@ Function Get-LogonHeader
 	{
 		$logonBody.Password += ",$RadiusOTP"
 	}
-	write-Verbose $logonBody
+	
 	try{
 	    # Logon
 	    $logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
@@ -1007,7 +1007,7 @@ Function Get-LogonHeader
     If ([string]::IsNullOrEmpty($logonToken))
     {
         Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-        exit
+        return
     }
 	
     # Create a Logon Token Header (This will be used through out all the script)
@@ -1089,7 +1089,7 @@ If (![string]::IsNullOrEmpty($PVWAURL))
 else
 {
 	Log-Msg -Type Error -MSG "PVWA URL can not be empty"
-	exit
+	return
 }
 
 Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" -SubHeader
@@ -1111,10 +1111,14 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 		{
 			Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds)
 		}
+		# Verify that we successfully logged on
+		If ($null -eq $g_LogonHeader) { 
+			return # No logon header, end script 
+		}
 	}
 	else { 
 		Log-Msg -Type Error -MSG "No Credentials were entered" -Footer
-		exit
+		return
 	}
 #endregion
 
@@ -1162,24 +1166,27 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 				
 				# Create the account object
 				$objAccount = (New-AccountObject -AccountLine $account)
-				
+
 				# Check if the Safe Exists
 				$safeExists = $(Test-Safe -safeName $objAccount.safeName)
 				# Check if we can create safes or not
 				If (($NoSafeCreation -eq $False) -and ($safeExists -eq $false))
 				{
 					try{
-						# The target safe does not exist
-						# The user chose to create safes during this process
-						$shouldSkip = Create-Safe -TemplateSafe $TemplateSafeDetails -Safe $account.Safe
-						if (($shouldSkip -eq $false) -and ($TemplateSafeDetails -ne $null) -and ($TemplateSafeMembers -ne $null))
+						If($Create)
 						{
-							$addOwnerResult = Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
-							if($addOwnerResult -eq $null)
-							{ throw }
-							else
+							# The target safe does not exist
+							# The user chose to create safes during this process
+							$shouldSkip = Create-Safe -TemplateSafe $TemplateSafeDetails -Safe $account.Safe
+							if (($shouldSkip -eq $false) -and ($TemplateSafeDetails -ne $null) -and ($TemplateSafeMembers -ne $null))
 							{
-								Log-Msg -Type Debug -MSG "Template Safe members were added successfully to safe $($account.Safe)"
+								$addOwnerResult = Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
+								if($addOwnerResult -eq $null)
+								{ throw }
+								else
+								{
+									Log-Msg -Type Debug -MSG "Template Safe members were added successfully to safe $($account.Safe)"
+								}
 							}
 						}
 					}
@@ -1427,16 +1434,20 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 						
 						if($createAccount)
 						{
-							# Create the Account
-							$restBody = $objAccount | ConvertTo-Json -Depth 5
-							Log-Msg -Type Debug -Msg $restBody
-							$addAccountResult = $(Invoke-Rest -Uri $URL_Accounts -Header $g_LogonHeader -Body $restBody -Command "Post")
-							if($addAccountResult -ne $null)
-							{
-								Log-Msg -Type Info -MSG "Account Onboarded Successfully"
-								# Increment counter
-								$counter++
-								Log-Msg -Type Info -MSG "[$counter/$rowCount] Added $g_LogAccountName successfully."  
+							try{
+								# Create the Account
+								$restBody = $objAccount | ConvertTo-Json -Depth 5
+								Log-Msg -Type Debug -Msg $restBody
+								$addAccountResult = $(Invoke-Rest -Uri $URL_Accounts -Header $g_LogonHeader -Body $restBody -Command "Post")
+								if($addAccountResult -ne $null)
+								{
+									Log-Msg -Type Info -MSG "Account Onboarded Successfully"
+									# Increment counter
+									$counter++
+									Log-Msg -Type Info -MSG "[$counter/$rowCount] Added $tmpAccountName successfully."  
+								}
+							} catch {
+								Throw $(New-Object System.Exception ("There was an error creating the account",$_.Exception))
 							}
 						}
 					}

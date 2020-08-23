@@ -79,3 +79,23 @@ Get Windows Server Local Platform details
 ```powershell
 Get-PlatformDetails.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformID WinServerLocal
 ```
+
+# Platforms Report
+Creates a report on all Active platforms and their connection components.
+Supported version: 11.6 and above
+
+## Usage
+```powershell
+Get-PlatformReport.ps1 [-PVWAURL] <string> [[-AuthType] <string>] [[-CSVPath] <string>] [-ExtendedReport] [-DisableSSLVerify] [<CommonParameters>]
+```
+
+### Examples
+Printing all Active Platforms report on screen
+```powershell
+Get-PlatformReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault 
+```
+
+Printing all Active Platforms extended report to a CSV file (including all Connection components)
+```powershell
+Get-PlatformReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault -ExtendedReport -CSVPath "C:\CyberArk\Platforms\Active_Platforms_August-2020.csv"
+```

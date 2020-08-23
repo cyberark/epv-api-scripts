@@ -655,7 +655,7 @@ If (Test-CommandExists Invoke-RestMethod)
 	}
     $msg = "Enter your LDAP User name and Password"; 
     $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	# Add a counter for successed connected machines
+	# Add a counter for succeeded connected machines
 	$cntMachines = 0
 	ForEach ($machine in $machinesList)
 	{
