@@ -1,0 +1,6 @@
+name,username,address,safe,RemoteMachineAddresses,RestrictMachineAccessToList,Notes,port
+Admin_FinApp05,Administrator,FINAPP05.exFinance.com,WIN-LCL-SRV-ADMIN,,,,
+Admin_FinApp08,Administrator,,WIN-LCL-SRV-ADMIN,,,,
+,a-root,FinDevORA01.exFinance.com,DEV-UNX-LCL-ROOT,,,,
+,oraAdmin,FinDevORA02.exFinance.com,DEV-FIN-DB-ADMIN,,,,1522
+,srvAdmin,exFinance.com,IT-DOM-ADMIN,FINAPP01.exFinance.com;FINAPP02.exFinance.com;FINAPP03.exFinance.com;FINAPP04.exFinance.com;FINAPP05.exFinance.com;FINAPP06.exFinance.com,Yes,,
