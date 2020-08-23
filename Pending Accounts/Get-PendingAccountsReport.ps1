@@ -90,7 +90,7 @@ param
 	[Alias("id")]
 	[string]$PendingAccountID,
 	
-	[Parameter(ParameterSetName='List')]
+	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Path to a CSV file to export data to")]
 	[Parameter(ParameterSetName='Details',Mandatory=$false,HelpMessage="Path to a CSV file to export data to")]
 	[Alias("path")]
 	[string]$CSVPath

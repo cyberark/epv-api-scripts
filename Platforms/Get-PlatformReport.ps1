@@ -1,12 +1,11 @@
 ###########################################################################
 #
-# NAME: Get Platform Report
+# NAME: Get Platforms Report
 #
 # AUTHOR:  Assaf Miron
 #
 # COMMENT: 
 # This script will Create a report of all active platforms and their connection components
-# "  In order to consolidate platforms they want a report to list all the platform name, all the ini values, and the connection components associated with the platform in the policies.xml "
 #
 # SUPPORTED VERSIONS:
 # CyberArk PVWA v11.6 and above
