@@ -80,6 +80,8 @@ If you want to Create Accounts but not create the safes (if they don’t exist):
 Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Update [-AuthType <string>] [-OTP <string>] [-TemplateSafe <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [-NoSafeCreation] [<CommonParameters>]
 ```
 
+> **Note:** In order to update specific accounts, make sure you include the account name in the CSV. The uniqeness of an account would be the Safe name and the Account name (object name)
+
 If you want to Create and Update Accounts (and safes):
 ```powershell
 & .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\accounts.csv -Update
