@@ -24,12 +24,12 @@ Export-Import-Platform.ps1 -Export -PVWAURL <PVWA URL> -PlatformID <Platform ID>
 ```
 
 ### Examples
-Import Sample Platfrom
+Import Sample Platform
 ```powershell
 Export-Import-Platform.ps1 -Import -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformZipPath C:\Temp\SamplePlatform.zip
 ```
 
-Export Sample Platfrom
+Export Sample Platform
 ```powershell
 Export-Import-Platform.ps1 -Export -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformID SamplePlatform -PlatformZipPath C:\Temp\Export-SamplePlatform.zip
 ```
