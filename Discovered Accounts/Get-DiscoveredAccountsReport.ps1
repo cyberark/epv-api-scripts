@@ -1,17 +1,17 @@
 ###########################################################################
 #
-# NAME: Get Pending Account Report
+# NAME: Get Discovered Account Report
 #
 # AUTHOR:  Assaf Miron
 #
 # COMMENT: 
-# This script will create a report for all pending accounts according to filters (optional).
+# This script will create a report for all Discovered accounts according to filters (optional).
 # Or get all account details for a specific account (by ID)
 #
 # Filter Criteria available:
 # --------------------------
 # Platform Type - Filter by platform types (Windows Server Local, Windows Desktop Local, Windows Domain, Unix, Unix SSH Key, AWS, AWS Access Keys)
-# Privileged account - Filter only pending accounts that are Privileged, or only those that are not privileged
+# Privileged account - Filter only Discovered accounts that are Privileged, or only those that are not privileged
 # Enabled account - Filter only enabled accounts, or only those that are not disabled
 # Search - Filter by keywords (by default with OR between them)
 # Search Type - the type of search to perform (contains (default) or startswith)
@@ -86,9 +86,9 @@ param
 	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="If used, the next page is automatically returned")]
 	[switch]$AutoNextPage,
 	
-	[Parameter(ParameterSetName='Details',Mandatory=$true,HelpMessage="The required Pending Account ID")]
+	[Parameter(ParameterSetName='Details',Mandatory=$true,HelpMessage="The required Discovered Account ID")]
 	[Alias("id")]
-	[string]$PendingAccountID,
+	[string]$DiscoveredAccountID,
 	
 	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Path to a CSV file to export data to")]
 	[Parameter(ParameterSetName='Details',Mandatory=$false,HelpMessage="Path to a CSV file to export data to")]
@@ -107,7 +107,7 @@ $ScriptVersion = "1.0"
 
 # ------ SET global parameters ------
 # Set Log file path
-$global:LOG_FILE_PATH = "$ScriptLocation\PendingAccountsReport.log"
+$global:LOG_FILE_PATH = "$ScriptLocation\DiscoveredAccountsReport.log"
 # Set a global Header Token parameter
 $global:g_LogonHeader = ""
 
@@ -644,7 +644,7 @@ else
 
 # Get Credentials to Login
 # ------------------------
-$caption = "Pending Accounts Report"
+$caption = "Discovered Accounts Report"
 $msg = "Enter your PAS User name and Password ($AuthType)"; 
 $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 
@@ -654,8 +654,8 @@ try {
 	{
 		"List"
 		{
-			# Get Pending Accounts
-			Write-LogMessage -Type Info -MSG "Creating a list of Pending Accounts based on requested filters"
+			# Get Discovered Accounts
+			Write-LogMessage -Type Info -MSG "Creating a list of Discovered Accounts based on requested filters"
 			try{
 				$filterParameters = @{
 					sURL=$URL_DiscoveredAccounts;
@@ -673,16 +673,16 @@ try {
 				Write-LogMessage -Type Error -MSG "There was an Error creating the filter URL. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 			try{
-				$GetPendingAccountsResponse = Invoke-Rest -Command Get -Uri $urlFilteredAccounts -Header $(Get-LogonHeader -Credentials $creds)
+				$GetDiscoveredAccountsResponse = Invoke-Rest -Command Get -Uri $urlFilteredAccounts -Header $(Get-LogonHeader -Credentials $creds)
 			} catch {
-				Write-LogMessage -Type Error -MSG "There was an Error getting filtered Pending Accounts. Error: $(Collect-ExceptionMessage $_.Exception)"
+				Write-LogMessage -Type Error -MSG "There was an Error getting filtered Discovered Accounts. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 						
 			If($AutoNextPage)
 			{
-				$GetPendingAccountsList = @()
-				$GetPendingAccountsList += $GetPendingAccountsResponse.value
-				Write-LogMessage -Type Debug -MSG "$($GetPendingAccountsList.count) Pending accounts so far..."
+				$GetDiscoveredAccountsList = @()
+				$GetDiscoveredAccountsList += $GetDiscoveredAccountsResponse.value
+				Write-LogMessage -Type Debug -MSG "$($GetDiscoveredAccountsList.count) Discovered accounts so far..."
 				$nextLink =  $GetAccountsResponse.nextLink
 				Write-LogMessage -Type Debug -MSG "Getting next link: $nextLink"
 				
@@ -691,16 +691,16 @@ try {
 					$GetAccountsResponse = Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header $(Get-LogonHeader -Credentials $creds)
 					$nextLink = $GetAccountsResponse.nextLink
 					Write-LogMessage -Type Debug -MSG "Getting next link: $nextLink"
-					$GetPendingAccountsList += $GetAccountsResponse.value
-					Write-LogMessage -Type Debug -MSG "$($GetPendingAccountsList.count) Pending accounts so far..."
+					$GetDiscoveredAccountsList += $GetAccountsResponse.value
+					Write-LogMessage -Type Debug -MSG "$($GetDiscoveredAccountsList.count) Discovered accounts so far..."
 				}
-				Write-LogMessage -Type Info -MSG "Showing $($GetPendingAccountsList.count) accounts"
-				$response = $GetPendingAccountsList
+				Write-LogMessage -Type Info -MSG "Showing $($GetDiscoveredAccountsList.count) accounts"
+				$response = $GetDiscoveredAccountsList
 			}
 			else 
 			{
-				Write-LogMessage -Type Info -MSG "Showing up to $Limit Pending Accounts" 
-				$response = $GetPendingAccountsResponse.value
+				Write-LogMessage -Type Info -MSG "Showing up to $Limit Discovered Accounts" 
+				$response = $GetDiscoveredAccountsResponse.value
 			}
 			
 			If(![string]::IsNullOrEmpty($SortBy))
@@ -712,10 +712,10 @@ try {
 		}
 		"Details"
 		{
-			if($PendingAccountID -ne "")
+			if($DiscoveredAccountID -ne "")
 			{
-				$GetPendingAccountDetailsResponse = Invoke-Rest -Command Get -Uri $($URL_DiscoveredAccountDetails -f $PendingAccountID) -Header $(Get-LogonHeader -Credentials $creds)
-				$response = $GetPendingAccountDetailsResponse
+				$GetDiscoveredAccountDetailsResponse = Invoke-Rest -Command Get -Uri $($URL_DiscoveredAccountDetails -f $DiscoveredAccountID) -Header $(Get-LogonHeader -Credentials $creds)
+				$response = $GetDiscoveredAccountDetailsResponse
 			}
 		}
 	}
@@ -740,7 +740,7 @@ try {
 		$response
 	}
 } catch {
-	Write-LogMessage -Type Error - MSG "There was an Error creating the Pending Accounts report. Error: $(Collect-ExceptionMessage $_.Exception)"
+	Write-LogMessage -Type Error - MSG "There was an Error creating the Discovered Accounts report. Error: $(Collect-ExceptionMessage $_.Exception)"
 }
 
 # Logoff the session
