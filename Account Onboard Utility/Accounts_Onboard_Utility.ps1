@@ -569,7 +569,7 @@ Function Get-Safe
 	$_safe = $null
 	try{
 		$accSafeURL = $URL_SafeDetails -f $safeName
-		$_safe = $(Invoke-Rest -Uri $accSafeURL -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
+		$_safe = $(Invoke-Rest -Uri $(Encode-URL $accSafeURL) -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
 	}
 	catch
 	{

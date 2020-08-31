@@ -117,6 +117,8 @@ $global:LOG_FILE_PATH = "$ScriptLocation\SafeManagement_$LOG_DATE.log"
 $global:g_LogonHeader = ""
 # Set a global safes list to improve performance
 $global:g_SafesList = $null
+# Set a global list of all Default sues to ignore
+$global:g_DefaultUsers = @("Master","Batch","Backup Users","Auditors","Operators","DR Users","Notification Engines","PVWAGWAccounts","PVWAGWUser","PVWAAppUser","PasswordManager")
 
 # Global URLS
 # -----------
@@ -735,55 +737,62 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
         [bool]$permMoveAccountsAndFolders = $false
     )
 
-$SafeMembersBody = @{
-        member = @{
-            MemberName = "$safeMember"
-            SearchIn = "$memberSearchInLocation"
-            MembershipExpirationDate = "$null"
-            Permissions = @(
-                @{Key="UseAccounts";Value=$permUseAccounts}
-                @{Key="RetrieveAccounts";Value=$permRetrieveAccounts}
-                @{Key="ListAccounts";Value=$permListAccounts}
-                @{Key="AddAccounts";Value=$permAddAccounts}
-                @{Key="UpdateAccountContent";Value=$permUpdateAccountContent}
-                @{Key="UpdateAccountProperties";Value=$permUpdateAccountProperties}
-                @{Key="InitiateCPMAccountManagementOperations";Value=$permInitiateCPMManagement}
-                @{Key="SpecifyNextAccountContent";Value=$permSpecifyNextAccountContent}
-                @{Key="RenameAccounts";Value=$permRenameAccounts}
-                @{Key="DeleteAccounts";Value=$permDeleteAccounts}
-                @{Key="UnlockAccounts";Value=$permUnlockAccounts}
-                @{Key="ManageSafe";Value=$permManageSafe}
-                @{Key="ManageSafeMembers";Value=$permManageSafeMembers}
-                @{Key="BackupSafe";Value=$permBackupSafe}
-                @{Key="ViewAuditLog";Value=$permViewAuditLog}
-                @{Key="ViewSafeMembers";Value=$permViewSafeMembers}
-                @{Key="RequestsAuthorizationLevel";Value=$permRequestsAuthorizationLevel}
-                @{Key="AccessWithoutConfirmation";Value=$permAccessWithoutConfirmation}
-                @{Key="CreateFolders";Value=$permCreateFolders}
-                @{Key="DeleteFolders";Value=$permDeleteFolders}
-                @{Key="MoveAccountsAndFolders";Value=$permMoveAccountsAndFolders}
-            )
-        }  
-    }
+	If($safemember -notin $g_DefaultUsers)
+	{
+		$SafeMembersBody = @{
+			member = @{
+				MemberName = "$safeMember"
+				SearchIn = "$memberSearchInLocation"
+				MembershipExpirationDate = "$null"
+				Permissions = @(
+					@{Key="UseAccounts";Value=$permUseAccounts}
+					@{Key="RetrieveAccounts";Value=$permRetrieveAccounts}
+					@{Key="ListAccounts";Value=$permListAccounts}
+					@{Key="AddAccounts";Value=$permAddAccounts}
+					@{Key="UpdateAccountContent";Value=$permUpdateAccountContent}
+					@{Key="UpdateAccountProperties";Value=$permUpdateAccountProperties}
+					@{Key="InitiateCPMAccountManagementOperations";Value=$permInitiateCPMManagement}
+					@{Key="SpecifyNextAccountContent";Value=$permSpecifyNextAccountContent}
+					@{Key="RenameAccounts";Value=$permRenameAccounts}
+					@{Key="DeleteAccounts";Value=$permDeleteAccounts}
+					@{Key="UnlockAccounts";Value=$permUnlockAccounts}
+					@{Key="ManageSafe";Value=$permManageSafe}
+					@{Key="ManageSafeMembers";Value=$permManageSafeMembers}
+					@{Key="BackupSafe";Value=$permBackupSafe}
+					@{Key="ViewAuditLog";Value=$permViewAuditLog}
+					@{Key="ViewSafeMembers";Value=$permViewSafeMembers}
+					@{Key="RequestsAuthorizationLevel";Value=$permRequestsAuthorizationLevel}
+					@{Key="AccessWithoutConfirmation";Value=$permAccessWithoutConfirmation}
+					@{Key="CreateFolders";Value=$permCreateFolders}
+					@{Key="DeleteFolders";Value=$permDeleteFolders}
+					@{Key="MoveAccountsAndFolders";Value=$permMoveAccountsAndFolders}
+				)
+			}  
+		}
 
-    try {
-        Write-LogMessage -Type Debug -Msg "Setting safe membership for $safeMember located in $memberSearchInLocation on $safeName in the vault..."
-		$urlSafeMembers = ($URL_SafeMembers -f $(Encode-URL $safeName))
-		$restMethod = "POST"
-		If($updateMember)
-		{
-			$urlSafeMembers = ("$URL_SafeMembers\$safeMember" -f $(Encode-URL $safeName))
-			$restMethod = "PUT"
+		try {
+			Write-LogMessage -Type Debug -Msg "Setting safe membership for $safeMember located in $memberSearchInLocation on $safeName in the vault..."
+			$urlSafeMembers = ($URL_SafeMembers -f $(Encode-URL $safeName))
+			$restMethod = "POST"
+			If($updateMember)
+			{
+				$urlSafeMembers = ("$URL_SafeMembers\$safeMember" -f $(Encode-URL $safeName))
+				$restMethod = "PUT"
+			}
+			$setSafeMembers = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorVariable rMethodErr
+		}catch{
+			if ($rmethodErr.message -like "*User or Group is already a member*"){
+				Write-LogMessage -Type Warning -Msg "The user $safeMember is already a member. Use the update member method instead"
+			}else{
+				Write-LogMessage -Type Error -Msg "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:"
+				Write-LogMessage -Type Error -Msg ("{0} ({1})" -f $rMethodErr.message, $_.Exception.Response.StatusDescription)
+			}
 		}
-        $setSafeMembers = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorVariable rMethodErr
-    }catch{
-		if ($rmethodErr.message -like "*User or Group is already a member*"){
-			Write-LogMessage -Type Error -Msg "The user $safeMember is already a member. Use the update member method instead"
-		}else{
-			Write-LogMessage -Type Error -Msg "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:"
-			Write-LogMessage -Type Error -Msg ("{0} ({1})" -f $rMethodErr.message, $_.Exception.Response.StatusDescription)
-		}
-    }
+	}
+	else
+	{
+		Write-LogMessage -Type Info -Msg "Skipping default user $safeMember..."
+	}
 }
 
 Function Get-SafeMembers
@@ -806,11 +815,10 @@ Get-SafeMember -safename "Win-Local-Admins"
 	$_safeMembers = $null
 	$_safeOwners = $null
 	try{
-		$_defaultUsers = @("Master","Batch","Backup Users","Auditors","Operators","DR Users","Notification Engines","PVWAGWAccounts","PasswordManager")
 		$accSafeMembersURL = $URL_SafeMembers -f $(Encode-URL $safeName)
 		$_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorAction "SilentlyContinue")
 		# Remove default users and change UserName to MemberName
-		$_safeOwners = $_safeMembers.members | Where {$_.UserName -notin $_defaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
+		$_safeOwners = $_safeMembers.members | Where {$_.UserName -notin $g_DefaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
 	}
 	catch
 	{
