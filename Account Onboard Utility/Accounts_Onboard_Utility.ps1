@@ -402,7 +402,7 @@ Function Log-MSG
 				$msgToWrite += "[INFO]`t$Msg"
 			}
 			"Warning" {
-				Write-Host $MSG.ToString() -ForegroundColor DarkYellow
+				Write-Host $MSG.ToString() -ForegroundColor Yellow
 				$msgToWrite += "[WARNING]`t$Msg"
 			}
 			"Error" {
@@ -769,14 +769,14 @@ Function Create-Safe
 		Log-Msg -Type Info -MSG "Creating Safe $safeName according to Template"
 		# Update the safe name in the Safe Template Object
 		$templateSafeObject.SafeName = $safeName
-		$restBody = @{ safe=$templateSafeObject } | ConvertTo-Json -Depth 3
+		$restBody = @{ safe=$templateSafeObject } | ConvertTo-Json -Depth 3 -Compress
 	}
 	else
 	{
 		# Create the Target Safe
 		Log-Msg -Type Info -MSG "Creating Safe $safeName"
 		$bodySafe = @{ SafeName=$safeName;Description="$safeName - Created using Accounts Onboard Utility";OLACEnabled=$false;ManagingCPM=$CPM_NAME;NumberOfDaysRetention=$NumberOfDaysRetention }
-		$restBody = @{ safe=$bodySafe } | ConvertTo-Json -Depth 3
+		$restBody = @{ safe=$bodySafe } | ConvertTo-Json -Depth 3 -Compress
 	}
 	try{
 		$createSafeResult = $(Invoke-Rest -Uri $URL_Safes -Header $g_LogonHeader -Command "Post" -Body $restBody)
@@ -824,7 +824,7 @@ Function Add-Owner
 	$restResponse = $null
 	ForEach ($bodyMember in $members)
 	{
-		$restBody = @{ member=$bodyMember } | ConvertTo-Json -Depth 5
+		$restBody = @{ member=$bodyMember } | ConvertTo-Json -Depth 5 -Compress
 		# Add the Safe Owner
 		try {
 			Log-Msg -Type Verbose -MSG "Adding owner '$($bodyMember.MemberName)' to safe '$safeName'..."
@@ -987,7 +987,7 @@ Function Get-LogonHeader
 	param($Credentials, $RadiusOTP)
 	# Create the POST Body for the Logon
     # ----------------------------------
-    $logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
+    $logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
 	If(![string]::IsNullOrEmpty($RadiusOTP))
 	{
 		$logonBody.Password += ",$RadiusOTP"
@@ -1339,7 +1339,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								else
 								{
 									# Update the existing account
-									$restBody = ConvertTo-Json $s_AccountBody -depth 5
+									$restBody = ConvertTo-Json $s_AccountBody -Depth 5 -Compress
 									$urlUpdateAccount = $URL_AccountsDetails -f $s_Account.id
 									$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "PATCH")
 									if($UpdateAccountResult -ne $null)
@@ -1361,7 +1361,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 										# $_passBody.ChangeEntireGroup = $false
 										$_passBody.NewCredentials = $objAccount.secret
 										# Update secret
-										$restBody = ConvertTo-Json $_passBody
+										$restBody = ConvertTo-Json $_passBody -Compress
 										$urlUpdateAccount = $URL_AccountsPassword -f $s_Account.id
 										$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "POST")
 										if($UpdateAccountResult -ne $null)
@@ -1436,7 +1436,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 						{
 							try{
 								# Create the Account
-								$restBody = $objAccount | ConvertTo-Json -Depth 5
+								$restBody = $objAccount | ConvertTo-Json -Depth 5 -Compress
 								Log-Msg -Type Debug -Msg $restBody
 								$addAccountResult = $(Invoke-Rest -Uri $URL_Accounts -Header $g_LogonHeader -Body $restBody -Command "Post")
 								if($addAccountResult -ne $null)
