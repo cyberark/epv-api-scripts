@@ -402,7 +402,7 @@ Function Log-MSG
 				$msgToWrite += "[INFO]`t$Msg"
 			}
 			"Warning" {
-				Write-Host $MSG.ToString() -ForegroundColor DarkYellow
+				Write-Host $MSG.ToString() -ForegroundColor Yellow
 				$msgToWrite += "[WARNING]`t$Msg"
 			}
 			"Error" {
