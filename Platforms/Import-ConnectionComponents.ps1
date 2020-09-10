@@ -92,7 +92,10 @@ Function Get-ZipContent
 	try{
 		If(Test-Path $zipPath)
 		{
+			Write-Debug "Reading ZIP file..."
 			$zipContent = [System.IO.File]::ReadAllBytes($(Resolve-Path $zipPath))
+			If([string]::IsNullOrEmpty($zipContent)) { throw "Zip file empty or error reading  it" }
+			Write-Debug "Zip file size read $($zipContent.Length)"
 		}
 	} catch {
 		throw "Error while reading ZIP file: $($_.Exception.Message)"

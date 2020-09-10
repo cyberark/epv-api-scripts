@@ -279,7 +279,7 @@ Function New-AccountObject
 		if(![string]::IsNullOrEmpty($customProps))
 		{
 			# Convert any non-default property in the CSV as a new platform account property
-			if($_Account.platformAccountProperties -eq $null) { $_Account.platformAccountProperties =  New-Object PSObject }
+			if($_Account.platformAccountProperties -eq $null) { $_Account.platformAccountProperties = New-Object PSObject }
 			For ($i = 0; $i -lt $customProps.count; $i++){
 				$prop = $customProps[$i]
 				If(![string]::IsNullOrEmpty($prop.Value))
