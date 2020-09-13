@@ -96,7 +96,7 @@ Function Encode-URL($sText)
 	if ($sText.Trim() -ne "")
 	{
 		Log-Msg -Type Debug -Msg "Returning URL Encode of $sText"
-		return [System.Web.HttpUtility]::UrlEncode($sText)
+		return [URI]::EscapeDataString($sText)
 	}
 	else
 	{
