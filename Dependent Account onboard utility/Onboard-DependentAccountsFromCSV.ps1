@@ -80,7 +80,7 @@ Function EncodeForURL($sText)
 	if ($sText.Trim() -ne "")
 	{
 		Log-Msg -Type debug -Msg "Returning URL Encode of '$sText'"
-		return [System.Web.HttpUtility]::UrlEncode($sText)
+		return [URI]::EscapeDataString($sText)
 	}
 	else
 	{
@@ -160,7 +160,7 @@ Function Log-MSG
 				$msgToWrite += "[INFO]`t$Msg"
 			}
 			"Warning" {
-				Write-Host $MSG.ToString() -ForegroundColor DarkYellow
+				Write-Host $MSG.ToString() -ForegroundColor Yellow
 				$msgToWrite += "[WARNING]`t$Msg"
 			}
 			"Error" {
@@ -191,6 +191,34 @@ Function Log-MSG
 			Write-Host "======================================="
 		}
 	} catch { Write-Error "Error in writing log: $($_.Exception.Message)" }
+}
+
+Function Collect-ExceptionMessage
+{
+<# 
+.SYNOPSIS 
+	Formats exception messages
+.DESCRIPTION
+	Formats exception messages
+.PARAMETER Exception
+	The Exception object to format
+#>
+	param(
+		[Exception]$e
+	)
+
+	Begin {
+	}
+	Process {
+		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		while ($e.InnerException) {
+		  $e = $e.InnerException
+		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		}
+		return $msg
+	}
+	End {
+	}
 }
 
 Function OpenFile-Dialog($initialDirectory)
@@ -227,6 +255,7 @@ Function Invoke-Rest
 		[ValidateSet("GET","POST","DELETE","PATCH")]
 		[String]$Command, 
 		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
 		[String]$URI, 
 		[Parameter(Mandatory=$false)]
 		$Header, 
@@ -246,17 +275,20 @@ Function Invoke-Rest
 		if([string]::IsNullOrEmpty($Body))
 		{
 			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000 -ErrorAction $ErrAction
 		}
 		else
 		{
 			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000 -ErrorAction $ErrAction
 		}
 	} catch [System.Net.WebException] {
-		Log-Msg -Type Error -Msg "Exception Message: $($_.Exception.Message)" -ErrorAction $ErrAction
-		Log-Msg -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
-		Log-Msg -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)" -ErrorAction $ErrAction
+		if($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")){
+			Log-Msg -Type Error -Msg "Error Message: $_"
+			Log-Msg -Type Error -Msg "Exception Message: $($_.Exception.Message)"
+			Log-Msg -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
+			Log-Msg -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
+		}
 		$restResponse = $null
 	} catch { 
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'",$_.Exception))
@@ -559,7 +591,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Dependenci
 	$accountsCSV = Import-CSV $csvPath -Delimiter $delimiter
 	$rowCount = $accountsCSV.Count
 	$counter = 0
-	Log-Msg -Type Info -MSG "Starting to Onboard $rowCount accounts" -SubHeader
+	Log-Msg -Type Info -MSG "Starting to Onboard $rowCount dependent accounts" -SubHeader
 	# Read Account dependencies
 	ForEach ($account in $accountsCSV)
 	{
@@ -571,7 +603,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Dependenci
 			try {
 				$foundMasterAccount = (Find-MasterAccount -accountName $account.userName -accountAddress $account.address).id
 			} catch {
-				Log-MSG -Type Error -Msg "Error searching for Master Account. Error: $(Join-Exception $_.Exception)"
+				Log-MSG -Type Error -Msg "Error searching for Master Account. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 			# If($null -eq $foundMasterAccount)
 			# {
@@ -595,5 +627,5 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Dependenci
     Write-Host "Logoff Session..."
     Invoke-Rest -Uri $URL_Logoff -Header $g_LogonHeader -Command "Post"
 	# Footer
-	Log-Msg -Type Info -MSG "Vaulted ${counter} out of ${rowCount} accounts successfully." -Footer
+	Log-Msg -Type Info -MSG "Vaulted ${counter} out of ${rowCount} dependent accounts successfully." -Footer
 #endregion
