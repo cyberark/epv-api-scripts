@@ -291,10 +291,12 @@ Function New-AccountObject
 		$_Account.secretManagement.automaticManagementEnabled = Convert-ToBool $AccountLine.enableAutoMgmt
 		if ($_Account.secretManagement.automaticManagementEnabled -eq $false)
 		{ $_Account.secretManagement.manualManagementReason = $AccountLine.manualMgmtReason }
-		$_Account.remoteMachinesAccess = "" | select "remoteMachines", "accessRestrictedToRemoteMachines"
-		$_Account.remoteMachinesAccess.remoteMachines = $AccountLine.remoteMachineAddresses
-		$_Account.remoteMachinesAccess.accessRestrictedToRemoteMachines = Convert-ToBool $AccountLine.restrictMachineAccessToList
-		
+		If($AccountLine.remotemachines -ne $Null -or "")
+		{
+			$_Account.remoteMachinesAccess = "" | select "remoteMachines", "accessRestrictedToRemoteMachines"
+			$_Account.remoteMachinesAccess.remoteMachines = $AccountLine.remoteMachineAddresses
+			$_Account.remoteMachinesAccess.accessRestrictedToRemoteMachines = Convert-ToBool $AccountLine.restrictMachineAccessToList
+		}
 		#endregion [Account object mapping]
 		Set-Variable -Scope Global -Name g_LogAccountName -Value ("{0}@{1}" -f $_Account.userName, $_Account.Address)
 				
