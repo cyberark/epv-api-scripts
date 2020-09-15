@@ -1020,8 +1020,8 @@ Function Get-LogonHeader
 #endregion
 
 # Header
-Log-Msg -Type Info -MSG "Welcome to Accounts Onboard Utility" -Header -LogFile $LOG_FILE_PATH
-Log-Msg -Type Info -MSG "Starting script (v$ScriptVersion)" -SubHeader -LogFile $LOG_FILE_PATH
+Log-Msg -Type Info -MSG "Welcome to Accounts Onboard Utility" -Header
+Log-Msg -Type Info -MSG "Starting script (v$ScriptVersion)" -SubHeader
 
 # Check if Powershell is running in Constrained Language Mode
 If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
