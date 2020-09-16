@@ -9,7 +9,9 @@ Main capabilities
 - The tool can support comma delimited CSV files (default) or tab delimited CSV files
 
 In order to run the tool you need to run some simple commands in Powershell.
+
 The Tool supports four modes for managing the safes: [*List*](#list-command), [*Add*](#add-command), [*Update*](#update-command), [*Delete*](#delete-command) 
+
 The Tool supports three modes for managing safes Members: [*Members*](#members-command), [*UpdateMembers*](#update-members-command), [*DeleteMembers*](#delete-members-command)
 
 ## Safe Management
