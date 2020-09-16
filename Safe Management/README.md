@@ -9,8 +9,10 @@ Main capabilities
 - The tool can support comma delimited CSV files (default) or tab delimited CSV files
 
 In order to run the tool you need to run some simple commands in Powershell.
-The Tool supports four modes: [*List*](#list-command), [*Add*](#add-command), [*Update*](#update-command), [*Delete*](#delete-command) and [*Members*](#members-command)
+The Tool supports four modes for managing the safes: [*List*](#list-command), [*Add*](#add-command), [*Update*](#update-command), [*Delete*](#delete-command) 
+The Tool supports three modes for managing safes Members: [*Members*](#members-command), [*UpdateMembers*](#update-members-command), [*DeleteMembers*](#delete-members-command)
 
+## Safe Management
 
 ### List Command:
 ```powershell
@@ -88,6 +90,8 @@ If you want to Delete a list of safes from a file:
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Delete -FilePath "C:\Temp\safes-sample.csv"
 ```
 
+## Safe Members Management
+
 ### Members Command:
 ```powershell
 Safe-Management.ps1 -PVWAURL <string> -Members -SafeName <string> [-UserName <string>] [-MemberRole <"Admin", "Auditor", "EndUser", "Owner">] [-UserLocation <string>] [<CommonParameters>]
@@ -106,4 +110,24 @@ If you want to add a new End User (default role) member to the safe 'MySafe':
 If you want to add a new Auditor member from LDAP to the safe 'MySafe':
 ```powershell
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Members -SafeName "MySafe" -UserName "MyAuditUser" -MemberRole "Auditor" -UserLocation "MyLDAPDomain.com"
+```
+
+### Update Members Command:
+```powershell
+Safe-Management.ps1 -PVWAURL <string> -UpdateMembers [-FilePath <string>] [<CommonParameters>]
+```
+
+If you want to Update a list of members from a file:
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -UpdateMembers -FilePath "C:\Temp\safe-members-sample.csv"
+```
+
+### Delete Members Command:
+```powershell
+Safe-Management.ps1 -PVWAURL <string> -DeleteMembers [-FilePath <string>] [<CommonParameters>]
+```
+
+If you want to Update a list of members from a file:
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -DeleteMembers -FilePath "C:\Temp\safe-members-sample.csv"
 ```
