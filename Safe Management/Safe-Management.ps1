@@ -31,6 +31,8 @@ param
 	[Parameter(ParameterSetName='Update',Mandatory=$true)][switch]$Update,
 	# Use this switch to Update Safe Members
 	[Parameter(ParameterSetName='UpdateMembers',Mandatory=$true)][switch]$UpdateMembers,
+	# Use this switch to Delete Safe Members
+	[Parameter(ParameterSetName='DeleteMembers',Mandatory=$true)][switch]$DeleteMembers,
 	# Use this switch to Delete Safes
 	[Parameter(ParameterSetName='Delete',Mandatory=$true)][switch]$Delete,
 	# Use this switch to Add Safe Members
@@ -40,7 +42,6 @@ param
 	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Enter a Safe Name to filter by")]
 	[Parameter(ParameterSetName='Add',Mandatory=$false,HelpMessage="Enter a Safe Name to create")]
 	[Parameter(ParameterSetName='Update',Mandatory=$false,HelpMessage="Enter a Safe Name to update")]
-	[Parameter(ParameterSetName='UpdateMembers',Mandatory=$false,HelpMessage="Enter a Safe Name to update")]
 	[Parameter(ParameterSetName='Delete',Mandatory=$true,HelpMessage="Enter a Safe Name to delete")]
 	[Parameter(ParameterSetName='Members',Mandatory=$true,HelpMessage="Enter a Safe Name to add members to")]
 	[ValidateScript({$_.Length -le 28})]
@@ -57,6 +58,7 @@ param
 	[Parameter(ParameterSetName='Add',Mandatory=$false,HelpMessage="Enter a file path for bulk safe creation")]
 	[Parameter(ParameterSetName='Update',Mandatory=$false,HelpMessage="Enter a file path for bulk safe update")]
 	[Parameter(ParameterSetName='UpdateMembers',Mandatory=$false,HelpMessage="Enter a file path for bulk safe membership update")]
+	[Parameter(ParameterSetName='DeleteMembers',Mandatory=$false,HelpMessage="Enter a file path for bulk safe membership deletion")]
 	[Parameter(ParameterSetName='Delete',Mandatory=$false,HelpMessage="Enter a file path for bulk safe deletion")]
 	[ValidateScript( { Test-Path -Path $_ -PathType Leaf -IsValid})]
 	[ValidatePattern( '\.csv$' )]
@@ -107,7 +109,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "1.5"
+$ScriptVersion = "1.6"
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -133,6 +135,7 @@ $URL_Logoff = $URL_CyberArkAuthentication+"/Logoff"
 $URL_Safes = $URL_PVWABaseAPI+"/Safes"
 $URL_SpecificSafe = $URL_PVWABaseAPI+"/Safes/{0}"
 $URL_SafeMembers = $URL_SpecificSafe+"/Members"
+$URL_SpecificSafeMember = $URL_SpecificSafe+"/Members/{1}"
 
 #region Functions
 Function Test-CommandExists
@@ -686,13 +689,15 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
         $safename,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
         $safeMember,
-        [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [bool]$updateMember,
+        [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
+        [switch]$updateMember,
+		[Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
+        [switch]$deleteMember,
         [Parameter(Mandatory=$true,
                    ValueFromPipelineByPropertyName=$true,
                    HelpMessage="Which vault-integrated LDAP directory name the vault should search for the account. Must match one of the directory names defined in the LDAP Integration page of the PVWA.",
                    Position=0)]
-		$memberSearchInLocation,
+		$memberSearchInLocation = "Vault",
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
         [bool]$permUseAccounts = $false,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
@@ -771,13 +776,24 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
 		}
 
 		try {
-			Write-LogMessage -Type Debug -Msg "Setting safe membership for $safeMember located in $memberSearchInLocation on $safeName in the vault..."
-			$urlSafeMembers = ($URL_SafeMembers -f $(Encode-URL $safeName))
-			$restMethod = "POST"
 			If($updateMember)
 			{
-				$urlSafeMembers = ("$URL_SafeMembers\$safeMember" -f $(Encode-URL $safeName))
+				Write-LogMessage -Type Debug -Msg "Updating safe membership for $safeMember on $safeName in the vault..."
+				$urlSafeMembers = ($URL_SpecificSafeMember -f $(Encode-URL $safeName),$safemember)
 				$restMethod = "PUT"
+			}
+			elseif($deleteMember)
+			{
+				Write-LogMessage -Type Debug -Msg "Deleting $safeMember from $safeName in the vault..."
+				$urlSafeMembers = ($URL_SpecificSafeMember -f $(Encode-URL $safeName),$safemember)
+				$restMethod = "DELETE"
+			}
+			else
+			{
+				# Adding a member
+				Write-LogMessage -Type Debug -Msg "Adding $safeMember located in $memberSearchInLocation to $safeName in the vault..."
+				$urlSafeMembers = ($URL_SafeMembers -f $(Encode-URL $safeName))
+				$restMethod = "POST"
 			}
 			$setSafeMembers = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorVariable rMethodErr
 		}catch{
@@ -919,7 +935,7 @@ If (Test-CommandExists Invoke-RestMethod)
 				Write-LogMessage -Type Error -Msg "Error retrieving safes. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 		}
-		{($_ -eq "Add") -or ($_ -eq "Update") -or ($_ -eq "UpdateMembers")} 
+		{($_ -eq "Add") -or ($_ -eq "Update") -or ($_ -eq "UpdateMembers") -or ($_ -eq "Delete") -or ($_ -eq "DeleteMembers")} 
 		{
 			try{
 				if(![string]::IsNullOrEmpty($FilePath))
@@ -945,29 +961,43 @@ If (Test-CommandExists Invoke-RestMethod)
 						{
 							$parameters.Remove('managingCPM')
 						}
-						#If safe doesn't exist, create the new safe
-						if (((Get-Safes).safename) -notcontains $line.safename) {
-							If($Add)
-							{
+						If($Add)
+						{
+							#If safe doesn't exist, create the new safe
+							if (((Get-Safes).safename) -notcontains $line.safename) {
 								Write-LogMessage -Type Info -Msg "Adding the safe $($line.safename)..."
 								Create-Safe @parameters
 							}
-							ElseIf($Update)
+							else
 							{
-								Write-LogMessage -Type Info -Msg "Updating the safe $($line.safename)..."
-								Update-Safe @parameters
+								# Safe exists, would create an error creating it again
+								Write-LogMessage -Type Error -Msg "Safe $($line.safename) already exists, to update it use the Update switch"
 							}
 						}
-						# Add permissions to the safe
-						Set-SafeMember -safename $line.safename -safeMember $line.member -updateMember $UpdateMembers -memberSearchInLocation $line.MemberLocation `
-							-permUseAccounts $(Convert-ToBool $line.UseAccounts) -permRetrieveAccounts $(Convert-ToBool $line.RetrieveAccounts) -permListAccounts $(Convert-ToBool $line.ListAccounts) `
-							-permAddAccounts $(Convert-ToBool $line.AddAccounts) -permUpdateAccountContent $(Convert-ToBool $line.UpdateAccountContent) -permUpdateAccountProperties $(Convert-ToBool $line.UpdateAccountProperties) `
-							-permInitiateCPMManagement $(Convert-ToBool $line.InitiateCPMAccountManagementOperations) -permSpecifyNextAccountContent $(Convert-ToBool $line.SpecifyNextAccountContent) `
-							-permRenameAccounts $(Convert-ToBool $line.RenameAccounts) -permDeleteAccounts $(Convert-ToBool $line.DeleteAccounts) -permUnlockAccounts $(Convert-ToBool $line.UnlockAccounts) `
-							-permManageSafe $(Convert-ToBool $line.ManageSafe) -permManageSafeMembers $(Convert-ToBool $line.ManageSafeMembers) -permBackupSafe $(Convert-ToBool $line.BackupSafe) `
-							-permViewAuditLog $(Convert-ToBool $line.ViewAuditLog) -permViewSafeMembers $(Convert-ToBool $line.ViewSafeMembers) `
-							-permRequestsAuthorizationLevel $line.RequestsAuthorizationLevel -permAccessWithoutConfirmation $(Convert-ToBool $line.AccessWithoutConfirmation) `
-							-permCreateFolders $(Convert-ToBool $line.CreateFolders) -permDeleteFolders $(Convert-ToBool $line.DeleteFolders) -permMoveAccountsAndFolders $(Convert-ToBool $line.MoveAccountsAndFolders)
+						ElseIf($Update)
+						{
+							Write-LogMessage -Type Info -Msg "Updating the safe $($line.safename)..."
+							Update-Safe @parameters
+						}
+						ElseIf($Delete)
+						{
+							Write-LogMessage -Type Info -Msg "Deleting safe $($line.safename)..."
+							Delete-Safe @parameters
+						}
+						
+						If($Delete -eq $False)
+						{
+							# Add permissions to the safe
+							Set-SafeMember -safename $line.safename -safeMember $line.member -updateMember:$UpdateMembers -deleteMember:$DeleteMembers -memberSearchInLocation $line.MemberLocation `
+								-permUseAccounts $(Convert-ToBool $line.UseAccounts) -permRetrieveAccounts $(Convert-ToBool $line.RetrieveAccounts) -permListAccounts $(Convert-ToBool $line.ListAccounts) `
+								-permAddAccounts $(Convert-ToBool $line.AddAccounts) -permUpdateAccountContent $(Convert-ToBool $line.UpdateAccountContent) -permUpdateAccountProperties $(Convert-ToBool $line.UpdateAccountProperties) `
+								-permInitiateCPMManagement $(Convert-ToBool $line.InitiateCPMAccountManagementOperations) -permSpecifyNextAccountContent $(Convert-ToBool $line.SpecifyNextAccountContent) `
+								-permRenameAccounts $(Convert-ToBool $line.RenameAccounts) -permDeleteAccounts $(Convert-ToBool $line.DeleteAccounts) -permUnlockAccounts $(Convert-ToBool $line.UnlockAccounts) `
+								-permManageSafe $(Convert-ToBool $line.ManageSafe) -permManageSafeMembers $(Convert-ToBool $line.ManageSafeMembers) -permBackupSafe $(Convert-ToBool $line.BackupSafe) `
+								-permViewAuditLog $(Convert-ToBool $line.ViewAuditLog) -permViewSafeMembers $(Convert-ToBool $line.ViewSafeMembers) `
+								-permRequestsAuthorizationLevel $line.RequestsAuthorizationLevel -permAccessWithoutConfirmation $(Convert-ToBool $line.AccessWithoutConfirmation) `
+								-permCreateFolders $(Convert-ToBool $line.CreateFolders) -permDeleteFolders $(Convert-ToBool $line.DeleteFolders) -permMoveAccountsAndFolders $(Convert-ToBool $line.MoveAccountsAndFolders)
+						}
 					}
 				}
 				else
@@ -1003,34 +1033,15 @@ If (Test-CommandExists Invoke-RestMethod)
 						Write-LogMessage -Type Info -Msg "Updating the safe $SafeName..."
 						Update-Safe @parameters
 					}
+					ElseIf($Delete)
+					{
+						# Deleting one Safe
+						Write-LogMessage -Type Info -Msg "Deleting the safe $SafeName..."
+						Delete-Safe @parameters
+					}
 				}			
 			}catch{
-				Write-LogMessage -Type Error -Msg "Error adding/updating safe '$($line.SafeName)'. Error: $(Collect-ExceptionMessage $_.Exception)"
-			}
-		}
-		"Delete"
-		{
-			try{
-				if(![string]::IsNullOrEmpty($FilePath))
-				{
-					# Bulk Import of Safes
-					$csv = Import-Csv $FilePath
-
-					# For each line in the csv, import the safe
-					ForEach ($line in $csv)
-					{
-						Write-LogMessage -Type Info -Msg "Deleting safe $($line.safename)..."
-						Delete-Safe -safename $line.safename
-					}
-				}
-				else
-				{
-					# Deleting one Safe
-					Write-LogMessage -Type Info -Msg "Deleting the safe $SafeName..."
-					Delete-Safe -SafeName $SafeName
-				}
-			}catch{
-				Write-LogMessage -Type Error -Msg "Error deleting safe '$SafeName'. Error: $(Collect-ExceptionMessage $_.Exception)"
+				Write-LogMessage -Type Error -Msg "Error configuring safe '$($line.SafeName)'. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 		}
 		"Members"
