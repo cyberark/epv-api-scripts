@@ -291,9 +291,9 @@ Function New-AccountObject
 		$_Account.secretManagement.automaticManagementEnabled = Convert-ToBool $AccountLine.enableAutoMgmt
 		if ($_Account.secretManagement.automaticManagementEnabled -eq $false)
 		{ $_Account.secretManagement.manualManagementReason = $AccountLine.manualMgmtReason }
-		If($AccountLine.remotemachines -ne $Null -or "")
+		$_Account.remoteMachinesAccess = "" | select "remoteMachines", "accessRestrictedToRemoteMachines"
+		If(![String]::IsNullOrEmpty($AccountLine.remoteMachines))
 		{
-			$_Account.remoteMachinesAccess = "" | select "remoteMachines", "accessRestrictedToRemoteMachines"
 			$_Account.remoteMachinesAccess.remoteMachines = $AccountLine.remoteMachineAddresses
 			$_Account.remoteMachinesAccess.accessRestrictedToRemoteMachines = Convert-ToBool $AccountLine.restrictMachineAccessToList
 		}
