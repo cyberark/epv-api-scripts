@@ -133,9 +133,9 @@ $URL_Logoff = $URL_CyberArkAuthentication+"/Logoff"
 # URL Methods
 # -----------
 $URL_Safes = $URL_PVWABaseAPI+"/Safes"
-$URL_SpecificSafe = $URL_PVWABaseAPI+"/Safes/{0}"
+$URL_SpecificSafe = $URL_Safes+"/{0}"
 $URL_SafeMembers = $URL_SpecificSafe+"/Members"
-$URL_SpecificSafeMember = $URL_SpecificSafe+"/Members/{1}"
+$URL_SafeSpecificMember = $URL_SpecificSafe+"/Members/{1}"
 
 #region Functions
 Function Test-CommandExists
@@ -779,13 +779,13 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
 			If($updateMember)
 			{
 				Write-LogMessage -Type Debug -Msg "Updating safe membership for $safeMember on $safeName in the vault..."
-				$urlSafeMembers = ($URL_SpecificSafeMember -f $(Encode-URL $safeName),$safemember)
+				$urlSafeMembers = ($URL_SafeSpecificMember -f $(Encode-URL $safeName),$safemember)
 				$restMethod = "PUT"
 			}
 			elseif($deleteMember)
 			{
 				Write-LogMessage -Type Debug -Msg "Deleting $safeMember from $safeName in the vault..."
-				$urlSafeMembers = ($URL_SpecificSafeMember -f $(Encode-URL $safeName),$safemember)
+				$urlSafeMembers = ($URL_SafeSpecificMember -f $(Encode-URL $safeName),$safemember)
 				$restMethod = "DELETE"
 			}
 			else
