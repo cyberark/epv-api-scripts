@@ -292,9 +292,11 @@ Function New-AccountObject
 		if ($_Account.secretManagement.automaticManagementEnabled -eq $false)
 		{ $_Account.secretManagement.manualManagementReason = $AccountLine.manualMgmtReason }
 		$_Account.remoteMachinesAccess = "" | select "remoteMachines", "accessRestrictedToRemoteMachines"
-		$_Account.remoteMachinesAccess.remoteMachines = $AccountLine.remoteMachineAddresses
-		$_Account.remoteMachinesAccess.accessRestrictedToRemoteMachines = Convert-ToBool $AccountLine.restrictMachineAccessToList
-		
+		If(![String]::IsNullOrEmpty($AccountLine.remoteMachines))
+		{
+			$_Account.remoteMachinesAccess.remoteMachines = $AccountLine.remoteMachineAddresses
+			$_Account.remoteMachinesAccess.accessRestrictedToRemoteMachines = Convert-ToBool $AccountLine.restrictMachineAccessToList
+		}
 		#endregion [Account object mapping]
 		Set-Variable -Scope Global -Name g_LogAccountName -Value ("{0}@{1}" -f $_Account.userName, $_Account.Address)
 				
@@ -1020,8 +1022,8 @@ Function Get-LogonHeader
 #endregion
 
 # Header
-Log-Msg -Type Info -MSG "Welcome to Accounts Onboard Utility" -Header -LogFile $LOG_FILE_PATH
-Log-Msg -Type Info -MSG "Starting script (v$ScriptVersion)" -SubHeader -LogFile $LOG_FILE_PATH
+Log-Msg -Type Info -MSG "Welcome to Accounts Onboard Utility" -Header
+Log-Msg -Type Info -MSG "Starting script (v$ScriptVersion)" -SubHeader
 
 # Check if Powershell is running in Constrained Language Mode
 If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
