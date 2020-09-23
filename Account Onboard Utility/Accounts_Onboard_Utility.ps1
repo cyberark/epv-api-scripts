@@ -189,7 +189,7 @@ Function Convert-ToBool
 	
 	if($txt -match "^y$|^yes$") { $retBool = $true }
 	elseif ($txt -match "^n$|^no$") { $retBool = $false }
-	else { [bool]::TryParse($txt, [ref]$retBool) }
+	else { [bool]::TryParse($txt, [ref]$retBool) | out-Null }
     
     return $retBool
 }
