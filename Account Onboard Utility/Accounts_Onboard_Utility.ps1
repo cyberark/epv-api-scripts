@@ -68,7 +68,7 @@ param
 $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Script Version
-$ScriptVersion = "2.1"
+$ScriptVersion = "2.2"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
