@@ -173,7 +173,7 @@ $arrConCompToImport = @()
 If (([string]::IsNullOrEmpty($ConnectionComponentZipPath)) -and (![string]::IsNullOrEmpty($ConnectionComponentFolderPath)))
 {
 	# Get all Connection Components from a folder
-	$arrConCompToImport += (Get-ChildItem -Path $ConnectionComponentFolderPath -Filter "*.zip")
+	$arrConCompToImport += (Get-ChildItem -Path $ConnectionComponentFolderPath -Filter "*.zip" | Select-Object -ExpandProperty FullName)
 }
 ElseIf ((![string]::IsNullOrEmpty($ConnectionComponentZipPath)) -and ([string]::IsNullOrEmpty($ConnectionComponentFolderPath)))
 {
