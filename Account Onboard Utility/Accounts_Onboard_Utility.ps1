@@ -292,7 +292,7 @@ Function New-AccountObject
 		if ($_Account.secretManagement.automaticManagementEnabled -eq $false)
 		{ $_Account.secretManagement.manualManagementReason = $AccountLine.manualMgmtReason }
 		$_Account.remoteMachinesAccess = "" | select "remoteMachines", "accessRestrictedToRemoteMachines"
-		If(![String]::IsNullOrEmpty($AccountLine.remoteMachines))
+		If(![String]::IsNullOrEmpty($AccountLine.remoteMachineAddresses))
 		{
 			$_Account.remoteMachinesAccess.remoteMachines = $AccountLine.remoteMachineAddresses
 			$_Account.remoteMachinesAccess.accessRestrictedToRemoteMachines = Convert-ToBool $AccountLine.restrictMachineAccessToList
@@ -392,7 +392,7 @@ Function Log-MSG
 		# Replace empty message with 'N/A'
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		# Mask Passwords
-		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
+		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()\[\]\-\\\/]+))')
 		{
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
