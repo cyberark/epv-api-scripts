@@ -1286,11 +1286,11 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									}
 								}
 								# Check for new Account Properties
-								ForEach($sProp in ($s_Account.PSObject.Properties | where { $_.Name -notin $s_ExcludeProperties }))
+								ForEach($sProp in ($objAccount.PSObject.Properties | where { $_.Name -notin $s_ExcludeProperties }))
 								{
 									If($sProp.Name -eq "remoteMachinesAccess")
 									{
-										ForEach($sSubProp in $s_Account.remoteMachinesAccess.PSObject.Properties)
+										ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties)
 										{
 											Log-Msg -Type Verbose -MSG "Updating Account Remote Machine Access Properties $($sSubProp.Name) value to: '$($objAccount.remoteMachinesAccess.$($sSubProp.Name))'"
 											If($sSubProp.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines"))
@@ -1321,7 +1321,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									}
 									ElseIf($sProp.Name -eq "platformAccountProperties")
 									{
-										ForEach($sSubProp in $s_Account.platformAccountProperties.PSObject.Properties)
+										ForEach($sSubProp in $objAccount.platformAccountProperties.PSObject.Properties)
 										{
 											Log-Msg -Type Verbose -MSG "Updating Platform Account Properties $($sSubProp.Name) value to: '$($objAccount.platformAccountProperties.$($sSubProp.Name))'"
 											# Handle new Account Platform properties
