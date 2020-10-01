@@ -952,7 +952,7 @@ If (Test-CommandExists Invoke-RestMethod)
 							safeName=$line.safename; 
 							safeDescription=$line.description;
 							managingCPM=$line.ManagingCPM;
-							numVersionRetention==$line.numVersionRetention;
+							numVersionRetention=$line.numVersionRetention;
 							numDaysRetention=$line.numDaysRetention;
 							EnableOLAC=$line.EnableOLAC;
 						}
