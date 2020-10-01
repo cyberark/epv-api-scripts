@@ -65,7 +65,11 @@ param
 )
 
 # Get Script Location 
-$ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ScriptFullPath = $MyInvocation.MyCommand.Path
+$ScriptLocation = Split-Path -Parent $ScriptFullPath
+$ScriptParameters = @()
+$PSBoundParameters.GetEnumerator() | % { $ScriptParameters += ("-{0} '{1}'" -f $_.Key, $_.Value) }
+$ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
 $ScriptVersion = "2.3"
@@ -1021,6 +1025,8 @@ Function Get-LogonHeader
 }
 #endregion
 
+# Write the entire script command when running in Verbose mode
+Log-Msg -Type Verbose -Msg $ScriptCommand
 # Header
 Log-Msg -Type Info -MSG "Welcome to Accounts Onboard Utility" -Header
 Log-Msg -Type Info -MSG "Starting script (v$ScriptVersion)" -SubHeader
