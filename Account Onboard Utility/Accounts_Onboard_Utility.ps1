@@ -65,7 +65,11 @@ param
 )
 
 # Get Script Location 
-$ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ScriptFullPath = $MyInvocation.MyCommand.Path
+$ScriptLocation = Split-Path -Parent $ScriptFullPath
+$ScriptParameters = @()
+$PSBoundParameters.GetEnumerator() | % { $ScriptParameters += ("-{0} '{1}'" -f $_.Key, $_.Value) }
+$ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
 $ScriptVersion = "2.3"
@@ -1021,6 +1025,8 @@ Function Get-LogonHeader
 }
 #endregion
 
+# Write the entire script command when running in Verbose mode
+Log-Msg -Type Verbose -Msg $ScriptCommand
 # Header
 Log-Msg -Type Info -MSG "Welcome to Accounts Onboard Utility" -Header
 Log-Msg -Type Info -MSG "Starting script (v$ScriptVersion)" -SubHeader
@@ -1136,7 +1142,13 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 			$TemplateSafeDetails = (Get-Safe -safeName $TemplateSafe)
 			$TemplateSafeDetails.Description = "Template Safe Created using Accounts Onboard Utility"
 			$TemplateSafeMembers = (Get-SafeMembers -safeName $TemplateSafe)
-			Log-Msg -Type Debug -MSG "Template safe ($TemplateSafe) members ($($TemplateSafeMembers.Count)): $(($TemplateSafeMembers | gm) -join ';')"
+			Log-Msg -Type Debug -MSG "Template safe ($TemplateSafe) members ($($TemplateSafeMembers.Count)): $($TemplateSafeMembers.MemberName -join ';')"
+			# If the logged in user exists as a specific member of the template safe - remove it to spare later errors
+			If($TemplateSafe.MemberName.Contains($creds.UserName))
+			{
+				$_updatedMembers = $TemplateSafeMembers | Where {$_.MemberName -ne $creds.UserName}
+				$TemplateSafeMembers = $_updatedMembers
+			}
 		}
 		else
 		{
@@ -1245,10 +1257,9 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 													{
 														# Need to remove the manualManagementReason
 														Log-Msg -Type Verbose -MSG "Since Account Automatic management is on, removing the Manual management reason"
-														$_bodyOp = "" | select "op", "path", "value"
+														$_bodyOp = "" | select "op", "path"
 														$_bodyOp.op = "remove"
 														$_bodyOp.path = "/secretManagement/manualManagementReason"
-														$_bodyOp.value = ""
 														$s_AccountBody += $_bodyOp
 													}
 													else
@@ -1286,11 +1297,11 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									}
 								}
 								# Check for new Account Properties
-								ForEach($sProp in ($s_Account.PSObject.Properties | where { $_.Name -notin $s_ExcludeProperties }))
+								ForEach($sProp in ($objAccount.PSObject.Properties | where { $_.Name -notin $s_ExcludeProperties }))
 								{
 									If($sProp.Name -eq "remoteMachinesAccess")
 									{
-										ForEach($sSubProp in $s_Account.remoteMachinesAccess.PSObject.Properties)
+										ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties)
 										{
 											Log-Msg -Type Verbose -MSG "Updating Account Remote Machine Access Properties $($sSubProp.Name) value to: '$($objAccount.remoteMachinesAccess.$($sSubProp.Name))'"
 											If($sSubProp.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines"))
@@ -1308,7 +1319,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 												If([string]::IsNullOrEmpty($objAccount.remoteMachinesAccess.$($sSubProp.Name)))
 												{
 													$_bodyOp.op = "remove"
-													$_bodyOp.value = ""
+													$_bodyOp.value = $null
 												}
 												else
 												{
@@ -1321,7 +1332,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									}
 									ElseIf($sProp.Name -eq "platformAccountProperties")
 									{
-										ForEach($sSubProp in $s_Account.platformAccountProperties.PSObject.Properties)
+										ForEach($sSubProp in $objAccount.platformAccountProperties.PSObject.Properties)
 										{
 											Log-Msg -Type Verbose -MSG "Updating Platform Account Properties $($sSubProp.Name) value to: '$($objAccount.platformAccountProperties.$($sSubProp.Name))'"
 											# Handle new Account Platform properties

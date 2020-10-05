@@ -20,6 +20,10 @@ param
 	[Alias("url")]
 	[String]$PVWAURL,
 	
+	[Parameter(Mandatory=$false,HelpMessage="Enter the Authentication type (Default:CyberArk)")]
+	[ValidateSet("cyberark","ldap","radius")]
+	[String]$AuthType="cyberark",	
+	
 	[Parameter(Mandatory=$true,HelpMessage="Enter the platform Zip path to import")]
 	[Alias("Platform")]
 	[string]$PlatformZipPath,
@@ -37,8 +41,8 @@ param
 # -----------
 $URL_PVWAAPI = $PVWAURL+"/api"
 $URL_Authentication = $URL_PVWAAPI+"/auth"
-$URL_CyberArkLogon = $URL_Authentication+"/cyberark/Logon"
-$URL_CyberArkLogoff = $URL_Authentication+"/Logoff"
+$URL_Logon = $URL_Authentication+"/$AuthType/Logon"
+$URL_Logoff = $URL_Authentication+"/Logoff"
 
 # URL Methods
 # -----------
@@ -205,7 +209,7 @@ $logonBody = @{ username=$rstusername;password=$rstpassword }
 $logonBody = $logonBody | ConvertTo-Json
 try{
 	# Logon
-	$logonToken = Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogon -Body $logonBody -ContentType "application/json"
+	$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json"
 }
 catch
 {
@@ -267,6 +271,6 @@ If (Test-Path $PlatformZipPath)
 # Logoff the session
 # ------------------
 Write-Host "Logoff Session..."
-Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogoff -Headers $logonHeader -ContentType "application/json" | Out-Null
+Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $logonHeader -ContentType "application/json" | Out-Null
 
 Write-Host "Import Platform and Connection Component: Script Ended" -ForegroundColor Cyan
