@@ -1142,7 +1142,13 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 			$TemplateSafeDetails = (Get-Safe -safeName $TemplateSafe)
 			$TemplateSafeDetails.Description = "Template Safe Created using Accounts Onboard Utility"
 			$TemplateSafeMembers = (Get-SafeMembers -safeName $TemplateSafe)
-			Log-Msg -Type Debug -MSG "Template safe ($TemplateSafe) members ($($TemplateSafeMembers.Count)): $(($TemplateSafeMembers | gm) -join ';')"
+			Log-Msg -Type Debug -MSG "Template safe ($TemplateSafe) members ($($TemplateSafeMembers.Count)): $($TemplateSafeMembers.MemberName -join ';')"
+			# If the logged in user exists as a specific member of the template safe - remove it to spare later errors
+			If($TemplateSafe.MemberName.Contains($creds.UserName))
+			{
+				$_updatedMembers = $TemplateSafeMembers | Where {$_.MemberName -ne $creds.UserName}
+				$TemplateSafeMembers = $_updatedMembers
+			}
 		}
 		else
 		{
@@ -1251,10 +1257,9 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 													{
 														# Need to remove the manualManagementReason
 														Log-Msg -Type Verbose -MSG "Since Account Automatic management is on, removing the Manual management reason"
-														$_bodyOp = "" | select "op", "path", "value"
+														$_bodyOp = "" | select "op", "path"
 														$_bodyOp.op = "remove"
 														$_bodyOp.path = "/secretManagement/manualManagementReason"
-														$_bodyOp.value = ""
 														$s_AccountBody += $_bodyOp
 													}
 													else
@@ -1314,7 +1319,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 												If([string]::IsNullOrEmpty($objAccount.remoteMachinesAccess.$($sSubProp.Name)))
 												{
 													$_bodyOp.op = "remove"
-													$_bodyOp.value = ""
+													$_bodyOp.value = $null
 												}
 												else
 												{
