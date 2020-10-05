@@ -14,6 +14,11 @@ The Tool supports four modes for managing the safes: [*List*](#list-command), [*
 
 The Tool supports three modes for managing safes Members: [*Members*](#members-command), [*UpdateMembers*](#update-members-command), [*DeleteMembers*](#delete-members-command)
 
+## Authentication
+The script by default supports CyberArk authentication.
+In order to allow also LDAP authentication to the script, make sure the [*SmartLogonEnabled*](https://docs.cyberark.com/Product-Doc/Onlinehelp/PAS/latest/en/Content/PASIMP/General-PVWA-Configurations.htm) parameter in the PVWA configuration is set to *YES* and then simply run the script with your LDAP credentials (no changes required to the script).
+
+
 ## Safe Management
 
 ### List Command:
