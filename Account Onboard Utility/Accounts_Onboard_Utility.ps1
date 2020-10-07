@@ -1244,7 +1244,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 											$s_ExcludeProperties += $subProp.Name
 											If(($null -ne $objAccount.$($sProp.Name).$($subProp.Name)) -and ($objAccount.$($sProp.Name).$($subProp.Name) -ne $subProp.Value))
 											{
-												Log-Msg -Type Verbose -MSG "Updating Account Property $($s_Account.$($sProp.Name).$($subProp.Name)) value from: '$($subProp.Value)' to: '$($objAccount.$($sProp.Name).$($subProp.Name))'"
+												Log-Msg -Type Verbose -MSG "Updating Account Property $($subProp.Name) value from: '$($subProp.Value)' to: '$($objAccount.$($sProp.Name).$($subProp.Name))'"
 												$_bodyOp = "" | select "op", "path", "value"
 												$_bodyOp.op = "replace"
 												$_bodyOp.path = "/"+$sProp.Name+"/"+$subProp.Name
@@ -1321,7 +1321,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 													$_bodyOp.op = "remove"
 													#$_bodyOp.value = $null
 													# Remove the Value property
-													$_bodyOp.Remove('value')
+													$_bodyOp = ($_bodyOp | Select op, path)
 												}
 												else
 												{
