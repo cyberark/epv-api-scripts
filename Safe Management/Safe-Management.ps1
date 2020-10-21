@@ -511,6 +511,7 @@ Function Test-Safe
 		
 	try{
 		$chkSafeExists = $null
+		$retResult = $false
 		If($g_SafesList -ne $null)
 		{
 			# Check Cached safes list first
@@ -519,7 +520,12 @@ Function Test-Safe
 		Else
 		{
 			# No cache, Get safe details from Vault
-			$chkSafeExists = $(Get-Safe -safeName $safeName -ErrAction "SilentlyContinue")
+			try{
+				$chkSafeExists = $(Get-Safe -safeName $safeName -ErrAction "SilentlyContinue") -ne $null
+			}
+			catch{
+				$chkSafeExists = $false
+			}
 		}
 		
 		# Report on safe existance
@@ -527,20 +533,22 @@ Function Test-Safe
 		{
 			# Safe exists
 			Write-LogMessage -Type Info -MSG "Safe $safeName exists"
-			return $true
+			$retResult = $true
 		}
 		Else
 		{
 			# Safe does not exist
 			Write-LogMessage -Type Warning -MSG "Safe $safeName does not exist"
-			return $false
+			$retResult = $false
 		}
 	}
 	catch
 	{
 		Write-LogMessage -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
-		return $false
+		$retResult = $false
 	}
+	
+	return $retResult
 }
 
 Function Create-Safe
