@@ -109,7 +109,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "1.6"
+$ScriptVersion = "1.7"
 
 # ------ SET global parameters ------
 # Set Log file path
