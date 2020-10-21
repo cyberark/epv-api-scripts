@@ -109,7 +109,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "1.6"
+$ScriptVersion = "1.7"
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -493,6 +493,64 @@ Get-Safe -safeName "x0-Win-S-Admins"
 	return $_safe
 }
 
+Function Test-Safe
+{
+<# 
+.SYNOPSIS 
+	Returns the Safe members
+.DESCRIPTION
+	Returns the Safe members
+.PARAMETER SafeName
+	The Safe Name check if exists
+#>
+	param (
+		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
+		[String]$safeName
+	)
+		
+	try{
+		$chkSafeExists = $null
+		$retResult = $false
+		If($g_SafesList -ne $null)
+		{
+			# Check Cached safes list first
+			$chkSafeExists = ($g_SafesList.safename -contains $safename)
+		}
+		Else
+		{
+			# No cache, Get safe details from Vault
+			try{
+				$chkSafeExists = $(Get-Safe -safeName $safeName -ErrAction "SilentlyContinue") -ne $null
+			}
+			catch{
+				$chkSafeExists = $false
+			}
+		}
+		
+		# Report on safe existance
+		If($chkSafeExists -eq $true)
+		{
+			# Safe exists
+			Write-LogMessage -Type Info -MSG "Safe $safeName exists"
+			$retResult = $true
+		}
+		Else
+		{
+			# Safe does not exist
+			Write-LogMessage -Type Warning -MSG "Safe $safeName does not exist"
+			$retResult = $false
+		}
+	}
+	catch
+	{
+		Write-LogMessage -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
+		$retResult = $false
+	}
+	
+	return $retResult
+}
+
 Function Create-Safe
 {
 <#
@@ -544,9 +602,10 @@ If($numDaysRetention -gt -1)
         Write-LogMessage -Type Debug -Msg "Adding the safe $safename to the Vault..."
         $safeadd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
 		# Reset cached Safes list
-		Set-Variable -Name g_SafesList -Value $null -Scope Global
+		#Set-Variable -Name g_SafesList -Value $null -Scope Global
 		# Update Safes list to include new safe
-		Get-Safes | out-null
+		#Get-Safes | out-null
+		$g_SafesList += $safeadd.AddSafeResult
     }catch{
 		Throw $(New-Object System.Exception ("Create-Safe: Error adding $safename to the Vault.",$_.Exception))
     }
@@ -685,7 +744,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
     Param
     (
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
-        [ValidateScript({((Get-Safes).safename) -contains $_})]
+        [ValidateScript({ Test-Safe -SafeName $_ })]
         $safename,
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
         $safeMember,
@@ -971,7 +1030,7 @@ If (Test-CommandExists Invoke-RestMethod)
 						If($Add)
 						{
 							#If safe doesn't exist, create the new safe
-							if (((Get-Safes).safename) -notcontains $line.safename) 
+							if ((Test-Safe -SafeName $line.safename) -eq $false)
 							{
 								Write-LogMessage -Type Info -Msg "Adding the safe $($line.safename)..."
 								Create-Safe @parameters
