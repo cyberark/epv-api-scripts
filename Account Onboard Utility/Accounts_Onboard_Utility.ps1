@@ -97,6 +97,7 @@ $URL_SafeMemberDetails = $URL_SafeMembers+"/{1}"
 $URL_Accounts = $URL_PVWAAPI+"/Accounts"
 $URL_AccountsDetails = $URL_Accounts+"/{0}"
 $URL_AccountsPassword = $URL_AccountsDetails+"/Password/Update"
+$URL_PlatformDetails = $URL_PVWAAPI+"/Platforms/{0}"
 
 # Script Defaults
 # ---------------
@@ -911,10 +912,10 @@ Function Get-Account
 		}
 	}
 	catch [System.WebException] {
-		Log-Msg -Type Error -MSG $_.Exception.Response.StatusDescription
+		Log-Msg -Type Error -MSG "Error getting Account. Error: $($_.Exception.Response.StatusDescription)"
 	}
 	catch {
-		Log-Msg -Type Error -MSG $_.Exception.Message
+		Log-Msg -Type Error -MSG "Error getting Account. Error: $($_.Exception.Message)"
 	}
 	
 	return $_retaccount
@@ -972,6 +973,55 @@ Function Test-Account
 	{
 		Log-Msg -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
 	}
+}
+
+Function Test-PlatformProperty
+{
+<# 
+.SYNOPSIS 
+	Returns accoutns based on filters
+.DESCRIPTION
+	Creates a new Account Object
+.PARAMETER AccountName
+	Account user name
+.PARAMETER AccountAddress
+	Account address
+.PARAMETER SafeName
+	The Account Safe Name to search in
+#>
+	param(
+		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
+		[String]$platformId,
+		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
+		[String]$platformProperty,
+		[Parameter(Mandatory=$false)]
+		[ValidateSet("Continue","Ignore","Inquire","SilentlyContinue","Stop","Suspend")]
+		[String]$ErrAction="Continue"
+	)
+	$_retResult = $false
+	try{
+		# Get the Platform details
+		$GetPlatformDetails = $(Invoke-Rest -Uri $($URL_PlatformDetails -f $platformId) -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
+		If($platformDetails)
+		{
+			Log-Msg -Type Verbose -MSG "Found Platform id $platformId, checking if platform contains '$platformProperty'..."
+			$_retResult = [bool]($platformDetails.Details.PSobject.Properties.name -match $platformProperty)
+		}
+		Else		
+		{
+			Throw "Platform does not exist or we had an issue"
+		}
+	}
+	catch [System.WebException] {
+		Log-Msg -Type Error -MSG "Error checking platform properties. Error: $($_.Exception.Response.StatusDescription)"
+	}
+	catch {
+		Log-Msg -Type Error -MSG "Error checking platform properties. Error: $($_.Exception.Message)"
+	}
+	
+	return $_retResult		
 }
 
 # @FUNCTION@ ======================================================================================================================
@@ -1301,34 +1351,37 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								{
 									If($sProp.Name -eq "remoteMachinesAccess")
 									{
-										ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties)
+										if(Test-PlatformProperty -platformId $objAccount.platformId -platformProperty "remoteMachinesAccess")
 										{
-											Log-Msg -Type Verbose -MSG "Updating Account Remote Machine Access Properties $($sSubProp.Name) value to: '$($objAccount.remoteMachinesAccess.$($sSubProp.Name))'"
-											If($sSubProp.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines"))
+											ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties)
 											{
-												# Handle Remote Machine properties
-												$_bodyOp = "" | select "op", "path", "value"
-												if($sSubProp.Name -in("remotemachineaddresses", "remoteMachines"))
+												Log-Msg -Type Verbose -MSG "Updating Account Remote Machine Access Properties $($sSubProp.Name) value to: '$($objAccount.remoteMachinesAccess.$($sSubProp.Name))'"
+												If($sSubProp.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines"))
 												{
-													$_bodyOp.path = "/remoteMachinesAccess/remoteMachines"
+													# Handle Remote Machine properties
+													$_bodyOp = "" | select "op", "path", "value"
+													if($sSubProp.Name -in("remotemachineaddresses", "remoteMachines"))
+													{
+														$_bodyOp.path = "/remoteMachinesAccess/remoteMachines"
+													}
+													if($sSubProp.Name -in("restrictmachineaccesstolist", "accessRestrictedToRemoteMachines"))
+													{
+														$_bodyOp.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
+													}
+													If([string]::IsNullOrEmpty($objAccount.remoteMachinesAccess.$($sSubProp.Name)))
+													{
+														$_bodyOp.op = "remove"
+														#$_bodyOp.value = $null
+														# Remove the Value property
+														$_bodyOp = ($_bodyOp | Select op, path)
+													}
+													else
+													{
+														$_bodyOp.op = "replace"
+														$_bodyOp.value = $objAccount.remoteMachinesAccess.$($sSubProp.Name) -join ';'
+													}
+													$s_AccountBody += $_bodyOp
 												}
-												if($sSubProp.Name -in("restrictmachineaccesstolist", "accessRestrictedToRemoteMachines"))
-												{
-													$_bodyOp.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
-												}
-												If([string]::IsNullOrEmpty($objAccount.remoteMachinesAccess.$($sSubProp.Name)))
-												{
-													$_bodyOp.op = "remove"
-													#$_bodyOp.value = $null
-													# Remove the Value property
-													$_bodyOp = ($_bodyOp | Select op, path)
-												}
-												else
-												{
-													$_bodyOp.op = "replace"
-													$_bodyOp.value = $objAccount.remoteMachinesAccess.$($sSubProp.Name) -join ';'
-												}
-												$s_AccountBody += $_bodyOp
 											}
 										}
 									}
