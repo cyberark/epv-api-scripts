@@ -1351,7 +1351,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								{
 									If($sProp.Name -eq "remoteMachinesAccess")
 									{
-										if(Test-PlatformProperty -platformId $objAccount.platformId -platformProperty "remoteMachinesAccess")
+										if(Test-PlatformProperty -platformId $s_Account.platformId -platformProperty "remoteMachinesAccess")
 										{
 											ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties)
 											{
