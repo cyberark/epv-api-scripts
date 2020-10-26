@@ -303,7 +303,16 @@ Function New-AccountObject
 			$_Account.remoteMachinesAccess.accessRestrictedToRemoteMachines = Convert-ToBool $AccountLine.restrictMachineAccessToList
 		}
 		#endregion [Account object mapping]
-		Set-Variable -Scope Global -Name g_LogAccountName -Value ("{0}@{1}" -f $_Account.userName, $_Account.Address)
+		$logFormat = ""
+		If(([string]::IsNullOrEmpty($_Account.userName) -or [string]::IsNullOrEmpty($_Account.Address) -and (![string]::IsNullOrEmpty($_Account.name)))
+		{
+			$logFormat = $_Account.name
+		}
+		Else
+		{
+			$logFormat = ("{0}@{1}" -f $_Account.userName, $_Account.Address)
+		}
+		Set-Variable -Scope Global -Name g_LogAccountName -Value $logFormat
 				
 		return $_Account
 	} catch {
@@ -1278,7 +1287,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 							{
 								$updateChange = $false
 								$s_AccountBody = @()
-								$s_ExcludeProperties = @("secret")
+								$s_ExcludeProperties = @("id", "secret", "lastModifiedTime", "createdTime", "categoryModificationTime")
 								# Check for existing properties needed update
 								Foreach($sProp in $s_Account.PSObject.Properties)
 								{
