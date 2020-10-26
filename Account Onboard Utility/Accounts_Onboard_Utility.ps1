@@ -580,7 +580,7 @@ Function Get-Safe
 	}
 	catch
 	{
-		Log-Msg -Type Error -MSG $_.Exception.Response.StatusDescription
+		Log-Msg -Type Error -MSG "Error getting Safe '$safeName' details. Error: $($_.Exception.Response.StatusDescription)"
 	}
 	
 	return $_safe.GetSafeResult
@@ -690,8 +690,7 @@ Function Get-SafeMembers
 	}
 	catch
 	{
-		Log-Msg -Type Error -MSG $_.Exception.Message
-		Log-Msg -Type Error -MSG $_.Exception.Response.StatusDescription
+		Log-Msg -Type Error -MSG "Error getting Safe '$safeName' members. Error: $(Collect-ExceptionMessage $_.Exception)"
 	}
 	
 	return $_retSafeOwners
@@ -735,7 +734,7 @@ Function Test-Safe
 	}
 	catch
 	{
-		Log-Msg -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
+		Log-Msg -Type Error -MSG "Error testing safe '$safeName' existance. Error: $(Collect-ExceptionMessage $_.Exception)" -ErrorAction "SilentlyContinue"
 	}
 }
 
@@ -915,7 +914,7 @@ Function Get-Account
 		Log-Msg -Type Error -MSG "Error getting Account. Error: $($_.Exception.Response.StatusDescription)"
 	}
 	catch {
-		Log-Msg -Type Error -MSG "Error getting Account. Error: $($_.Exception.Message)"
+		Log-Msg -Type Error -MSG "Error getting Account. Error: $(Collect-ExceptionMessage $_.Exception)"
 	}
 	
 	return $_retaccount
@@ -971,7 +970,7 @@ Function Test-Account
 	}
 	catch
 	{
-		Log-Msg -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
+		Log-Msg -Type Error -MSG "Error testing Account '$g_LogAccountName' existance. Error: $(Collect-ExceptionMessage $_.Exception)" -ErrorAction "SilentlyContinue"
 	}
 }
 
@@ -1004,21 +1003,17 @@ Function Test-PlatformProperty
 	try{
 		# Get the Platform details
 		$GetPlatformDetails = $(Invoke-Rest -Uri $($URL_PlatformDetails -f $platformId) -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
-		If($platformDetails)
+		If($GetPlatformDetails)
 		{
 			Log-Msg -Type Verbose -MSG "Found Platform id $platformId, checking if platform contains '$platformProperty'..."
-			$_retResult = [bool]($platformDetails.Details.PSobject.Properties.name -match $platformProperty)
+			$_retResult = [bool]($GetPlatformDetails.Details.PSobject.Properties.name -match $platformProperty)
 		}
 		Else		
 		{
 			Throw "Platform does not exist or we had an issue"
 		}
-	}
-	catch [System.WebException] {
-		Log-Msg -Type Error -MSG "Error checking platform properties. Error: $($_.Exception.Response.StatusDescription)"
-	}
-	catch {
-		Log-Msg -Type Error -MSG "Error checking platform properties. Error: $($_.Exception.Message)"
+	} catch {
+		Log-Msg -Type Error -MSG "Error checking platform properties. Error: $(Collect-ExceptionMessage $_.Exception)"
 	}
 	
 	return $_retResult		
@@ -1273,11 +1268,15 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 					try{
 						If($accExists)
 						{
+							# Get Existing Account Details
+							$s_Account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address -accountObjectName $objAccount.name)
+							If($s_Account.Count -gt 1)
+							{
+								Throw "Too many accounts for '$g_LogAccountName' in safe $($objAccount.safeName)"
+							}
 							If($Update)
 							{
 								$updateChange = $false
-								# Get Existing Account Details
-								$s_Account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address -accountObjectName $objAccount.name)
 								$s_AccountBody = @()
 								$s_ExcludeProperties = @("secret")
 								# Check for existing properties needed update
@@ -1345,7 +1344,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 											$s_AccountBody += $_bodyOp
 										}
 									}
-								}
+								} # [End] Check for existing properties
 								# Check for new Account Properties
 								ForEach($sProp in ($objAccount.PSObject.Properties | where { $_.Name -notin $s_ExcludeProperties }))
 								{
@@ -1463,27 +1462,14 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 							}
 							ElseIf($Delete)
 							{
-								# Find the account for deletion
-								$d_account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address -accountObjectName $objAccount.name)
-								If($null -eq $d_account)
+								# Single account found for deletion
+								$urlDeleteAccount = $URL_AccountsDetails -f $s_account.id
+								$DeleteAccountResult = $(Invoke-Rest -Uri $urlDeleteAccount -Header $g_LogonHeader -Command "DELETE")
+								if($DeleteAccountResult -ne $null)
 								{
-									Log-Msg -Type Error -Msg "Account '$g_LogAccountName' does not exists - skipping deletion"
-								}
-								ElseIf($d_account.Count -gt 1)
-								{
-									Log-Msg -Type Error -Msg "Too many accounts for '$g_LogAccountName' in safe $($objAccount.safeName)"
-								}
-								Else
-								{
-									# Single account found for deletion
-									$urlDeleteAccount = $URL_AccountsDetails -f $d_account.id
-									$DeleteAccountResult = $(Invoke-Rest -Uri $urlDeleteAccount -Header $g_LogonHeader -Command "DELETE")
-									if($DeleteAccountResult -ne $null)
-									{
-										# Increment counter
-										$counter++
-										Log-Msg -Type Info -MSG "[$counter/$rowCount] Deleted $g_LogAccountName successfully."
-									}
+									# Increment counter
+									$counter++
+									Log-Msg -Type Info -MSG "[$counter/$rowCount] Deleted $g_LogAccountName successfully."
 								}
 							}
 						}
