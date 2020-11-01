@@ -293,9 +293,12 @@ Function New-AccountObject
 				}
 			}
 		}
-		$_Account.secretManagement.automaticManagementEnabled = Convert-ToBool $AccountLine.enableAutoMgmt
-		if ($_Account.secretManagement.automaticManagementEnabled -eq $false)
-		{ $_Account.secretManagement.manualManagementReason = $AccountLine.manualMgmtReason }
+		If(![String]::IsNullOrEmpty($AccountLine.enableAutoMgmt))
+		{
+			$_Account.secretManagement.automaticManagementEnabled = Convert-ToBool $AccountLine.enableAutoMgmt
+			if ($_Account.secretManagement.automaticManagementEnabled -eq $false)
+			{ $_Account.secretManagement.manualManagementReason = $AccountLine.manualMgmtReason }
+		}
 		$_Account.remoteMachinesAccess = "" | select "remoteMachines", "accessRestrictedToRemoteMachines"
 		If(![String]::IsNullOrEmpty($AccountLine.remoteMachineAddresses))
 		{
