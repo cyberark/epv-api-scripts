@@ -76,7 +76,7 @@ param
 	
 	# Member Roles 
 	[Parameter(ParameterSetName='Members',Mandatory=$false,HelpMessage="Enter a role for the member to add (Default: EndUser)")]
-	[ValidateSet("Admin", "Auditor", "EndUser", "Owner")]
+	[ValidateSet("Admin", "Auditor", "EndUser", "Owner", "Approver")]
 	[Alias("Role")]
 	[String]$MemberRole = "EndUser",
 	

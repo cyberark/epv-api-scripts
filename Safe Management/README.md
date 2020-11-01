@@ -101,7 +101,7 @@ If you want to Delete a list of safes from a file:
 
 ### Members Command:
 ```powershell
-Safe-Management.ps1 -PVWAURL <string> -Members -SafeName <string> [-UserName <string>] [-MemberRole <"Admin", "Auditor", "EndUser", "Owner">] [-UserLocation <string>] [<CommonParameters>]
+Safe-Management.ps1 -PVWAURL <string> -Members -SafeName <string> [-UserName <string>] [-MemberRole <"Admin", "Auditor", "EndUser", "Owner", "Approver">] [-UserLocation <string>] [<CommonParameters>]
 ```
 
 If you want to list all members of the safe 'MySafe':
