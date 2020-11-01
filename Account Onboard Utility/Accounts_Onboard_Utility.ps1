@@ -72,7 +72,7 @@ $PSBoundParameters.GetEnumerator() | % { $ScriptParameters += ("-{0} '{1}'" -f $
 $ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.3"
+$ScriptVersion = "2.4"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
@@ -97,6 +97,7 @@ $URL_SafeMemberDetails = $URL_SafeMembers+"/{1}"
 $URL_Accounts = $URL_PVWAAPI+"/Accounts"
 $URL_AccountsDetails = $URL_Accounts+"/{0}"
 $URL_AccountsPassword = $URL_AccountsDetails+"/Password/Update"
+$URL_PlatformDetails = $URL_PVWAAPI+"/Platforms/{0}"
 
 # Script Defaults
 # ---------------
@@ -292,9 +293,12 @@ Function New-AccountObject
 				}
 			}
 		}
-		$_Account.secretManagement.automaticManagementEnabled = Convert-ToBool $AccountLine.enableAutoMgmt
-		if ($_Account.secretManagement.automaticManagementEnabled -eq $false)
-		{ $_Account.secretManagement.manualManagementReason = $AccountLine.manualMgmtReason }
+		If(![String]::IsNullOrEmpty($AccountLine.enableAutoMgmt))
+		{
+			$_Account.secretManagement.automaticManagementEnabled = Convert-ToBool $AccountLine.enableAutoMgmt
+			if ($_Account.secretManagement.automaticManagementEnabled -eq $false)
+			{ $_Account.secretManagement.manualManagementReason = $AccountLine.manualMgmtReason }
+		}
 		$_Account.remoteMachinesAccess = "" | select "remoteMachines", "accessRestrictedToRemoteMachines"
 		If(![String]::IsNullOrEmpty($AccountLine.remoteMachineAddresses))
 		{
@@ -302,7 +306,16 @@ Function New-AccountObject
 			$_Account.remoteMachinesAccess.accessRestrictedToRemoteMachines = Convert-ToBool $AccountLine.restrictMachineAccessToList
 		}
 		#endregion [Account object mapping]
-		Set-Variable -Scope Global -Name g_LogAccountName -Value ("{0}@{1}" -f $_Account.userName, $_Account.Address)
+		$logFormat = ""
+		If(([string]::IsNullOrEmpty($_Account.userName) -or [string]::IsNullOrEmpty($_Account.Address) -and (![string]::IsNullOrEmpty($_Account.name)))
+		{
+			$logFormat = $_Account.name
+		}
+		Else
+		{
+			$logFormat = ("{0}@{1}" -f $_Account.userName, $_Account.Address)
+		}
+		Set-Variable -Scope Global -Name g_LogAccountName -Value $logFormat
 				
 		return $_Account
 	} catch {
@@ -579,7 +592,7 @@ Function Get-Safe
 	}
 	catch
 	{
-		Log-Msg -Type Error -MSG $_.Exception.Response.StatusDescription
+		Log-Msg -Type Error -MSG "Error getting Safe '$safeName' details. Error: $($_.Exception.Response.StatusDescription)"
 	}
 	
 	return $_safe.GetSafeResult
@@ -689,8 +702,7 @@ Function Get-SafeMembers
 	}
 	catch
 	{
-		Log-Msg -Type Error -MSG $_.Exception.Message
-		Log-Msg -Type Error -MSG $_.Exception.Response.StatusDescription
+		Log-Msg -Type Error -MSG "Error getting Safe '$safeName' members. Error: $(Collect-ExceptionMessage $_.Exception)"
 	}
 	
 	return $_retSafeOwners
@@ -734,7 +746,7 @@ Function Test-Safe
 	}
 	catch
 	{
-		Log-Msg -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
+		Log-Msg -Type Error -MSG "Error testing safe '$safeName' existance. Error: $(Collect-ExceptionMessage $_.Exception)" -ErrorAction "SilentlyContinue"
 	}
 }
 
@@ -911,10 +923,10 @@ Function Get-Account
 		}
 	}
 	catch [System.WebException] {
-		Log-Msg -Type Error -MSG $_.Exception.Response.StatusDescription
+		Log-Msg -Type Error -MSG "Error getting Account. Error: $($_.Exception.Response.StatusDescription)"
 	}
 	catch {
-		Log-Msg -Type Error -MSG $_.Exception.Message
+		Log-Msg -Type Error -MSG "Error getting Account. Error: $(Collect-ExceptionMessage $_.Exception)"
 	}
 	
 	return $_retaccount
@@ -970,8 +982,53 @@ Function Test-Account
 	}
 	catch
 	{
-		Log-Msg -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
+		Log-Msg -Type Error -MSG "Error testing Account '$g_LogAccountName' existance. Error: $(Collect-ExceptionMessage $_.Exception)" -ErrorAction "SilentlyContinue"
 	}
+}
+
+Function Test-PlatformProperty
+{
+<# 
+.SYNOPSIS 
+	Returns accoutns based on filters
+.DESCRIPTION
+	Creates a new Account Object
+.PARAMETER AccountName
+	Account user name
+.PARAMETER AccountAddress
+	Account address
+.PARAMETER SafeName
+	The Account Safe Name to search in
+#>
+	param(
+		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
+		[String]$platformId,
+		[Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()] 
+		[String]$platformProperty,
+		[Parameter(Mandatory=$false)]
+		[ValidateSet("Continue","Ignore","Inquire","SilentlyContinue","Stop","Suspend")]
+		[String]$ErrAction="Continue"
+	)
+	$_retResult = $false
+	try{
+		# Get the Platform details
+		$GetPlatformDetails = $(Invoke-Rest -Uri $($URL_PlatformDetails -f $platformId) -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
+		If($GetPlatformDetails)
+		{
+			Log-Msg -Type Verbose -MSG "Found Platform id $platformId, checking if platform contains '$platformProperty'..."
+			$_retResult = [bool]($GetPlatformDetails.Details.PSobject.Properties.name -match $platformProperty)
+		}
+		Else		
+		{
+			Throw "Platform does not exist or we had an issue"
+		}
+	} catch {
+		Log-Msg -Type Error -MSG "Error checking platform properties. Error: $(Collect-ExceptionMessage $_.Exception)"
+	}
+	
+	return $_retResult		
 }
 
 # @FUNCTION@ ======================================================================================================================
@@ -1223,13 +1280,17 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 					try{
 						If($accExists)
 						{
+							# Get Existing Account Details
+							$s_Account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address -accountObjectName $objAccount.name)
+							If($s_Account.Count -gt 1)
+							{
+								Throw "Too many accounts for '$g_LogAccountName' in safe $($objAccount.safeName)"
+							}
 							If($Update)
 							{
 								$updateChange = $false
-								# Get Existing Account Details
-								$s_Account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address -accountObjectName $objAccount.name)
 								$s_AccountBody = @()
-								$s_ExcludeProperties = @("secret")
+								$s_ExcludeProperties = @("id", "secret", "lastModifiedTime", "createdTime", "categoryModificationTime")
 								# Check for existing properties needed update
 								Foreach($sProp in $s_Account.PSObject.Properties)
 								{
@@ -1295,40 +1356,43 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 											$s_AccountBody += $_bodyOp
 										}
 									}
-								}
+								} # [End] Check for existing properties
 								# Check for new Account Properties
 								ForEach($sProp in ($objAccount.PSObject.Properties | where { $_.Name -notin $s_ExcludeProperties }))
 								{
 									If($sProp.Name -eq "remoteMachinesAccess")
 									{
-										ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties)
+										if(Test-PlatformProperty -platformId $s_Account.platformId -platformProperty "remoteMachinesAccess")
 										{
-											Log-Msg -Type Verbose -MSG "Updating Account Remote Machine Access Properties $($sSubProp.Name) value to: '$($objAccount.remoteMachinesAccess.$($sSubProp.Name))'"
-											If($sSubProp.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines"))
+											ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties)
 											{
-												# Handle Remote Machine properties
-												$_bodyOp = "" | select "op", "path", "value"
-												if($sSubProp.Name -in("remotemachineaddresses", "remoteMachines"))
+												Log-Msg -Type Verbose -MSG "Updating Account Remote Machine Access Properties $($sSubProp.Name) value to: '$($objAccount.remoteMachinesAccess.$($sSubProp.Name))'"
+												If($sSubProp.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines"))
 												{
-													$_bodyOp.path = "/remoteMachinesAccess/remoteMachines"
+													# Handle Remote Machine properties
+													$_bodyOp = "" | select "op", "path", "value"
+													if($sSubProp.Name -in("remotemachineaddresses", "remoteMachines"))
+													{
+														$_bodyOp.path = "/remoteMachinesAccess/remoteMachines"
+													}
+													if($sSubProp.Name -in("restrictmachineaccesstolist", "accessRestrictedToRemoteMachines"))
+													{
+														$_bodyOp.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
+													}
+													If([string]::IsNullOrEmpty($objAccount.remoteMachinesAccess.$($sSubProp.Name)))
+													{
+														$_bodyOp.op = "remove"
+														#$_bodyOp.value = $null
+														# Remove the Value property
+														$_bodyOp = ($_bodyOp | Select op, path)
+													}
+													else
+													{
+														$_bodyOp.op = "replace"
+														$_bodyOp.value = $objAccount.remoteMachinesAccess.$($sSubProp.Name) -join ';'
+													}
+													$s_AccountBody += $_bodyOp
 												}
-												if($sSubProp.Name -in("restrictmachineaccesstolist", "accessRestrictedToRemoteMachines"))
-												{
-													$_bodyOp.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
-												}
-												If([string]::IsNullOrEmpty($objAccount.remoteMachinesAccess.$($sSubProp.Name)))
-												{
-													$_bodyOp.op = "remove"
-													#$_bodyOp.value = $null
-													# Remove the Value property
-													$_bodyOp = ($_bodyOp | Select op, path)
-												}
-												else
-												{
-													$_bodyOp.op = "replace"
-													$_bodyOp.value = $objAccount.remoteMachinesAccess.$($sSubProp.Name) -join ';'
-												}
-												$s_AccountBody += $_bodyOp
 											}
 										}
 									}
@@ -1410,27 +1474,14 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 							}
 							ElseIf($Delete)
 							{
-								# Find the account for deletion
-								$d_account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address -accountObjectName $objAccount.name)
-								If($null -eq $d_account)
+								# Single account found for deletion
+								$urlDeleteAccount = $URL_AccountsDetails -f $s_account.id
+								$DeleteAccountResult = $(Invoke-Rest -Uri $urlDeleteAccount -Header $g_LogonHeader -Command "DELETE")
+								if($DeleteAccountResult -ne $null)
 								{
-									Log-Msg -Type Error -Msg "Account '$g_LogAccountName' does not exists - skipping deletion"
-								}
-								ElseIf($d_account.Count -gt 1)
-								{
-									Log-Msg -Type Error -Msg "Too many accounts for '$g_LogAccountName' in safe $($objAccount.safeName)"
-								}
-								Else
-								{
-									# Single account found for deletion
-									$urlDeleteAccount = $URL_AccountsDetails -f $d_account.id
-									$DeleteAccountResult = $(Invoke-Rest -Uri $urlDeleteAccount -Header $g_LogonHeader -Command "DELETE")
-									if($DeleteAccountResult -ne $null)
-									{
-										# Increment counter
-										$counter++
-										Log-Msg -Type Info -MSG "[$counter/$rowCount] Deleted $g_LogAccountName successfully."
-									}
+									# Increment counter
+									$counter++
+									Log-Msg -Type Info -MSG "[$counter/$rowCount] Deleted $g_LogAccountName successfully."
 								}
 							}
 						}

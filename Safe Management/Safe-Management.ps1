@@ -76,7 +76,7 @@ param
 	
 	# Member Roles 
 	[Parameter(ParameterSetName='Members',Mandatory=$false,HelpMessage="Enter a role for the member to add (Default: EndUser)")]
-	[ValidateSet("Admin", "Auditor", "EndUser", "Owner")]
+	[ValidateSet("Admin", "Auditor", "EndUser", "Owner", "Approver")]
 	[Alias("Role")]
 	[String]$MemberRole = "EndUser",
 	
@@ -109,7 +109,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "1.7"
+$ScriptVersion = "1.8"
 
 # ------ SET global parameters ------
 # Set Log file path
