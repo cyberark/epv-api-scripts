@@ -72,7 +72,7 @@ $PSBoundParameters.GetEnumerator() | % { $ScriptParameters += ("-{0} '{1}'" -f $
 $ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.3"
+$ScriptVersion = "2.4"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
