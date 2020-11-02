@@ -69,7 +69,7 @@ $ScriptFullPath = $MyInvocation.MyCommand.Path
 $ScriptLocation = Split-Path -Parent $ScriptFullPath
 $ScriptParameters = @()
 $PSBoundParameters.GetEnumerator() | % { $ScriptParameters += ("-{0} '{1}'" -f $_.Key, $_.Value) }
-$ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
+$global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
 $ScriptVersion = "2.4"
@@ -101,7 +101,7 @@ $URL_PlatformDetails = $URL_PVWAAPI+"/Platforms/{0}"
 
 # Script Defaults
 # ---------------
-$g_CsvDefaultPath = $Env:CSIDL_DEFAULT_DOWNLOADS
+$global:g_CsvDefaultPath = $Env:CSIDL_DEFAULT_DOWNLOADS
 
 # Safe Defaults
 # --------------
@@ -307,7 +307,7 @@ Function New-AccountObject
 		}
 		#endregion [Account object mapping]
 		$logFormat = ""
-		If(([string]::IsNullOrEmpty($_Account.userName) -or [string]::IsNullOrEmpty($_Account.Address) -and (![string]::IsNullOrEmpty($_Account.name)))
+		If(([string]::IsNullOrEmpty($_Account.userName) -or [string]::IsNullOrEmpty($_Account.Address)) -and (![string]::IsNullOrEmpty($_Account.name)))
 		{
 			$logFormat = $_Account.name
 		}
@@ -1083,7 +1083,7 @@ Function Get-LogonHeader
 #endregion
 
 # Write the entire script command when running in Verbose mode
-Log-Msg -Type Verbose -Msg $ScriptCommand
+Log-Msg -Type Verbose -Msg $g_ScriptCommand
 # Header
 Log-Msg -Type Info -MSG "Welcome to Accounts Onboard Utility" -Header
 Log-Msg -Type Info -MSG "Starting script (v$ScriptVersion)" -SubHeader
