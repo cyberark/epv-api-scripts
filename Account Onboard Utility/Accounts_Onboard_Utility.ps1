@@ -45,7 +45,6 @@ param
 	[Parameter(Mandatory=$false)]
 	[Switch]$DisableSSLVerify,
 	
-	
 	# Use this switch to Create accounts and Safes (no update)
 	[Parameter(ParameterSetName='Create',Mandatory=$true)]
 	[Switch]$Create,
@@ -62,6 +61,9 @@ param
 	[Parameter(ParameterSetName='Create',Mandatory=$false)]
 	[Parameter(ParameterSetName='Update')]
 	[Switch]$NoSafeCreation
+	
+	# Use this switch to disable Auto-Update
+	[switch]$DisableAutoUpdate
 )
 
 # Get Script Location 
@@ -1082,6 +1084,53 @@ Function Get-LogonHeader
 }
 #endregion
 
+#region Auto Update
+Function Test-VersionUpdate
+{
+	$githubURL = "https://raw.githubusercontent.com/cyberark/epv-api-scripts/master"
+	$scriptFolderPath = "Account%20Onboard%20Utility"
+	$scriptName = "Accounts_Onboard_Utility.ps1"
+	$scriptURL = "$githubURL/$scriptFolderPath/$scriptName"
+	$getScriptContent = ""
+	try{
+		$getScriptContent = (Invoke-WebRequest -UseBasicParsing -Uri $scriptURL).Content
+	}
+	catch
+	{
+		Throw $(New-Object System.Exception ("Test-VersionUpdate: Couldn't download and check for latest version",$_.Exception))
+	}
+	If($($getScriptContent -match "ScriptVersion\s{0,1}=\s{0,1}\""([\d\.]{1,5})\"""))
+	{
+		$gitHubScriptVersion = $Matches[1]
+		If([double]$gitHubScriptVersion -gt [double]$ScriptVersion)
+		{
+			Log-Msg -Type Info -MSG  "Found new version: $gitHubScriptVersion - Updating..."
+			$getScriptContent | Out-File "$ScriptFullPath.NEW"
+			If (Test-Path -Path "$ScriptFullPath.NEW")
+			{
+				Rename-Item -path $ScriptFullPath -NewName "$ScriptFullPath.OLD"
+				Rename-Item -Path "$ScriptFullPath.NEW" -NewName $ScriptFullPath
+				Remove-Item -Path "$ScriptFullPath.OLD"
+				$scriptPathAndArgs = "powershell.exe -NoLogo -File `"$g_ScriptCommand`" "
+				Log-Msg -Type Info -MSG  "Finished Updating, relaunching the script"
+				Invoke-Expression $scriptPathAndArgs
+				
+				return
+			}
+			Else
+			{
+				Log-Msg -Type Error -MSG  "Can't find the new script at location '$ScriptFullPath.NEW'."
+			}
+		}
+		Else
+		{
+			Log-Msg -Type Info -MSG  "Current version ($ScriptVersion) is the latest!"
+		}
+	}
+}
+
+#endregion
+
 # Write the entire script command when running in Verbose mode
 Log-Msg -Type Verbose -Msg $g_ScriptCommand
 # Header
@@ -1096,6 +1145,17 @@ If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
 	Log-Msg -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
 	return
+}
+
+# Check for latest script version
+If(!$DisableAutoUpdate)
+{
+	try{
+		Test-VersionUpdate
+		return
+	} catch {
+		Log-Msg -Type Error -MSG "Error checking for latest version. Error: $(Collect-ExceptionMessage $_.Exception)"
+	}
 }
 
 # Check if to disable SSL verification
