@@ -262,6 +262,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		Else
 		# Handle Account basic properties
 		{
+			$_bodyOp.op = "replace"
 			$_bodyOp.path = "/"+$param.Name
 			$_bodyOp.value = $param.Value
 		}
