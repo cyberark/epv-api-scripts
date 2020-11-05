@@ -1164,7 +1164,7 @@ If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 If(!$DisableAutoUpdate)
 {
 	try{
-		If(Test-VersionUpdate -eq $false)
+		If(Test-LatestVersion -eq $false)
 		{
 			# Run the updated script
 			$scriptPathAndArgs = "powershell.exe -NoLogo -File `"$g_ScriptCommand`" "
