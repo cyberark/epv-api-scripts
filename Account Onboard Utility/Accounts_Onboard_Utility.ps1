@@ -1075,8 +1075,7 @@ Function Get-LogonHeader
 	
     # Create a Logon Token Header (This will be used through out all the script)
     # ---------------------------
-    $logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-    $logonHeader.Add("Authorization", $logonToken)
+    $logonHeader = @{Authorization = $logonToken}
 	
 	return $logonHeader
 }
