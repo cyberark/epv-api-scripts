@@ -400,10 +400,19 @@ Function Get-LogonHeader
 		{
 			Disable-SSLVerification
 		}
+		Else
+		{
+			try{
+				Write-LogMessage -Type Verbose -Msg "Setting script to use TLS 1.2"
+				[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+			} catch {
+				Throw $(New-Object System.Exception ("Get-LogonHeader: Could not change SSL validation", $_.Exception))
+			}
+		}
 		
 		# Create the POST Body for the Logon
 		# ----------------------------------
-		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
+		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
 		try{
 			# Logon
 			$logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
@@ -422,8 +431,7 @@ Function Get-LogonHeader
 		
 		# Create a Logon Token Header (This will be used through out all the script)
 		# ---------------------------
-		$logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-		$logonHeader.Add("Authorization", $logonToken)
+		$logonHeader = @{Authorization = $logonToken}
 		
 		Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
 	}
