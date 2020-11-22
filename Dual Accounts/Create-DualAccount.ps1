@@ -62,7 +62,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "1.0"
+$ScriptVersion = "1.1"
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -312,7 +312,7 @@ Function Encode-URL($sText)
 	if ($sText.Trim() -ne "")
 	{
 		Write-LogMessage -Type Debug -Msg "Returning URL Encode of $sText"
-		return [System.Web.HttpUtility]::UrlEncode($sText)
+		return [URI]::EscapeDataString($sText)
 	}
 	else
 	{
