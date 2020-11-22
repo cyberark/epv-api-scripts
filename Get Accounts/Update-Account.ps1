@@ -42,6 +42,8 @@ param
 
 # Get Script Location 
 $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
+# Script Version
+$ScriptVersion = "1.2"
 
 # Global URLS
 # -----------
@@ -145,6 +147,14 @@ If (Test-CommandExists Invoke-RestMethod)
 	{
 		$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
 		$response = $GetAccountDetailsResponse
+		if ($([string]::IsNullOrEmpty($GetAccountDetailsResponse.platformAccountProperties)))
+		{
+			$PropsName = @()
+		}
+		else
+		{
+			$PropsName = Get-Member -InputObject $GetAccountDetailsResponse.platformAccountProperties -MemberType NoteProperty | foreach { $_.Name }
+		}
 	}
 	If([string]::IsNullOrEmpty($response))
 	{
@@ -181,7 +191,12 @@ If (Test-CommandExists Invoke-RestMethod)
 	ForEach($param in ($arrProperties.GetEnumerator() | where { $_.Name -notin $excludedProperties }))
 	{
 		$_bodyOp = "" | select "op", "path", "value"
-		$_bodyOp.op = "replace"
+		if ($PropsName.Contains($param.Name))
+		{
+			$_bodyOp.op = "replace"
+		} else {
+			$_bodyOp.op = "add"
+		}
 		$_bodyOp.path = "/platformAccountProperties/"+$param.Name
 		$_bodyOp.value = $param.Value
 		$arrPropertiesBody += $_bodyOp
