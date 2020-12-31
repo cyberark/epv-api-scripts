@@ -196,7 +196,7 @@ Write-Host "Import Platform and Connection Component: Script Started" -Foregroun
 $caption = "Import Platform and Connection Component"
 $msg = "Enter your User name and Password"; 
 $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-if ($creds -ne $null)
+if ($null -ne $creds)
 {
 	$rstusername = $creds.username.Replace('\','');    
 	$rstpassword = $creds.GetNetworkCredential().password

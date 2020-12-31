@@ -580,7 +580,7 @@ Function Get-FilteredAccounts
 		If(-not [string]::IsNullOrEmpty($sPlatformID)) { $WhereArray += '$_.platformId -eq $sPlatformID' }
 		# Filter Accounts based on input properties
 		$WhereFilter = [scriptblock]::Create( ($WhereArray -join " -and ") )
-		$FilteredAccountsList = ( $GetAccountsList | Where $WhereFilter )
+		$FilteredAccountsList = ( $GetAccountsList | Where-Object $WhereFilter )
 	} catch {
 		throw $(New-Object System.Exception ("Get-FilteredAccounts: Error Getting Accounts",$_.Exception))
 	}

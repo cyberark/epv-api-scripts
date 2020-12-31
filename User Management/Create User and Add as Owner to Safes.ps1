@@ -72,7 +72,7 @@ Function Invoke-Rest
 		Write-Verbose "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body"
 		$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body
 	} catch {
-		If($_.Exception.Response.StatusDescription -ne $null)
+		If($null -ne $_.Exception.Response.StatusDescription)
 		{
 			Write-Error $_.Exception.Response.StatusDescription -ErrorAction $ErrorAction
 		}
@@ -139,7 +139,7 @@ Function Add-Owner
 	param ($safe_Name, $user, $permissions)
 	$urlOwnerAdd = $URL_SafeMembers -f $safe_Name
 	$userPermissions = New-Object "System.Collections.Generic.Dictionary[[String],[Object]]"
-	($permissions.GetEnumerator() | % { $userPermissions.Add($_.Key,$_.Value) })
+	($permissions.GetEnumerator() | ForEach-Object { $userPermissions.Add($_.Key,$_.Value) })
 	# Create the Safe Owner body with member name and required permissions
 	$bodyMember = @{ MemberName=$user;Permissions=$userPermissions }
 	$restBody = @{ member=$bodyMember } | ConvertTo-Json -Depth 3
@@ -169,7 +169,7 @@ If($($PSVersionTable.PSVersion.Major) -le 2)
 	$caption = "Create a Managed local user"
 	$msg = "Enter your User name and Password"; 
 	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($creds -ne $null)
+	if ($null -ne $creds)
 	{
 		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds)
 	}

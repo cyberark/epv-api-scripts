@@ -141,7 +141,7 @@ If($DisableSSLVerify)
 $caption = "Import Connection Component"
 $msg = "Enter your User name and Password"; 
 $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-if ($creds -ne $null)
+if ($null -ne $creds)
 {
 	$rstusername = $creds.username.Replace('\','');    
 	$rstpassword = $creds.GetNetworkCredential().password

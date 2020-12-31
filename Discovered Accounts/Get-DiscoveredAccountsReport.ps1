@@ -686,7 +686,7 @@ try {
 				$nextLink =  $GetAccountsResponse.nextLink
 				Write-LogMessage -Type Debug -MSG "Getting next link: $nextLink"
 				
-				While ($nextLink -ne "" -and $nextLink -ne $null)
+				While ($nextLink -ne "" -and $null -ne $nextLink)
 				{
 					$GetAccountsResponse = Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header $(Get-LogonHeader -Credentials $creds)
 					$nextLink = $GetAccountsResponse.nextLink
@@ -728,7 +728,7 @@ try {
 		
 		If([string]::IsNullOrEmpty($CSVPath))
 		{
-			$output | FT -Autosize
+			$output | Format-Table -Autosize
 		}
 		else
 		{
