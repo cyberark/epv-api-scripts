@@ -498,11 +498,11 @@ Function Get-InactiveUsers
 		Foreach($user in $Users)
 		{
 			$_userDetails = Invoke-REST -URI ($URL_UserDetails -f $user.id) -Command GET -Header $(Get-LogonHeader -Credentials $VaultCredentials)
-			if(($_userDetails.lastSuccessfulLoginDate -eq $null) -or (Convert-Date($_userDetails.lastSuccessfulLoginDate) -le $((Get-Date).AddDays($inactiveDaysFilter *-1))))
+			if(($null -eq $_userDetails.lastSuccessfulLoginDate) -or (Convert-Date($_userDetails.lastSuccessfulLoginDate) -le $((Get-Date).AddDays($inactiveDaysFilter *-1))))
 			{
 				Write-LogMessage -Type Verbose -Msg "Adding $($_userDetails.UserName) to the report"
 				$_user = $user
-				if($_userDetails.lastSuccessfulLoginDate -eq $null)
+				if($null -eq $_userDetails.lastSuccessfulLoginDate)
 				{
 					$_user | Add-Member -NotePropertyName "LastSuccessfulLoginDate" -NotePropertyValue "N/A"
 				}
@@ -569,7 +569,7 @@ try {
 		return
 	}
 	# Get only the inactive users
-	if($GetUsersResponse -ne $null)
+	if($null -ne $GetUsersResponse)
 	{
 		Try{
 			$inactiveUsersList = Get-InactiveUsers -Users ($GetUsersResponse.Users) -VaultCredentials $creds -InactiveDaysFilter $InactiveDays
@@ -581,7 +581,7 @@ try {
 	Write-LogMessage -Type Info -MSG "Generating report"
 	If([string]::IsNullOrEmpty($CSVPath))
 	{
-		$inactiveUsersList | Select-Object UserName, Source, UserType, ComponentUser, IsEnabled, IsSuspended, LastSuccessfulLoginDate | FT -Autosize
+		$inactiveUsersList | Select-Object UserName, Source, UserType, ComponentUser, IsEnabled, IsSuspended, LastSuccessfulLoginDate | Format-Table -Autosize
 	}
 	else
 	{

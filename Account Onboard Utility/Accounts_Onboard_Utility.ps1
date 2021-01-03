@@ -215,7 +215,7 @@ Function Get-TrimmedString($sText)
 .PARAMETER txt
 	The text to handle
 #>
-	if($sText -ne $null)
+	if($null -ne $sText)
 	{
 		return $sText.Trim()
 	}
@@ -256,12 +256,12 @@ Function New-AccountObject
 		
 		# Check if there are custom properties
 		$excludedProperties = @("name","username","address","safe","platformid","password","key","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist","sshkey")
-		$customProps = $($AccountLine.PSObject.Properties | Where { $_.Name.ToLower() -notin $excludedProperties })
+		$customProps = $($AccountLine.PSObject.Properties | Where-Object { $_.Name.ToLower() -notin $excludedProperties })
 		#region [Account object mapping]
 		# Convert Account from CSV to Account Object (properties mapping)
-		$_Account = "" | Select "name", "address", "userName", "platformId", "safeName", "secretType", "secret", "platformAccountProperties", "secretManagement", "remoteMachinesAccess"
+		$_Account = "" | Select-Object "name", "address", "userName", "platformId", "safeName", "secretType", "secret", "platformAccountProperties", "secretManagement", "remoteMachinesAccess"
 		$_Account.platformAccountProperties = $null
-		$_Account.secretManagement = "" | Select "automaticManagementEnabled", "manualManagementReason"
+		$_Account.secretManagement = "" | Select-Object "automaticManagementEnabled", "manualManagementReason"
 		$_Account.name = (Get-TrimmedString $AccountLine.name)
 		$_Account.address = (Get-TrimmedString $AccountLine.address)
 		$_Account.userName = (Get-TrimmedString $AccountLine.userName)
@@ -284,7 +284,7 @@ Function New-AccountObject
 		if(![string]::IsNullOrEmpty($customProps))
 		{
 			# Convert any non-default property in the CSV as a new platform account property
-			if($_Account.platformAccountProperties -eq $null) { $_Account.platformAccountProperties = New-Object PSObject }
+			if($null -eq $_Account.platformAccountProperties) { $_Account.platformAccountProperties = New-Object PSObject }
 			For ($i = 0; $i -lt $customProps.count; $i++){
 				$prop = $customProps[$i]
 				If(![string]::IsNullOrEmpty($prop.Value))
@@ -299,7 +299,7 @@ Function New-AccountObject
 			if ($_Account.secretManagement.automaticManagementEnabled -eq $false)
 			{ $_Account.secretManagement.manualManagementReason = $AccountLine.manualMgmtReason }
 		}
-		$_Account.remoteMachinesAccess = "" | select "remoteMachines", "accessRestrictedToRemoteMachines"
+		$_Account.remoteMachinesAccess = "" | Select-Object "remoteMachines", "accessRestrictedToRemoteMachines"
 		If(![String]::IsNullOrEmpty($AccountLine.remoteMachineAddresses))
 		{
 			$_Account.remoteMachinesAccess.remoteMachines = $AccountLine.remoteMachineAddresses
@@ -675,7 +675,7 @@ Function Get-SafeMembers
 		$accSafeMembersURL = $URL_SafeMembers -f $safeName
 		$_safeMembers = $(Invoke-Rest -Uri $accSafeMembersURL -Header $g_LogonHeader -Command "Get")		
 		# Remove default users and change UserName to MemberName
-		$_safeOwners = $_safeMembers.members | Where {$_.UserName -notin $_defaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
+		$_safeOwners = $_safeMembers.members | Where-Object {$_.UserName -notin $_defaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
 		$_retSafeOwners = @()
 		# Converting Permissions output object to Dictionary for later use
 		ForEach($item in $_safeOwners)
@@ -781,7 +781,7 @@ Function Create-Safe
 	)
 	
 	# Check if Template Safe is in used
-	If($templateSafeObject -ne $null)
+	If($null -ne $templateSafeObject)
 	{
 		# Using Template Safe
 		Log-Msg -Type Info -MSG "Creating Safe $safeName according to Template"
@@ -848,7 +848,7 @@ Function Add-Owner
 			Log-Msg -Type Verbose -MSG "Adding owner '$($bodyMember.MemberName)' to safe '$safeName'..."
 			# Add the Safe Owner
 			$restResponse = Invoke-Rest -Uri $($URL_SafeMembers -f $safeName) -Header $g_LogonHeader -Command "Post" -Body $restBody
-			if($restResponse -ne $null)
+			if($null -ne $restResponse)
 			{
 				Log-Msg -Type Verbose -MSG "Owner '$($bodyMember.MemberName)' was successfully added to safe '$safeName'"
 			}
@@ -913,7 +913,7 @@ Function Get-Account
 		If(-not [string]::IsNullOrEmpty($accountObjectName)) { $WhereArray += '$_.name -eq $accountObjectName' }
 		# Filter Accounts based on input properties
 		$WhereFilter = [scriptblock]::Create( ($WhereArray -join " -and ") )
-		$_retaccount = ( $GetAccountsList | Where $WhereFilter )
+		$_retaccount = ( $GetAccountsList | Where-Object $WhereFilter )
 		# Verify that we have only one result
 		If ($_retaccount.count -gt 1)
 		{ 
@@ -1165,7 +1165,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 	$caption = "Accounts Onboard Utility"
 	$msg = "Enter your User name and Password"; 
 	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($creds -ne $null)
+	if ($null -ne $creds)
 	{
 		if($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP))
 		{
@@ -1202,7 +1202,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 			# If the logged in user exists as a specific member of the template safe - remove it to spare later errors
 			If($TemplateSafe.MemberName.Contains($creds.UserName))
 			{
-				$_updatedMembers = $TemplateSafeMembers | Where {$_.MemberName -ne $creds.UserName}
+				$_updatedMembers = $TemplateSafeMembers | Where-Object {$_.MemberName -ne $creds.UserName}
 				$TemplateSafeMembers = $_updatedMembers
 			}
 		}
@@ -1248,10 +1248,10 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 							# The target safe does not exist
 							# The user chose to create safes during this process
 							$shouldSkip = Create-Safe -TemplateSafe $TemplateSafeDetails -Safe $account.Safe
-							if (($shouldSkip -eq $false) -and ($TemplateSafeDetails -ne $null) -and ($TemplateSafeMembers -ne $null))
+							if (($shouldSkip -eq $false) -and ($null -ne $TemplateSafeDetails) -and ($TemplateSafeMembers -ne $null))
 							{
 								$addOwnerResult = Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
-								if($addOwnerResult -eq $null)
+								if($null -eq $addOwnerResult)
 								{ throw }
 								else
 								{
@@ -1305,7 +1305,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 											If(($null -ne $objAccount.$($sProp.Name).$($subProp.Name)) -and ($objAccount.$($sProp.Name).$($subProp.Name) -ne $subProp.Value))
 											{
 												Log-Msg -Type Verbose -MSG "Updating Account Property $($subProp.Name) value from: '$($subProp.Value)' to: '$($objAccount.$($sProp.Name).$($subProp.Name))'"
-												$_bodyOp = "" | select "op", "path", "value"
+												$_bodyOp = "" | Select-Object "op", "path", "value"
 												$_bodyOp.op = "replace"
 												$_bodyOp.path = "/"+$sProp.Name+"/"+$subProp.Name
 												$_bodyOp.value = $objAccount.$($sProp.Name).$($subProp.Name)
@@ -1317,7 +1317,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 													{
 														# Need to remove the manualManagementReason
 														Log-Msg -Type Verbose -MSG "Since Account Automatic management is on, removing the Manual management reason"
-														$_bodyOp = "" | select "op", "path"
+														$_bodyOp = "" | Select-Object "op", "path"
 														$_bodyOp.op = "remove"
 														$_bodyOp.path = "/secretManagement/manualManagementReason"
 														$s_AccountBody += $_bodyOp
@@ -1326,7 +1326,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 													{
 														# Need to add the manualManagementReason
 														Log-Msg -Type Verbose -MSG "Since Account Automatic management is off, adding the Manual management reason"
-														$_bodyOp = "" | select "op", "path", "value"
+														$_bodyOp = "" | Select-Object "op", "path", "value"
 														$_bodyOp.op = "add"
 														$_bodyOp.path = "/secretManagement/manualManagementReason"
 														if([string]::IsNullOrEmpty($objAccount.secretManagement.manualManagementReason))
@@ -1348,7 +1348,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 										If(($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $sProp.Value))
 										{
 											Log-Msg -Type Verbose -MSG "Updating Account Property $($sProp.Name) value from: '$($sProp.Value)' to: '$($objAccount.$($sProp.Name))'"
-											$_bodyOp = "" | select "op", "path", "value"
+											$_bodyOp = "" | Select-Object "op", "path", "value"
 											$_bodyOp.op = "replace"
 											$_bodyOp.path = "/"+$sProp.Name
 											$_bodyOp.value = $objAccount.$($sProp.Name)
@@ -1357,7 +1357,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									}
 								} # [End] Check for existing properties
 								# Check for new Account Properties
-								ForEach($sProp in ($objAccount.PSObject.Properties | where { $_.Name -notin $s_ExcludeProperties }))
+								ForEach($sProp in ($objAccount.PSObject.Properties | Where-Object { $_.Name -notin $s_ExcludeProperties }))
 								{
 									If($sProp.Name -eq "remoteMachinesAccess")
 									{
@@ -1369,7 +1369,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 												If($sSubProp.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines"))
 												{
 													# Handle Remote Machine properties
-													$_bodyOp = "" | select "op", "path", "value"
+													$_bodyOp = "" | Select-Object "op", "path", "value"
 													if($sSubProp.Name -in("remotemachineaddresses", "remoteMachines"))
 													{
 														$_bodyOp.path = "/remoteMachinesAccess/remoteMachines"
@@ -1383,7 +1383,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 														$_bodyOp.op = "remove"
 														#$_bodyOp.value = $null
 														# Remove the Value property
-														$_bodyOp = ($_bodyOp | Select op, path)
+														$_bodyOp = ($_bodyOp | Select-Object op, path)
 													}
 													else
 													{
@@ -1401,7 +1401,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 										{
 											Log-Msg -Type Verbose -MSG "Updating Platform Account Properties $($sSubProp.Name) value to: '$($objAccount.platformAccountProperties.$($sSubProp.Name))'"
 											# Handle new Account Platform properties
-											$_bodyOp = "" | select "op", "path", "value"
+											$_bodyOp = "" | Select-Object "op", "path", "value"
 											$_bodyOp.op = "replace"
 											$_bodyOp.path = "/platformAccountProperties/"+$sProp.Name
 											$_bodyOp.value = $objAccount.platformAccountProperties.$($sProp.Name)
@@ -1420,7 +1420,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									$restBody = ConvertTo-Json $s_AccountBody -Depth 5 -Compress
 									$urlUpdateAccount = $URL_AccountsDetails -f $s_Account.id
 									$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "PATCH")
-									if($UpdateAccountResult -ne $null)
+									if($null -ne $UpdateAccountResult)
 									{
 										Log-Msg -Type Info -MSG "Account properties Updated Successfully"
 										$updateChange = $true
@@ -1435,14 +1435,14 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 									{
 										Log-Msg -Type Debug -MSG "Updating Account Secret..."
 										# This account has a password and we are going to update item
-										$_passBody = "" | select "NewCredentials"
+										$_passBody = "" | Select-Object "NewCredentials"
 										# $_passBody.ChangeEntireGroup = $false
 										$_passBody.NewCredentials = $objAccount.secret
 										# Update secret
 										$restBody = ConvertTo-Json $_passBody -Compress
 										$urlUpdateAccount = $URL_AccountsPassword -f $s_Account.id
 										$UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $g_LogonHeader -Body $restBody -Command "POST")
-										if($UpdateAccountResult -ne $null)
+										if($null -ne $UpdateAccountResult)
 										{
 											Log-Msg -Type Info -MSG "Account Secret Updated Successfully"
 											$updateChange = $true
@@ -1476,7 +1476,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								# Single account found for deletion
 								$urlDeleteAccount = $URL_AccountsDetails -f $s_account.id
 								$DeleteAccountResult = $(Invoke-Rest -Uri $urlDeleteAccount -Header $g_LogonHeader -Command "DELETE")
-								if($DeleteAccountResult -ne $null)
+								if($null -ne $DeleteAccountResult)
 								{
 									# Increment counter
 									$counter++
@@ -1504,7 +1504,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								$restBody = $objAccount | ConvertTo-Json -Depth 5 -Compress
 								Log-Msg -Type Debug -Msg $restBody
 								$addAccountResult = $(Invoke-Rest -Uri $URL_Accounts -Header $g_LogonHeader -Body $restBody -Command "Post")
-								if($addAccountResult -ne $null)
+								if($null -ne $addAccountResult)
 								{
 									Log-Msg -Type Info -MSG "Account Onboarded Successfully"
 									# Increment counter

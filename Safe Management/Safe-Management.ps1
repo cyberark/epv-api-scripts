@@ -449,7 +449,7 @@ Get-Safes
     )
 
 try {
-		If($g_SafesList -eq $null)
+		If($null -eq $g_SafesList)
 		{
 			Write-LogMessage -Type Debug -Msg "Retrieving safes from the vault..."
 			$safes = (Invoke-RestMethod -Uri $URL_Safes -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000).GetSafesResult
@@ -512,7 +512,7 @@ Function Test-Safe
 	try{
 		$chkSafeExists = $null
 		$retResult = $false
-		If($g_SafesList -ne $null)
+		If($null -ne $g_SafesList)
 		{
 			# Check Cached safes list first
 			$chkSafeExists = ($g_SafesList.safename -contains $safename)
@@ -521,7 +521,7 @@ Function Test-Safe
 		{
 			# No cache, Get safe details from Vault
 			try{
-				$chkSafeExists = $(Get-Safe -safeName $safeName -ErrAction "SilentlyContinue") -ne $null
+				$chkSafeExists = $null -ne $(Get-Safe -safeName $safeName -ErrAction "SilentlyContinue")
 			}
 			catch{
 				$chkSafeExists = $false
@@ -665,11 +665,11 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
 	{
 		$updateManageCPM = $managingCPM
 	}
-	If($numVersionRetention -ne $null -and $numVersionRetention -gt 0 -and $getSafe.NumberOfVersionsRetention -ne $numVersionRetention)
+	If($null -ne $numVersionRetention -and $numVersionRetention -gt 0 -and $getSafe.NumberOfVersionsRetention -ne $numVersionRetention)
 	{
 		$updateRetVersions = $numVersionRetention
 	}
-	If($numDaysRetention -ne $null -and $numDaysRetention -gt 0 -and $getSafe.NumberOfDaysRtention -ne $numDaysRetention)
+	If($null -ne $numDaysRetention -and $numDaysRetention -gt 0 -and $getSafe.NumberOfDaysRtention -ne $numDaysRetention)
 	{
 		$updateRetDays = $numDaysRetention
 	}
@@ -893,7 +893,7 @@ Get-SafeMember -safename "Win-Local-Admins"
 		$accSafeMembersURL = $URL_SafeMembers -f $(Encode-URL $safeName)
 		$_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorAction "SilentlyContinue")
 		# Remove default users and change UserName to MemberName
-		$_safeOwners = $_safeMembers.members | Where {$_.UserName -notin $g_DefaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
+		$_safeOwners = $_safeMembers.members | Where-Object {$_.UserName -notin $g_DefaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
 	}
 	catch
 	{
@@ -959,7 +959,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		$caption = "Safe Management"
 		$msg = "Enter your User name and Password"; 
 		$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-		if ($creds -ne $null)
+		if ($null -ne $creds)
 		{
 			Get-LogonHeader -Credentials $creds -ConnectionNumber $ThreadNumber
 		}
@@ -973,7 +973,6 @@ If (Test-CommandExists Invoke-RestMethod)
 	}
 #endregion
 
-	$response = ""
 	switch($PsCmdlet.ParameterSetName)
 	{
 		"List"

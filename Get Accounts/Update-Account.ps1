@@ -108,7 +108,7 @@ If (Test-CommandExists Invoke-RestMethod)
     $caption = "Update accounts"
     $msg = "Enter your User name and Password"; 
     $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($creds -ne $null)
+	if ($null -ne $creds)
 	{
 		$rstusername = $creds.username.Replace('\','');    
 		$rstpassword = $creds.GetNetworkCredential().password
@@ -153,7 +153,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		}
 		else
 		{
-			$PropsName = Get-Member -InputObject $GetAccountDetailsResponse.platformAccountProperties -MemberType NoteProperty | foreach { $_.Name }
+			$PropsName = Get-Member -InputObject $GetAccountDetailsResponse.platformAccountProperties -MemberType NoteProperty | ForEach-Object { $_.Name }
 		}
 	}
 	If([string]::IsNullOrEmpty($response))
@@ -188,9 +188,9 @@ If (Test-CommandExists Invoke-RestMethod)
 		}
 	}
 	# Filter excluded Properties and go over regular properties
-	ForEach($param in ($arrProperties.GetEnumerator() | where { $_.Name -notin $excludedProperties }))
+	ForEach($param in ($arrProperties.GetEnumerator() | Where-Object { $_.Name -notin $excludedProperties }))
 	{
-		$_bodyOp = "" | select "op", "path", "value"
+		$_bodyOp = "" | Select-Object "op", "path", "value"
 		if ($PropsName.Contains($param.Name))
 		{
 			$_bodyOp.op = "replace"
@@ -202,9 +202,9 @@ If (Test-CommandExists Invoke-RestMethod)
 		$arrPropertiesBody += $_bodyOp
 	}
 	# Go over only excluded Properties
-	ForEach($param in ($arrProperties.GetEnumerator() | where { $_.Name -in $excludedProperties }))
+	ForEach($param in ($arrProperties.GetEnumerator() | Where-Object { $_.Name -in $excludedProperties }))
 	{
-		$_bodyOp = "" | select "op", "path", "value"
+		$_bodyOp = "" | Select-Object "op", "path", "value"
 		If($param.Name -in ("automaticManagementEnabled","manualManagementReason"))
 		# Handle Secret Management section
 		{

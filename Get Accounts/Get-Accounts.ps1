@@ -184,7 +184,7 @@ If (Test-CommandExists Invoke-RestMethod)
     $caption = "Get accounts"
     $msg = "Enter your User name and Password"; 
     $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($creds -ne $null)
+	if ($null -ne $creds)
 	{
 		$rstusername = $creds.username.Replace('\','');    
 		$rstpassword = $creds.GetNetworkCredential().password
@@ -245,7 +245,7 @@ If (Test-CommandExists Invoke-RestMethod)
 				$nextLink =  $GetAccountsResponse.nextLink
 				Write-Debug $nextLink
 				
-				While ($nextLink -ne "" -and $nextLink -ne $null)
+				While ($nextLink -ne "" -and $null -ne $nextLink)
 				{
 					$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $("$PVWAURL/$nextLink") -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000	
 					$nextLink = $GetAccountsResponse.nextLink
@@ -283,7 +283,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		}
 		If([string]::IsNullOrEmpty($CSVPath))
 		{
-			$output | FT -Autosize
+			$output | Format-Table -Autosize
 		}
 		else
 		{

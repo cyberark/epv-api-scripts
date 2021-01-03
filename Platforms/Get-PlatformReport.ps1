@@ -570,7 +570,7 @@ try{
 			@{Name = 'ChangeEveryXDays'; Expression = {$_.CredentialsManagementPolicy.Change.RequirePasswordEveryXDays}},`
 			@{Name = 'PeriodicReconcile'; Expression = {$_.CredentialsManagementPolicy.Reconcile.PerformAutomatic}},`
 			@{Name = 'ReconcileEveryXDays'; Expression = {$_.CredentialsManagementPolicy.Reconcile.RequirePasswordEveryXDays}},`
-			@{Name = 'PSMConnectors'; Expression = { ($_.PrivilegedSessionManagement.PSMConnectors | Where { $_.Enabled }).PSMConnectorID  -join ';' }}
+			@{Name = 'PSMConnectors'; Expression = { ($_.PrivilegedSessionManagement.PSMConnectors | Where-Object { $_.Enabled }).PSMConnectorID  -join ';' }}
 		)
 		If($ExtendedReport)
 		{
@@ -586,7 +586,7 @@ try{
 		
 		If([string]::IsNullOrEmpty($CSVPath))
 		{
-			$output | FT -Autosize
+			$output | Format-Table -Autosize
 		}
 		else
 		{
