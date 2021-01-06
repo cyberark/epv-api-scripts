@@ -1048,7 +1048,7 @@ If (Test-CommandExists Invoke-RestMethod)
 						ElseIf($Delete)
 						{
 							Write-LogMessage -Type Info -Msg "Deleting safe $($line.safename)..."
-							Delete-Safe @parameters
+							Delete-Safe -safename $parameters.safeName
 						}
 						
 						If($Delete -eq $False)
@@ -1106,7 +1106,7 @@ If (Test-CommandExists Invoke-RestMethod)
 					{
 						# Deleting one Safe
 						Write-LogMessage -Type Info -Msg "Deleting the safe $SafeName..."
-						Delete-Safe @parameters
+						Delete-Safe -safename $parameters.safeName
 					}
 				}			
 			}catch{
