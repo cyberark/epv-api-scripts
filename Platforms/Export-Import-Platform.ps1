@@ -138,11 +138,11 @@ Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
 				$zipContent = [System.IO.File]::ReadAllBytes($(Resolve-Path $PlatformZipPath))
 				$importBody = @{ ImportFile=$zipContent; } | ConvertTo-Json -Depth 3 -Compress
 				try{
-					$ImportPlatformResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportPlatforms -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000 -Body $importBody
+					$ImportPlatformResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportPlatforms -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700 -Body $importBody
 					Write-Debug "Platform ID imported: $($ImportPlatformResponse.PlatformID)"
 					Write-Host "Retrieving Platform details"
 					# Get the Platform Name
-					$platformDetails = Invoke-RestMethod -Method Get -Uri $($URL_PlatformDetails -f $ImportPlatformResponse.PlatformID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+					$platformDetails = Invoke-RestMethod -Method Get -Uri $($URL_PlatformDetails -f $ImportPlatformResponse.PlatformID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 					If($platformDetails)
 					{
 						Write-Debug $platformDetails
@@ -161,7 +161,7 @@ Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
 		{
 			try{
 				$exportURL = $URL_ExportPlatforms -f $PlatformID
-				Invoke-RestMethod -Method POST -Uri $exportURL -Headers $logonHeader -ContentType "application/zip" -TimeoutSec 3600000 -OutFile $PlatformZipPath 
+				Invoke-RestMethod -Method POST -Uri $exportURL -Headers $logonHeader -ContentType "application/zip" -TimeoutSec 2700 -OutFile $PlatformZipPath 
 			} catch {
 				Write-Error $_.Exception.Response
 				Write-Error $_.Exception.Response.StatusDescription
