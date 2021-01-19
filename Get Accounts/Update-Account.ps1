@@ -145,7 +145,7 @@ If (Test-CommandExists Invoke-RestMethod)
 	$response = ""
 	if($AccountID -ne "")
 	{
-		$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+		$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 		$response = $GetAccountDetailsResponse
 		if ($([string]::IsNullOrEmpty($GetAccountDetailsResponse.platformAccountProperties)))
 		{
@@ -295,7 +295,7 @@ If (Test-CommandExists Invoke-RestMethod)
 	$arrPropertiesBody | Select-Object @{Name='Property'; Expression={"{0} = {1}" -f $_.path, $_.value}}
 	
 	try{
-		$UpdateAccountDetailsResponse = Invoke-RestMethod -Method Patch -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -Body $body -ContentType "application/json" -TimeoutSec 3600000
+		$UpdateAccountDetailsResponse = Invoke-RestMethod -Method Patch -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -Body $body -ContentType "application/json" -TimeoutSec 2700
 		$response = $UpdateAccountDetailsResponse
 	} catch {
 		Write-Error $_.Exception.Response.StatusDescription

@@ -196,7 +196,7 @@ ForEach($connCompItem in $arrConCompToImport)
 	{
 		$importBody = @{ ImportFile=$(Get-ZipContent $connCompItem); } | ConvertTo-Json -Depth 3 -Compress
 		try{
-			$ImportCCResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportConnectionComponent -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000 -Body $importBody
+			$ImportCCResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportConnectionComponent -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700 -Body $importBody
 			$connectionComponentID = ($ImportCCResponse.ConnectionComponentID)
 			Write-Host "Connection Component ID imported: $connectionComponentID"
 		} catch {
