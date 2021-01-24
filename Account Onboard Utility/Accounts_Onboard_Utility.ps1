@@ -68,7 +68,7 @@ param
 $ScriptFullPath = $MyInvocation.MyCommand.Path
 $ScriptLocation = Split-Path -Parent $ScriptFullPath
 $ScriptParameters = @()
-$PSBoundParameters.GetEnumerator() | % { $ScriptParameters += ("-{0} '{1}'" -f $_.Key, $_.Value) }
+$PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0} '{1}'" -f $_.Key, $_.Value) }
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
@@ -538,13 +538,13 @@ Function Invoke-Rest
 	try{
 		if([string]::IsNullOrEmpty($Body))
 		{
-			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000 -ErrorAction $ErrAction
+			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700 -ErrorAction $ErrAction
 		}
 		else
 		{
-			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000 -ErrorAction $ErrAction
+			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
 		}
 	} catch [System.Net.WebException] {
 		if($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")){
@@ -900,17 +900,24 @@ Function Get-Account
 	$GetAccountsList = @()
 
 	try{
-		$urlSearchAccount = $URL_Accounts+"?filter=safename eq $(Encode-URL $safeName)&search=$(Encode-URL $accountName) $(Encode-URL $accountAddress)"
+		# Create a dynamic filter array
+		$WhereArray = @()
+		# Search only by Account Object Name
+		If(-not [string]::IsNullOrEmpty($accountObjectName)) {
+			$urlSearchAccount = $URL_Accounts+"?filter=safename eq $(Encode-URL $safeName)"
+			 $WhereArray += '$_.name -eq $accountObjectName' 
+		}
+		# Search according to other parameters (User name, address, platform)
+		else {
+			$urlSearchAccount = $URL_Accounts+"?filter=safename eq $(Encode-URL $safeName)&search=$(Encode-URL $accountName) $(Encode-URL $accountAddress)"
+			If(-not [string]::IsNullOrEmpty($accountName)) { $WhereArray += '$_.userName -eq $accountName' }
+			If(-not [string]::IsNullOrEmpty($accountAddress)) { $WhereArray += '$_.address -eq $accountAddress' }
+			If(-not [string]::IsNullOrEmpty($accountPlatformID)) { $WhereArray += '$_.platformId -eq $accountPlatformID' }
+		}
 		# Search for created account
 		$GetAccountsList = $(Invoke-Rest -Uri $urlSearchAccount -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction).value
 		Log-Msg -Type Debug -MSG "Found $($GetAccountsList.count) accounts, filtering based on account properties..."
 		
-		# Create a dynamic filter array
-		$WhereArray = @()
-		If(-not [string]::IsNullOrEmpty($accountName)) { $WhereArray += '$_.userName -eq $accountName' }
-		If(-not [string]::IsNullOrEmpty($accountAddress)) { $WhereArray += '$_.address -eq $accountAddress' }
-		If(-not [string]::IsNullOrEmpty($accountPlatformID)) { $WhereArray += '$_.platformId -eq $accountPlatformID' }
-		If(-not [string]::IsNullOrEmpty($accountObjectName)) { $WhereArray += '$_.name -eq $accountObjectName' }
 		# Filter Accounts based on input properties
 		$WhereFilter = [scriptblock]::Create( ($WhereArray -join " -and ") )
 		$_retaccount = ( $GetAccountsList | Where-Object $WhereFilter )
@@ -1291,7 +1298,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding Accounts" 
 								$s_AccountBody = @()
 								$s_ExcludeProperties = @("id", "secret", "lastModifiedTime", "createdTime", "categoryModificationTime")
 								# Check for existing properties needed update
-								Foreach($sProp in $s_Account.PSObject.Properties)
+								Foreach($sProp in ($s_Account.PSObject.Properties | Where-Object { $_.Name -notin $s_ExcludeProperties }))
 								{
 									Log-Msg -Type Verbose -MSG "Inspecting Account Property $($sProp.Name)"
 									$s_ExcludeProperties += $sProp.Name
