@@ -3,7 +3,7 @@
 > - The goal for these scripts is to allow easy Export and Import of applications including application authentications
 > - In this example script you will find examples of Get applications, get speciifc applications authentication methods and creating applications with thier authentication methods
 
-# Export/Import Appliations
+# Export/Import Applications
 In order to run the tool you need to run some simple commands in Powershell.
 The Tool supports two modes: [*Import*](#import-command) and [*Export*](#export-command)
 The export will be done to a CSV file that will contain all information, the import would know to create the applications from the same CSV file.
