@@ -5,7 +5,7 @@ In this example script you will find examples of concurrent sessions and bulk on
 
 ## Usage
 ```powershell
-Create-PersonalPrivilgedAccounts.ps1 -PVWAURL <string> -CSVPath <string> [-AuthType <cyberark,ldap,radius>] [-OTP <string>] [-SafeTemplate <string>] [-DisableSSLVerify] [<CommonParameters>]
+Create-PersonalPrivilgedAccounts.ps1 -PVWAURL <string> -CSVPath <string> [-AuthType <cyberark,ldap,radius>] [-OTP <string>] [-SafeNamePattern <string>] [-PlatformID <string>] [-DisableSSLVerify] [<CommonParameters>]
 ```
 
 ## API refrence
@@ -29,46 +29,78 @@ Create-PersonalPrivilgedAccounts.ps1 -PVWAURL <string> -CSVPath <string> [-AuthT
 	- In cases where RADIUS authentication is used and one-time-password is needed, use this parameter to enter the OTP value
 - CsvPath
 	- The CSV Path for the accounts to be onboarded
-- SafeTemplate
+- SafeNamePattern
     - A string representing the template to create the personal safes in.
     - Use an asterix ('*') to decide the place holder of the user name
     - You can use only *one* asterix in the template
+	- Default value: _"*_ADM"_
+- PlatformID
+	- The platform ID
+	- Default value: _"WindDomain"_
 
 ## Examples
 
-### Example 1
+### Example 1 - basic scenario
 Admin wants to create a personal safe for 2 users, each safe will include a single privileged account
 
 CSV example (privAccounts.csv):
-|UserName|SafeName|AccountUser|AccountAddress|AccountPlatform|
-|--------|--------|-----------|--------------|---------------|
-|User1|User1|User1_ADM|myDomain.com|WinDomainPrivileged|
-|User2|User2|User2_ADM|myDomain.com|WinDomainPrivileged|
+|UserName|SafeName|AccountUser|AccountAddress|AccountPlatform|Password|
+|--------|--------|-----------|--------------|---------------|--------|
+|User1|User1|User1_ADM|myDomain.com|WinDomainPrivileged|Ch4ng3Me!|
+|User2|User2|User2_ADM|myDomain.com|WinDomainPrivileged|Ch4ng3Me!|
 
 The command would be:
 ```powershell
 Create-PersonalPrivilgedAccounts.ps1 "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\privAccounts.csv
 ```
 
-### Example 2
+### Example 2 - different safe pattern name
 Admin wants to create a personal safe for 2 users, each safe will include a single privileged account
+Using default Platform ID (WinDomain)
 Safes will follow a template of "<user name>_ADM"
 
 CSV example (privAccounts.csv):
-|UserName|AccountUser|AccountAddress|AccountPlatform|
-|--------|-----------|--------------|---------------|
-|User1|User1_ADM|myDomain.com|WinDomainPrivileged|
-|User2|User2_ADM|myDomain.com|WinDomainPrivileged|
+|UserName|AccountUser|AccountAddress|Password|
+|--------|-----------|--------------|--------|
+|User1|User1_ADM|myDomain.com|Ch4ng3Me!|
+|User2|User2_ADM|myDomain.com|Ch4ng3Me!|
 
 The command would be:
 ```powershell
-Create-PersonalPrivilgedAccounts.ps1 "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\privAccounts.csv -SafeTemplate "*_ADM"
+Create-PersonalPrivilgedAccounts.ps1 "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\privAccounts.csv -SafeNamePattern "*_ADM"
 ```
 
 If we want the same thing with a different safe template of "Priv_<user name>"
 The command would be:
 ```powershell
-Create-PersonalPrivilgedAccounts.ps1 "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\privAccounts.csv -SafeTemplate "Priv_*"
+Create-PersonalPrivilgedAccounts.ps1 "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\privAccounts.csv -SafeNamePattern "Priv_*"
+```
+
+### Example 3 - custom properties
+Admin wants to create a personal safe for 2 users, each safe will include a single privileged account
+For each account we want to add a custom property called Owner
+Safes will follow a template of "<user name>_ADM"
+
+CSV example (privAccounts.csv):
+|UserName|AccountUser|AccountAddress|Password|Owner|
+|--------|-----------|--------------|--------|-----|
+|User1|User1_ADM|myDomain.com|Ch4ng3Me!|User 1|
+|User2|User2_ADM|myDomain.com|Ch4ng3Me!|User 2|
+
+The command would be:
+```powershell
+Create-PersonalPrivilgedAccounts.ps1 "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\privAccounts.csv -SafeNamePattern "*_ADM"
+```
+
+If we want to exclude CPM management of accounts we can use the following CSV example (privAccounts.csv)
+|UserName|AccountUser|AccountAddress|Password|Owner|enableAutoMgmt|manualMgmtReason|
+|--------|-----------|--------------|--------|-----|--------------|----------------|
+|User1|User1_ADM|myDomain.com|Ch4ng3Me!|User 1|True||
+|User2|User2_ADM|myDomain.com|Ch4ng3Me!|User 2|False|No change|
+
+The command would be:
+```powershell
+Create-PersonalPrivilgedAccounts.ps1 "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\privAccounts.csv -SafeNamePattern "*_ADM"
 ```
 
 ## Supported version
