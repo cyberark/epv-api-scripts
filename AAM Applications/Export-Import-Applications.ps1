@@ -666,7 +666,7 @@ switch($PsCmdlet.ParameterSetName)
                     try{
                         # Get the application authentication methods
                         Write-LogMessage -Type Verbose -MSG "Getting application '$($app.AppID)' authentication methods"
-                        $appAuthMethods = Invoke-Rest -Command Get -URI $(Convertto-URL ($URL_ApplicationAuthMethod -f $app.AppID)) -Header (Get-LogonHeader -Credentials $creds -useRadius $radius)
+                        $appAuthMethods = Invoke-Rest -Command Get -URI $($URL_ApplicationAuthMethod -f $(Convertto-URL $app.AppID)) -Header (Get-LogonHeader -Credentials $creds -useRadius $radius)
                     } catch {
                         Write-LogMessage -Type Error -Msg "Error getting application '$($app.AppID)' authentication methods. Error: $(Join-ExceptionMessage $_.Exception)"
                     }
@@ -685,7 +685,7 @@ switch($PsCmdlet.ParameterSetName)
                 }
                 # Exporting Applications to CSV
                 Write-LogMessage -type Info -MSG "Exporting applications to CSV file..."
-                $arrApps | Export-Csv -NoClobber -NoTypeInformation -Encoding ASCII
+                $arrApps | Export-Csv -NoClobber -NoTypeInformation -Encoding ASCII -Path $CSVPath
             }
         } catch {
             Write-LogMessage -Type Error -Msg "Error exporting applications. Error: $(Join-ExceptionMessage $_.Exception)"
