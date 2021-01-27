@@ -308,13 +308,15 @@ Function TryConvertTo-Bool
 Function Convert-ObjectToString
 {
     param(
-        $Object
+        [PSCustomObject]$Object
     )
     $retString = [string]::Empty
     If($null -ne $Object)
     {
-        $retString += "{"
-        $retString += $Object.GetEnumerator() | ForEach-Object { "{0}={1}," -f $_.Name,$_.Value }
+		$retString += "{"
+		$arrItems = @()
+		$arrItems += $Object.PSObject.Properties | ForEach-Object { "{0}={1}" -f $_.Name,$_.Value }
+        $retString += $arrItems -join ','
         $retString += "}"
     }
 
@@ -645,6 +647,18 @@ switch($PsCmdlet.ParameterSetName)
     }
     "Export"
     {
+		# Check if the CSV File exists already
+		If(Test-Path $CSVPath)
+		{
+			try{
+				Write-Warning -WarningAction Inquire -Message "CSV file ($CSVPath) already exist, Continue to overwrite or Halt to enter a new CSV path"
+				# User confirmed to overwrite - delete the exting file
+				Remove-Item $CSVPath
+			} catch {
+				# User chose to Halt
+				return
+			}
+		}
         try{
             $arrApps = @()
             if([string]::IsNullOrEmpty($AppID))
@@ -685,7 +699,7 @@ switch($PsCmdlet.ParameterSetName)
                 }
                 # Exporting Applications to CSV
                 Write-LogMessage -type Info -MSG "Exporting applications to CSV file..."
-                $arrApps | Export-Csv -NoClobber -NoTypeInformation -Encoding ASCII -Path $CSVPath
+                $arrApps | Export-Csv -NoClobber -NoTypeInformation -Encoding ASCII -Path $CSVPath -Force
             }
         } catch {
             Write-LogMessage -Type Error -Msg "Error exporting applications. Error: $(Join-ExceptionMessage $_.Exception)"
