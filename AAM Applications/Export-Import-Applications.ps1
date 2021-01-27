@@ -340,12 +340,48 @@ Function Convert-StringToObject
         $escapedString = $String.Replace('{',"").Replace('}',"")
         ForEach($item in $escapedString.Split(','))
         {
+			# Skip authID parameter
             $KeyValue = $item.Split('=')
-            $retObject | Add-Member -NotePropertyName $KeyValue[0].Trim() -NotePropertyValue $(TryConvertTo-Bool -txt $KeyValue[1].Trim())
+			If($KeyValue[0].Trim() -ne "authID"){
+				# Skip empty values
+				If(![string]::IsNullOrEmpty($KeyValue[1]))
+				{
+					$retObject | Add-Member -NotePropertyName $KeyValue[0].Trim() -NotePropertyValue $(TryConvertTo-Bool -txt $KeyValue[1].Trim())
+				}
+			}
         }
-    }
+	}
+	return $retObject
 }
 
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Get-TrimmedString
+# Description....: Returns the trimmed text from a string
+# Parameters.....: Text
+# Return Values..: Trimmed text
+# =================================================================================================================================
+Function Get-TrimmedString
+{
+<# 
+.SYNOPSIS 
+	Returns the trimmed text from a string
+.DESCRIPTION
+	Returns the trimmed text from a string
+.PARAMETER txt
+	The text to handle
+#>
+	param(
+		[string]$sText
+	)
+
+	if ([string]::IsNullOrEmpty($sText)) {
+		return $null
+	}
+	else
+	{
+		return $sText.Trim()
+	}
+}
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Disable-SSLVerification
 # Description....: Disables the SSL Verification (bypass self signed SSL certificates)
@@ -439,10 +475,16 @@ Function Invoke-Rest
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700
 		}
 	} catch [System.Net.WebException] {
-		Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)" -ErrorAction $ErrAction
-		Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
-		Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)" -ErrorAction $ErrAction
 		$restResponse = $null
+        if($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")){
+			Write-LogMessage -Type Error -Msg "Error Message: $_"
+			Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
+			Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
+			Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
+        }
+        else {
+            Throw $_.Exception.Message
+        }
 	} catch { 
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'",$_.Exception))
 	}
@@ -608,14 +650,14 @@ switch($PsCmdlet.ParameterSetName)
                                 "AppID"=$app.AppID;
                                 "Description"=$app.Description;
                                 "Location"=$app.Location;
-                                "AccessPermittedFrom"=$app.AccessPermittedFrom;
-                                "AccessPermittedTo"=$app.AccessPermittedTo;
-                                "ExpirationDate"=$app.ExpirationDate
-                                "Disabled"=$app.Disabled;
-                                "BusinessOwnerFName"=$app.BusinessOwnerFName;
-                                "BusinessOwnerLName"=$app.BusinessOwnerLName;
-                                "BusinessOwnerEmail"=$app.BusinessOwnerEmail;
-                                "BusinessOwnerPhone"=$app.BusinessOwnerPhone;
+                                "AccessPermittedFrom"=[int]::Parse($app.AccessPermittedFrom);
+                                "AccessPermittedTo"=[int]::Parse($app.AccessPermittedTo);
+                                "ExpirationDate"=(Get-TrimmedString $app.ExpirationDate);
+                                "Disabled"=(TryConvertTo-Bool $app.Disabled);
+                                "BusinessOwnerFName"=(Get-TrimmedString $app.BusinessOwnerFName);
+                                "BusinessOwnerLName"=(Get-TrimmedString $app.BusinessOwnerLName);
+                                "BusinessOwnerEmail"=(Get-TrimmedString $app.BusinessOwnerEmail);
+                                "BusinessOwnerPhone"=(Get-TrimmedString $app.BusinessOwnerPhone);
                               }
                         }
                         $newApp = (Invoke-Rest -Command POST -URI $URL_Applications -Body $($appBody | ConvertTo-Json) -Header $(Get-LogonHeader -Credentials $creds -useRadius $radius))
@@ -625,15 +667,19 @@ switch($PsCmdlet.ParameterSetName)
                             $arrAuths = $app.Authentications -split ';'
                             ForEach($auth in $arrAuths)
                             {
-                                $authBody = @{
-                                    "authentication"=$(Convert-StringToObject -String $auth)
-                                }
-                                Write-LogMessage -Type Verbose -MSG "Adding '$($authBody.authentication.AuthType)' authentication method to '$($app.AddID)'"
-                                $newAuth = (Invoke-Rest -Command POST -URI ($URL_ApplicationAuthMethod -f $app.AppID) -Body $($authBody | ConvertTo-Json) -Header $(Get-LogonHeader -Credentials $creds -useRadius $radius))
-                                If($null -eq $newAuth)
-                                {
-                                    Write-LogMessage -Type Error -Msg "Error adding new authentication method to application'$($app.AppID)'. Error: $(Join-ExceptionMessage $_.Exception)"
-                                }
+								try{
+									$authBody = @{
+										"authentication"=$(Convert-StringToObject -String $auth)
+									}
+									Write-LogMessage -Type Verbose -MSG "Adding '$($authBody.authentication.AuthType)' authentication method to '$($app.AppID)'"
+									$newAuth = (Invoke-Rest -Command POST -URI ($URL_ApplicationAuthMethod -f $app.AppID) -Body $($authBody | ConvertTo-Json) -Header $(Get-LogonHeader -Credentials $creds -useRadius $radius))
+									If($null -eq $newAuth)
+									{
+										Write-LogMessage -Type Error -Msg "Error adding new authentication method to application'$($app.AppID)'"
+									}
+								} catch {
+									Write-LogMessage -Type Error -Msg "Error adding new authentication method to application'$($app.AppID)'. Error: $(Join-ExceptionMessage $_.Exception)"
+								}
                             }
                         }
                     } catch {
