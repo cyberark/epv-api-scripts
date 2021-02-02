@@ -60,7 +60,7 @@ param
 	
 	# Use this switch to disable Safes creation
 	[Parameter(ParameterSetName='Create',Mandatory=$false)]
-	[Parameter(ParameterSetName='Update')]
+	[Parameter(ParameterSetName='Update',Mandatory=$false)]
 	[Switch]$NoSafeCreation
 )
 
