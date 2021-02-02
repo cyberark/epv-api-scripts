@@ -14,7 +14,7 @@
 # 1.0 05/07/2018 - Initial release
 #
 ###########################################################################
-
+[CmdletBinding(DefaultParametersetName="")]
 param
 (
 	[Parameter(Mandatory=$true,HelpMessage="Please enter your PVWA address (For example: https://pvwa.mydomain.com/PasswordVault)")]
@@ -27,18 +27,32 @@ param
 	[String]$AuthType="cyberark",	
 	
 	# Use this switch to Import a Platform
-	[Parameter(ParameterSetName='Import',Mandatory=$true)][switch]$Import,
+	[Parameter(ParameterSetName='BulkImport',Mandatory=$true)]
+	[Parameter(ParameterSetName='BulkExport',Mandatory=$true)]
+	[switch]$Bulk,
+	# Use this switch to Import a Platform
+	[Parameter(ParameterSetName='SingleImport',Mandatory=$true)]
+	[Parameter(ParameterSetName='BulkImport',Mandatory=$true)]
+	[switch]$Import,
 	# Use this switch to Export a Platform
-	[Parameter(ParameterSetName='Export',Mandatory=$true)][switch]$Export,
+	[Parameter(ParameterSetName='SingleExport',Mandatory=$true)]
+	[Parameter(ParameterSetName='BulkExport',Mandatory=$true)]
+	[switch]$Export,
 	
-	[Parameter(ParameterSetName='Export',Mandatory=$true,HelpMessage="Enter the platform ID to export")]
+	[Parameter(ParameterSetName='SingleExport',Mandatory=$true,HelpMessage="Enter the platform ID to export")]
 	[Alias("id")]
 	[string]$PlatformID,
 	
-	[Parameter(ParameterSetName='Import',Mandatory=$true,HelpMessage="Enter the platform Zip path for import")]
-	[Parameter(ParameterSetName='Export',Mandatory=$true,HelpMessage="Enter the platform Zip path to export")]
+	[Parameter(ParameterSetName='SingleImport',Mandatory=$true,HelpMessage="Enter the platform Zip path for import")]
+	[Parameter(ParameterSetName='SingleExport',Mandatory=$true,HelpMessage="Enter the platform Zip path to export")]
 	[Alias("path")]
-	[string]$PlatformZipPath
+	[string]$PlatformZipPath,
+
+	[Parameter(ParameterSetName='BulkImport',Mandatory=$true,HelpMessage="Enter the platforms CSV path for import")]
+	[Parameter(ParameterSetName='BulkExport',Mandatory=$true,HelpMessage="Enter the platforms CSV path for export")]
+	[ValidateNotNullOrEmpty()]
+	[Alias("csv")]
+	[string]$CSVPath
 )
 
 # Global URLS
@@ -129,42 +143,64 @@ Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
     $logonHeader.Add("Authorization", $logonToken)
 #endregion
 
+	If($Bulk)
+	{
+		If(Test-Path $CSVPath)
+		{
+			# Using Bulk Import / Export
+			$platformsList = Import-Csv -Path $CSVPath
+		}
+		else {
+			Write-Error "CSV not found in path '$CSVPath'"
+		}
+	}
+	else {
+		# Using single Import / Export
+		$platformsList = @{ZipPath = $PlatformZipPath; ID = $PlatformID}
+	}
+
 	switch($PsCmdlet.ParameterSetName)
 	{
 		"Import"
 		{
-			If (Test-Path $PlatformZipPath)
+			ForEach($item in $platformsList)
 			{
-				$zipContent = [System.IO.File]::ReadAllBytes($(Resolve-Path $PlatformZipPath))
-				$importBody = @{ ImportFile=$zipContent; } | ConvertTo-Json -Depth 3 -Compress
-				try{
-					$ImportPlatformResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportPlatforms -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000 -Body $importBody
-					Write-Debug "Platform ID imported: $($ImportPlatformResponse.PlatformID)"
-					Write-Host "Retrieving Platform details"
-					# Get the Platform Name
-					$platformDetails = Invoke-RestMethod -Method Get -Uri $($URL_PlatformDetails -f $ImportPlatformResponse.PlatformID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
-					If($platformDetails)
-					{
-						Write-Debug $platformDetails
-						Write-Host "$($platformDetails.Details.PolicyName) (ID: $($platformDetails.PlatformID)) was successfully imported and $(if($platformDetails.Active) { "Activated" } else { "Inactive" })"
-						Write-Host "Platform details:" 
-						$platformDetails.Details | select PolicyID, AllowedSafes, AllowManualChange, PerformPeriodicChange, @{Name = 'AllowManualVerification'; Expression = { $_.VFAllowManualVerification}}, @{Name = 'PerformPeriodicVerification'; Expression = { $_.VFPerformPeriodicVerification}}, @{Name = 'AllowManualReconciliation'; Expression = { $_.RCAllowManualReconciliation}}, @{Name = 'PerformAutoReconcileWhenUnsynced'; Expression = { $_.RCAutomaticReconcileWhenUnsynched}}, PasswordLength, MinUpperCase, MinLowerCase, MinDigit, MinSpecial 
-					}		
-				} catch {
-					#Write-Error $_.Exception
-					Write-Error $_.Exception.Response
-					Write-Error $_.Exception.Response.StatusDescription
+				If(Test-Path $item.ZipPath)
+				{
+					$zipContent = [System.IO.File]::ReadAllBytes($(Resolve-Path $item.ZipPath))
+					$importBody = @{ ImportFile=$zipContent; } | ConvertTo-Json -Depth 3 -Compress
+					try{
+						$ImportPlatformResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportPlatforms -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000 -Body $importBody
+						Write-Debug "Platform ID imported: $($ImportPlatformResponse.PlatformID)"
+						Write-Host "Retrieving Platform details"
+						# Get the Platform Name
+						$platformDetails = Invoke-RestMethod -Method Get -Uri $($URL_PlatformDetails -f $ImportPlatformResponse.PlatformID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+						If($platformDetails)
+						{
+							Write-Debug $platformDetails
+							Write-Host "$($platformDetails.Details.PolicyName) (ID: $($platformDetails.PlatformID)) was successfully imported and $(if($platformDetails.Active) { "Activated" } else { "Inactive" })"
+							Write-Host "Platform details:" 
+							$platformDetails.Details | select PolicyID, AllowedSafes, AllowManualChange, PerformPeriodicChange, @{Name = 'AllowManualVerification'; Expression = { $_.VFAllowManualVerification}}, @{Name = 'PerformPeriodicVerification'; Expression = { $_.VFPerformPeriodicVerification}}, @{Name = 'AllowManualReconciliation'; Expression = { $_.RCAllowManualReconciliation}}, @{Name = 'PerformAutoReconcileWhenUnsynced'; Expression = { $_.RCAutomaticReconcileWhenUnsynched}}, PasswordLength, MinUpperCase, MinLowerCase, MinDigit, MinSpecial 
+						}		
+					} catch {
+						#Write-Error $_.Exception
+						Write-Error $_.Exception.Response
+						Write-Error $_.Exception.Response.StatusDescription
+					}
 				}
 			}
 		}
 		"Export"
 		{
-			try{
-				$exportURL = $URL_ExportPlatforms -f $PlatformID
-				Invoke-RestMethod -Method POST -Uri $exportURL -Headers $logonHeader -ContentType "application/zip" -TimeoutSec 3600000 -OutFile $PlatformZipPath 
-			} catch {
-				Write-Error $_.Exception.Response
-				Write-Error $_.Exception.Response.StatusDescription
+			ForEach($item in $platformsList)
+			{
+				try{
+					$exportURL = $URL_ExportPlatforms -f $item.ID
+					Invoke-RestMethod -Method POST -Uri $exportURL -Headers $logonHeader -ContentType "application/zip" -TimeoutSec 3600000 -OutFile $item.ZipPath 
+				} catch {
+					Write-Error $_.Exception.Response
+					Write-Error $_.Exception.Response.StatusDescription
+				}
 			}
 		}
 	}
@@ -178,4 +214,4 @@ else
     Write-Error "This script requires PowerShell version 3 or above"
 }
 
-Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
+Write-Host "Export / Import Platform: Script Ended" -ForegroundColor Cyan
