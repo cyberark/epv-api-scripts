@@ -5,12 +5,21 @@ Main capabilities
 -----------------
 - The tool Uses REST API and can support v9.8 of PVWA and up
 - The tool supports listing of Safes, Adding new safes and adding new members to safes
-- The tool can take a simple CSV file with safe details and for creation (supported by the Add switch)
+- The tool can take a simple CSV file with safe details or members to add or update them
 - The tool can support comma delimited CSV files (default) or tab delimited CSV files
 
 In order to run the tool you need to run some simple commands in Powershell.
-The Tool supports four modes: [*List*](#list-command), [*Add*](#add-command), [*Update*](#update-command), [*Delete*](#delete-command) and [*Members*](#members-command)
 
+The Tool supports four modes for managing the safes: [*List*](#list-command), [*Add*](#add-command), [*Update*](#update-command), [*Delete*](#delete-command) 
+
+The Tool supports three modes for managing safes Members: [*Members*](#members-command), [*UpdateMembers*](#update-members-command), [*DeleteMembers*](#delete-members-command)
+
+## Authentication
+The script by default supports CyberArk authentication.
+In order to allow also LDAP authentication to the script, make sure the [*SmartLogonEnabled*](https://docs.cyberark.com/Product-Doc/Onlinehelp/PAS/latest/en/Content/PASIMP/General-PVWA-Configurations.htm) parameter in the PVWA configuration is set to *YES* and then simply run the script with your LDAP credentials (no changes required to the script).
+
+
+## Safe Management
 
 ### List Command:
 ```powershell
@@ -88,9 +97,11 @@ If you want to Delete a list of safes from a file:
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Delete -FilePath "C:\Temp\safes-sample.csv"
 ```
 
+## Safe Members Management
+
 ### Members Command:
 ```powershell
-Safe-Management.ps1 -PVWAURL <string> -Members -SafeName <string> [-UserName <string>] [-MemberRole <"Admin", "Auditor", "EndUser", "Owner">] [-UserLocation <string>] [<CommonParameters>]
+Safe-Management.ps1 -PVWAURL <string> -Members -SafeName <string> [-UserName <string>] [-MemberRole <"Admin", "Auditor", "EndUser", "Owner", "Approver">] [-UserLocation <string>] [<CommonParameters>]
 ```
 
 If you want to list all members of the safe 'MySafe':
@@ -106,4 +117,24 @@ If you want to add a new End User (default role) member to the safe 'MySafe':
 If you want to add a new Auditor member from LDAP to the safe 'MySafe':
 ```powershell
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Members -SafeName "MySafe" -UserName "MyAuditUser" -MemberRole "Auditor" -UserLocation "MyLDAPDomain.com"
+```
+
+### Update Members Command:
+```powershell
+Safe-Management.ps1 -PVWAURL <string> -UpdateMembers [-FilePath <string>] [<CommonParameters>]
+```
+
+If you want to Update a list of members from a file:
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -UpdateMembers -FilePath "C:\Temp\safe-members-sample.csv"
+```
+
+### Delete Members Command:
+```powershell
+Safe-Management.ps1 -PVWAURL <string> -DeleteMembers [-FilePath <string>] [<CommonParameters>]
+```
+
+If you want to Update a list of members from a file:
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -DeleteMembers -FilePath "C:\Temp\safe-members-sample.csv"
 ```

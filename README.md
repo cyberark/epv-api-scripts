@@ -19,6 +19,9 @@ Additional solutions for mitigating risk can be found in the [CyberArk Marketpla
 Contributors to the Marketplace include strategic partners, customers, and over 130 leading security solution providers that are members of the CyberArk [C<sup>3</sup> Alliance](https://www.cyberark.com/partners/alliance-partners/).  The C<sup>3</sup> Alliance offers more than 225 certified out-of-the-box integrations to help protect customer environments against pervasive threats and emerging attacks.
 CyberArk Marketplace users can find effective solutions for mitigating emerging risks, build upon existing integrations to develop customized solutions, and collaborate with other contributors to address evolving security challenges. CyberArk Marketplace is an industry destination for collaboration and identifying integrated solutions that advance privileged access management.
 
+# Contributing
+Please see our [`CONTRIBUTING`](CONTRIBUTING.md) for more details.
+
 # License
 
 This repository is licensed under Apache License 2.0 - see [`LICENSE`](LICENSE) for more details.

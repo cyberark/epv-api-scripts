@@ -1,25 +1,25 @@
 ###########################################################################
 #
-# NAME: Get Inactive Users Report
+# NAME: Get Platforms Report
 #
 # AUTHOR:  Assaf Miron
 #
 # COMMENT: 
-# This script will create a report for all users that were not active 
-# according to a selected timeframe
+# This script will Create a report of all active platforms and their connection components
 #
 # SUPPORTED VERSIONS:
-# CyberArk PVWA v11.1 and above
-# For version v10.9 and v10.10 this script can report on all users without the filter of inactive
+# CyberArk PVWA v11.6 and above
+#
 #
 ###########################################################################
+
 param
 (
 	[Parameter(Mandatory=$true,HelpMessage="Please enter your PVWA address (For example: https://pvwa.mydomain.com/PasswordVault)")]
-	#[ValidateScript({If($DisableSSLVerify) { Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30}})]
+	#[ValidateScript({Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30})]
 	[Alias("url")]
 	[String]$PVWAURL,
-
+	
 	[Parameter(Mandatory=$false,HelpMessage="Enter the Authentication type (Default:CyberArk)")]
 	[ValidateSet("cyberark","ldap","radius")]
 	[String]$AuthType="cyberark",
@@ -28,10 +28,9 @@ param
 	[Parameter(Mandatory=$false)]
 	[Switch]$DisableSSLVerify,
 	
-	# Inactive Days filter
-	[Parameter(Mandatory=$false,HelpMessage="Enter the number of days of inactivity (default: 30 days)")]
-	[Alias("Days")]
-	[int]$InactiveDays=30,
+	# Use this switch to get an extended report
+	[Parameter(Mandatory=$false)]
+	[Switch]$ExtendedReport,
 	
 	[Parameter(Mandatory=$false,HelpMessage="Path to a CSV file to export data to")]
 	[Alias("path")]
@@ -40,18 +39,15 @@ param
 
 # Get Script Location 
 $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
-# Get Debug / Verbose parameters for Script
-$global:InDebug = $PSBoundParameters.Debug.IsPresent
-$global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
 $ScriptVersion = "1.0"
 
-# ------ SET global parameters ------
 # Set Log file path
-$global:LOG_FILE_PATH = "$ScriptLocation\InactiveUsersReport.log"
-# Set a global Header Token parameter
-$global:g_LogonHeader = ""
+$LOG_FILE_PATH = "$ScriptLocation\PlatformsReport.log"
+
+$InDebug = $PSBoundParameters.Debug.IsPresent
+$InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Global URLS
 # -----------
@@ -62,8 +58,15 @@ $URL_Logoff = $URL_Authentication+"/Logoff"
 
 # URL Methods
 # -----------
-$URL_Users = $URL_PVWAAPI+"/Users"
-$URL_UserDetails = $URL_PVWAAPI+"/Users/{0}"
+$URL_Platforms = $URL_PVWAAPI+"/Platforms"
+$URL_PlatformDetails = $URL_Platforms+"/{0}"
+$URL_TargetPlatforms = $URL_Platforms+"/Targets"
+$URL_TargetPlatformPSMConnectors = $URL_TargetPlatforms+"/{0}/PrivilegedSessionManagement"
+$URL_PSMConnectors = $URL_PVWAAPI+"/PSM/Connectors"
+
+# Initialize Script Variables
+# ---------------------------
+$global:g_LogonHeader = ""
 
 #region Writer Functions
 # @FUNCTION@ ======================================================================================================================
@@ -144,7 +147,7 @@ Function Write-LogMessage
 				break
 			}
 			"Warning" {
-				Write-Host $MSG.ToString() -ForegroundColor Yellow
+				Write-Host $MSG.ToString() -ForegroundColor DarkYellow
 				$msgToWrite += "[WARNING]`t$Msg"
 				break
 			}
@@ -234,34 +237,66 @@ Function Test-CommandExists
 .PARAMETER Command
 	The command to test
 #>
-
     Param ($command)
     $oldPreference = $ErrorActionPreference
     $ErrorActionPreference = 'stop'
-    try { if(Get-Command $command){ return $true } }
-    Catch { return $false }
+    try {if(Get-Command $command){RETURN $true}}
+    Catch {Write-Host "$command does not exist"; RETURN $false}
     Finally {$ErrorActionPreference=$oldPreference}
-} 
-
+}
 
 # @FUNCTION@ ======================================================================================================================
-# Name...........: Convert-Date
-# Description....: Return a Date Time from EPOCH Date
-# Parameters.....: EPOCH date
-# Return Values..: Date time
+# Name...........: Encode-URL
+# Description....: HTTP Encode test in URL
+# Parameters.....: Text to encode
+# Return Values..: Encoded HTML URL text
 # =================================================================================================================================
-Function Convert-Date($epochdate)
+Function Encode-URL($sText)
 {
 <# 
 .SYNOPSIS 
-	Convert-Date
+	HTTP Encode test in URL
 .DESCRIPTION
-	Return a Date Time from EPOCH Date
-.PARAMETER epochdate
-	The EPOCH date to oonvert
+	HTTP Encode test in URL
+.PARAMETER sText
+	The text to encode
 #>
-	if (($epochdate).length -gt 10 ) {return (Get-Date -Date "01/01/1970").AddMilliseconds($epochdate)}
-	else {return (Get-Date -Date "01/01/1970").AddSeconds($epochdate)}
+	if ($sText.Trim() -ne "")
+	{
+		Log-Msg -Type Debug -Msg "Returning URL Encode of $sText"
+		return [System.Web.HttpUtility]::UrlEncode($sText)
+	}
+	else
+	{
+		return $sText
+	}
+}
+
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Test-PlatformException
+# Description....: Tests if a platform configuration is an exception and return the relevant value
+# Parameters.....: Platform configuration
+# Return Values..: Relevant Platform Value
+# =================================================================================================================================
+Function Test-PlatformException
+{
+<# 
+.SYNOPSIS 
+	Test-PlatformException -Config Platform.RequireDualControlPasswordAccessApproval
+.DESCRIPTION
+	Tests if a platform configuration is an exception and return the relevant value
+.PARAMETER Config
+	The configuration to test
+#>
+    Param ($Config)
+	$retValue = ""
+    If($Config.IsAnException)
+	{
+		$retValue += "*"
+	}
+	$retValue += $Config.IsActive
+	
+	return $retValue
 }
 
 # @FUNCTION@ ======================================================================================================================
@@ -352,13 +387,13 @@ Function Invoke-Rest
 	try{
 		if([string]::IsNullOrEmpty($Body))
 		{
-			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000
+			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700
 		}
 		else
 		{
-			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000
+			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700
 		}
 	} catch [System.Net.WebException] {
 		Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)" -ErrorAction $ErrAction
@@ -400,19 +435,10 @@ Function Get-LogonHeader
 		{
 			Disable-SSLVerification
 		}
-		Else
-		{
-			try{
-				Write-LogMessage -Type Verbose -Msg "Setting script to use TLS 1.2"
-				[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-			} catch {
-				Throw $(New-Object System.Exception ("Get-LogonHeader: Could not change SSL validation", $_.Exception))
-			}
-		}
 		
 		# Create the POST Body for the Logon
 		# ----------------------------------
-		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
+		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
 		try{
 			# Logon
 			$logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
@@ -431,7 +457,8 @@ Function Get-LogonHeader
 		
 		# Create a Logon Token Header (This will be used through out all the script)
 		# ---------------------------
-		$logonHeader = @{Authorization = $logonToken}
+		$logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+		$logonHeader.Add("Authorization", $logonToken)
 		
 		Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
 	}
@@ -456,71 +483,16 @@ Function Run-Logoff
 	try{
 		# Logoff the session
 		# ------------------
-		Write-LogMessage -Type Info -Msg "Logoff Session..."
-		Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader | out-null
-		Set-Variable -Name g_LogonHeader -Value $null -Scope global
+		If($null -ne $g_LogonHeader)
+		{
+			Write-LogMessage -Type Info -Msg "Logoff Session..."
+			Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader
+			Set-Variable -Name g_LogonHeader -Value $null -Scope global
+		}
 	} catch {
 		Throw $(New-Object System.Exception ("Run-Logoff: Failed to logoff session",$_.Exception))
 	}
 }
-
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Get-InactiveUsers
-# Description....: Return the Inactive users according to num of days
-# Parameters.....: Users list
-# Return Values..: List of inactive users
-# =================================================================================================================================
-Function Get-InactiveUsers
-{
-<# 
-.SYNOPSIS 
-	Get-InactiveUsers -Users $userList
-.DESCRIPTION
-	Return the Inactive users according to num of days
-.PARAMETER Users
-	The List of users to check
-.PARAMETER InactiveDaysFilter
-	The number of inactivity days to filter
-.PARAMETER VaultCredentials
-	The Vault Credentials to be used
-#>
-	param(
-		[Parameter(Mandatory=$true)]
-		[PSObject]$Users,
-		[Parameter(Mandatory=$true)]
-		[int]$inactiveDaysFilter,
-		[Parameter(Mandatory=$true)]
-		[PSCredential]$VaultCredentials
-	)
-	$retInactiveUsersList = @()
-	try{
-		Write-LogMessage -Type Debug -Msg "Going over $($Users.Count) users..."
-		Foreach($user in $Users)
-		{
-			$_userDetails = Invoke-REST -URI ($URL_UserDetails -f $user.id) -Command GET -Header $(Get-LogonHeader -Credentials $VaultCredentials)
-			if(($null -eq $_userDetails.lastSuccessfulLoginDate) -or (Convert-Date($_userDetails.lastSuccessfulLoginDate) -le $((Get-Date).AddDays($inactiveDaysFilter *-1))))
-			{
-				Write-LogMessage -Type Verbose -Msg "Adding $($_userDetails.UserName) to the report"
-				$_user = $user
-				if($null -eq $_userDetails.lastSuccessfulLoginDate)
-				{
-					$_user | Add-Member -NotePropertyName "LastSuccessfulLoginDate" -NotePropertyValue "N/A"
-				}
-				else
-				{
-					$_user | Add-Member -NotePropertyName "LastSuccessfulLoginDate" -NotePropertyValue (Convert-Date($_userDetails.lastSuccessfulLoginDate))
-				}
-				$_user | Add-Member -NotePropertyName "IsSuspended" -NotePropertyValue $_userDetails.suspended
-				$_user | Add-Member -NotePropertyName "IsEnabled" -NotePropertyValue $_userDetails.enableUser
-				$retInactiveUsersList += $_user
-			}
-		}		
-	} catch {
-		Throw $(New-Object System.Exception ("Get-InactiveUsers: Failed to get inactive users from Users list",$_.Exception))
-	}
-	return $retInactiveUsersList
-}
-
 #endregion
 
 #-----------------
@@ -528,6 +500,11 @@ Write-LogMessage -Type Info -MSG "Starting script (v$ScriptVersion)" -Header -Lo
 if($InDebug) { Write-LogMessage -Type Info -MSG "Running in Debug Mode" -LogFile $LOG_FILE_PATH }
 if($InVerbose) { Write-LogMessage -Type Info -MSG "Running in Verbose Mode" -LogFile $LOG_FILE_PATH }
 Write-LogMessage -Type Debug -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ", ")" -LogFile $LOG_FILE_PATH
+If($PSVersionTable.PSVersion.Major -lt 3)
+{
+	Write-LogMessage -Type Error -Msg "This script requires PowerShell version 3 or above"
+	return
+}
 
 # Check if Powershell is running in Constrained Language Mode
 If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
@@ -554,45 +531,75 @@ else
 
 # Get Credentials to Login
 # ------------------------
-$caption = "Inactive Users Report"
+$caption = "Platforms Report"
 $msg = "Enter your PAS User name and Password ($AuthType)"; 
 $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 
-try {
-	# Get all Users
-	Write-LogMessage -Type Info -MSG "Creating a list of all inactive users from the last $InactiveDays days"
-	try{
-		$GetUsersResponse = Invoke-Rest -Command Get -Uri $URL_Users -Header $(Get-LogonHeader -Credentials $creds)
-	} catch {
-		Write-LogMessage -Type Error -MSG "There was an error Listing all Users. Error: $(Collect-ExceptionMessage $_.Exception)"
-		Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
-		return
-	}
-	# Get only the inactive users
-	if($null -ne $GetUsersResponse)
+
+#region Get all active Platforms
+try{
+	Write-LogMessage -Type Info -Msg "Retrieving active Platform..."
+	# Get the active Platforms
+	$urlActivePlatforms = $URL_TargetPlatforms+"?active eq true"
+	$activePlatforms = Invoke-Rest -Command Get -Uri $urlActivePlatforms -Header $(Get-LogonHeader -Credentials $creds)
+	If($activePlatforms)
 	{
-		Try{
-			$inactiveUsersList = Get-InactiveUsers -Users ($GetUsersResponse.Users) -VaultCredentials $creds -InactiveDaysFilter $InactiveDays
-		} catch {
-			Write-LogMessage -Type Error -MSG "There was an error listing all inactive users. Error: $(Collect-ExceptionMessage $_.Exception)"
+		Write-LogMessage -Type Info -Msg "Found $($activePlatforms.Total) active Platforms"
+		$reportPlatforms = @()
+		Write-LogMessage -Type Debug -Msg "Getting Platfroms PSM Connectors information"
+		ForEach($platform in $activePlatforms.Platforms)
+		{
+			$psmServerTargetInfo = Invoke-REST -Command Get -Uri ($URL_TargetPlatformPSMConnectors -f $platform.id) -Header (Get-LogonHeader -Credentials $creds)
+			if($null -ne $platform.PrivilegedSessionManagement)
+			{
+				$platform.PrivilegedSessionManagement | Add-Member -NotePropertyName PSMConnectors -NotePropertyValue $psmServerTargetInfo.PSMConnectors
+			}
+			$reportPlatforms += $platform
+		}
+		
+		Write-LogMessage -Type Info -Msg "Generating report..."
+		
+		$output = @()
+		$outputFields = @(
+			"id",`
+			@{Name = 'PlatformName'; Expression = { $_.Name}},`
+			"AllowedSafes",`
+			@{Name = 'PeriodicVerify'; Expression = { $_.CredentialsManagementPolicy.Verification.PerformAutomatic}},`
+			@{Name = 'VerifyEveryXDays'; Expression = {$_.CredentialsManagementPolicy.Verification.RequirePasswordEveryXDays}},`
+			@{Name = 'PeriodicChange'; Expression = {$_.CredentialsManagementPolicy.Change.PerformAutomatic}},`
+			@{Name = 'ChangeEveryXDays'; Expression = {$_.CredentialsManagementPolicy.Change.RequirePasswordEveryXDays}},`
+			@{Name = 'PeriodicReconcile'; Expression = {$_.CredentialsManagementPolicy.Reconcile.PerformAutomatic}},`
+			@{Name = 'ReconcileEveryXDays'; Expression = {$_.CredentialsManagementPolicy.Reconcile.RequirePasswordEveryXDays}},`
+			@{Name = 'PSMConnectors'; Expression = { ($_.PrivilegedSessionManagement.PSMConnectors | Where-Object { $_.Enabled }).PSMConnectorID  -join ';' }}
+		)
+		If($ExtendedReport)
+		{
+			$outputFields += @(
+				@{Name = 'RequireUsersToSpecifyReasonForAccess'; Expression = { (Test-PlatformException -Config $_.PrivilegedAccessWorkflows.RequireUsersToSpecifyReasonForAccess) }},`
+				@{Name = 'EnforceOnetimePasswordAccess'; Expression = { (Test-PlatformException -Config $_.PrivilegedAccessWorkflows.EnforceOnetimePasswordAccess) }},`
+				@{Name = 'EnforceCheckinCheckoutExclusiveAccess'; Expression = { (Test-PlatformException -Config $_.PrivilegedAccessWorkflows.EnforceCheckinCheckoutExclusiveAccess) }},`
+				@{Name = 'RequireDualControlPasswordAccessApproval'; Expression = { (Test-PlatformException -Config $_.PrivilegedAccessWorkflows.RequireDualControlPasswordAccessApproval) }}
+			)
+		}
+		
+		$output = $reportPlatforms | Select-Object $outputFields
+		
+		If([string]::IsNullOrEmpty($CSVPath))
+		{
+			$output | Format-Table -Autosize
+		}
+		else
+		{
+			$output | Export-Csv -NoTypeInformation -UseCulture -Path $CSVPath -force
 		}
 	}
-	# Report on all Inactive Users
-	Write-LogMessage -Type Info -MSG "Generating report"
-	If([string]::IsNullOrEmpty($CSVPath))
+	Else
 	{
-		$inactiveUsersList | Select-Object UserName, Source, UserType, ComponentUser, IsEnabled, IsSuspended, LastSuccessfulLoginDate | Format-Table -Autosize
+		Throw "There was a problem getting Active Platforms"
 	}
-	else
-	{
-		$inactiveUsersList | Select-Object UserName, @{Name="FirstName"; Expression={$_.personalDetails.firstName}}, @{Name="LastName"; Expression={$_.personalDetails.lastName}}, Source, UserType, ComponentUser, IsEnabled, IsSuspended, LastSuccessfulLoginDate, @{Name="VaultAuthorization"; Expression={($_.vaultAuthorization -join ';')}}  | Export-Csv -NoTypeInformation -UseCulture -Path $CSVPath -force
-	}	
 } catch {
-	Write-LogMessage -Type Error - MSG "There was an Error creating the Inactive Users report. Error: $(Collect-ExceptionMessage $_.Exception)"
+	Write-LogMessage -Type Error -Msg "Error creating Platfomrs report. Error: $(Collect-ExceptionMessage $_.Exception)"
 }
-
+#endregion
 # Logoff the session
-# ------------------
 Run-Logoff
-Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
-return

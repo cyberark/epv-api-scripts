@@ -24,12 +24,12 @@ Export-Import-Platform.ps1 -Export -PVWAURL <PVWA URL> -PlatformID <Platform ID>
 ```
 
 ### Examples
-Import Sample Platfrom
+Import Sample Platform
 ```powershell
 Export-Import-Platform.ps1 -Import -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformZipPath C:\Temp\SamplePlatform.zip
 ```
 
-Export Sample Platfrom
+Export Sample Platform
 ```powershell
 Export-Import-Platform.ps1 -Export -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformID SamplePlatform -PlatformZipPath C:\Temp\Export-SamplePlatform.zip
 ```
@@ -78,4 +78,24 @@ Get-PlatformDetails.ps1 -PVWAURL <string> -PlatformID <string> [<CommonParameter
 Get Windows Server Local Platform details
 ```powershell
 Get-PlatformDetails.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformID WinServerLocal
+```
+
+# Platforms Report
+Creates a report on all Active platforms and their connection components.
+Supported version: 11.6 and above
+
+## Usage
+```powershell
+Get-PlatformReport.ps1 [-PVWAURL] <string> [[-AuthType] <string>] [[-CSVPath] <string>] [-ExtendedReport] [-DisableSSLVerify] [<CommonParameters>]
+```
+
+### Examples
+Printing all Active Platforms report on screen
+```powershell
+Get-PlatformReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault 
+```
+
+Printing all Active Platforms extended report to a CSV file (including all Connection components)
+```powershell
+Get-PlatformReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault -ExtendedReport -CSVPath "C:\CyberArk\Platforms\Active_Platforms_August-2020.csv"
 ```

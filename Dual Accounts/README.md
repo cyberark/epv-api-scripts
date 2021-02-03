@@ -44,4 +44,4 @@ Create-DualAccount.ps1 -NonInteractive -PVWAURL <PVWA URL> -CSVPath <CSV contain
 ### Known issues
 Creation of Account Groups with a Rotational Group Platform Type is not yet supported
 Change the Rotational Group Platform type to Group (instead of RotationalGroup) before running this script
-After execution, change the platfomr type back to RotationGroup so Dual Account use case will work as expected
+After execution, change the platform type back to RotationGroup so Dual Account use case will work as expected

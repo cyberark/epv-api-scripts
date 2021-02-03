@@ -21,6 +21,10 @@ param
 	#[ValidateScript({Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30})]
 	[Alias("url")]
 	[String]$PVWAURL,
+
+	[Parameter(Mandatory=$false,HelpMessage="Enter the Authentication type (Default:CyberArk)")]
+	[ValidateSet("cyberark","ldap","radius")]
+	[String]$AuthType="cyberark",	
 	
 	[Parameter(Mandatory=$true,HelpMessage="Enter the platform ID to export")]
 	[Alias("id")]
@@ -31,8 +35,8 @@ param
 # -----------
 $URL_PVWAAPI = $PVWAURL+"/api"
 $URL_Authentication = $URL_PVWAAPI+"/auth"
-$URL_CyberArkLogon = $URL_Authentication+"/cyberark/Logon"
-$URL_CyberArkLogoff = $URL_Authentication+"/Logoff"
+$URL_Logon = $URL_Authentication+"/$AuthType/Logon"
+$URL_Logoff = $URL_Authentication+"/Logoff"
 
 # URL Methods
 # -----------
@@ -91,7 +95,7 @@ If (Test-CommandExists Invoke-RestMethod)
     $caption = "Get accounts"
     $msg = "Enter your User name and Password"; 
     $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($creds -ne $null)
+	if ($null -ne $creds)
 	{
 		$rstusername = $creds.username.Replace('\','');    
 		$rstpassword = $creds.GetNetworkCredential().password
@@ -104,7 +108,7 @@ If (Test-CommandExists Invoke-RestMethod)
     $logonBody = $logonBody | ConvertTo-Json
 	try{
 	    # Logon
-	    $logonToken = Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogon -Body $logonBody -ContentType "application/json"
+	    $logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json"
 	}
 	catch
 	{
@@ -128,13 +132,13 @@ If (Test-CommandExists Invoke-RestMethod)
 		Write-Host "Retrieving Platform details"
 		# Get the Platform Name
 		Write-verbose "RestMethod -Method Get -Uri $($URL_PlatformDetails -f $PlatformID)"
-		$platformDetails = Invoke-RestMethod -Method Get -Uri $($URL_PlatformDetails -f $PlatformID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+		$platformDetails = Invoke-RestMethod -Method Get -Uri $($URL_PlatformDetails -f $PlatformID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 		If($platformDetails)
 		{
 			Write-verbose $platformDetails
 			Write-Host "$($platformDetails.Details.PolicyName) (ID: $($platformDetails.PlatformID)) is currently $(if($platformDetails.Active) { "Activated" } else { "Inactive" })"
 			Write-Host "Platform details:" 
-			$platformDetails.Details | select PolicyID, AllowedSafes, AllowManualChange, PerformPeriodicChange, @{Name = 'AllowManualVerification'; Expression = { $_.VFAllowManualVerification}}, @{Name = 'PerformPeriodicVerification'; Expression = { $_.VFPerformPeriodicVerification}}, @{Name = 'AllowManualReconciliation'; Expression = { $_.RCAllowManualReconciliation}}, @{Name = 'PerformAutoReconcileWhenUnsynced'; Expression = { $_.RCAutomaticReconcileWhenUnsynched}}, PasswordLength, MinUpperCase, MinLowerCase, MinDigit, MinSpecial 
+			$platformDetails.Details | Select-Object PolicyID, AllowedSafes, AllowManualChange, PerformPeriodicChange, @{Name = 'AllowManualVerification'; Expression = { $_.VFAllowManualVerification}}, @{Name = 'PerformPeriodicVerification'; Expression = { $_.VFPerformPeriodicVerification}}, @{Name = 'AllowManualReconciliation'; Expression = { $_.RCAllowManualReconciliation}}, @{Name = 'PerformAutoReconcileWhenUnsynced'; Expression = { $_.RCAutomaticReconcileWhenUnsynched}}, PasswordLength, MinUpperCase, MinLowerCase, MinDigit, MinSpecial 
 		}		
 	} catch {
 		Write-Error $_.Exception.Response
@@ -144,7 +148,7 @@ If (Test-CommandExists Invoke-RestMethod)
 	# Logoff the session
     # ------------------
     Write-Host "Logoff Session..."
-    Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogoff -Headers $logonHeader -ContentType "application/json" | Out-Null
+    Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $logonHeader -ContentType "application/json" | Out-Null
 }
 else
 {

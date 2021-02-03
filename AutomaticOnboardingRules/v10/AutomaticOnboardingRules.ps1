@@ -171,7 +171,7 @@ Function Get-PlatformByParams
 Function Get-AutomaticRules
 {
 	try {
-		$getResponse = Invoke-RestMethod -Method Get -Uri $URL_OnboardRules -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+		$getResponse = Invoke-RestMethod -Method Get -Uri $URL_OnboardRules -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 	} catch {
 		Write-Error $_.Exception.Response.StatusDescription
 	}
@@ -302,7 +302,7 @@ If (Test-CommandExists Invoke-RestMethod)
 			Write-Debug "[DEBUG] $restRuleCreate"
 			try {
 				# Create the Rule
-				$CreateRuleResponse = Invoke-RestMethod -Method Post -Uri $URL_OnboardRules -Headers $logonHeader -Body $restRuleCreate -ContentType "application/json" -TimeoutSec 3600000
+				$CreateRuleResponse = Invoke-RestMethod -Method Post -Uri $URL_OnboardRules -Headers $logonHeader -Body $restRuleCreate -ContentType "application/json" -TimeoutSec 2700
 			} catch {
 				Write-Error $_.Exception.Response.StatusDescription
 			}
@@ -344,7 +344,7 @@ If (Test-CommandExists Invoke-RestMethod)
 				Write-Debug "[DEBUG] $restRuleUpdate"
 				try {
 					# Update the Rule
-					$UpdateRuleResponse = Invoke-RestMethod -Method Put -Uri "$URL_OnboardRules/$RuleID" -Headers $logonHeader -Body $restRuleUpdate -ContentType "application/json" -TimeoutSec 3600000
+					$UpdateRuleResponse = Invoke-RestMethod -Method Put -Uri "$URL_OnboardRules/$RuleID" -Headers $logonHeader -Body $restRuleUpdate -ContentType "application/json" -TimeoutSec 2700
 				} catch {
 					Write-Error $_.Exception.Response.StatusDescription
 				}
@@ -360,7 +360,7 @@ If (Test-CommandExists Invoke-RestMethod)
 			Write-Host "Deleting rule ID $RuleID..."
 			
 			try {
-				$DeleteRuleResponse = Invoke-RestMethod -Method Delete -Uri "$URL_OnboardRules/$RuleID" -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+				$DeleteRuleResponse = Invoke-RestMethod -Method Delete -Uri "$URL_OnboardRules/$RuleID" -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 			} catch {
 				Write-Error $_.Exception.Response.StatusDescription
 			}

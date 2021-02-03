@@ -1,16 +1,26 @@
 ###########################################################################
 #
-# NAME: Get Inactive Users Report
+# NAME: Get Discovered Account Report
 #
 # AUTHOR:  Assaf Miron
 #
 # COMMENT: 
-# This script will create a report for all users that were not active 
-# according to a selected timeframe
+# This script will create a report for all Discovered accounts according to filters (optional).
+# Or get all account details for a specific account (by ID)
+#
+# Filter Criteria available:
+# --------------------------
+# Platform Type - Filter by platform types (Windows Server Local, Windows Desktop Local, Windows Domain, Unix, Unix SSH Key, AWS, AWS Access Keys)
+# Privileged account - Filter only Discovered accounts that are Privileged, or only those that are not privileged
+# Enabled account - Filter only enabled accounts, or only those that are not disabled
+# Search - Filter by keywords (by default with OR between them)
+# Search Type - the type of search to perform (contains (default) or startswith)
+# Sort by - Sort by property
+# Limit - Limits the number of returned accounts
+# Auto Next Page - In case the limit is small or the returned number of accounts is greater than the limit, this will return all accounts from all pages
 #
 # SUPPORTED VERSIONS:
-# CyberArk PVWA v11.1 and above
-# For version v10.9 and v10.10 this script can report on all users without the filter of inactive
+# CyberArk PVWA v11.6 and above
 #
 ###########################################################################
 param
@@ -28,12 +38,60 @@ param
 	[Parameter(Mandatory=$false)]
 	[Switch]$DisableSSLVerify,
 	
-	# Inactive Days filter
-	[Parameter(Mandatory=$false,HelpMessage="Enter the number of days of inactivity (default: 30 days)")]
-	[Alias("Days")]
-	[int]$InactiveDays=30,
+	# Use this switch to list accounts
+	[Parameter(ParameterSetName='List',Mandatory=$true)][switch]$List,
+	# Use this switch to list accounts
+	[Parameter(ParameterSetName='Details',Mandatory=$true)][switch]$Details,
+	# Use this switch to see the account in a Report form
+	[Parameter(ParameterSetName='List',Mandatory=$false)]
+	[Parameter(ParameterSetName='Details')]
+	[switch]$Report,
 	
-	[Parameter(Mandatory=$false,HelpMessage="Path to a CSV file to export data to")]
+	# List accounts filters
+	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Enter a the platform type to filter by (Windows Server Local, Windows Desktop Local, Windows Domain, Unix, Unix SSH Key, AWS, AWS Access Keys)")]
+	[ValidateSet("Windows Server Local", "Windows Desktop Local", "Windows Domain", "Unix", "Unix SSH Key", "AWS", "AWS Access Keys")]
+	[Alias("type")]
+	[String]$PlatformType,
+	
+	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Choose if you want to filter only privileged accounts")]
+	[Alias("privileged")]
+	[switch]$OnlyPrivilegedAccounts,
+	
+	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Choose if you want to filter only non-privileged accounts")]
+	[Alias("nonprivileged")]
+	[switch]$OnlyNonPrivilegedAccounts,
+	
+	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Choose if you want to filter only enabled accounts")]
+	[Alias("enabled")]
+	[switch]$OnlyEnabledAccounts,
+	
+	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Choose if you want to filter only disabled accounts")]
+	[Alias("disabled")]
+	[switch]$OnlyDisabledAccounts,
+	
+	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Enter filter Keywords. List of keywords are separated with space to search in accounts")]
+	[Alias("search")]
+	[String]$SearchKeywords,
+	
+	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Choose what type of search you would like to perform (contains, startswith). Default Contains.")]
+	[ValidateSet("Contains","StartWith")]
+	[String]$SearchType = "Contains",
+	
+	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="properties by which to sort returned accounts, followed by asc (default) or desc to control sort direction. Multiple sorts are comma-separated. To sort on members of object properties. Maximum number of properties is 3")]
+	[String]$SortBy,
+	
+	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Maximum number of returned accounts. If not specified, the default value is 50. The maximum number that can be specified is 1000")]
+	[int]$Limit = 50,
+	
+	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="If used, the next page is automatically returned")]
+	[switch]$AutoNextPage,
+	
+	[Parameter(ParameterSetName='Details',Mandatory=$true,HelpMessage="The required Discovered Account ID")]
+	[Alias("id")]
+	[string]$DiscoveredAccountID,
+	
+	[Parameter(ParameterSetName='List',Mandatory=$false,HelpMessage="Path to a CSV file to export data to")]
+	[Parameter(ParameterSetName='Details',Mandatory=$false,HelpMessage="Path to a CSV file to export data to")]
 	[Alias("path")]
 	[string]$CSVPath
 )
@@ -49,7 +107,7 @@ $ScriptVersion = "1.0"
 
 # ------ SET global parameters ------
 # Set Log file path
-$global:LOG_FILE_PATH = "$ScriptLocation\InactiveUsersReport.log"
+$global:LOG_FILE_PATH = "$ScriptLocation\DiscoveredAccountsReport.log"
 # Set a global Header Token parameter
 $global:g_LogonHeader = ""
 
@@ -62,8 +120,8 @@ $URL_Logoff = $URL_Authentication+"/Logoff"
 
 # URL Methods
 # -----------
-$URL_Users = $URL_PVWAAPI+"/Users"
-$URL_UserDetails = $URL_PVWAAPI+"/Users/{0}"
+$URL_DiscoveredAccounts = $URL_PVWAAPI+"/DiscoveredAccounts"
+$URL_DiscoveredAccountDetails = $URL_PVWAAPI+"/DiscoveredAccounts/{0}"
 
 #region Writer Functions
 # @FUNCTION@ ======================================================================================================================
@@ -144,7 +202,7 @@ Function Write-LogMessage
 				break
 			}
 			"Warning" {
-				Write-Host $MSG.ToString() -ForegroundColor Yellow
+				Write-Host $MSG.ToString() -ForegroundColor DarkYellow
 				$msgToWrite += "[WARNING]`t$Msg"
 				break
 			}
@@ -242,7 +300,6 @@ Function Test-CommandExists
     Catch { return $false }
     Finally {$ErrorActionPreference=$oldPreference}
 } 
-
 
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Convert-Date
@@ -352,13 +409,13 @@ Function Invoke-Rest
 	try{
 		if([string]::IsNullOrEmpty($Body))
 		{
-			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000
+			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700
 		}
 		else
 		{
-			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000
+			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700
 		}
 	} catch [System.Net.WebException] {
 		Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)" -ErrorAction $ErrAction
@@ -400,19 +457,10 @@ Function Get-LogonHeader
 		{
 			Disable-SSLVerification
 		}
-		Else
-		{
-			try{
-				Write-LogMessage -Type Verbose -Msg "Setting script to use TLS 1.2"
-				[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-			} catch {
-				Throw $(New-Object System.Exception ("Get-LogonHeader: Could not change SSL validation", $_.Exception))
-			}
-		}
 		
 		# Create the POST Body for the Logon
 		# ----------------------------------
-		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
+		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
 		try{
 			# Logon
 			$logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
@@ -431,7 +479,8 @@ Function Get-LogonHeader
 		
 		# Create a Logon Token Header (This will be used through out all the script)
 		# ---------------------------
-		$logonHeader = @{Authorization = $logonToken}
+		$logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+		$logonHeader.Add("Authorization", $logonToken)
 		
 		Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
 	}
@@ -456,69 +505,110 @@ Function Run-Logoff
 	try{
 		# Logoff the session
 		# ------------------
-		Write-LogMessage -Type Info -Msg "Logoff Session..."
-		Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader | out-null
-		Set-Variable -Name g_LogonHeader -Value $null -Scope global
+		If($null -ne $g_LogonHeader)
+		{
+			Write-LogMessage -Type Info -Msg "Logoff Session..."
+			Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 | out-null
+			Set-Variable -Name g_LogonHeader -Value $null -Scope global
+		}
 	} catch {
 		Throw $(New-Object System.Exception ("Run-Logoff: Failed to logoff session",$_.Exception))
 	}
 }
 
 # @FUNCTION@ ======================================================================================================================
-# Name...........: Get-InactiveUsers
-# Description....: Return the Inactive users according to num of days
-# Parameters.....: Users list
-# Return Values..: List of inactive users
+# Name...........: Get-FilterParameters
+# Description....: Returns the filter parameters for the required URL
+# Parameters.....: URL, Platform Type, Privileged Account, Search keywords, Search Type
+# Return Values..: None
 # =================================================================================================================================
-Function Get-InactiveUsers
+Function Get-FilterParameters
 {
 <# 
 .SYNOPSIS 
-	Get-InactiveUsers -Users $userList
+	Get-FilterParameters
 .DESCRIPTION
-	Return the Inactive users according to num of days
-.PARAMETER Users
-	The List of users to check
-.PARAMETER InactiveDaysFilter
-	The number of inactivity days to filter
-.PARAMETER VaultCredentials
-	The Vault Credentials to be used
+	Returns the filter parameters for the required URL
 #>
-	param(
+	param (
 		[Parameter(Mandatory=$true)]
-		[PSObject]$Users,
-		[Parameter(Mandatory=$true)]
-		[int]$inactiveDaysFilter,
-		[Parameter(Mandatory=$true)]
-		[PSCredential]$VaultCredentials
+		[string]$sURL, 
+		[Parameter(Mandatory=$false)]
+		[string]$sPlatformType,
+		[Parameter(Mandatory=$false)]
+		[bool]$bPrivileged,
+		[Parameter(Mandatory=$false)]
+		[bool]$bNonPrivileged,
+		[Parameter(Mandatory=$false)]
+		[bool]$bAccountEnabled,
+		[Parameter(Mandatory=$false)]
+		[bool]$bAccountDisabled,
+		[Parameter(Mandatory=$false)]
+		[string]$sSearch,
+		[Parameter(Mandatory=$false)]
+		[string]$sSearchType, 
+		[Parameter(Mandatory=$false)]
+		[int]$iLimitPage, 
+		[Parameter(Mandatory=$false)]
+		[int]$iOffsetPage
 	)
-	$retInactiveUsersList = @()
-	try{
-		Write-LogMessage -Type Debug -Msg "Going over $($Users.Count) users..."
-		Foreach($user in $Users)
-		{
-			$_userDetails = Invoke-REST -URI ($URL_UserDetails -f $user.id) -Command GET -Header $(Get-LogonHeader -Credentials $VaultCredentials)
-			if(($null -eq $_userDetails.lastSuccessfulLoginDate) -or (Convert-Date($_userDetails.lastSuccessfulLoginDate) -le $((Get-Date).AddDays($inactiveDaysFilter *-1))))
-			{
-				Write-LogMessage -Type Verbose -Msg "Adding $($_userDetails.UserName) to the report"
-				$_user = $user
-				if($null -eq $_userDetails.lastSuccessfulLoginDate)
-				{
-					$_user | Add-Member -NotePropertyName "LastSuccessfulLoginDate" -NotePropertyValue "N/A"
-				}
-				else
-				{
-					$_user | Add-Member -NotePropertyName "LastSuccessfulLoginDate" -NotePropertyValue (Convert-Date($_userDetails.lastSuccessfulLoginDate))
-				}
-				$_user | Add-Member -NotePropertyName "IsSuspended" -NotePropertyValue $_userDetails.suspended
-				$_user | Add-Member -NotePropertyName "IsEnabled" -NotePropertyValue $_userDetails.enableUser
-				$retInactiveUsersList += $_user
-			}
-		}		
-	} catch {
-		Throw $(New-Object System.Exception ("Get-InactiveUsers: Failed to get inactive users from Users list",$_.Exception))
+	[string]$retURL = $sURL
+	$retURL += "?"
+	$filters = @()
+	
+	if(![string]::IsNullOrEmpty($sSearch))
+	{
+		$retURL += "search=$(Encode-URL $sSearch)&"
 	}
-	return $retInactiveUsersList
+	if(![string]::IsNullOrEmpty($sSearchType))
+	{
+		$retURL += "searchType=$sSearchType&"
+	}
+	if(![string]::IsNullOrEmpty($sPlatformType))
+	{
+		$filters += "platformType eq $(Encode-URL $sPlatformType)"
+	}
+	if(!($bPrivileged -and $bNonPrivileged))
+	{
+		# Filter only if the user chose privileged or non-privileged only (ignore if both)
+		if($bPrivileged)
+		{
+			$filters += "privileged eq true"
+		}
+		if($bNonPrivileged)
+		{
+			$filters += "privileged eq false"
+		}
+	}
+	if(!($bAccountEnabled -and $bAccountDisabled))
+	{
+		# Filter only if the user chose enabled or disabled accounts only (ignore if both)
+		if($bAccountEnabled)
+		{
+			$filters += "accountEnabled eq true"
+		}
+		if($bAccountDisabled)
+		{
+			$filters += "accountEnabled eq false"
+		}
+	}
+	if(![string]::IsNullOrEmpty($filters))
+	{
+		$retURL += "filter="+($filters -join " AND ")+"&"
+	}
+	if(![string]::IsNullOrEmpty($sSortParam))
+	{
+		$retURL += "sort=$(Encode-URL $sSortParam)&"
+	}
+	if($iLimitPage -gt 0)
+	{
+		$retURL += "limit=$iLimitPage&"
+	}
+		
+	if($retURL[-1] -eq '&') { $retURL = $retURL.substring(0,$retURL.length-1) }
+	Write-LogMessage -Type Verbose -Msg "Filtered URL: $retURL"
+	
+	return $retURL
 }
 
 #endregion
@@ -554,41 +644,103 @@ else
 
 # Get Credentials to Login
 # ------------------------
-$caption = "Inactive Users Report"
+$caption = "Discovered Accounts Report"
 $msg = "Enter your PAS User name and Password ($AuthType)"; 
 $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 
 try {
-	# Get all Users
-	Write-LogMessage -Type Info -MSG "Creating a list of all inactive users from the last $InactiveDays days"
-	try{
-		$GetUsersResponse = Invoke-Rest -Command Get -Uri $URL_Users -Header $(Get-LogonHeader -Credentials $creds)
-	} catch {
-		Write-LogMessage -Type Error -MSG "There was an error Listing all Users. Error: $(Collect-ExceptionMessage $_.Exception)"
-		Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
-		return
-	}
-	# Get only the inactive users
-	if($null -ne $GetUsersResponse)
+	$response = ""
+	switch($PsCmdlet.ParameterSetName)
 	{
-		Try{
-			$inactiveUsersList = Get-InactiveUsers -Users ($GetUsersResponse.Users) -VaultCredentials $creds -InactiveDaysFilter $InactiveDays
-		} catch {
-			Write-LogMessage -Type Error -MSG "There was an error listing all inactive users. Error: $(Collect-ExceptionMessage $_.Exception)"
+		"List"
+		{
+			# Get Discovered Accounts
+			Write-LogMessage -Type Info -MSG "Creating a list of Discovered Accounts based on requested filters"
+			try{
+				$filterParameters = @{
+					sURL=$URL_DiscoveredAccounts;
+					sPlatformType=$PlatformType;
+					bPrivileged=$OnlyPrivilegedAccounts;
+					bNonPrivileged=$OnlyNonPrivilegedAccounts;
+					bAccountEnabled=$OnlyEnabledAccounts;
+					bAccountDisabled=$OnlyDisabledAccounts;
+					sSearch=$SearchKeywords;
+					sSearchType=$SearchType;
+					iLimitPage=$Limit;
+				}
+				$urlFilteredAccounts = Get-FilterParameters @filterParameters
+			} catch {
+				Write-LogMessage -Type Error -MSG "There was an Error creating the filter URL. Error: $(Collect-ExceptionMessage $_.Exception)"
+			}
+			try{
+				$GetDiscoveredAccountsResponse = Invoke-Rest -Command Get -Uri $urlFilteredAccounts -Header $(Get-LogonHeader -Credentials $creds)
+			} catch {
+				Write-LogMessage -Type Error -MSG "There was an Error getting filtered Discovered Accounts. Error: $(Collect-ExceptionMessage $_.Exception)"
+			}
+						
+			If($AutoNextPage)
+			{
+				$GetDiscoveredAccountsList = @()
+				$GetDiscoveredAccountsList += $GetDiscoveredAccountsResponse.value
+				Write-LogMessage -Type Debug -MSG "$($GetDiscoveredAccountsList.count) Discovered accounts so far..."
+				$nextLink =  $GetAccountsResponse.nextLink
+				Write-LogMessage -Type Debug -MSG "Getting next link: $nextLink"
+				
+				While ($nextLink -ne "" -and $null -ne $nextLink)
+				{
+					$GetAccountsResponse = Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header $(Get-LogonHeader -Credentials $creds)
+					$nextLink = $GetAccountsResponse.nextLink
+					Write-LogMessage -Type Debug -MSG "Getting next link: $nextLink"
+					$GetDiscoveredAccountsList += $GetAccountsResponse.value
+					Write-LogMessage -Type Debug -MSG "$($GetDiscoveredAccountsList.count) Discovered accounts so far..."
+				}
+				Write-LogMessage -Type Info -MSG "Showing $($GetDiscoveredAccountsList.count) accounts"
+				$response = $GetDiscoveredAccountsList
+			}
+			else 
+			{
+				Write-LogMessage -Type Info -MSG "Showing up to $Limit Discovered Accounts" 
+				$response = $GetDiscoveredAccountsResponse.value
+			}
+			
+			If(![string]::IsNullOrEmpty($SortBy))
+			{
+				# Sort the list
+				$sortDirection = $(If($SortBy.Contains(" dsc")) { $SortBy = $SortBy.Replace(" dsc","").Trim(); $true } else { $SortBy = $SortBy.Replace(" asc","").Trim(); $false })
+				$response = $response | Sort-Object -Property $SortBy -Descending:$sortDirection
+			}
+		}
+		"Details"
+		{
+			if($DiscoveredAccountID -ne "")
+			{
+				$GetDiscoveredAccountDetailsResponse = Invoke-Rest -Command Get -Uri $($URL_DiscoveredAccountDetails -f $DiscoveredAccountID) -Header $(Get-LogonHeader -Credentials $creds)
+				$response = $GetDiscoveredAccountDetailsResponse
+			}
 		}
 	}
-	# Report on all Inactive Users
-	Write-LogMessage -Type Info -MSG "Generating report"
-	If([string]::IsNullOrEmpty($CSVPath))
+	
+	If($Report)
 	{
-		$inactiveUsersList | Select-Object UserName, Source, UserType, ComponentUser, IsEnabled, IsSuspended, LastSuccessfulLoginDate | Format-Table -Autosize
+		Write-LogMessage -Type Info -MSG "Generating report"
+		$output = @()
+		$output = $response | Select-Object id,@{Name = 'UserName'; Expression = { $_.userName}}, @{Name = 'Address'; Expression = { $_.address}}, @{Name = 'AccountEnabled'; Expression = { $_.accountEnabled}}, @{Name = 'Platform'; Expression = { $_.platformType }}, @{Name = 'Privileged'; Expression = { $_.privileged }}, @{Name = 'Dependencies'; Expression = { $_.numberOfDependencies }}, @{Name = 'LastLogonDate'; Expression = { Convert-Date $_.lastLogonDateTime}}
+		
+		If([string]::IsNullOrEmpty($CSVPath))
+		{
+			$output | Format-Table -Autosize
+		}
+		else
+		{
+			$output | Export-Csv -NoTypeInformation -UseCulture -Path $CSVPath -force
+		}
 	}
 	else
 	{
-		$inactiveUsersList | Select-Object UserName, @{Name="FirstName"; Expression={$_.personalDetails.firstName}}, @{Name="LastName"; Expression={$_.personalDetails.lastName}}, Source, UserType, ComponentUser, IsEnabled, IsSuspended, LastSuccessfulLoginDate, @{Name="VaultAuthorization"; Expression={($_.vaultAuthorization -join ';')}}  | Export-Csv -NoTypeInformation -UseCulture -Path $CSVPath -force
-	}	
+		$response
+	}
 } catch {
-	Write-LogMessage -Type Error - MSG "There was an Error creating the Inactive Users report. Error: $(Collect-ExceptionMessage $_.Exception)"
+	Write-LogMessage -Type Error - MSG "There was an Error creating the Discovered Accounts report. Error: $(Collect-ExceptionMessage $_.Exception)"
 }
 
 # Logoff the session

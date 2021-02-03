@@ -30,6 +30,10 @@ param
 	[ValidateScript({Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30})]
 	[Alias("url")]
 	[String]$PVWAURL,
+	
+	[Parameter(Mandatory=$false,HelpMessage="Enter the Authentication type (Default:CyberArk)")]
+	[ValidateSet("cyberark","ldap","radius")]
+	[String]$AuthType="cyberark",
 		
 	# Use this switch to list accounts
 	[Parameter(ParameterSetName='List',Mandatory=$true)][switch]$List,
@@ -75,8 +79,8 @@ $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
 # -----------
 $URL_PVWAAPI = $PVWAURL+"/api"
 $URL_Authentication = $URL_PVWAAPI+"/auth"
-$URL_CyberArkLogon = $URL_Authentication+"/cyberark/Logon"
-$URL_CyberArkLogoff = $URL_Authentication+"/Logoff"
+$URL_Logon = $URL_Authentication+"/$AuthType/Logon"
+$URL_Logoff = $URL_Authentication+"/Logoff"
 
 # URL Methods
 # -----------
@@ -103,12 +107,12 @@ Function Test-CommandExists
     Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
-Function EncodeForURL($sText)
+Function Encode-URL($sText)
 {
 	if ($sText.Trim() -ne "")
 	{
 		write-debug "Returning URL Encode of $sText"
-		return [System.Web.HttpUtility]::UrlEncode($sText)
+		return [System.Web.HttpUtility]::UrlEncode($sText.Trim())
 	}
 	else
 	{
@@ -122,26 +126,26 @@ Function Convert-Date($epochdate)
 	else {return (Get-Date -Date "01/01/1970").AddSeconds($epochdate)}
 }
 
-Function AddSearchCriteria
+Function Create-SearchCriteria
 {
 	param ([string]$sURL, [string]$sSearch, [string]$sSortParam, [string]$sSafeName, [int]$iLimitPage, [int]$iOffsetPage)
 	[string]$retURL = $sURL
 	$retURL += "?"
 	
-	if($sSearch.Trim() -ne "")
+	if(![string]::IsNullOrEmpty($sSearch))
 	{
 		write-debug "Search: $sSearch"
-		$retURL += "search=$(EncodeForURL $sSearch)&"
+		$retURL += "search=$(Encode-URL $sSearch)&"
 	}
-	if($sSafeName.Trim() -ne "")
+	if(![string]::IsNullOrEmpty($sSafeName))
 	{
 		write-debug "Safe: $sSafeName"
-		$retURL += "filter=safename eq $(EncodeForURL $sSafeName)&"
+		$retURL += "filter=safename eq $(Encode-URL $sSafeName)&"
 	}
-	if($sSortParam.Trim() -ne "")
+	if(![string]::IsNullOrEmpty($sSortParam))
 	{
 		write-debug "Sort: $sSortParam"
-		$retURL += "sort=$(EncodeForURL $sSortParam)&"
+		$retURL += "sort=$(Encode-URL $sSortParam)&"
 	}
 	if($iLimitPage -gt 0)
 	{
@@ -180,7 +184,7 @@ If (Test-CommandExists Invoke-RestMethod)
     $caption = "Get accounts"
     $msg = "Enter your User name and Password"; 
     $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($creds -ne $null)
+	if ($null -ne $creds)
 	{
 		$rstusername = $creds.username.Replace('\','');    
 		$rstpassword = $creds.GetNetworkCredential().password
@@ -193,7 +197,7 @@ If (Test-CommandExists Invoke-RestMethod)
     $logonBody = $logonBody | ConvertTo-Json
 	try{
 	    # Logon
-	    $logonToken = Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogon -Body $logonBody -ContentType "application/json"
+	    $logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json"
 	}
 	catch
 	{
@@ -222,13 +226,13 @@ If (Test-CommandExists Invoke-RestMethod)
 			
 			try {
 				$AccountsURLWithFilters = ""
-				$AccountsURLWithFilters = $(AddSearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSortParam $SortBy -sSafeName $SafeName -iLimitPage $Limit)
+				$AccountsURLWithFilters = $(Create-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSortParam $SortBy -sSafeName $SafeName -iLimitPage $Limit)
 				Write-Debug $AccountsURLWithFilters
 			} catch {
 				Write-Error $_.Exception
 			}
 			try{
-				$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $AccountsURLWithFilters -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+				$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $AccountsURLWithFilters -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 			} catch {
 				Write-Error $_.Exception.Response.StatusDescription
 			}
@@ -241,9 +245,9 @@ If (Test-CommandExists Invoke-RestMethod)
 				$nextLink =  $GetAccountsResponse.nextLink
 				Write-Debug $nextLink
 				
-				While ($nextLink -ne "" -and $nextLink -ne $null)
+				While ($nextLink -ne "" -and $null -ne $nextLink)
 				{
-					$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $("$PVWAURL/$nextLink") -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000	
+					$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $("$PVWAURL/$nextLink") -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700	
 					$nextLink = $GetAccountsResponse.nextLink
 					Write-Debug $nextLink
 					$GetAccountsList += $GetAccountsResponse.value
@@ -262,7 +266,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		{
 			if($AccountID -ne "")
 			{
-				$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+				$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 				$response = $GetAccountDetailsResponse
 			}
 		}
@@ -274,12 +278,12 @@ If (Test-CommandExists Invoke-RestMethod)
 		Foreach ($item in $response)
 		{
 			# Get the Platform Name
-			$platformName = Invoke-RestMethod -Method Get -Uri $($URL_Platforms -f $item.platformId) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+			$platformName = Invoke-RestMethod -Method Get -Uri $($URL_Platforms -f $item.platformId) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 			$output += $item | Select-Object id,@{Name = 'UserName'; Expression = { $_.userName}}, @{Name = 'Address'; Expression = { $_.address}}, @{Name = 'SafeName'; Expression = { $_.safeName}}, @{Name = 'Platform'; Expression = { $platformName.Details.PolicyName}}, @{Name = 'CreateDate'; Expression = { Convert-Date $_.createdTime}}
 		}
 		If([string]::IsNullOrEmpty($CSVPath))
 		{
-			$output | FT -Autosize
+			$output | Format-Table -Autosize
 		}
 		else
 		{
@@ -293,7 +297,7 @@ If (Test-CommandExists Invoke-RestMethod)
     # Logoff the session
     # ------------------
     Write-Host "Logoff Session..."
-    Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogoff -Headers $logonHeader -ContentType "application/json" | Out-Null
+    Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $logonHeader -ContentType "application/json" | Out-Null
 }
 else
 {

@@ -20,6 +20,10 @@ param
 	[Alias("url")]
 	[String]$PVWAURL,
 	
+	[Parameter(Mandatory=$false,HelpMessage="Enter the Authentication type (Default:CyberArk)")]
+	[ValidateSet("cyberark","ldap","radius")]
+	[String]$AuthType="cyberark",	
+	
 	[Parameter(Mandatory=$true,HelpMessage="Enter the platform Zip path to import")]
 	[Alias("Platform")]
 	[string]$PlatformZipPath,
@@ -37,8 +41,8 @@ param
 # -----------
 $URL_PVWAAPI = $PVWAURL+"/api"
 $URL_Authentication = $URL_PVWAAPI+"/auth"
-$URL_CyberArkLogon = $URL_Authentication+"/cyberark/Logon"
-$URL_CyberArkLogoff = $URL_Authentication+"/Logoff"
+$URL_Logon = $URL_Authentication+"/$AuthType/Logon"
+$URL_Logoff = $URL_Authentication+"/Logoff"
 
 # URL Methods
 # -----------
@@ -192,7 +196,7 @@ Write-Host "Import Platform and Connection Component: Script Started" -Foregroun
 $caption = "Import Platform and Connection Component"
 $msg = "Enter your User name and Password"; 
 $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-if ($creds -ne $null)
+if ($null -ne $creds)
 {
 	$rstusername = $creds.username.Replace('\','');    
 	$rstpassword = $creds.GetNetworkCredential().password
@@ -205,7 +209,7 @@ $logonBody = @{ username=$rstusername;password=$rstpassword }
 $logonBody = $logonBody | ConvertTo-Json
 try{
 	# Logon
-	$logonToken = Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogon -Body $logonBody -ContentType "application/json"
+	$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json"
 }
 catch
 {
@@ -230,7 +234,7 @@ If (Test-Path $ConnectionComponentZipPath)
 {
 	$importBody = @{ ImportFile=$(Get-ZipContent $ConnectionComponentZipPath); } | ConvertTo-Json -Depth 3 -Compress
 	try{
-		$ImportCCResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportConnectionComponent -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000 -Body $importBody
+		$ImportCCResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportConnectionComponent -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700 -Body $importBody
 		$connectionComponentID = ($ImportCCResponse.ConnectionComponentID)
 		Write-Host "Connection Component ID imported: $connectionComponentID"
 	} catch {
@@ -257,7 +261,7 @@ If (Test-Path $PlatformZipPath)
 	# Import Platform
 	$importBody = @{ ImportFile=$(Get-ZipContent $PlatformZipPath); } | ConvertTo-Json -Depth 3 -Compress
 	try{
-		$ImportPlatformResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportPlatforms -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000 -Body $importBody
+		$ImportPlatformResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportPlatforms -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700 -Body $importBody
 		Write-Host "Platform ID imported: $($ImportPlatformResponse.PlatformID)"
 	} catch {
 		Write-Error "Error importing the platform, Error: $($_.Exception.Response.StatusDescription)"
@@ -267,6 +271,6 @@ If (Test-Path $PlatformZipPath)
 # Logoff the session
 # ------------------
 Write-Host "Logoff Session..."
-Invoke-RestMethod -Method Post -Uri $URL_CyberArkLogoff -Headers $logonHeader -ContentType "application/json" | Out-Null
+Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $logonHeader -ContentType "application/json" | Out-Null
 
 Write-Host "Import Platform and Connection Component: Script Ended" -ForegroundColor Cyan
