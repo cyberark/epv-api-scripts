@@ -419,8 +419,8 @@ Function Get-LogonHeader
 
 Function Add-AccountDependency
 {
-	param ($dependencyObjcet, $MasterID)
-
+	param ($dependencyObject, $MasterID)
+	
 	try{
 		$retResult = $false
 		if($null -ne $MasterID)
@@ -428,33 +428,33 @@ Function Add-AccountDependency
 			$accountDetails = $(Invoke-Rest -Uri ($URL_AccountsDetails -f $MasterID) -Header $g_LogonHeader -Command "GET")
 		}
 		$addDiscoveredAccountBody = @{
-			"userName"=$dependencyObjcet.userName;
-			"address"=$dependencyObjcet.address;
-			"domain"=$dependencyObjcet.domain;
+			"userName"=$dependencyObject.userName; 
+			"address"=$dependencyObject.address; 
+			"domain"=$dependencyObject.domain;
 			"discoveryDateTime"=ConvertTo-EPOCHDate (Get-Date);
 		    "accountEnabled"=$true;
-		    "platformType"=$dependencyObjcet.platformType;
+		    "platformType"=$dependencyObject.platformType;
 		    "privileged"=$true;
 			"Dependencies"=@(@{
-			  "name"=$dependencyObjcet.dependencyName;
-			  "address"=$dependencyObjcet.dependencyAddress;
-			  "type"=$dependencyObjcet.dependencyType;
-			  "taskFolder"=$dependencyObjcet.taskFolder;
+			  "name"=$dependencyObject.dependencyName;
+			  "address"=$dependencyObject.dependencyAddress;
+			  "type"=$dependencyObject.dependencyType;
+			  "taskFolder"=$dependencyObject.taskFolder;
 			});
 		}
 
 		If($null -ne $accountDetails)
 		{
 			# Verify details and complete missing ones
-			if($accountDetails.useName -ne $dependencyObjcet.userName)
+			if($accountDetails.useName -ne $dependencyObject.userName)
 			{
 				$addDiscoveredAccountBody.userName = $accountDetails.useName
 			}
-			if($accountDetails.address -ne $dependencyObjcet.address)
+			if($accountDetails.address -ne $dependencyObject.address)
 			{
 				$addDiscoveredAccountBody.address = $accountDetails.address
 			}
-			if($accountDetails.address -ne $dependencyObjcet.domain)
+			if($accountDetails.address -ne $dependencyObject.domain)
 			{
 				$addDiscoveredAccountBody.domain = $accountDetails.address
 			}
@@ -463,7 +463,7 @@ Function Add-AccountDependency
 		If ($null -eq $addDiscoveredAccountResult)
 		{
 			# No accounts onboarded
-			throw "There was an error onboarding dependency $($dependencyObjcet.dependencyName)."
+			throw "There was an error onboarding dependency $($dependencyObject.dependencyName)."
 		}
 		else
 		{
@@ -471,21 +471,21 @@ Function Add-AccountDependency
 			Switch($addDiscoveredAccountResult.status)
 			{
 				"alreadyExists" {
-					Write-LogMessage -Type Info -MSG "Master Account ($($dependencyObjcet.userName)) or Account dependency ($($dependencyObjcet.dependencyName)) already exists and cannot be onboarded"
+					Write-LogMessage -Type Info -MSG "Master Account ($($dependencyObject.userName)) or Account dependency ($($dependencyObject.dependencyName)) already exists and cannot be onboarded"
 					break
 				}
 				"addedAsPending" {
-					Write-LogMessage -Type Info -MSG "Account dependency $($dependencyObjcet.dependencyName) was successfully onboarded to Pending Accounts"
+					Write-LogMessage -Type Info -MSG "Account dependency $($dependencyObject.dependencyName) was successfully onboarded to Pending Accounts"
 					$retResult = $true
 					break
 				}
 				"updatedPending" {
-					Write-LogMessage -Type Info -MSG "Account dependency $($dependencyObjcet.dependencyName) was successfully updated in Pending Accounts"
+					Write-LogMessage -Type Info -MSG "Account dependency $($dependencyObject.dependencyName) was successfully updated in Pending Accounts"
 					$retResult = $true
 					break
 				}
 				Default {
-					Write-LogMessage -Type Info -MSG "Account dependency $($dependencyObjcet.dependencyName) status is ($addDiscoveredAccountResult.status)"
+					Write-LogMessage -Type Info -MSG "Account dependency $($dependencyObject.dependencyName) status is ($addDiscoveredAccountResult.status)"
 					break
 				}
 			}
@@ -628,7 +628,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding D
 			# If($null -eq $foundMasterAccount)
 			# {
 				# Write-LogMessage -Type Warning -Msg "No Master Account found, onboarding to pending account"
-				if(Add-AccountDependency -dependencyObjcet $account -MasterID $foundMasterAccount) { $counter++ }
+				if(Add-AccountDependency -dependencyObject $account -MasterID $foundMasterAccount) { $counter++ }
 			# }
 			# else
 			# {
