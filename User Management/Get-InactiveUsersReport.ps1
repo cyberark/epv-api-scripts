@@ -45,7 +45,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "1.0"
+$ScriptVersion = "1.2"
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -493,23 +493,31 @@ Function Get-InactiveUsers
 		[PSCredential]$VaultCredentials
 	)
 	$retInactiveUsersList = @()
+	$inactiveDateCheck = $((Get-Date).AddDays($inactiveDaysFilter *-1))
 	try{
 		Write-LogMessage -Type Debug -Msg "Going over $($Users.Count) users..."
 		Foreach($user in $Users)
 		{
+			$addToReport = $false
 			$_userDetails = Invoke-REST -URI ($URL_UserDetails -f $user.id) -Command GET -Header $(Get-LogonHeader -Credentials $VaultCredentials)
-			if(($null -eq $_userDetails.lastSuccessfulLoginDate) -or (Convert-Date($_userDetails.lastSuccessfulLoginDate) -le $((Get-Date).AddDays($inactiveDaysFilter *-1))))
+		
+			$_user = $user
+			if($null -eq $_userDetails.lastSuccessfulLoginDate)
+			{
+				$_user | Add-Member -NotePropertyName "LastSuccessfulLoginDate" -NotePropertyValue "N/A"
+				$addToReport = $true
+			}
+			elseif($(Convert-Date($_userDetails.lastSuccessfulLoginDate)) -le $inactiveDateCheck)
+			{
+				# Add formated last login date to user details
+				$formatLastLoginDate = $(Get-Date (Convert-Date($_userDetails.lastSuccessfulLoginDate)) -Format "yyyy-MM-dd hh:mm:ss")
+				$_user | Add-Member -NotePropertyName "LastSuccessfulLoginDate" -NotePropertyValue $formatLastLoginDate
+				$addToReport = $true
+			}
+			
+			If($addToReport)
 			{
 				Write-LogMessage -Type Verbose -Msg "Adding $($_userDetails.UserName) to the report"
-				$_user = $user
-				if($null -eq $_userDetails.lastSuccessfulLoginDate)
-				{
-					$_user | Add-Member -NotePropertyName "LastSuccessfulLoginDate" -NotePropertyValue "N/A"
-				}
-				else
-				{
-					$_user | Add-Member -NotePropertyName "LastSuccessfulLoginDate" -NotePropertyValue (Convert-Date($_userDetails.lastSuccessfulLoginDate))
-				}
 				$_user | Add-Member -NotePropertyName "IsSuspended" -NotePropertyValue $_userDetails.suspended
 				$_user | Add-Member -NotePropertyName "IsEnabled" -NotePropertyValue $_userDetails.enableUser
 				$retInactiveUsersList += $_user
