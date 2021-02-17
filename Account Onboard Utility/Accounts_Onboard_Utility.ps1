@@ -48,10 +48,12 @@ param
 	
 	# Use this switch to Create accounts and Safes (no update)
 	[Parameter(ParameterSetName='Create',Mandatory=$true)]
+	[Parameter(ParameterSetName='Update',Mandatory=$false)]
 	[Switch]$Create,
 	
 	# Use this switch to Create and Update accounts and Safes
 	[Parameter(ParameterSetName='Update',Mandatory=$true)]
+	[Parameter(ParameterSetName='Create',Mandatory=$false)]
 	[Switch]$Update,	
 	
 	# Use this switch to Delete accounts
@@ -151,8 +153,8 @@ Function Test-CommandExists
 # =================================================================================================================================
 Function ConvertTo-URL($sText)
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	HTTP Encode test in URL
 .DESCRIPTION
 	HTTP Encode test in URL
@@ -178,8 +180,8 @@ Function ConvertTo-URL($sText)
 # =================================================================================================================================
 Function Convert-ToBool
 {
-<# 
-.SYNOPSIS 
+<#
+.SYNOPSIS
 	Converts text to Bool
 .DESCRIPTION
 	Converts text to Bool
@@ -343,13 +345,18 @@ Function Open-FileDialog
 		[ValidateNotNullOrEmpty()] 
 		[string]$LocationPath
 	)
-    [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
-    
-    $OpenFileDialog = New-Object System.Windows.Forms.OpenFileDialog
-    $OpenFileDialog.initialDirectory = $LocationPath
-    $OpenFileDialog.filter = "CSV (*.csv)| *.csv"
-    $OpenFileDialog.ShowDialog() | Out-Null
-    return $OpenFileDialog.filename
+    Begin{
+		[System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
+		$OpenFileDialog = New-Object System.Windows.Forms.OpenFileDialog
+	}
+	Process{
+		$OpenFileDialog.initialDirectory = $LocationPath
+		$OpenFileDialog.filter = "CSV (*.csv)| *.csv"
+		$OpenFileDialog.ShowDialog() | Out-Null
+	}
+	End{
+		return $OpenFileDialog.filename
+	}
 }
 #endregion
 
@@ -418,14 +425,17 @@ Function Write-LogMessage
 			"Info" { 
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
+				break
 			}
 			"Warning" {
 				Write-Host $MSG.ToString() -ForegroundColor Yellow
 				$msgToWrite += "[WARNING]`t$Msg"
+				break
 			}
 			"Error" {
 				Write-Host $MSG.ToString() -ForegroundColor Red
 				$msgToWrite += "[ERROR]`t$Msg"
+				break
 			}
 			"Debug" { 
 				if($InDebug)
@@ -434,6 +444,7 @@ Function Write-LogMessage
 					$msgToWrite += "[DEBUG]`t$Msg"
 				}
 				else { $writeToFile = $False }
+				break
 			}
 			"Verbose" { 
 				if($InVerbose)
@@ -442,6 +453,7 @@ Function Write-LogMessage
 					$msgToWrite += "[VERBOSE]`t$Msg"
 				}
 				else { $writeToFile = $False }
+				break
 			}
 		}
 		
@@ -620,30 +632,30 @@ Function Convert-PermissionName
 			[Parameter(Mandatory=$true)]
 			[String]$permName
 	)
-	
+	$retPermName = ""
 	Switch($permName)
 	{
-		"ListContent" { return "ListAccounts" } 
-		"Retrieve" { return "RetrieveAccounts" } 
-		"Add" { return "AddAccounts" } 
-		"Update" { return "UpdateAccountContent" } 
-		"UpdateMetadata" { return "UpdateAccountProperties" } 
-		"Rename" { return "RenameAccounts" } 
-		"Delete" { return "DeleteAccounts" } 
-		"ViewAudit" { return "ViewAuditLog" } 
-		"ViewMembers" { return "ViewSafeMembers" } 
-		"RestrictedRetrieve" { return "UseAccounts" } 
-		"AddRenameFolder" { return "CreateFolders" } 
-		"DeleteFolder" { return "DeleteFolders" } 
-		"Unlock" { return "UnlockAccounts" } 
-		"MoveFilesAndFolders" { return "MoveAccountsAndFolders" } 
-		"ManageSafe" { return "ManageSafe" } 
-		"ManageSafeMembers" { return "ManageSafeMembers" } 
-		"ValidateSafeContent" { return "" } 
-		"BackupSafe" { return "BackupSafe" }
-		Default { return "" } 
+		"ListContent" { $retPermName = "ListAccounts"; break }
+		"Retrieve" { $retPermName = "RetrieveAccounts"; break }
+		"Add" { $retPermName = "AddAccounts"; break }
+		"Update" { $retPermName = "UpdateAccountContent"; break }
+		"UpdateMetadata" { $retPermName = "UpdateAccountProperties"; break }
+		"Rename" { $retPermName = "RenameAccounts"; break }
+		"Delete" { $retPermName = "DeleteAccounts"; break }
+		"ViewAudit" { $retPermName = "ViewAuditLog"; break }
+		"ViewMembers" { $retPermName = "ViewSafeMembers"; break }
+		"RestrictedRetrieve" { $retPermName = "UseAccounts"; break }
+		"AddRenameFolder" { $retPermName = "CreateFolders"; break }
+		"DeleteFolder" { $retPermName = "DeleteFolders"; break }
+		"Unlock" { $retPermName = "UnlockAccounts"; break }
+		"MoveFilesAndFolders" { $retPermName = "MoveAccountsAndFolders"; break }
+		"ManageSafe" { $retPermName = "ManageSafe"; break }
+		"ManageSafeMembers" { $retPermName = "ManageSafeMembers"; break }
+		"ValidateSafeContent" { $retPermName = ""; break }
+		"BackupSafe" { $retPermName = "BackupSafe"; break }
+		Default { $retPermName = ""; break }
 	}
-	
+	return $retPermName
 }
 
 # @FUNCTION@ ======================================================================================================================
