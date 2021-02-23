@@ -132,7 +132,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		Write-Host "Retrieving Platform details"
 		# Get the Platform Name
 		Write-verbose "RestMethod -Method Get -Uri $($URL_PlatformDetails -f $PlatformID)"
-		$platformDetails = Invoke-RestMethod -Method Get -Uri $($URL_PlatformDetails -f $PlatformID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+		$platformDetails = Invoke-RestMethod -Method Get -Uri $($URL_PlatformDetails -f $PlatformID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 		If($platformDetails)
 		{
 			Write-verbose $platformDetails
