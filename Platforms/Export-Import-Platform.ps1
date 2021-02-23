@@ -74,6 +74,40 @@ Function Test-CommandExists
     Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Join-ExceptionMessage
+# Description....: Formats exception messages
+# Parameters.....: Exception
+# Return Values..: Formatted String of Exception messages
+# =================================================================================================================================
+Function Join-ExceptionMessage
+{
+<# 
+.SYNOPSIS 
+	Formats exception messages
+.DESCRIPTION
+	Formats exception messages
+.PARAMETER Exception
+	The Exception object to format
+#>
+	param(
+		[Exception]$e
+	)
+
+	Begin {
+	}
+	Process {
+		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		while ($e.InnerException) {
+		  $e = $e.InnerException
+		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		}
+		return $msg
+	}
+	End {
+	}
+}
+
 #endregion
 
 If (Test-CommandExists Invoke-RestMethod)
@@ -208,4 +242,4 @@ else
     Write-Error "This script requires PowerShell version 3 or above"
 }
 
-Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
+Write-Host "Export / Import Platform: Script Finished" -ForegroundColor Cyan
