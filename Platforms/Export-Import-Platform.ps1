@@ -38,7 +38,11 @@ param
 	[Parameter(ParameterSetName='Import',Mandatory=$true,HelpMessage="Enter the platform Zip path for import")]
 	[Parameter(ParameterSetName='Export',Mandatory=$true,HelpMessage="Enter the platform Zip path to export")]
 	[Alias("path")]
-	[string]$PlatformZipPath
+	[string]$PlatformZipPath,
+
+	# Use this switch to Disable SSL verification (NOT RECOMMENDED)
+	[Parameter(Mandatory=$false)]
+	[Switch]$DisableSSLVerify
 )
 
 # Global URLS
@@ -70,10 +74,70 @@ Function Test-CommandExists
     Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Join-ExceptionMessage
+# Description....: Formats exception messages
+# Parameters.....: Exception
+# Return Values..: Formatted String of Exception messages
+# =================================================================================================================================
+Function Join-ExceptionMessage
+{
+<# 
+.SYNOPSIS 
+	Formats exception messages
+.DESCRIPTION
+	Formats exception messages
+.PARAMETER Exception
+	The Exception object to format
+#>
+	param(
+		[Exception]$e
+	)
+
+	Begin {
+	}
+	Process {
+		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		while ($e.InnerException) {
+		  $e = $e.InnerException
+		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		}
+		return $msg
+	}
+	End {
+	}
+}
+
 #endregion
 
 If (Test-CommandExists Invoke-RestMethod)
 {
+If($DisableSSLVerify)
+{
+	try{
+		Write-Warning "It is not Recommended to disable SSL verification" -WarningAction Inquire
+		# Using Proxy Default credentials if the Server needs Proxy credentials
+		[System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
+		# Using TLS 1.2 as security protocol verification
+		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls11
+		# Disable SSL Verification
+		[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
+	} catch {
+		Write-Error "Could not change SSL validation"
+		Write-Error (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+		return
+	}
+}
+Else
+{
+	try{
+		Write-Debug "Setting script to use TLS 1.2"
+		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+	} catch {
+		Write-Error "Could not change SSL settings to use TLS 1.2"
+		Write-Error (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+	}
+}
 
 # Check that the PVWA URL is OK
     If ($PVWAURL -ne "")
@@ -178,4 +242,4 @@ else
     Write-Error "This script requires PowerShell version 3 or above"
 }
 
-Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
+Write-Host "Export / Import Platform: Script Finished" -ForegroundColor Cyan
