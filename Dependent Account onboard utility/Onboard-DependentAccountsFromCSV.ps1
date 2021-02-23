@@ -474,6 +474,11 @@ Function Add-AccountDependency
 					Write-LogMessage -Type Info -MSG "Master Account ($($dependencyObjcet.userName)) or Account dependency ($($dependencyObjcet.dependencyName)) already exists and cannot be onboarded"
 					break
 				}
+				"addedAccount" {
+					Write-LogMessage -Type Info -MSG "Account $("{0}@{1}" -f $dependencyObjcet.userName, $dependencyObjcet.address) was successfully onboarded to vault"
+					$retResult = $true
+					break
+				}
 				"addedAsPending" {
 					Write-LogMessage -Type Info -MSG "Account dependency $($dependencyObjcet.dependencyName) was successfully onboarded to Pending Accounts"
 					$retResult = $true
@@ -484,8 +489,13 @@ Function Add-AccountDependency
 					$retResult = $true
 					break
 				}
+				"updatedAccount" {
+					Write-LogMessage -Type Info -MSG "Account $("{0}@{1}" -f $dependencyObjcet.userName, $dependencyObjcet.address) was successfully updated in the vault"
+					$retResult = $true
+					break
+				}
 				Default {
-					Write-LogMessage -Type Info -MSG "Account dependency $($dependencyObjcet.dependencyName) status is ($addDiscoveredAccountResult.status)"
+					Write-LogMessage -Type Info -MSG "Account dependency $($dependencyObjcet.dependencyName) status is $($addDiscoveredAccountResult.status)"
 					break
 				}
 			}
