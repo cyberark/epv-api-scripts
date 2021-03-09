@@ -111,7 +111,7 @@ Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
     $caption = "Export / Import Platform"
     $msg = "Enter your User name and Password"; 
     $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($creds -ne $null)
+	if ($null -ne $creds)
 	{
 		$rstusername = $creds.username.Replace('\','');    
 		$rstpassword = $creds.GetNetworkCredential().password
@@ -161,7 +161,7 @@ Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
 
 	switch($PsCmdlet.ParameterSetName)
 	{
-		"Import"
+		{ ($_ -eq "SingleImport") -or ($_ -eq "BulkImport") }
 		{
 			ForEach($item in $platformsList)
 			{
@@ -180,7 +180,7 @@ Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
 							Write-Debug $platformDetails
 							Write-Host "$($platformDetails.Details.PolicyName) (ID: $($platformDetails.PlatformID)) was successfully imported and $(if($platformDetails.Active) { "Activated" } else { "Inactive" })"
 							Write-Host "Platform details:" 
-							$platformDetails.Details | select PolicyID, AllowedSafes, AllowManualChange, PerformPeriodicChange, @{Name = 'AllowManualVerification'; Expression = { $_.VFAllowManualVerification}}, @{Name = 'PerformPeriodicVerification'; Expression = { $_.VFPerformPeriodicVerification}}, @{Name = 'AllowManualReconciliation'; Expression = { $_.RCAllowManualReconciliation}}, @{Name = 'PerformAutoReconcileWhenUnsynced'; Expression = { $_.RCAutomaticReconcileWhenUnsynched}}, PasswordLength, MinUpperCase, MinLowerCase, MinDigit, MinSpecial 
+							$platformDetails.Details | Select-Object PolicyID, AllowedSafes, AllowManualChange, PerformPeriodicChange, @{Name = 'AllowManualVerification'; Expression = { $_.VFAllowManualVerification}}, @{Name = 'PerformPeriodicVerification'; Expression = { $_.VFPerformPeriodicVerification}}, @{Name = 'AllowManualReconciliation'; Expression = { $_.RCAllowManualReconciliation}}, @{Name = 'PerformAutoReconcileWhenUnsynced'; Expression = { $_.RCAutomaticReconcileWhenUnsynched}}, PasswordLength, MinUpperCase, MinLowerCase, MinDigit, MinSpecial 
 						}		
 					} catch {
 						#Write-Error $_.Exception
@@ -190,7 +190,7 @@ Write-Host "Export / Import Platform: Script Started" -ForegroundColor Cyan
 				}
 			}
 		}
-		"Export"
+		{ ($_ -eq "SingleExport") -or ($_ -eq "BulkExport") }
 		{
 			ForEach($item in $platformsList)
 			{
