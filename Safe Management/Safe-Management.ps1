@@ -72,7 +72,7 @@ param
 	
 	[Parameter(ParameterSetName='Add',Mandatory=$false,HelpMessage="Enter the number of versions retention")]
 	[Parameter(ParameterSetName='Update',Mandatory=$false,HelpMessage="Enter the updated number of versions retention")]
-	[int]$NumVersionRetention,
+	[int]$NumVersionRetention = 7,
 	
 	# Member Roles 
 	[Parameter(ParameterSetName='Members',Mandatory=$false,HelpMessage="Enter a role for the member to add (Default: EndUser)")]
@@ -582,21 +582,21 @@ Create-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes 
         [bool]$EnableOLAC=$false
     )
 
-$createSafeBody=@{
-            safe=@{
-            "SafeName"="$safename"; 
-            "Description"="$safeDescription"; 
-            "OLACEnabled"=$enableOLAC; 
-            "ManagingCPM"="$managingCPM";
-            "NumberOfVersionsRetention"=$numVersionRetention;
-            }
-}
+	$createSafeBody=@{
+				safe=@{
+				"SafeName"="$safename"; 
+				"Description"="$safeDescription"; 
+				"OLACEnabled"=$enableOLAC; 
+				"ManagingCPM"="$managingCPM";
+				"NumberOfVersionsRetention"=$numVersionRetention;
+				}
+	}
 
-If($numDaysRetention -gt -1)
-{
-	$createSafeBody.Safe.Add("NumberOfDaysRetention",$numDaysRetention)
-	$createSafeBody.Safe.Remove("NumberOfVersionsRetention")
-}
+	If($numDaysRetention -gt -1)
+	{
+		$createSafeBody.Safe.Add("NumberOfDaysRetention",$numDaysRetention)
+		$createSafeBody.Safe.Remove("NumberOfVersionsRetention")
+	}
 
 	try {
         Write-LogMessage -Type Debug -Msg "Adding the safe $safename to the Vault..."

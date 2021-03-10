@@ -41,6 +41,15 @@ If you want to Filter a specific safe to see its details:
 Safe-Management.ps1 -PVWAURL <string> -Add [-SafeName <string>] [-Description <string>] [-ManagingCPM <string>] [-NumVersionRetention <int>] [-FilePath <string>] [<CommonParameters>]
 ```
 
+>*Note:* Using the add command depends on the CSV file format you use.
+>
+>Providing a CSV with Safe details only, will create the safe. See example file [`safe-details-sample.csv`](safe-details-sample.csv)
+>
+>Providing a CSV with Safe members only, will add members to that safe (only to existing safes). See example file [`safe-members-sample.csv`](safe-members-sample.csv)
+>
+>Providing a CSV with both Safe details and Safe members, will create the safe and add the relevant members. See example file [`safe-details and members-sample.csv`](safe-details_and_members-sample.csv)
+
+
 If you want to Create a new safe called 'MySafe':
 ```powershell
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -SafeName "MySafe"
@@ -59,6 +68,11 @@ If you want to Create a new safe and set the Managing CPM and the number of vers
 If you want to Create a list of safes from a file:
 ```powershell
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-sample.csv"
+```
+
+If you want to create a list of safes and add members to it from a file:
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-details_and_members-sample.csv"
 ```
 
 ### Update Command:
