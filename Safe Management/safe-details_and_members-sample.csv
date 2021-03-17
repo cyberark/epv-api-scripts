@@ -1,0 +1,6 @@
+Safename,Description,ManagingCPM,numVersionRetention,numDaysRetention,EnableOLAC,Member,MemberLocation,UseAccounts,RetrieveAccounts,ListAccounts,AddAccounts,UpdateAccountContent,UpdateAccountProperties,InitiateCPMAccountManagementOperations,SpecifyNextAccountContent,RenameAccounts,DeleteAccounts,UnlockAccounts,ManageSafe,ManageSafeMembers,BackupSafe,ViewAuditLog,ViewSafeMembers,RequestsAuthorizationLevel,AccessWithoutConfirmation,CreateFolders,DeleteFolders,MoveAccountsAndFolders
+TESTSAFE,This is the test safe,PasswordManager,,7,FALSE,johndoe,acmedomain.com,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,1,TRUE,TRUE,TRUE,TRUE
+TESTSAFE,,,,,,localvaultuser,vault,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,1,TRUE,TRUE,TRUE,TRUE
+TESTSAFE2,This is the test safe,PassManager2,,,,localvaultuser,vault,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,1,TRUE,TRUE,TRUE,TRUE
+TESTSAFE,,,,,,Project Managers,vault,TRUE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,TRUE,1,FALSE,FALSE,FALSE,FALSE
+TESTSAFE2,,,,,,Project Managers,vault,TRUE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,TRUE,1,FALSE,FALSE,FALSE,FALSE

@@ -184,7 +184,7 @@ If (Test-CommandExists Invoke-RestMethod)
     $caption = "Get accounts"
     $msg = "Enter your User name and Password"; 
     $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($creds -ne $null)
+	if ($null -ne $creds)
 	{
 		$rstusername = $creds.username.Replace('\','');    
 		$rstpassword = $creds.GetNetworkCredential().password
@@ -232,7 +232,7 @@ If (Test-CommandExists Invoke-RestMethod)
 				Write-Error $_.Exception
 			}
 			try{
-				$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $AccountsURLWithFilters -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+				$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $AccountsURLWithFilters -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 			} catch {
 				Write-Error $_.Exception.Response.StatusDescription
 			}
@@ -245,9 +245,9 @@ If (Test-CommandExists Invoke-RestMethod)
 				$nextLink =  $GetAccountsResponse.nextLink
 				Write-Debug $nextLink
 				
-				While ($nextLink -ne "" -and $nextLink -ne $null)
+				While ($nextLink -ne "" -and $null -ne $nextLink)
 				{
-					$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $("$PVWAURL/$nextLink") -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000	
+					$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $("$PVWAURL/$nextLink") -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700	
 					$nextLink = $GetAccountsResponse.nextLink
 					Write-Debug $nextLink
 					$GetAccountsList += $GetAccountsResponse.value
@@ -266,7 +266,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		{
 			if($AccountID -ne "")
 			{
-				$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+				$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 				$response = $GetAccountDetailsResponse
 			}
 		}
@@ -278,12 +278,12 @@ If (Test-CommandExists Invoke-RestMethod)
 		Foreach ($item in $response)
 		{
 			# Get the Platform Name
-			$platformName = Invoke-RestMethod -Method Get -Uri $($URL_Platforms -f $item.platformId) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+			$platformName = Invoke-RestMethod -Method Get -Uri $($URL_Platforms -f $item.platformId) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 			$output += $item | Select-Object id,@{Name = 'UserName'; Expression = { $_.userName}}, @{Name = 'Address'; Expression = { $_.address}}, @{Name = 'SafeName'; Expression = { $_.safeName}}, @{Name = 'Platform'; Expression = { $platformName.Details.PolicyName}}, @{Name = 'CreateDate'; Expression = { Convert-Date $_.createdTime}}
 		}
 		If([string]::IsNullOrEmpty($CSVPath))
 		{
-			$output | FT -Autosize
+			$output | Format-Table -Autosize
 		}
 		else
 		{

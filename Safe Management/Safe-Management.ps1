@@ -72,7 +72,7 @@ param
 	
 	[Parameter(ParameterSetName='Add',Mandatory=$false,HelpMessage="Enter the number of versions retention")]
 	[Parameter(ParameterSetName='Update',Mandatory=$false,HelpMessage="Enter the updated number of versions retention")]
-	[int]$NumVersionRetention,
+	[int]$NumVersionRetention = 7,
 	
 	# Member Roles 
 	[Parameter(ParameterSetName='Members',Mandatory=$false,HelpMessage="Enter a role for the member to add (Default: EndUser)")]
@@ -326,7 +326,7 @@ Function Get-LogonHeader
 		}
 		try{
 			# Logon
-			$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json" -TimeoutSec 3600000
+			$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json" -TimeoutSec 2700
 			
 			# Clear logon body
 			$logonBody = ""
@@ -367,7 +367,7 @@ Function Run-Logoff
 		If($null -ne $g_LogonHeader)
 		{
 			Write-LogMessage -Type Info -Msg "Logoff Session..."
-			Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 | out-null
+			Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 | out-null
 			Set-Variable -Name g_LogonHeader -Value $null -Scope global
 		}
 	} catch {
@@ -449,10 +449,10 @@ Get-Safes
     )
 
 try {
-		If($g_SafesList -eq $null)
+		If($null -eq $g_SafesList)
 		{
 			Write-LogMessage -Type Debug -Msg "Retrieving safes from the vault..."
-			$safes = (Invoke-RestMethod -Uri $URL_Safes -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000).GetSafesResult
+			$safes = (Invoke-RestMethod -Uri $URL_Safes -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700).GetSafesResult
 			Set-Variable -Name g_SafesList -Value $safes -Scope Global
 		}
 		
@@ -483,7 +483,7 @@ Get-Safe -safeName "x0-Win-S-Admins"
 	$_safe = $null
 	try{
 		$accSafeURL = $URL_SpecificSafe -f $(Encode-URL $safeName)
-		$_safe = $(Invoke-RestMethod -Uri $accSafeURL -Method "Get" -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorAction "SilentlyContinue").GetSafeResult
+		$_safe = $(Invoke-RestMethod -Uri $accSafeURL -Method "Get" -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue").GetSafeResult
 	}
 	catch
 	{
@@ -512,7 +512,7 @@ Function Test-Safe
 	try{
 		$chkSafeExists = $null
 		$retResult = $false
-		If($g_SafesList -ne $null)
+		If($null -ne $g_SafesList)
 		{
 			# Check Cached safes list first
 			$chkSafeExists = ($g_SafesList.safename -contains $safename)
@@ -521,7 +521,7 @@ Function Test-Safe
 		{
 			# No cache, Get safe details from Vault
 			try{
-				$chkSafeExists = $(Get-Safe -safeName $safeName -ErrAction "SilentlyContinue") -ne $null
+				$chkSafeExists = $null -ne $(Get-Safe -safeName $safeName -ErrAction "SilentlyContinue")
 			}
 			catch{
 				$chkSafeExists = $false
@@ -582,25 +582,25 @@ Create-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes 
         [bool]$EnableOLAC=$false
     )
 
-$createSafeBody=@{
-            safe=@{
-            "SafeName"="$safename"; 
-            "Description"="$safeDescription"; 
-            "OLACEnabled"=$enableOLAC; 
-            "ManagingCPM"="$managingCPM";
-            "NumberOfVersionsRetention"=$numVersionRetention;
-            }
-}
+	$createSafeBody=@{
+				safe=@{
+				"SafeName"="$safename"; 
+				"Description"="$safeDescription"; 
+				"OLACEnabled"=$enableOLAC; 
+				"ManagingCPM"="$managingCPM";
+				"NumberOfVersionsRetention"=$numVersionRetention;
+				}
+	}
 
-If($numDaysRetention -gt -1)
-{
-	$createSafeBody.Safe.Add("NumberOfDaysRetention",$numDaysRetention)
-	$createSafeBody.Safe.Remove("NumberOfVersionsRetention")
-}
+	If($numDaysRetention -gt -1)
+	{
+		$createSafeBody.Safe.Add("NumberOfDaysRetention",$numDaysRetention)
+		$createSafeBody.Safe.Remove("NumberOfVersionsRetention")
+	}
 
 	try {
         Write-LogMessage -Type Debug -Msg "Adding the safe $safename to the Vault..."
-        $safeadd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
+        $safeadd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
 		# Reset cached Safes list
 		#Set-Variable -Name g_SafesList -Value $null -Scope Global
 		# Update Safes list to include new safe
@@ -665,11 +665,11 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
 	{
 		$updateManageCPM = $managingCPM
 	}
-	If($numVersionRetention -ne $null -and $numVersionRetention -gt 0 -and $getSafe.NumberOfVersionsRetention -ne $numVersionRetention)
+	If($null -ne $numVersionRetention -and $numVersionRetention -gt 0 -and $getSafe.NumberOfVersionsRetention -ne $numVersionRetention)
 	{
 		$updateRetVersions = $numVersionRetention
 	}
-	If($numDaysRetention -ne $null -and $numDaysRetention -gt 0 -and $getSafe.NumberOfDaysRtention -ne $numDaysRetention)
+	If($null -ne $numDaysRetention -and $numDaysRetention -gt 0 -and $getSafe.NumberOfDaysRtention -ne $numDaysRetention)
 	{
 		$updateRetDays = $numDaysRetention
 	}
@@ -688,7 +688,7 @@ $updateSafeBody=@{
 	try {
         Write-LogMessage -Type Debug -Msg "Updating safe $safename..."
         Write-LogMessage -Type Debug -Msg "Update Safe Body: $updateSafeBody" 
-        $safeupdate = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
+        $safeupdate = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
     }catch{
 		Throw $(New-Object System.Exception ("Update-Safe: Error updating $safeName.",$_.Exception))
     }
@@ -717,7 +717,7 @@ Delete-Safe -safename "x0-Win-S-Admins"
 
 	try {
         Write-LogMessage -Type Debug -Msg "Deleting the safe $safename from the Vault..."
-        $safedelete = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Method DELETE -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000
+        $safedelete = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Method DELETE -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
     }catch{
 		Throw $(New-Object System.Exception ("Delete-Safe: Error deleting $safename from the Vault.",$_.Exception))
     }
@@ -854,7 +854,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
 				$urlSafeMembers = ($URL_SafeMembers -f $(Encode-URL $safeName))
 				$restMethod = "POST"
 			}
-			$setSafeMembers = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorVariable rMethodErr
+			$setSafeMembers = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorVariable rMethodErr
 		}catch{
 			if ($rmethodErr.message -like "*User or Group is already a member*"){
 				Write-LogMessage -Type Warning -Msg "The user $safeMember is already a member. Use the update member method instead"
@@ -891,9 +891,9 @@ Get-SafeMember -safename "Win-Local-Admins"
 	$_safeOwners = $null
 	try{
 		$accSafeMembersURL = $URL_SafeMembers -f $(Encode-URL $safeName)
-		$_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 -ErrorAction "SilentlyContinue")
+		$_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue")
 		# Remove default users and change UserName to MemberName
-		$_safeOwners = $_safeMembers.members | Where {$_.UserName -notin $g_DefaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
+		$_safeOwners = $_safeMembers.members | Where-Object {$_.UserName -notin $g_DefaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
 	}
 	catch
 	{
@@ -959,7 +959,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		$caption = "Safe Management"
 		$msg = "Enter your User name and Password"; 
 		$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-		if ($creds -ne $null)
+		if ($null -ne $creds)
 		{
 			Get-LogonHeader -Credentials $creds -ConnectionNumber $ThreadNumber
 		}
@@ -973,7 +973,6 @@ If (Test-CommandExists Invoke-RestMethod)
 	}
 #endregion
 
-	$response = ""
 	switch($PsCmdlet.ParameterSetName)
 	{
 		"List"
@@ -1049,7 +1048,7 @@ If (Test-CommandExists Invoke-RestMethod)
 						ElseIf($Delete)
 						{
 							Write-LogMessage -Type Info -Msg "Deleting safe $($line.safename)..."
-							Delete-Safe @parameters
+							Delete-Safe -safename $parameters.safeName
 						}
 						
 						If($Delete -eq $False)
@@ -1107,7 +1106,7 @@ If (Test-CommandExists Invoke-RestMethod)
 					{
 						# Deleting one Safe
 						Write-LogMessage -Type Info -Msg "Deleting the safe $SafeName..."
-						Delete-Safe @parameters
+						Delete-Safe -safename $parameters.safeName
 					}
 				}			
 			}catch{

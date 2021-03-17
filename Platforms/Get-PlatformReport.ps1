@@ -387,13 +387,13 @@ Function Invoke-Rest
 	try{
 		if([string]::IsNullOrEmpty($Body))
 		{
-			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000
+			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700
 		}
 		else
 		{
-			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000
+			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700
 		}
 	} catch [System.Net.WebException] {
 		Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)" -ErrorAction $ErrAction
@@ -570,7 +570,7 @@ try{
 			@{Name = 'ChangeEveryXDays'; Expression = {$_.CredentialsManagementPolicy.Change.RequirePasswordEveryXDays}},`
 			@{Name = 'PeriodicReconcile'; Expression = {$_.CredentialsManagementPolicy.Reconcile.PerformAutomatic}},`
 			@{Name = 'ReconcileEveryXDays'; Expression = {$_.CredentialsManagementPolicy.Reconcile.RequirePasswordEveryXDays}},`
-			@{Name = 'PSMConnectors'; Expression = { ($_.PrivilegedSessionManagement.PSMConnectors | Where { $_.Enabled }).PSMConnectorID  -join ';' }}
+			@{Name = 'PSMConnectors'; Expression = { ($_.PrivilegedSessionManagement.PSMConnectors | Where-Object { $_.Enabled }).PSMConnectorID  -join ';' }}
 		)
 		If($ExtendedReport)
 		{
@@ -586,7 +586,7 @@ try{
 		
 		If([string]::IsNullOrEmpty($CSVPath))
 		{
-			$output | FT -Autosize
+			$output | Format-Table -Autosize
 		}
 		else
 		{

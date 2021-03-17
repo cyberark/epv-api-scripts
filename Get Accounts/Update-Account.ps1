@@ -42,6 +42,8 @@ param
 
 # Get Script Location 
 $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
+# Script Version
+$ScriptVersion = "1.2"
 
 # Global URLS
 # -----------
@@ -106,7 +108,7 @@ If (Test-CommandExists Invoke-RestMethod)
     $caption = "Update accounts"
     $msg = "Enter your User name and Password"; 
     $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($creds -ne $null)
+	if ($null -ne $creds)
 	{
 		$rstusername = $creds.username.Replace('\','');    
 		$rstpassword = $creds.GetNetworkCredential().password
@@ -143,8 +145,16 @@ If (Test-CommandExists Invoke-RestMethod)
 	$response = ""
 	if($AccountID -ne "")
 	{
-		$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000
+		$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 		$response = $GetAccountDetailsResponse
+		if ($([string]::IsNullOrEmpty($GetAccountDetailsResponse.platformAccountProperties)))
+		{
+			$PropsName = @()
+		}
+		else
+		{
+			$PropsName = Get-Member -InputObject $GetAccountDetailsResponse.platformAccountProperties -MemberType NoteProperty | ForEach-Object { $_.Name }
+		}
 	}
 	If([string]::IsNullOrEmpty($response))
 	{
@@ -178,18 +188,23 @@ If (Test-CommandExists Invoke-RestMethod)
 		}
 	}
 	# Filter excluded Properties and go over regular properties
-	ForEach($param in ($arrProperties.GetEnumerator() | where { $_.Name -notin $excludedProperties }))
+	ForEach($param in ($arrProperties.GetEnumerator() | Where-Object { $_.Name -notin $excludedProperties }))
 	{
-		$_bodyOp = "" | select "op", "path", "value"
-		$_bodyOp.op = "replace"
+		$_bodyOp = "" | Select-Object "op", "path", "value"
+		if ($PropsName.Contains($param.Name))
+		{
+			$_bodyOp.op = "replace"
+		} else {
+			$_bodyOp.op = "add"
+		}
 		$_bodyOp.path = "/platformAccountProperties/"+$param.Name
 		$_bodyOp.value = $param.Value
 		$arrPropertiesBody += $_bodyOp
 	}
 	# Go over only excluded Properties
-	ForEach($param in ($arrProperties.GetEnumerator() | where { $_.Name -in $excludedProperties }))
+	ForEach($param in ($arrProperties.GetEnumerator() | Where-Object { $_.Name -in $excludedProperties }))
 	{
-		$_bodyOp = "" | select "op", "path", "value"
+		$_bodyOp = "" | Select-Object "op", "path", "value"
 		If($param.Name -in ("automaticManagementEnabled","manualManagementReason"))
 		# Handle Secret Management section
 		{
@@ -262,6 +277,7 @@ If (Test-CommandExists Invoke-RestMethod)
 		Else
 		# Handle Account basic properties
 		{
+			$_bodyOp.op = "replace"
 			$_bodyOp.path = "/"+$param.Name
 			$_bodyOp.value = $param.Value
 		}
@@ -279,7 +295,7 @@ If (Test-CommandExists Invoke-RestMethod)
 	$arrPropertiesBody | Select-Object @{Name='Property'; Expression={"{0} = {1}" -f $_.path, $_.value}}
 	
 	try{
-		$UpdateAccountDetailsResponse = Invoke-RestMethod -Method Patch -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -Body $body -ContentType "application/json" -TimeoutSec 3600000
+		$UpdateAccountDetailsResponse = Invoke-RestMethod -Method Patch -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -Body $body -ContentType "application/json" -TimeoutSec 2700
 		$response = $UpdateAccountDetailsResponse
 	} catch {
 		Write-Error $_.Exception.Response.StatusDescription
