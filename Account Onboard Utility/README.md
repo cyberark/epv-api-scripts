@@ -8,6 +8,7 @@
 - The tool supports basic Account and Safe Creation, much like the Password Upload Utility
 - The tool supports Template Safe (currently one for all Accounts)
 - The tool can take a simple CSV file with only the relevant Account information
+- The tool will automatically update it self to the latest version if one exists in thie GitHub folder
 
 In order to run the tool you need to run some simple commands in Powershell.
 The Tool supports three modes: [*Create*](#create-command), [*Update*](#update-command) and [*Delete*](#delete-command)
@@ -25,7 +26,7 @@ There are six FC's that are required to be added to the platform if an account h
 
 ## Parameters:
 ```powershell
-Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-AuthType] [-OTP] [-TemplateSafe] [-CsvPath] [-CsvDelimiter] [-DisableSSLVerify] [-NoSafeCreation]
+Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-AuthType] [-OTP] [-TemplateSafe] [-CsvPath] [-CsvDelimiter] [-DisableSSLVerify] [-NoSafeCreation] [-DisableAutoUpdate]
 ```
 - PVWAURL
 	- The URL of the PVWA that you are working with. 
@@ -54,6 +55,9 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-A
 	- The process will create any new safe according to the Template Safe including managing CPM and Safe Members
 - NoSafeCreation
 	- In case used, safes that do not exist will not be created
+- DisableAutoUpdate
+	- By default, the script will automatically update itself to the latest version
+	- Using this switch will disable this ability and will keep the current version
 
 ### Create Command:
 ```powershell

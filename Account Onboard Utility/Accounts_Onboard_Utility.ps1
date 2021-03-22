@@ -45,7 +45,6 @@ param
 	[Parameter(Mandatory=$false)]
 	[Switch]$DisableSSLVerify,
 	
-	
 	# Use this switch to Create accounts and Safes (no update)
 	[Parameter(ParameterSetName='Create',Mandatory=$true)]
 	[Parameter(ParameterSetName='Update',Mandatory=$false)]
@@ -63,7 +62,11 @@ param
 	# Use this switch to disable Safes creation
 	[Parameter(ParameterSetName='Create',Mandatory=$false)]
 	[Parameter(ParameterSetName='Update',Mandatory=$false)]
-	[Switch]$NoSafeCreation
+	[Switch]$NoSafeCreation,
+	
+	# Use this switch to disable Auto-Update
+	[Parameter(Mandatory=$false)]
+	[Switch]$DisableAutoUpdate
 )
 
 # Get Script Location 
@@ -74,7 +77,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.5"
+$ScriptVersion = "2.6"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
@@ -1065,7 +1068,12 @@ Function Get-LogonHeader
 .PARAMETER Credentials
 	The REST API Credentials to authenticate
 #>
-	param($Credentials, $RadiusOTP)
+	param(
+		[Parameter(Mandatory=$true)]
+		[PSCredential]$Credentials,
+		[Parameter(Mandatory=$false)]
+		[string]$RadiusOTP
+	)
 	# Create the POST Body for the Logon
     # ----------------------------------
     $logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
@@ -1082,14 +1090,14 @@ Function Get-LogonHeader
 	}
 	catch
 	{
-		Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
-		$logonToken = ""
+		Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)",$_.Exception))
 	}
-    If ([string]::IsNullOrEmpty($logonToken))
-    {
-        Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-        return
-    }
+    
+	$logonHeader = $null
+	If ([string]::IsNullOrEmpty($logonToken))
+	{
+		Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
+	}
 	
     # Create a Logon Token Header (This will be used through out all the script)
     # ---------------------------
@@ -1097,6 +1105,68 @@ Function Get-LogonHeader
 	
 	return $logonHeader
 }
+#endregion
+
+#region Auto Update
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Test-LatestVersion
+# Description....: Tests if the script is running the latest version
+# Parameters.....: NONE
+# Return Values..: True / False
+# =================================================================================================================================
+Function Test-LatestVersion
+{
+<# 
+.SYNOPSIS 
+	Tests if the script is running the latest version
+.DESCRIPTION
+	Tests if the script is running the latest version
+#>
+	$githubURL = "https://raw.githubusercontent.com/cyberark/epv-api-scripts/master"
+	$scriptFolderPath = "Account%20Onboard%20Utility"
+	$scriptName = "Accounts_Onboard_Utility.ps1"
+	$scriptURL = "$githubURL/$scriptFolderPath/$scriptName"
+	$getScriptContent = ""
+	$retLatestVersion = $true
+	# Remove any certificate validation callback (usually called when using DisableSSLVerify switch)
+	[System.Net.ServicePointManager]::ServerCertificateValidationCallback = $null
+	try{
+		$getScriptContent = (Invoke-WebRequest -UseBasicParsing -Uri $scriptURL).Content
+	}
+	catch
+	{
+		Throw $(New-Object System.Exception ("Test-LatestVersion: Couldn't download and check for latest version",$_.Exception))
+	}
+	If($($getScriptContent -match "ScriptVersion\s{0,1}=\s{0,1}\""([\d\.]{1,5})\"""))
+	{
+		$gitHubScriptVersion = $Matches[1]
+		If([double]$gitHubScriptVersion -gt [double]$ScriptVersion)
+		{
+			$retLatestVersion = $false
+			Write-LogMessage -Type Info -MSG "Found new version: $gitHubScriptVersion - Updating..."
+			$getScriptContent | Out-File "$ScriptFullPath.NEW"
+			If (Test-Path -Path "$ScriptFullPath.NEW")
+			{
+				Rename-Item -path $ScriptFullPath -NewName "$ScriptFullPath.OLD"
+				Rename-Item -Path "$ScriptFullPath.NEW" -NewName $ScriptFullPath
+				Remove-Item -Path "$ScriptFullPath.OLD"	
+			}
+			Else
+			{
+				Write-LogMessage -Type Error -MSG  "Can't find the new script at location '$ScriptFullPath.NEW'."
+				# Revert to current version in case of error
+				$retLatestVersion = $true
+			}
+		}
+		Else
+		{
+			Write-LogMessage -Type Info -MSG  "Current version ($ScriptVersion) is the latest!"
+		}
+	}
+	
+	return $retLatestVersion
+}
+
 #endregion
 
 # Write the entire script command when running in Verbose mode
@@ -1113,6 +1183,26 @@ If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
 	Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
 	return
+}
+
+# Check for latest script version
+If(!$DisableAutoUpdate)
+{
+	try{
+		If($(Test-LatestVersion) -eq $false)
+		{
+			# Fix 'Switch Parameters' calls
+			$command = $g_ScriptCommand.Replace(" 'True'", ":`$true")
+			# Run the updated script
+			$scriptPathAndArgs = "powershell.exe -NoLogo -File `"$command`" "
+			Write-LogMessage -Type Info -MSG "Finished Updating, relaunching the script"
+			Invoke-Expression $scriptPathAndArgs
+			# Exit the current script
+			return
+		}
+	} catch {
+		Write-LogMessage -Type Error -MSG "Error checking for latest version. Error: $(Join-ExceptionMessage $_.Exception)"
+	}
 }
 
 # Check if to disable SSL verification
@@ -1159,7 +1249,9 @@ If (![string]::IsNullOrEmpty($PVWAURL))
 	} catch [System.Net.WebException] {
 		If(![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__))
 		{
-			Write-LogMessage -Type Error -MSG $_.Exception.Response.StatusCode.Value__
+			Write-LogMessage -Type Error -MSG "Recieived error $($_.Exception.Response.StatusCode.Value__) when trying to validate PVWA URL"
+			Write-LogMessage -Type Error -MSG "Check your connection to PVWA and the PVWA URL"
+			return
 		}
 	}
 	catch {		
@@ -1181,7 +1273,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 	# Get Credentials to Login
 	# ------------------------
 	$caption = "Accounts Onboard Utility"
-	$msg = "Enter your User name and Password"; 
+	$msg = "Enter your $AuthType User name and Password"; 
 	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 	if ($null -ne $creds)
 	{
