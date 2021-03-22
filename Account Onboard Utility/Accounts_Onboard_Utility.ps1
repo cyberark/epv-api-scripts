@@ -65,7 +65,7 @@ param
 	[Switch]$NoSafeCreation,
 	
 	# Use this switch to disable Auto-Update
-  [Parameter(Mandatory=$false)]
+	[Parameter(Mandatory=$false)]
 	[switch]$DisableAutoUpdate
 )
 
@@ -77,7 +77,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.5"
+$ScriptVersion = "2.6"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
@@ -1136,7 +1136,7 @@ Function Test-LatestVersion
 		If([double]$gitHubScriptVersion -gt [double]$ScriptVersion)
 		{
 			$retLatestVersion = $false
-			Log-Msg -Type Info -MSG  "Found new version: $gitHubScriptVersion - Updating..."
+			Log-Msg -Type Info -MSG "Found new version: $gitHubScriptVersion - Updating..."
 			$getScriptContent | Out-File "$ScriptFullPath.NEW"
 			If (Test-Path -Path "$ScriptFullPath.NEW")
 			{
