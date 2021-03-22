@@ -1068,7 +1068,12 @@ Function Get-LogonHeader
 .PARAMETER Credentials
 	The REST API Credentials to authenticate
 #>
-	param($Credentials, $RadiusOTP)
+	param(
+		[Parameter(Mandatory=$true)]
+		[PSCredential]$Credentials,
+		[Parameter(Mandatory=$false)]
+		[string]$RadiusOTP
+	)
 	# Create the POST Body for the Logon
     # ----------------------------------
     $logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
@@ -1085,14 +1090,14 @@ Function Get-LogonHeader
 	}
 	catch
 	{
-		Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
-		$logonToken = ""
+		Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)",$_.Exception))
 	}
-    If ([string]::IsNullOrEmpty($logonToken))
-    {
-        Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-        return
-    }
+    
+	$logonHeader = $null
+	If ([string]::IsNullOrEmpty($logonToken))
+	{
+		Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
+	}
 	
     # Create a Logon Token Header (This will be used through out all the script)
     # ---------------------------
