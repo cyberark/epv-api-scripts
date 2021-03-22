@@ -1128,6 +1128,8 @@ Function Test-LatestVersion
 	$scriptURL = "$githubURL/$scriptFolderPath/$scriptName"
 	$getScriptContent = ""
 	$retLatestVersion = $true
+	# Remove any certificate validation callback (usually called when using DisableSSLVerify switch)
+	[System.Net.ServicePointManager]::ServerCertificateValidationCallback = $null
 	try{
 		$getScriptContent = (Invoke-WebRequest -UseBasicParsing -Uri $scriptURL).Content
 	}
@@ -1187,12 +1189,12 @@ If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 If(!$DisableAutoUpdate)
 {
 	try{
-		If(Test-LatestVersion -eq $false)
+		If($(Test-LatestVersion) -eq $false)
 		{
 			# Fix 'Switch Parameters' calls
-			$command = $g_ScriptCommand.Replace(" 'True'", ":$$true")
+			$command = $g_ScriptCommand.Replace(" 'True'", ":`$true")
 			# Run the updated script
-			$scriptPathAndArgs = "powershell.exe -NoLogo -File `"$g_ScriptCommand`" "
+			$scriptPathAndArgs = "powershell.exe -NoLogo -File `"$command`" "
 			Write-LogMessage -Type Info -MSG "Finished Updating, relaunching the script"
 			Invoke-Expression $scriptPathAndArgs
 			# Exit the current script
