@@ -45,7 +45,6 @@ param
 	[Parameter(Mandatory=$false)]
 	[Switch]$DisableSSLVerify,
 	
-	
 	# Use this switch to Create accounts and Safes (no update)
 	[Parameter(ParameterSetName='Create',Mandatory=$true)]
 	[Parameter(ParameterSetName='Update',Mandatory=$false)]
@@ -63,7 +62,11 @@ param
 	# Use this switch to disable Safes creation
 	[Parameter(ParameterSetName='Create',Mandatory=$false)]
 	[Parameter(ParameterSetName='Update',Mandatory=$false)]
-	[Switch]$NoSafeCreation
+	[Switch]$NoSafeCreation,
+	
+	# Use this switch to disable Auto-Update
+	[Parameter(Mandatory=$false)]
+	[switch]$DisableAutoUpdate
 )
 
 # Get Script Location 
@@ -74,7 +77,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.5"
+$ScriptVersion = "2.6"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
@@ -1099,6 +1102,66 @@ Function Get-LogonHeader
 }
 #endregion
 
+#region Auto Update
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Test-LatestVersion
+# Description....: Tests if the script is running the latest version
+# Parameters.....: NONE
+# Return Values..: True / False
+# =================================================================================================================================
+Function Test-LatestVersion
+{
+<# 
+.SYNOPSIS 
+	Tests if the script is running the latest version
+.DESCRIPTION
+	Tests if the script is running the latest version
+#>
+	$githubURL = "https://raw.githubusercontent.com/cyberark/epv-api-scripts/master"
+	$scriptFolderPath = "Account%20Onboard%20Utility"
+	$scriptName = "Accounts_Onboard_Utility.ps1"
+	$scriptURL = "$githubURL/$scriptFolderPath/$scriptName"
+	$getScriptContent = ""
+	$retLatestVersion = $true
+	try{
+		$getScriptContent = (Invoke-WebRequest -UseBasicParsing -Uri $scriptURL).Content
+	}
+	catch
+	{
+		Throw $(New-Object System.Exception ("Test-LatestVersion: Couldn't download and check for latest version",$_.Exception))
+	}
+	If($($getScriptContent -match "ScriptVersion\s{0,1}=\s{0,1}\""([\d\.]{1,5})\"""))
+	{
+		$gitHubScriptVersion = $Matches[1]
+		If([double]$gitHubScriptVersion -gt [double]$ScriptVersion)
+		{
+			$retLatestVersion = $false
+			Log-Msg -Type Info -MSG "Found new version: $gitHubScriptVersion - Updating..."
+			$getScriptContent | Out-File "$ScriptFullPath.NEW"
+			If (Test-Path -Path "$ScriptFullPath.NEW")
+			{
+				Rename-Item -path $ScriptFullPath -NewName "$ScriptFullPath.OLD"
+				Rename-Item -Path "$ScriptFullPath.NEW" -NewName $ScriptFullPath
+				Remove-Item -Path "$ScriptFullPath.OLD"	
+			}
+			Else
+			{
+				Log-Msg -Type Error -MSG  "Can't find the new script at location '$ScriptFullPath.NEW'."
+				# Revert to current version in case of error
+				$retLatestVersion = $true
+			}
+		}
+		Else
+		{
+			Log-Msg -Type Info -MSG  "Current version ($ScriptVersion) is the latest!"
+		}
+	}
+	
+	return $retLatestVersion
+}
+
+#endregion
+
 # Write the entire script command when running in Verbose mode
 Write-LogMessage -Type Verbose -Msg $g_ScriptCommand
 # Header
@@ -1113,6 +1176,24 @@ If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
 	Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
 	return
+}
+
+# Check for latest script version
+If(!$DisableAutoUpdate)
+{
+	try{
+		If(Test-LatestVersion -eq $false)
+		{
+			# Run the updated script
+			$scriptPathAndArgs = "powershell.exe -NoLogo -File `"$g_ScriptCommand`" "
+			Log-Msg -Type Info -MSG "Finished Updating, relaunching the script"
+			Invoke-Expression $scriptPathAndArgs
+			# Exit the current script
+			return
+		}
+	} catch {
+		Log-Msg -Type Error -MSG "Error checking for latest version. Error: $(Collect-ExceptionMessage $_.Exception)"
+	}
 }
 
 # Check if to disable SSL verification
