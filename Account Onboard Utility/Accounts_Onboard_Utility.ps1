@@ -66,7 +66,7 @@ param
 	
 	# Use this switch to disable Auto-Update
 	[Parameter(Mandatory=$false)]
-	[switch]$DisableAutoUpdate
+	[Switch]$DisableAutoUpdate
 )
 
 # Get Script Location 
@@ -1141,7 +1141,7 @@ Function Test-LatestVersion
 		If([double]$gitHubScriptVersion -gt [double]$ScriptVersion)
 		{
 			$retLatestVersion = $false
-			Log-Msg -Type Info -MSG "Found new version: $gitHubScriptVersion - Updating..."
+			Write-LogMessage -Type Info -MSG "Found new version: $gitHubScriptVersion - Updating..."
 			$getScriptContent | Out-File "$ScriptFullPath.NEW"
 			If (Test-Path -Path "$ScriptFullPath.NEW")
 			{
@@ -1151,14 +1151,14 @@ Function Test-LatestVersion
 			}
 			Else
 			{
-				Log-Msg -Type Error -MSG  "Can't find the new script at location '$ScriptFullPath.NEW'."
+				Write-LogMessage -Type Error -MSG  "Can't find the new script at location '$ScriptFullPath.NEW'."
 				# Revert to current version in case of error
 				$retLatestVersion = $true
 			}
 		}
 		Else
 		{
-			Log-Msg -Type Info -MSG  "Current version ($ScriptVersion) is the latest!"
+			Write-LogMessage -Type Info -MSG  "Current version ($ScriptVersion) is the latest!"
 		}
 	}
 	
@@ -1189,15 +1189,17 @@ If(!$DisableAutoUpdate)
 	try{
 		If(Test-LatestVersion -eq $false)
 		{
+			# Fix 'Switch Parameters' calls
+			$command = $g_ScriptCommand.Replace(" 'True'", ":$$true")
 			# Run the updated script
 			$scriptPathAndArgs = "powershell.exe -NoLogo -File `"$g_ScriptCommand`" "
-			Log-Msg -Type Info -MSG "Finished Updating, relaunching the script"
+			Write-LogMessage -Type Info -MSG "Finished Updating, relaunching the script"
 			Invoke-Expression $scriptPathAndArgs
 			# Exit the current script
 			return
 		}
 	} catch {
-		Log-Msg -Type Error -MSG "Error checking for latest version. Error: $(Collect-ExceptionMessage $_.Exception)"
+		Write-LogMessage -Type Error -MSG "Error checking for latest version. Error: $(Join-ExceptionMessage $_.Exception)"
 	}
 }
 
@@ -1245,7 +1247,9 @@ If (![string]::IsNullOrEmpty($PVWAURL))
 	} catch [System.Net.WebException] {
 		If(![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__))
 		{
-			Write-LogMessage -Type Error -MSG $_.Exception.Response.StatusCode.Value__
+			Write-LogMessage -Type Error -MSG "Recieived error $($_.Exception.Response.StatusCode.Value__) when trying to validate PVWA URL"
+			Write-LogMessage -Type Error -MSG "Check your connection to PVWA and the PVWA URL"
+			return
 		}
 	}
 	catch {		
@@ -1267,7 +1271,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 	# Get Credentials to Login
 	# ------------------------
 	$caption = "Accounts Onboard Utility"
-	$msg = "Enter your User name and Password"; 
+	$msg = "Enter your $AuthType User name and Password"; 
 	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 	if ($null -ne $creds)
 	{
