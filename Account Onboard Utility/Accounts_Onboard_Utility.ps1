@@ -270,7 +270,7 @@ Function New-AccountObject
 		$_Account.address = (Get-TrimmedString $AccountLine.address)
 		$_Account.userName = (Get-TrimmedString $AccountLine.userName)
 		$_Account.platformId = (Get-TrimmedString $AccountLine.platformID)
-		$_Account.safeName = (Get-TrimmedString $AccountLine.safe)
+		$_Account.safeName = (ConvertTo-URL (Get-TrimmedString $AccountLine.safe))
 		if ((![string]::IsNullOrEmpty($AccountLine.password)) -and ([string]::IsNullOrEmpty($AccountLine.SSHKey)))
 		{ 
 			$_Account.secretType = "password"
@@ -601,7 +601,7 @@ Function Get-Safe
 	)
 	$_safe = $null
 	try{
-		$accSafeURL = $URL_SafeDetails -f $(ConvertTo-URL $safeName)
+		$accSafeURL = $URL_SafeDetails -f $safeName
 		$_safe = $(Invoke-Rest -Uri $accSafeURL -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
 	}
 	catch
@@ -1302,15 +1302,15 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 	{
 		Write-LogMessage -Type Info -Msg "Checking Template Safe..."
 		# Using Template Safe to create any new safe
-		If ((Test-Safe -safeName $TemplateSafe))
+		If ((Test-Safe -safeName $(ConvertTo-URL $TemplateSafe)))
 		{
 			# Safe Exists
-			$TemplateSafeDetails = (Get-Safe -safeName $TemplateSafe)
+			$TemplateSafeDetails = (Get-Safe -safeName $(ConvertTo-URL $TemplateSafe))
 			$TemplateSafeDetails.Description = "Template Safe Created using Accounts Onboard Utility"
-			$TemplateSafeMembers = (Get-SafeMembers -safeName $TemplateSafe)
+			$TemplateSafeMembers = (Get-SafeMembers -safeName $(ConvertTo-URL $TemplateSafe))
 			Write-LogMessage -Type Debug -MSG "Template safe ($TemplateSafe) members ($($TemplateSafeMembers.Count)): $($TemplateSafeMembers.MemberName -join ';')"
 			# If the logged in user exists as a specific member of the template safe - remove it to spare later errors
-			If($TemplateSafe.MemberName.Contains($creds.UserName))
+			If($TemplateSafeMembers.MemberName.Contains($creds.UserName))
 			{
 				$_updatedMembers = $TemplateSafeMembers | Where-Object {$_.MemberName -ne $creds.UserName}
 				$TemplateSafeMembers = $_updatedMembers
@@ -1319,7 +1319,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 		else
 		{
 			Write-LogMessage -Type Error -Msg "Template Safe does not exist" -Footer
-			exit			
+			return			
 		}
 	}
 #endregion
@@ -1360,7 +1360,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 							$shouldSkip = Create-Safe -TemplateSafe $TemplateSafeDetails -Safe $account.Safe
 							if (($shouldSkip -eq $false) -and ($null -ne $TemplateSafeDetails) -and ($TemplateSafeMembers -ne $null))
 							{
-								$addOwnerResult = Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
+								$addOwnerResult = Add-Owner -Safe $(ConvertTo-URL $account.Safe) -Members $TemplateSafeMembers
 								if($null -eq $addOwnerResult)
 								{ throw }
 								else
