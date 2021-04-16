@@ -77,7 +77,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.6"
+$ScriptVersion = "2.7"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
@@ -1333,11 +1333,15 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 	$accountsCSV = Import-CSV $csvPath -Delimiter $delimiter
 	$rowCount = $($accountsCSV.Safe.Count)
 	$counter = 0
+	$csvLine = 0 # First line is the headers line
 	Write-LogMessage -Type Info -MSG "Starting to Onboard $rowCount accounts" -SubHeader
 	ForEach ($account in $accountsCSV)
 	{
 		if ($null -ne $account)
 		{
+			# Increment the CSV line
+			$csvLine++
+
 			try{
 				# Create some internal variables
 				$shouldSkip = $false
@@ -1565,7 +1569,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 								{
 									# Increment counter
 									$counter++
-									Write-LogMessage -Type Info -MSG "[$counter/$rowCount] Updated $g_LogAccountName successfully."
+									Write-LogMessage -Type Info -MSG "[$counter/$rowCount] Updated $g_LogAccountName (CSV line: $csvLine) successfully."
 								}
 							}
 							ElseIf($Create)
@@ -1577,7 +1581,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 									$createAccount = $true
 								} catch {
 									# User probably chose to Halt/Stop the action and not create a duplicate account
-									Write-LogMessage -Type Info -MSG "Skipping onboarding account '$g_LogAccountName' to avoid duplication."
+									Write-LogMessage -Type Info -MSG "Skipping onboarding account '$g_LogAccountName' (CSV line: $csvLine) to avoid duplication."
 									$createAccount = $false
 								}
 							}
@@ -1602,7 +1606,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 							}
 							Else
 							{
-								Write-LogMessage -Type Error -Msg "You requested to Update/Delete an account that does not exist (Account: $g_LogAccountName)"
+								Write-LogMessage -Type Error -Msg "You requested to Update/Delete an account that does not exist (Account: $g_LogAccountName, CSV line: $csvLine)"
 								$createAccount = $false
 							}
 						}
@@ -1627,15 +1631,15 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 						}
 					}
 					catch{
-						Write-LogMessage -Type Error -MSG "There was an error onboarding $g_LogAccountName into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
+						Write-LogMessage -Type Error -MSG "There was an error onboarding $g_LogAccountName (CSV line: $csvLine) into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
 					}
 				}
 				else
 				{
-					Write-LogMessage -Type Info -MSG "Skipping onboarding $g_LogAccountName into the Password Vault."
+					Write-LogMessage -Type Info -MSG "Skipping onboarding account $g_LogAccountName (CSV line: $csvLine) into the Password Vault since safe does not exist and safe creation is disabled."
 				}
 			} catch {
-				Write-LogMessage -Type Info -MSG "Skipping onboarding account into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
+				Write-LogMessage -Type Info -MSG "Skipping onboarding account $g_LogAccountName (CSV line: $csvLine) into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
 			}
 		}
 	}	
