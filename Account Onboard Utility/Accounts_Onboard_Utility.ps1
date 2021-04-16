@@ -249,6 +249,18 @@ Function New-AccountObject
 		[PSObject]$AccountLine
 	)
 	try{
+		# Set the Account Log name for further logging and troubleshooting
+		$logFormat = ""
+		If(([string]::IsNullOrEmpty($AccountLine.userName) -or [string]::IsNullOrEmpty($AccountLine.Address)) -and (![string]::IsNullOrEmpty($AccountLine.name)))
+		{
+			$logFormat = (Get-TrimmedString $AccountLine.name)
+		}
+		Else
+		{
+			$logFormat = ("{0}@{1}" -f $(Get-TrimmedString $AccountLine.userName), $(Get-TrimmedString $AccountLine.address))
+		}
+		Set-Variable -Scope Global -Name g_LogAccountName -Value $logFormat
+
 		# Check mandatory fields
 		If([string]::IsNullOrEmpty($AccountLine.safe)) { throw "Missing mandatory field: Safe Name" }
 		if($Create) {
@@ -310,16 +322,6 @@ Function New-AccountObject
 			$_Account.remoteMachinesAccess.accessRestrictedToRemoteMachines = Convert-ToBool $AccountLine.restrictMachineAccessToList
 		}
 		#endregion [Account object mapping]
-		$logFormat = ""
-		If(([string]::IsNullOrEmpty($_Account.userName) -or [string]::IsNullOrEmpty($_Account.Address)) -and (![string]::IsNullOrEmpty($_Account.name)))
-		{
-			$logFormat = $_Account.name
-		}
-		Else
-		{
-			$logFormat = ("{0}@{1}" -f $_Account.userName, $_Account.Address)
-		}
-		Set-Variable -Scope Global -Name g_LogAccountName -Value $logFormat
 				
 		return $_Account
 	} catch {
