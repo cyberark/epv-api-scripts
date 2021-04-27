@@ -77,7 +77,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.6"
+$ScriptVersion = "2.7"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
@@ -249,6 +249,18 @@ Function New-AccountObject
 		[PSObject]$AccountLine
 	)
 	try{
+		# Set the Account Log name for further logging and troubleshooting
+		$logFormat = ""
+		If(([string]::IsNullOrEmpty($AccountLine.userName) -or [string]::IsNullOrEmpty($AccountLine.Address)) -and (![string]::IsNullOrEmpty($AccountLine.name)))
+		{
+			$logFormat = (Get-TrimmedString $AccountLine.name)
+		}
+		Else
+		{
+			$logFormat = ("{0}@{1}" -f $(Get-TrimmedString $AccountLine.userName), $(Get-TrimmedString $AccountLine.address))
+		}
+		Set-Variable -Scope Global -Name g_LogAccountName -Value $logFormat
+
 		# Check mandatory fields
 		If([string]::IsNullOrEmpty($AccountLine.safe)) { throw "Missing mandatory field: Safe Name" }
 		if($Create) {
@@ -270,7 +282,7 @@ Function New-AccountObject
 		$_Account.address = (Get-TrimmedString $AccountLine.address)
 		$_Account.userName = (Get-TrimmedString $AccountLine.userName)
 		$_Account.platformId = (Get-TrimmedString $AccountLine.platformID)
-		$_Account.safeName = (Get-TrimmedString $AccountLine.safe)
+		$_Account.safeName = (ConvertTo-URL (Get-TrimmedString $AccountLine.safe))
 		if ((![string]::IsNullOrEmpty($AccountLine.password)) -and ([string]::IsNullOrEmpty($AccountLine.SSHKey)))
 		{ 
 			$_Account.secretType = "password"
@@ -310,16 +322,6 @@ Function New-AccountObject
 			$_Account.remoteMachinesAccess.accessRestrictedToRemoteMachines = Convert-ToBool $AccountLine.restrictMachineAccessToList
 		}
 		#endregion [Account object mapping]
-		$logFormat = ""
-		If(([string]::IsNullOrEmpty($_Account.userName) -or [string]::IsNullOrEmpty($_Account.Address)) -and (![string]::IsNullOrEmpty($_Account.name)))
-		{
-			$logFormat = $_Account.name
-		}
-		Else
-		{
-			$logFormat = ("{0}@{1}" -f $_Account.userName, $_Account.Address)
-		}
-		Set-Variable -Scope Global -Name g_LogAccountName -Value $logFormat
 				
 		return $_Account
 	} catch {
@@ -601,7 +603,7 @@ Function Get-Safe
 	)
 	$_safe = $null
 	try{
-		$accSafeURL = $URL_SafeDetails -f $(ConvertTo-URL $safeName)
+		$accSafeURL = $URL_SafeDetails -f $safeName
 		$_safe = $(Invoke-Rest -Uri $accSafeURL -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
 	}
 	catch
@@ -1302,15 +1304,15 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 	{
 		Write-LogMessage -Type Info -Msg "Checking Template Safe..."
 		# Using Template Safe to create any new safe
-		If ((Test-Safe -safeName $TemplateSafe))
+		If ((Test-Safe -safeName $(ConvertTo-URL $TemplateSafe)))
 		{
 			# Safe Exists
-			$TemplateSafeDetails = (Get-Safe -safeName $TemplateSafe)
+			$TemplateSafeDetails = (Get-Safe -safeName $(ConvertTo-URL $TemplateSafe))
 			$TemplateSafeDetails.Description = "Template Safe Created using Accounts Onboard Utility"
-			$TemplateSafeMembers = (Get-SafeMembers -safeName $TemplateSafe)
+			$TemplateSafeMembers = (Get-SafeMembers -safeName $(ConvertTo-URL $TemplateSafe))
 			Write-LogMessage -Type Debug -MSG "Template safe ($TemplateSafe) members ($($TemplateSafeMembers.Count)): $($TemplateSafeMembers.MemberName -join ';')"
 			# If the logged in user exists as a specific member of the template safe - remove it to spare later errors
-			If($TemplateSafe.MemberName.Contains($creds.UserName))
+			If($TemplateSafeMembers.MemberName.Contains($creds.UserName))
 			{
 				$_updatedMembers = $TemplateSafeMembers | Where-Object {$_.MemberName -ne $creds.UserName}
 				$TemplateSafeMembers = $_updatedMembers
@@ -1319,7 +1321,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 		else
 		{
 			Write-LogMessage -Type Error -Msg "Template Safe does not exist" -Footer
-			exit			
+			return			
 		}
 	}
 #endregion
@@ -1333,11 +1335,15 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 	$accountsCSV = Import-CSV $csvPath -Delimiter $delimiter
 	$rowCount = $($accountsCSV.Safe.Count)
 	$counter = 0
+	$csvLine = 0 # First line is the headers line
 	Write-LogMessage -Type Info -MSG "Starting to Onboard $rowCount accounts" -SubHeader
 	ForEach ($account in $accountsCSV)
 	{
 		if ($null -ne $account)
 		{
+			# Increment the CSV line
+			$csvLine++
+
 			try{
 				# Create some internal variables
 				$shouldSkip = $false
@@ -1360,7 +1366,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 							$shouldSkip = Create-Safe -TemplateSafe $TemplateSafeDetails -Safe $account.Safe
 							if (($shouldSkip -eq $false) -and ($null -ne $TemplateSafeDetails) -and ($TemplateSafeMembers -ne $null))
 							{
-								$addOwnerResult = Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
+								$addOwnerResult = Add-Owner -Safe $(ConvertTo-URL $account.Safe) -Members $TemplateSafeMembers
 								if($null -eq $addOwnerResult)
 								{ throw }
 								else
@@ -1565,7 +1571,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 								{
 									# Increment counter
 									$counter++
-									Write-LogMessage -Type Info -MSG "[$counter/$rowCount] Updated $g_LogAccountName successfully."
+									Write-LogMessage -Type Info -MSG "[$counter/$rowCount] Updated $g_LogAccountName (CSV line: $csvLine) successfully."
 								}
 							}
 							ElseIf($Create)
@@ -1577,7 +1583,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 									$createAccount = $true
 								} catch {
 									# User probably chose to Halt/Stop the action and not create a duplicate account
-									Write-LogMessage -Type Info -MSG "Skipping onboarding account '$g_LogAccountName' to avoid duplication."
+									Write-LogMessage -Type Info -MSG "Skipping onboarding account '$g_LogAccountName' (CSV line: $csvLine) to avoid duplication."
 									$createAccount = $false
 								}
 							}
@@ -1602,7 +1608,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 							}
 							Else
 							{
-								Write-LogMessage -Type Error -Msg "You requested to Update/Delete an account that does not exist (Account: $g_LogAccountName)"
+								Write-LogMessage -Type Error -Msg "You requested to Update/Delete an account that does not exist (Account: $g_LogAccountName, CSV line: $csvLine)"
 								$createAccount = $false
 							}
 						}
@@ -1627,15 +1633,15 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 						}
 					}
 					catch{
-						Write-LogMessage -Type Error -MSG "There was an error onboarding $g_LogAccountName into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
+						Write-LogMessage -Type Error -MSG "There was an error onboarding $g_LogAccountName (CSV line: $csvLine) into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
 					}
 				}
 				else
 				{
-					Write-LogMessage -Type Info -MSG "Skipping onboarding $g_LogAccountName into the Password Vault."
+					Write-LogMessage -Type Info -MSG "Skipping onboarding account $g_LogAccountName (CSV line: $csvLine) into the Password Vault since safe does not exist and safe creation is disabled."
 				}
 			} catch {
-				Write-LogMessage -Type Info -MSG "Skipping onboarding account into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
+				Write-LogMessage -Type Info -MSG "Skipping onboarding account $g_LogAccountName (CSV line: $csvLine) into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
 			}
 		}
 	}	
