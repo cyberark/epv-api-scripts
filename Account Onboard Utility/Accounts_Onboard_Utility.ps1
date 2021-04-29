@@ -1,4 +1,4 @@
-###########################################################################
+﻿###########################################################################
 #
 # NAME: Accounts Onboard Utility
 #
@@ -11,7 +11,7 @@
 # CyberArk PVWA v10.4 and above
 #
 ###########################################################################
-[CmdletBinding(DefaultParametersetName="Create")]
+[CmdletBinding(DefaultParametersetName="")]
 param
 (
 	[Parameter(Mandatory=$true,HelpMessage="Please enter your PVWA address (For example: https://pvwa.mydomain.com/PasswordVault)")]
@@ -77,7 +77,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.7"
+$ScriptVersion = "2.8"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
@@ -282,7 +282,7 @@ Function New-AccountObject
 		$_Account.address = (Get-TrimmedString $AccountLine.address)
 		$_Account.userName = (Get-TrimmedString $AccountLine.userName)
 		$_Account.platformId = (Get-TrimmedString $AccountLine.platformID)
-		$_Account.safeName = (ConvertTo-URL (Get-TrimmedString $AccountLine.safe))
+		$_Account.safeName = (Get-TrimmedString $AccountLine.safe)
 		if ((![string]::IsNullOrEmpty($AccountLine.password)) -and ([string]::IsNullOrEmpty($AccountLine.SSHKey)))
 		{ 
 			$_Account.secretType = "password"
@@ -603,7 +603,7 @@ Function Get-Safe
 	)
 	$_safe = $null
 	try{
-		$accSafeURL = $URL_SafeDetails -f $safeName
+		$accSafeURL = $URL_SafeDetails -f $(ConvertTo-URL $safeName)
 		$_safe = $(Invoke-Rest -Uri $accSafeURL -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
 	}
 	catch
@@ -688,7 +688,7 @@ Function Get-SafeMembers
 	$_safeOwners = $null
 	try{
 		$_defaultUsers = @("Master","Batch","Backup Users","Auditors","Operators","DR Users","Notification Engines","PVWAGWAccounts","PasswordManager")
-		$accSafeMembersURL = $URL_SafeMembers -f $safeName
+		$accSafeMembersURL = $URL_SafeMembers -f $(ConvertTo-URL $safeName)
 		$_safeMembers = $(Invoke-Rest -Uri $accSafeMembersURL -Header $g_LogonHeader -Command "Get")		
 		# Remove default users and change UserName to MemberName
 		$_safeOwners = $_safeMembers.members | Where-Object {$_.UserName -notin $_defaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
@@ -863,7 +863,7 @@ Function Add-Owner
 		try {
 			Write-LogMessage -Type Verbose -MSG "Adding owner '$($bodyMember.MemberName)' to safe '$safeName'..."
 			# Add the Safe Owner
-			$restResponse = Invoke-Rest -Uri $($URL_SafeMembers -f $safeName) -Header $g_LogonHeader -Command "Post" -Body $restBody
+			$restResponse = Invoke-Rest -Uri $($URL_SafeMembers -f $(ConvertTo-URL $safeName)) -Header $g_LogonHeader -Command "Post" -Body $restBody
 			if($null -ne $restResponse)
 			{
 				Write-LogMessage -Type Verbose -MSG "Owner '$($bodyMember.MemberName)' was successfully added to safe '$safeName'"
@@ -940,7 +940,7 @@ Function Get-Account
 		# Verify that we have only one result
 		If ($_retaccount.count -gt 1)
 		{ 
-			Write-LogMessage -Type Debug -MSG "Found duplicate accounts"
+			Write-LogMessage -Type Debug -MSG "Found too many accounts"
 			$_retaccount = $null
 			throw "Found $($_retaccount.count) accounts in search - fix duplications" 
 		}
@@ -1009,19 +1009,23 @@ Function Test-Account
 	}
 }
 
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Test-PlatformProperty
+# Description....: Checks if a property exists as part of the platform
+# Parameters.....: Platform ID, Platform property
+# Return Values..: True / False
+# =================================================================================================================================
 Function Test-PlatformProperty
 {
 <# 
 .SYNOPSIS 
-	Returns accoutns based on filters
+	Returns true if the property exists as part of the platform
 .DESCRIPTION
-	Creates a new Account Object
-.PARAMETER AccountName
-	Account user name
-.PARAMETER AccountAddress
-	Account address
-.PARAMETER SafeName
-	The Account Safe Name to search in
+	Checks if a property exists as part of the platform
+.PARAMETER PlatformID
+	The platform ID
+.PARAMETER PlatfromProperty
+	The property to check in the platform
 #>
 	param(
 		[Parameter(Mandatory=$true)]
@@ -1304,12 +1308,12 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 	{
 		Write-LogMessage -Type Info -Msg "Checking Template Safe..."
 		# Using Template Safe to create any new safe
-		If ((Test-Safe -safeName $(ConvertTo-URL $TemplateSafe)))
+		If ((Test-Safe -safeName $TemplateSafe))
 		{
 			# Safe Exists
-			$TemplateSafeDetails = (Get-Safe -safeName $(ConvertTo-URL $TemplateSafe))
+			$TemplateSafeDetails = (Get-Safe -safeName $TemplateSafe)
 			$TemplateSafeDetails.Description = "Template Safe Created using Accounts Onboard Utility"
-			$TemplateSafeMembers = (Get-SafeMembers -safeName $(ConvertTo-URL $TemplateSafe))
+			$TemplateSafeMembers = (Get-SafeMembers -safeName $TemplateSafe)
 			Write-LogMessage -Type Debug -MSG "Template safe ($TemplateSafe) members ($($TemplateSafeMembers.Count)): $($TemplateSafeMembers.MemberName -join ';')"
 			# If the logged in user exists as a specific member of the template safe - remove it to spare later errors
 			If($TemplateSafeMembers.MemberName.Contains($creds.UserName))
@@ -1366,7 +1370,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 							$shouldSkip = Create-Safe -TemplateSafe $TemplateSafeDetails -Safe $account.Safe
 							if (($shouldSkip -eq $false) -and ($null -ne $TemplateSafeDetails) -and ($TemplateSafeMembers -ne $null))
 							{
-								$addOwnerResult = Add-Owner -Safe $(ConvertTo-URL $account.Safe) -Members $TemplateSafeMembers
+								$addOwnerResult = Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
 								if($null -eq $addOwnerResult)
 								{ throw }
 								else
@@ -1395,6 +1399,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 					try{
 						If($accExists)
 						{
+							Write-LogMessage -Type Verbose -MSG "Account '$g_LogAccountName' exists"
 							# Get Existing Account Details
 							$s_Account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address -accountObjectName $objAccount.name)
 							If($s_Account.Count -gt 1)
@@ -1580,6 +1585,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 									# Account Exists, Creating the same account again will cause duplications - Verify with user
 									Write-Warning "The Account Exists, Creating the same account twice will cause duplications" -WarningAction Inquire
 									# If the user clicked yes, the account will be created
+									Write-LogMessage -Type Warning -MSG "Account '$g_LogAccountName' exists, User chose to create the same account twice"
 									$createAccount = $true
 								} catch {
 									# User probably chose to Halt/Stop the action and not create a duplicate account
