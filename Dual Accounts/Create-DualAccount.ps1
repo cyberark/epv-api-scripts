@@ -760,7 +760,7 @@ Function Test-Account
 .SYNOPSIS
 	Test-Account -accountName user1 -accountAddress 1.1.1.1 -safeName MySafe -VaultCredentials $Creds
 .DESCRIPTION
-	Test if an accoutn exists (Search based on filters)
+	Test if an account exists (Search based on filters)
 .PARAMETER AccountName
 	Account user name
 .PARAMETER AccountAddress

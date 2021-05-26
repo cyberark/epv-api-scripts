@@ -1,4 +1,4 @@
-﻿###########################################################################
+###########################################################################
 #
 # NAME: Accounts Onboard Utility
 #
@@ -76,7 +76,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.8"
+$ScriptVersion = "2.9"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
@@ -919,19 +919,40 @@ Function Get-Account
 		$WhereArray = @()
 		# Search only by Account Object Name
 		If(-not [string]::IsNullOrEmpty($accountObjectName)) {
+			Write-LogMessage -Type Debug -MSG "Searching accounts by Account name"
 			$urlSearchAccount = $URL_Accounts+"?filter=safename eq $(ConvertTo-URL $safeName)"
-			 $WhereArray += '$_.name -eq $accountObjectName' 
+			$WhereArray += '$_.name -eq $accountObjectName' 
 		}
 		# Search according to other parameters (User name, address, platform)
 		else {
+			Write-LogMessage -Type Debug -MSG "Searching accounts by Account details (user name, address, platform)"
 			$urlSearchAccount = $URL_Accounts+"?filter=safename eq $(ConvertTo-URL $safeName)&search=$(ConvertTo-URL $accountName) $(ConvertTo-URL $accountAddress)"
 			If(-not [string]::IsNullOrEmpty($accountName)) { $WhereArray += '$_.userName -eq $accountName' }
 			If(-not [string]::IsNullOrEmpty($accountAddress)) { $WhereArray += '$_.address -eq $accountAddress' }
 			If(-not [string]::IsNullOrEmpty($accountPlatformID)) { $WhereArray += '$_.platformId -eq $accountPlatformID' }
 		}
-		# Search for created account
-		$GetAccountsList = $(Invoke-Rest -Uri $urlSearchAccount -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction).value
-		Write-LogMessage -Type Debug -MSG "Found $($GetAccountsList.count) accounts, filtering based on account properties..."
+		try{
+			# Search for accounts
+			$GetAccountsResponse = $(Invoke-Rest -Uri $urlSearchAccount -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
+			$GetAccountsList += $GetAccountsResponse.value
+			Write-LogMessage -Type Debug -MSG "Found $($GetAccountsList.count) accounts so far..."
+			# Get all accounts in case the search filter is too general
+			$nextLink = $GetAccountsResponse.nextLink
+			Write-LogMessage -Type Debug -MSG "Getting accounts next link: $nextLink"
+			
+			While (-not [string]::IsNullOrEmpty($nextLink))
+			{
+				$GetAccountsResponse = Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header (Get-LogonHeader $VaultCredentials)
+				$nextLink = $GetAccountsResponse.nextLink
+				Write-LogMessage -Type Debug -MSG "Getting accounts next link: $nextLink"
+				$GetAccountsList += $GetAccountsResponse.value
+				Write-LogMessage -Type Debug -MSG "Found $($GetAccountsList.count) accounts so far..."
+			}
+		}
+		catch [System.Net.WebException] {
+			Throw $(New-Object System.Exception ("Get-Account: Error getting Account. Error: $($_.Exception.Response.StatusDescription)",$_.Exception))
+		}
+		Write-LogMessage -Type Debug -MSG "Found $($GetAccountsList.count) accounts, filtering accounts..."
 		
 		# Filter Accounts based on input properties
 		$WhereFilter = [scriptblock]::Create( ($WhereArray -join " -and ") )
@@ -943,12 +964,8 @@ Function Get-Account
 			$_retaccount = $null
 			throw "Found $($_retaccount.count) accounts in search - fix duplications" 
 		}
-	}
-	catch [System.WebException] {
-		Write-LogMessage -Type Error -MSG "Error getting Account. Error: $($_.Exception.Response.StatusDescription)"
-	}
-	catch {
-		Write-LogMessage -Type Error -MSG "Error getting Account. Error: $(Join-ExceptionMessage $_.Exception)"
+	} catch {
+		Throw $(New-Object System.Exception ("Get-Account: Error getting Account.",$_.Exception))
 	}
 	
 	return $_retaccount
