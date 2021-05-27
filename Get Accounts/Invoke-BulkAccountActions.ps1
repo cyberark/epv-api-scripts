@@ -65,7 +65,10 @@ param
 	[String]$Address,
 	
 	[Parameter(ParameterSetName='Filters',Mandatory=$false,HelpMessage="Enter filter Keywords. List of keywords are separated with space to search in accounts")]
-	[String]$Custom
+	[String]$Custom,
+
+	[Parameter(ParameterSetName='Filters',Mandatory=$false)]
+	[Switch]$FailedOnly
 )
 
 # Get Script Location 
@@ -543,7 +546,9 @@ Function Get-FilteredAccounts
 		[Parameter(Mandatory=$false)]
 		[string]$sAddress,
 		[Parameter(Mandatory=$false)]
-		[string]$sCustomKeywords
+		[string]$sCustomKeywords,
+		[Parameter(Mandatory=$false)]
+		[bool]$bFailedOnly
 	)
 	
 	$GetAccountsList = @()
@@ -578,6 +583,7 @@ Function Get-FilteredAccounts
 		If(-not [string]::IsNullOrEmpty($sUserName)) { $WhereArray += '$_.userName -eq $sUserName' }
 		If(-not [string]::IsNullOrEmpty($sAddress)) { $WhereArray += '$_.address -eq $sAddress' }
 		If(-not [string]::IsNullOrEmpty($sPlatformID)) { $WhereArray += '$_.platformId -eq $sPlatformID' }
+		If($bFailedOnly) { $WhereArray += '$_.secretManagement.status -eq failed' }
 		# Filter Accounts based on input properties
 		$WhereFilter = [scriptblock]::Create( ($WhereArray -join " -and ") )
 		$FilteredAccountsList = ( $GetAccountsList | Where-Object $WhereFilter )
@@ -652,7 +658,7 @@ try {
 		}
 	}
 	# Get all Relevant Accounts
-	$filteredAccounts = Get-FilteredAccounts -sSafeName $SafeName -sPlatformID $PlatformID -sUserName $UserName -sAddress $Address -sCustomKeywords $Custom -VaultCredentials $creds
+	$filteredAccounts = Get-FilteredAccounts -sSafeName $SafeName -sPlatformID $PlatformID -sUserName $UserName -sAddress $Address -sCustomKeywords $Custom -bFailedOnly $FailedOnly -VaultCredentials $creds
 	Write-LogMessage -Type Info -MSG "Going over $($filteredAccounts.Count) filtered accounts"
 	# Run Account Action on relevant Accounts
 	ForEach ($account in $filteredAccounts)
