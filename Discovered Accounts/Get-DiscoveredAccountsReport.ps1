@@ -683,7 +683,7 @@ try {
 				$GetDiscoveredAccountsList = @()
 				$GetDiscoveredAccountsList += $GetDiscoveredAccountsResponse.value
 				Write-LogMessage -Type Debug -MSG "$($GetDiscoveredAccountsList.count) Discovered accounts so far..."
-				$nextLink =  $GetAccountsResponse.nextLink
+				$nextLink =  $GetDiscoveredAccountsResponse.nextLink
 				Write-LogMessage -Type Debug -MSG "Getting next link: $nextLink"
 				
 				While ($nextLink -ne "" -and $null -ne $nextLink)
