@@ -11,7 +11,7 @@
 # CyberArk PVWA v10.4 and above
 #
 ###########################################################################
-[CmdletBinding(DefaultParametersetName="Create")]
+[CmdletBinding(DefaultParameterSetName="Create")]
 param
 (
 	[Parameter(Mandatory=$true,HelpMessage="Please enter your PVWA address (For example: https://pvwa.mydomain.com/PasswordVault)")]
@@ -260,7 +260,7 @@ Function New-AccountObject
 		
 		# Check if there are custom properties
 		$excludedProperties = @("name","username","address","safe","platformid","password","key","enableautomgmt","manualmgmtreason","groupname","groupplatformid","remotemachineaddresses","restrictmachineaccesstolist","sshkey")
-		$customProps = $($AccountLine.PSObject.Properties | Where-Object { $_.Name.ToLower() -notin $excludedProperties })
+		$customProps = $($AccountLine.PSObject.Properties | Where-Object { $_.Name.ToLower() -NotIn $excludedProperties })
 		#region [Account object mapping]
 		# Convert Account from CSV to Account Object (properties mapping)
 		$_Account = "" | Select-Object "name", "address", "userName", "platformId", "safeName", "secretType", "secret", "platformAccountProperties", "secretManagement", "remoteMachinesAccess"
@@ -526,7 +526,7 @@ Function Invoke-Rest
 .PARAMETER Body
 	(Optional) The REST Body
 .PARAMETER ErrAction
-	(Optional) The Error Action to perform in case of error. By deault "Continue"
+	(Optional) The Error Action to perform in case of error. By default "Continue"
 #>
 	param (
 		[Parameter(Mandatory=$true)]
@@ -625,7 +625,7 @@ Function Convert-PermissionName
 	Returns an existing Safe object
 .DESCRIPTION
 	Safe Member List Permissions returns a specific set of permissions name
-	The required names for Add/Update Safe Memer is different
+	The required names for Add/Update Safe Member is different
 	This function will convert from "List Permissions name set" to "Add Permission name set"
 .PARAMETER PermName
 	The Permission name to convert
@@ -689,7 +689,7 @@ Function Get-SafeMembers
 		$accSafeMembersURL = $URL_SafeMembers -f $safeName
 		$_safeMembers = $(Invoke-Rest -Uri $accSafeMembersURL -Header $g_LogonHeader -Command "Get")		
 		# Remove default users and change UserName to MemberName
-		$_safeOwners = $_safeMembers.members | Where-Object {$_.UserName -notin $_defaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
+		$_safeOwners = $_safeMembers.members | Where-Object {$_.UserName -NotIn $_defaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
 		$_retSafeOwners = @()
 		# Converting Permissions output object to Dictionary for later use
 		ForEach($item in $_safeOwners)
@@ -760,7 +760,7 @@ Function Test-Safe
 	}
 	catch
 	{
-		Write-LogMessage -Type Error -MSG "Error testing safe '$safeName' existance. Error: $(Join-ExceptionMessage $_.Exception)" -ErrorAction "SilentlyContinue"
+		Write-LogMessage -Type Error -MSG "Error testing safe '$safeName' existence. Error: $(Join-ExceptionMessage $_.Exception)" -ErrorAction "SilentlyContinue"
 	}
 }
 
@@ -884,7 +884,7 @@ Function Get-Account
 {
 <# 
 .SYNOPSIS 
-	Returns accoutns based on filters
+	Returns accounts based on filters
 .DESCRIPTION
 	Creates a new Account Object
 .PARAMETER AccountName
@@ -963,9 +963,9 @@ Function Test-Account
 {
 <# 
 .SYNOPSIS 
-	Test if an accoutn exists (Search based on filters)
+	Test if an account exists (Search based on filters)
 .DESCRIPTION
-	Test if an accoutn exists (Search based on filters)
+	Test if an account exists (Search based on filters)
 .PARAMETER AccountName
 	Account user name
 .PARAMETER AccountAddress
@@ -1003,7 +1003,7 @@ Function Test-Account
 	}
 	catch
 	{
-		Write-LogMessage -Type Error -MSG "Error testing Account '$g_LogAccountName' existance. Error: $(Join-ExceptionMessage $_.Exception)" -ErrorAction "SilentlyContinue"
+		Write-LogMessage -Type Error -MSG "Error testing Account '$g_LogAccountName' existence. Error: $(Join-ExceptionMessage $_.Exception)" -ErrorAction "SilentlyContinue"
 	}
 }
 
@@ -1011,7 +1011,7 @@ Function Test-PlatformProperty
 {
 <# 
 .SYNOPSIS 
-	Returns accoutns based on filters
+	Returns accounts based on filters
 .DESCRIPTION
 	Creates a new Account Object
 .PARAMETER AccountName
@@ -1039,7 +1039,7 @@ Function Test-PlatformProperty
 		If($GetPlatformDetails)
 		{
 			Write-LogMessage -Type Verbose -MSG "Found Platform id $platformId, checking if platform contains '$platformProperty'..."
-			$_retResult = [bool]($GetPlatformDetails.Details.PSobject.Properties.name -match $platformProperty)
+			$_retResult = [bool]($GetPlatformDetails.Details.PSObject.Properties.name -match $platformProperty)
 		}
 		Else		
 		{
@@ -1249,7 +1249,7 @@ If (![string]::IsNullOrEmpty($PVWAURL))
 	} catch [System.Net.WebException] {
 		If(![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__))
 		{
-			Write-LogMessage -Type Error -MSG "Recieived error $($_.Exception.Response.StatusCode.Value__) when trying to validate PVWA URL"
+			Write-LogMessage -Type Error -MSG "Received error $($_.Exception.Response.StatusCode.Value__) when trying to validate PVWA URL"
 			Write-LogMessage -Type Error -MSG "Check your connection to PVWA and the PVWA URL"
 			return
 		}
@@ -1401,7 +1401,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 								$s_AccountBody = @()
 								$s_ExcludeProperties = @("id", "secret", "lastModifiedTime", "createdTime", "categoryModificationTime")
 								# Check for existing properties needed update
-								Foreach($sProp in ($s_Account.PSObject.Properties | Where-Object { $_.Name -notin $s_ExcludeProperties }))
+								Foreach($sProp in ($s_Account.PSObject.Properties | Where-Object { $_.Name -NotIn $s_ExcludeProperties }))
 								{
 									Write-LogMessage -Type Verbose -MSG "Inspecting Account Property $($sProp.Name)"
 									$s_ExcludeProperties += $sProp.Name
@@ -1467,7 +1467,7 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 									}
 								} # [End] Check for existing properties
 								# Check for new Account Properties
-								ForEach($sProp in ($objAccount.PSObject.Properties | Where-Object { $_.Name -notin $s_ExcludeProperties }))
+								ForEach($sProp in ($objAccount.PSObject.Properties | Where-Object { $_.Name -NotIn $s_ExcludeProperties }))
 								{
 									If($sProp.Name -eq "remoteMachinesAccess")
 									{

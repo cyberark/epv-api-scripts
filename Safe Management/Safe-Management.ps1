@@ -669,7 +669,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
 	{
 		$updateRetVersions = $numVersionRetention
 	}
-	If($null -ne $numDaysRetention -and $numDaysRetention -gt 0 -and $getSafe.NumberOfDaysRtention -ne $numDaysRetention)
+	If($null -ne $numDaysRetention -and $numDaysRetention -gt 0 -and $getSafe.NumberOfDaysRetention -ne $numDaysRetention)
 	{
 		$updateRetDays = $numDaysRetention
 	}
@@ -801,7 +801,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
         [bool]$permMoveAccountsAndFolders = $false
     )
 
-	If($safemember -notin $g_DefaultUsers)
+	If($safemember -NotIn $g_DefaultUsers)
 	{
 		$SafeMembersBody = @{
 			member = @{
@@ -893,7 +893,7 @@ Get-SafeMember -safename "Win-Local-Admins"
 		$accSafeMembersURL = $URL_SafeMembers -f $(Encode-URL $safeName)
 		$_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue")
 		# Remove default users and change UserName to MemberName
-		$_safeOwners = $_safeMembers.members | Where-Object {$_.UserName -notin $g_DefaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
+		$_safeOwners = $_safeMembers.members | Where-Object {$_.UserName -NotIn $g_DefaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
 	}
 	catch
 	{
