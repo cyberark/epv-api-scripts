@@ -148,19 +148,32 @@ Function Test-CommandExists
     Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
-Function Encode-URL($sText)
+# @FUNCTION@ ======================================================================================================================
+# Name...........: ConvertTo-URL
+# Description....: HTTP Encode test in URL
+# Parameters.....: Text to encode
+# Return Values..: Encoded HTML URL text
+# =================================================================================================================================
+Function ConvertTo-URL($sText)
 {
+<#
+.SYNOPSIS
+	HTTP Encode test in URL
+.DESCRIPTION
+	HTTP Encode test in URL
+.PARAMETER sText
+	The text to encode
+#>
 	if ($sText.Trim() -ne "")
 	{
-		Write-LogMessage -Type Verbose -Msg "Returning URL Encode of $sText"
+		Write-LogMessage -Type Debug -Msg "Returning URL Encode of $sText"
 		return [URI]::EscapeDataString($sText)
 	}
 	else
 	{
-		return ""
+		return $sText
 	}
 }
-
 Function Write-LogMessage
 {
 <#
@@ -343,8 +356,12 @@ Function Get-LogonHeader
 		try{
 			# Create a Logon Token Header (This will be used through out all the script)
 			# ---------------------------
-			$logonHeader = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-			$logonHeader.Add("Authorization", $logonToken.CyberArkLogonResult)			
+			If($logonToken.PSObject.Properties.Name -contains "CyberArkLogonResult")
+			{
+				$logonHeader = @{Authorization = $($logonToken.CyberArkLogonResult)}
+			} else {
+				$logonHeader = @{Authorization = $logonToken}
+			}	
 
 			Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
 		} catch {
@@ -482,7 +499,7 @@ Get-Safe -safeName "x0-Win-S-Admins"
 	)
 	$_safe = $null
 	try{
-		$accSafeURL = $URL_SpecificSafe -f $(Encode-URL $safeName)
+		$accSafeURL = $URL_SpecificSafe -f $(ConvertTo-URL $safeName)
 		$_safe = $(Invoke-RestMethod -Uri $accSafeURL -Method "Get" -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue").GetSafeResult
 	}
 	catch
@@ -528,7 +545,7 @@ Function Test-Safe
 			}
 		}
 		
-		# Report on safe existance
+		# Report on safe existence
 		If($chkSafeExists -eq $true)
 		{
 			# Safe exists
@@ -571,7 +588,7 @@ Create-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes 
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
         [string]$safename,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
-        [string]$safedescription,
+        [string]$safeDescription,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
         [string]$managingCPM="PasswordManager",
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
@@ -600,12 +617,12 @@ Create-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes 
 
 	try {
         Write-LogMessage -Type Debug -Msg "Adding the safe $safename to the Vault..."
-        $safeadd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
+        $safeAdd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
 		# Reset cached Safes list
 		#Set-Variable -Name g_SafesList -Value $null -Scope Global
 		# Update Safes list to include new safe
 		#Get-Safes | out-null
-		$g_SafesList += $safeadd.AddSafeResult
+		$g_SafesList += $safeAdd.AddSafeResult
     }catch{
 		Throw $(New-Object System.Exception ("Create-Safe: Error adding $safename to the Vault.",$_.Exception))
     }
@@ -631,7 +648,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
         [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)]
         [string]$safeName,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
-        [string]$safedescription,
+        [string]$safeDescription,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
         [string]$managingCPM,
         [Parameter(Mandatory=$false,ValueFromPipelineByPropertyName=$true)]
@@ -653,7 +670,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
 	$updateRetVersions = $getSafe.NumberOfVersionsRetention
 	$updateRetDays = $getSafe.NumberOfDaysRetention
 	
-	If(![string]::IsNullOrEmpty($safedescription) -and $getSafe.Description -ne $safeDescription)
+	If(![string]::IsNullOrEmpty($safeDescription) -and $getSafe.Description -ne $safeDescription)
 	{
 		$updateDescription = $safeDescription
 	}
@@ -688,7 +705,7 @@ $updateSafeBody=@{
 	try {
         Write-LogMessage -Type Debug -Msg "Updating safe $safename..."
         Write-LogMessage -Type Debug -Msg "Update Safe Body: $updateSafeBody" 
-        $safeupdate = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
+        $safeUpdate = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
     }catch{
 		Throw $(New-Object System.Exception ("Update-Safe: Error updating $safeName.",$_.Exception))
     }
@@ -717,7 +734,7 @@ Delete-Safe -safename "x0-Win-S-Admins"
 
 	try {
         Write-LogMessage -Type Debug -Msg "Deleting the safe $safename from the Vault..."
-        $safedelete = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Method DELETE -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
+        $safeDelete = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Method DELETE -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
     }catch{
 		Throw $(New-Object System.Exception ("Delete-Safe: Error deleting $safename from the Vault.",$_.Exception))
     }
@@ -733,10 +750,10 @@ Gives granular permissions to a member on a cyberark safe
 Gives granular permission to a cyberArk safe to the particular member based on parameters sent to the command.
 
 .EXAMPLE
-Set-SafeMember -safename "Win-Local-Admins" -safemember "Win-Local-Admins" -memberSearchInLocation "LDAP Directory Name"
+Set-SafeMember -safename "Win-Local-Admins" -safeMember "Win-Local-Admins" -memberSearchInLocation "LDAP Directory Name"
 
 .EXAMPLE
-Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberSearchInLocation vault
+Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberSearchInLocation vault
 
 #>
     [CmdletBinding()]
@@ -801,7 +818,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
         [bool]$permMoveAccountsAndFolders = $false
     )
 
-	If($safemember -NotIn $g_DefaultUsers)
+	If($safeMember -NotIn $g_DefaultUsers)
 	{
 		$SafeMembersBody = @{
 			member = @{
@@ -838,25 +855,25 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
 			If($updateMember)
 			{
 				Write-LogMessage -Type Debug -Msg "Updating safe membership for $safeMember on $safeName in the vault..."
-				$urlSafeMembers = ($URL_SafeSpecificMember -f $(Encode-URL $safeName),$safemember)
+				$urlSafeMembers = ($URL_SafeSpecificMember -f $(ConvertTo-URL $safeName),$safeMember)
 				$restMethod = "PUT"
 			}
 			elseif($deleteMember)
 			{
 				Write-LogMessage -Type Debug -Msg "Deleting $safeMember from $safeName in the vault..."
-				$urlSafeMembers = ($URL_SafeSpecificMember -f $(Encode-URL $safeName),$safemember)
+				$urlSafeMembers = ($URL_SafeSpecificMember -f $(ConvertTo-URL $safeName),$safeMember)
 				$restMethod = "DELETE"
 			}
 			else
 			{
 				# Adding a member
 				Write-LogMessage -Type Debug -Msg "Adding $safeMember located in $memberSearchInLocation to $safeName in the vault..."
-				$urlSafeMembers = ($URL_SafeMembers -f $(Encode-URL $safeName))
+				$urlSafeMembers = ($URL_SafeMembers -f $(ConvertTo-URL $safeName))
 				$restMethod = "POST"
 			}
 			$setSafeMembers = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorVariable rMethodErr
 		}catch{
-			if ($rmethodErr.message -like "*User or Group is already a member*"){
+			if ($rMethodErr.message -like "*User or Group is already a member*"){
 				Write-LogMessage -Type Warning -Msg "The user $safeMember is already a member. Use the update member method instead"
 			}else{
 				Write-LogMessage -Type Error -Msg "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:"
@@ -890,7 +907,7 @@ Get-SafeMember -safename "Win-Local-Admins"
 	$_safeMembers = $null
 	$_safeOwners = $null
 	try{
-		$accSafeMembersURL = $URL_SafeMembers -f $(Encode-URL $safeName)
+		$accSafeMembersURL = $URL_SafeMembers -f $(ConvertTo-URL $safeName)
 		$_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue")
 		# Remove default users and change UserName to MemberName
 		$_safeOwners = $_safeMembers.members | Where-Object {$_.UserName -NotIn $g_DefaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
