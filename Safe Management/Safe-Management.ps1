@@ -148,19 +148,32 @@ Function Test-CommandExists
     Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
-Function Encode-URL($sText)
+# @FUNCTION@ ======================================================================================================================
+# Name...........: ConvertTo-URL
+# Description....: HTTP Encode test in URL
+# Parameters.....: Text to encode
+# Return Values..: Encoded HTML URL text
+# =================================================================================================================================
+Function ConvertTo-URL($sText)
 {
+<#
+.SYNOPSIS
+	HTTP Encode test in URL
+.DESCRIPTION
+	HTTP Encode test in URL
+.PARAMETER sText
+	The text to encode
+#>
 	if ($sText.Trim() -ne "")
 	{
-		Write-LogMessage -Type Verbose -Msg "Returning URL Encode of $sText"
+		Write-LogMessage -Type Debug -Msg "Returning URL Encode of $sText"
 		return [URI]::EscapeDataString($sText)
 	}
 	else
 	{
-		return ""
+		return $sText
 	}
 }
-
 Function Write-LogMessage
 {
 <#
@@ -343,8 +356,12 @@ Function Get-LogonHeader
 		try{
 			# Create a Logon Token Header (This will be used through out all the script)
 			# ---------------------------
-			$logonHeader = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-			$logonHeader.Add("Authorization", $logonToken.CyberArkLogonResult)			
+			If($logonToken.PSObject.Properties.Name -contains "CyberArkLogonResult")
+			{
+				$logonHeader = @{Authorization = $($logonToken.CyberArkLogonResult)}
+			} else {
+				$logonHeader = @{Authorization = $logonToken}
+			}	
 
 			Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
 		} catch {
@@ -482,7 +499,7 @@ Get-Safe -safeName "x0-Win-S-Admins"
 	)
 	$_safe = $null
 	try{
-		$accSafeURL = $URL_SpecificSafe -f $(Encode-URL $safeName)
+		$accSafeURL = $URL_SpecificSafe -f $(ConvertTo-URL $safeName)
 		$_safe = $(Invoke-RestMethod -Uri $accSafeURL -Method "Get" -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue").GetSafeResult
 	}
 	catch
@@ -838,20 +855,20 @@ Set-SafeMember -safename "Win-Local-Admins" -safemember "Administrator" -memberS
 			If($updateMember)
 			{
 				Write-LogMessage -Type Debug -Msg "Updating safe membership for $safeMember on $safeName in the vault..."
-				$urlSafeMembers = ($URL_SafeSpecificMember -f $(Encode-URL $safeName),$safemember)
+				$urlSafeMembers = ($URL_SafeSpecificMember -f $(ConvertTo-URL $safeName),$safemember)
 				$restMethod = "PUT"
 			}
 			elseif($deleteMember)
 			{
 				Write-LogMessage -Type Debug -Msg "Deleting $safeMember from $safeName in the vault..."
-				$urlSafeMembers = ($URL_SafeSpecificMember -f $(Encode-URL $safeName),$safemember)
+				$urlSafeMembers = ($URL_SafeSpecificMember -f $(ConvertTo-URL $safeName),$safemember)
 				$restMethod = "DELETE"
 			}
 			else
 			{
 				# Adding a member
 				Write-LogMessage -Type Debug -Msg "Adding $safeMember located in $memberSearchInLocation to $safeName in the vault..."
-				$urlSafeMembers = ($URL_SafeMembers -f $(Encode-URL $safeName))
+				$urlSafeMembers = ($URL_SafeMembers -f $(ConvertTo-URL $safeName))
 				$restMethod = "POST"
 			}
 			$setSafeMembers = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorVariable rMethodErr
@@ -890,7 +907,7 @@ Get-SafeMember -safename "Win-Local-Admins"
 	$_safeMembers = $null
 	$_safeOwners = $null
 	try{
-		$accSafeMembersURL = $URL_SafeMembers -f $(Encode-URL $safeName)
+		$accSafeMembersURL = $URL_SafeMembers -f $(ConvertTo-URL $safeName)
 		$_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue")
 		# Remove default users and change UserName to MemberName
 		$_safeOwners = $_safeMembers.members | Where-Object {$_.UserName -NotIn $g_DefaultUsers} | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName }}, Permissions
