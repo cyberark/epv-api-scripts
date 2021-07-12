@@ -9,6 +9,7 @@
 #
 # SUPPORTED VERSIONS:
 # CyberArk PVWA v9.8 and above
+# CyberArk Privilege Cloud
 #
 # VERSION HISTORY:
 # 1.0 16/12/2018 - Initial release
