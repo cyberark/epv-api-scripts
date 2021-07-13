@@ -28,7 +28,7 @@ param
 	[Parameter(Mandatory = $false)]
 	[Switch]$DisableSSLVerify,
 
-	[Parameter(Mandatory = $false, HelpMessage = "Path to a CSV file to export data to")]
+	[Parameter(Mandatory = $true, HelpMessage = "Path to a CSV file to export data to")]
 	[Alias("path")]
 	[string]$CSVPath,
 
