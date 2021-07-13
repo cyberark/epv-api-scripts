@@ -95,7 +95,6 @@ param
     [String]$UserLocation = "Vault",
 
     [Parameter(ParameterSetName = 'UpdateMembers', Mandatory = $false, HelpMessage = "If member does not exist while updating, attempt to add them.")]
-    [Alias("Location")]
     [Switch]$AddOnUpdate,
 	
     # Support for Threading (Logon Connection Number)
@@ -317,7 +316,7 @@ Function Write-LogMessage
     }
 }
 
-Function Get-ExceptionMessage
+Function Join-ExceptionMessage
 {
     <#
 .SYNOPSIS
@@ -495,7 +494,7 @@ public static class DisableCertValidationCallback {
         }
         catch
         {
-            Write-LogMessage -Type Error -Msg "Could not change SSL validation. Error: $(Get-ExceptionMessage $_.Exception)"
+            Write-LogMessage -Type Error -Msg "Could not change SSL validation. Error: $(Join-ExceptionMessage $_.Exception)"
         }
     }
     Else
@@ -507,7 +506,7 @@ public static class DisableCertValidationCallback {
         }
         catch
         {
-            Write-LogMessage -Type Error -Msg "Could not change SSL setting to use TLS 1.2. Error: $(Get-ExceptionMessage $_.Exception)"
+            Write-LogMessage -Type Error -Msg "Could not change SSL setting to use TLS 1.2. Error: $(Join-ExceptionMessage $_.Exception)"
         }
     }
 }
@@ -1115,7 +1114,7 @@ If (Test-CommandExists Invoke-RestMethod)
     }
     catch
     {
-        Write-LogMessage -Type Error -Msg "Error Logging on. Error: $(Get-ExceptionMessage $_.Exception)"
+        Write-LogMessage -Type Error -Msg "Error Logging on. Error: $(Join-ExceptionMessage $_.Exception)"
         return
     }
     #endregion
@@ -1140,7 +1139,7 @@ If (Test-CommandExists Invoke-RestMethod)
             }
             catch
             {
-                Write-LogMessage -Type Error -Msg "Error retrieving safes. Error: $(Get-ExceptionMessage $_.Exception)"
+                Write-LogMessage -Type Error -Msg "Error retrieving safes. Error: $(Join-ExceptionMessage $_.Exception)"
             }
         }
         { ($_ -eq "Add") -or ($_ -eq "Update") -or ($_ -eq "UpdateMembers") -or ($_ -eq "Delete") -or ($_ -eq "DeleteMembers") } 
@@ -1275,7 +1274,7 @@ If (Test-CommandExists Invoke-RestMethod)
             }
             catch
             {
-                Write-LogMessage -Type Error -Msg "Error configuring safe '$($line.SafeName)'. Error: $(Get-ExceptionMessage $_.Exception)"
+                Write-LogMessage -Type Error -Msg "Error configuring safe '$($line.SafeName)'. Error: $(Join-ExceptionMessage $_.Exception)"
             }
         }
         "Members"
@@ -1336,7 +1335,7 @@ If (Test-CommandExists Invoke-RestMethod)
             }
             catch
             {
-                Write-LogMessage -Type Error -Msg "Error updating Members for safe '$SafeName'. Error: $(Get-ExceptionMessage $_.Exception)"
+                Write-LogMessage -Type Error -Msg "Error updating Members for safe '$SafeName'. Error: $(Join-ExceptionMessage $_.Exception)"
             }
         }
     }
