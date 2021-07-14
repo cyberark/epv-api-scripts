@@ -174,7 +174,7 @@ Function Test-CommandExists
 # =================================================================================================================================
 Function ConvertTo-URL($sText)
 {
-    <#
+<#
 .SYNOPSIS
 	HTTP Encode test in URL
 .DESCRIPTION
