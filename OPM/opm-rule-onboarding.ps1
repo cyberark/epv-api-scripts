@@ -106,7 +106,7 @@ Function Encode-URL($sText)
 
 Function Get-TrimmedString($sText)
 {
-	if($sText -ne $null)
+	if($null -ne $sText)
 	{
 		return $sText.Trim()
 	}
@@ -293,13 +293,13 @@ Function Invoke-Rest
 	try{
 		if([string]::IsNullOrEmpty($Body))
 		{
-			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000 -ErrorAction $ErrAction
+			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700 -ErrorAction $ErrAction
 		}
 		else
 		{
-			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000 -ErrorAction $ErrAction
+			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
 		}
 	} catch [System.Net.WebException] {
 		if($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")){
@@ -435,7 +435,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding OPM Rules"
 	$caption = "OPM Rule Onboarding Utility"
 	$msg = "Enter your User name and Password"; 
 	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($creds -ne $null)
+	if ($null -ne $creds)
 	{
 		if($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP))
 		{
@@ -506,7 +506,7 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding OPM Rules"
 					$URL_PlatformCommands = $URL_PlatformCommands -f $rule.platformID
 					Log-Msg -Type Debug -Msg $restBody
 					$addRuleResult = $(Invoke-RestMethod -Method Put -Uri $URL_PlatformCommands -Headers $g_LogonHeader -Body $restBody -ContentType "application/json" -TimeoutSec 60)
-					if($addRuleResult -ne $null) {
+					if($null -ne $addRuleResult) {
 						Log-Msg -Type Info -Msg "Rule Onboarded Successfully"
 						# Increment counter
 						$successCounter++

@@ -1,1 +1,3 @@
 *.log
+.vscode/launch.json
+.creds
