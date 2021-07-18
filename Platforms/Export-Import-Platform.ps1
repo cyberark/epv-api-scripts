@@ -449,37 +449,37 @@ If (Test-CommandExists Invoke-RestMethod)
         return
     }
 
-    # #region [Logon]
-    # try
-    # {
-    #     # Get Credentials to Login
-    #     # ------------------------
-    #     $caption = "Export / Import Platform"
-	# 	$msg = "Enter your $AuthType User name and Password"; 
-	# 	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	# 	if ($null -ne $creds)
-	# 	{
-	# 		if($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP))
-	# 		{
-	# 			Get-LogonHeader -Credentials $creds -RadiusOTP $OTP
-	# 		}
-	# 		else
-	# 		{
-	# 			Get-LogonHeader -Credentials $creds
-	# 		}
-    #     }
-    #     else
-    #     { 
-    #         Write-LogMessage -Type Error -Msg "No Credentials were entered"
-    #         return
-    #     }
-    # }
-    # catch
-    # {
-    #     Write-LogMessage -Type Error -Msg "Error Logging on. Error: $(Join-ExceptionMessage $_.Exception)"
-    #     return
-    # }
-    # #endregion
+    #region [Logon]
+    try
+    {
+        # Get Credentials to Login
+        # ------------------------
+        $caption = "Export / Import Platform"
+		$msg = "Enter your $AuthType User name and Password"; 
+		$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
+		if ($null -ne $creds)
+		{
+			if($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP))
+			{
+				Get-LogonHeader -Credentials $creds -RadiusOTP $OTP
+			}
+			else
+			{
+				Get-LogonHeader -Credentials $creds
+			}
+        }
+        else
+        { 
+            Write-LogMessage -Type Error -Msg "No Credentials were entered"
+            return
+        }
+    }
+    catch
+    {
+        Write-LogMessage -Type Error -Msg "Error Logging on. Error: $(Join-ExceptionMessage $_.Exception)"
+        return
+    }
+    #endregion
 
 	If($Bulk)
 	{
@@ -507,6 +507,7 @@ If (Test-CommandExists Invoke-RestMethod)
 			{
 				If(Test-Path $item.ZipPath)
 				{
+					Write-LogMessage -Type Info -Msg "Importing platform from Zip '$($item.ZipPath)'"
 					$zipContent = [System.IO.File]::ReadAllBytes($(Resolve-Path $item.ZipPath))
 					$importBody = @{ ImportFile=$zipContent; } | ConvertTo-Json -Depth 3 -Compress
 					try{
@@ -533,6 +534,7 @@ If (Test-CommandExists Invoke-RestMethod)
 			ForEach($item in $platformsList)
 			{
 				try{
+					Write-LogMessage -Type Info -Msg "Exporting platform ID '$($item.ID)' to Zip '$($item.ZipPath)'"
 					$exportURL = $URL_ExportPlatforms -f $item.ID
 					Invoke-RestMethod -Method POST -Uri $exportURL -Headers $logonHeader -ContentType "application/zip" -TimeoutSec 3600000 -OutFile $item.ZipPath 
 				} catch {
