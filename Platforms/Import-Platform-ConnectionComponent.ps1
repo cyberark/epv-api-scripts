@@ -196,7 +196,7 @@ Write-Host "Import Platform and Connection Component: Script Started" -Foregroun
 $caption = "Import Platform and Connection Component"
 $msg = "Enter your User name and Password"; 
 $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-if ($creds -ne $null)
+if ($null -ne $creds)
 {
 	$rstusername = $creds.username.Replace('\','');    
 	$rstpassword = $creds.GetNetworkCredential().password
@@ -234,7 +234,7 @@ If (Test-Path $ConnectionComponentZipPath)
 {
 	$importBody = @{ ImportFile=$(Get-ZipContent $ConnectionComponentZipPath); } | ConvertTo-Json -Depth 3 -Compress
 	try{
-		$ImportCCResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportConnectionComponent -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000 -Body $importBody
+		$ImportCCResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportConnectionComponent -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700 -Body $importBody
 		$connectionComponentID = ($ImportCCResponse.ConnectionComponentID)
 		Write-Host "Connection Component ID imported: $connectionComponentID"
 	} catch {
@@ -261,7 +261,7 @@ If (Test-Path $PlatformZipPath)
 	# Import Platform
 	$importBody = @{ ImportFile=$(Get-ZipContent $PlatformZipPath); } | ConvertTo-Json -Depth 3 -Compress
 	try{
-		$ImportPlatformResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportPlatforms -Headers $logonHeader -ContentType "application/json" -TimeoutSec 3600000 -Body $importBody
+		$ImportPlatformResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportPlatforms -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700 -Body $importBody
 		Write-Host "Platform ID imported: $($ImportPlatformResponse.PlatformID)"
 	} catch {
 		Write-Error "Error importing the platform, Error: $($_.Exception.Response.StatusDescription)"

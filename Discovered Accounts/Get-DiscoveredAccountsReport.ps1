@@ -409,13 +409,13 @@ Function Invoke-Rest
 	try{
 		if([string]::IsNullOrEmpty($Body))
 		{
-			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 36000
+			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700
 		}
 		else
 		{
-			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 36000"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 36000
+			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700
 		}
 	} catch [System.Net.WebException] {
 		Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)" -ErrorAction $ErrAction
@@ -508,7 +508,7 @@ Function Run-Logoff
 		If($null -ne $g_LogonHeader)
 		{
 			Write-LogMessage -Type Info -Msg "Logoff Session..."
-			Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 3600000 | out-null
+			Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 | out-null
 			Set-Variable -Name g_LogonHeader -Value $null -Scope global
 		}
 	} catch {
@@ -683,10 +683,10 @@ try {
 				$GetDiscoveredAccountsList = @()
 				$GetDiscoveredAccountsList += $GetDiscoveredAccountsResponse.value
 				Write-LogMessage -Type Debug -MSG "$($GetDiscoveredAccountsList.count) Discovered accounts so far..."
-				$nextLink =  $GetAccountsResponse.nextLink
+				$nextLink =  $GetDiscoveredAccountsResponse.nextLink
 				Write-LogMessage -Type Debug -MSG "Getting next link: $nextLink"
 				
-				While ($nextLink -ne "" -and $nextLink -ne $null)
+				While ($nextLink -ne "" -and $null -ne $nextLink)
 				{
 					$GetAccountsResponse = Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header $(Get-LogonHeader -Credentials $creds)
 					$nextLink = $GetAccountsResponse.nextLink
@@ -728,7 +728,7 @@ try {
 		
 		If([string]::IsNullOrEmpty($CSVPath))
 		{
-			$output | FT -Autosize
+			$output | Format-Table -Autosize
 		}
 		else
 		{
