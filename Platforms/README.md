@@ -6,33 +6,63 @@
 # Export/Import Platform
 In order to run the tool you need to run some simple commands in Powershell.
 The Tool supports two modes: [*Import*](#import-command) and [*Export*](#export-command)
+The tool can support a single import/export of a single platform or a list of platforms using a CSV file
 
 ## Usage
 ```powershell
-Export-Import-Platform.ps1 -PVWAURL <string> -Import -PlatformZipPath <string> [<CommonParameters>]
-Export-Import-Platform.ps1 -PVWAURL <string> -Export -PlatformID <string> -PlatformZipPath <string> [<CommonParameters>]
+Export-Import-Platform.ps1 -PVWAURL <string> -Import -PlatformZipPath <string> [-AuthType <string>] [<CommonParameters>]
+Export-Import-Platform.ps1 -PVWAURL <string> -Export -PlatformID <string> -PlatformZipPath <string> [-AuthType <string>] [<CommonParameters>]
+Export-Import-Platform.ps1 -PVWAURL <string> -Bulk -Export -CSVPath <string> [-AuthType <string>] [<CommonParameters>]
+Export-Import-Platform.ps1 -PVWAURL <string> -Bulk -Import -CSVPath <string> [-AuthType <string>] [<CommonParameters>]
 ```
 
 ### Import Command:
 ```powershell
-Export-Import-Platform.ps1 -Import -PVWAURL <PVWA URL> -PlatformZipPath <The path of the Platform ZIP to import>
+Export-Import-Platform.ps1 -Import -PVWAURL <PVWA URL> [-AuthType <string>] -PlatformZipPath <The path of the Platform ZIP to import> [<CommonParameters>]
+Export-Import-Platform.ps1 -Import -PVWAURL <PVWA URL> [-AuthType <string>] -Bulk -CSVPath <The path of the CSV for import> [<CommonParameters>]
 ```
 
 ### Export Command:
 ```powershell
-Export-Import-Platform.ps1 -Export -PVWAURL <PVWA URL> -PlatformID <Platform ID> -PlatformZipPath <The path to save the Platform ZIP output>
+Export-Import-Platform.ps1 -Export -PVWAURL <PVWA URL> [-AuthType <string>] -PlatformID <Platform ID> -PlatformZipPath <The path to save the Platform ZIP output> [<CommonParameters>]
+Export-Import-Platform.ps1 -Export -PVWAURL <PVWA URL> [-AuthType <string>] -Bulk -CSVPath <The path of the CSV for export> [<CommonParameters>]
 ```
 
 ### Examples
-Import Sample Platform
+#### Import a single Sample Platform
 ```powershell
 Export-Import-Platform.ps1 -Import -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformZipPath C:\Temp\SamplePlatform.zip
 ```
 
-Export Sample Platform
+#### Import a list of Platforms
+```powershell
+Export-Import-Platform.ps1 -Import -PVWAURL https://PAS.mydomain.com/PasswordVault -CSVPath C:\Temp\myPlatforms.csv
+```
+
+myPlatforms.csv file:
+|ZipPath|ID|
+|-------|--|
+|C:\Temp\SamplePlatform.zip||
+|C:\Temp\SecondPlatform.zip||
+|C:\Temp\ThirdPlatform.zip||
+
+
+#### Export Sample Platform
 ```powershell
 Export-Import-Platform.ps1 -Export -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformID SamplePlatform -PlatformZipPath C:\Temp\Export-SamplePlatform.zip
 ```
+
+#### Export a list of platforms
+```powershell
+Export-Import-Platform.ps1 -Export -PVWAURL https://PAS.mydomain.com/PasswordVault -CSVPath C:\Temp\myPlatforms.csv
+```
+myPlatforms.csv file:
+|ZipPath|ID|
+|-------|--|
+|C:\Temp\Export-SamplePlatform.zip|SamplePlatform|
+|C:\Temp\Export-SecondPlatform.zip|SecondPlatform|
+|C:\Temp\Export-ThirdPlatform.zip|ThirdPlatform|
+
 
 # Import Connection Component
 In order to run the tool you need to run some simple commands in Powershell.
