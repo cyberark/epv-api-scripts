@@ -1899,7 +1899,7 @@ ForEach ($account in $accountsCSV)
 						}
 						catch
 						{
-							Add-Content -Path "$CsvPath.errorCreate" -Value ($account | ConvertTo-Csv) 
+							Add-Content -Path "$CsvPath.errorCreate" -Value ($account | ConvertTo-Csv -NoTypeInformation) 
 							Throw $(New-Object System.Exception ("There was an error creating the account", $_.Exception))
 						}
 					}
