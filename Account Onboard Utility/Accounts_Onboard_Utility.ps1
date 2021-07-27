@@ -1,21 +1,22 @@
+<# 
 ###########################################################################
-#
-# NAME: Accounts Onboard Utility
-#
-# AUTHOR:  Assaf Miron, Brian Bors
-#
-# COMMENT: 
-# This script will onboard all accounts from a CSV file using REST API
-#
-# SUPPORTED VERSIONS:
-# CyberArk PVWA v10.4 and above
-#
-# Updates:
-#
-# 2021-07-27 	- Added ability to create on updates 
-#				- Updated formating to match Visal Code standard
-#
-###########################################################################
+NAME: Accounts Onboard Utility
+AUTHOR:  Assaf Miron, Brian Bors
+
+COMMENT: 
+This script will onboard all accounts from a CSV file using REST API
+
+SUPPORTED VERSIONS:
+CyberArk PVWA v10.4 and above
+
+Updates:
+2021-07-27	- Added ability to create on updates 
+v2.10 		- Updated formating to match Visal Code standard
+			- Updated to check existing secret to ensure secrets don't have
+ 				excessive versions
+
+########################################################################### 
+#>
 [CmdletBinding()]
 param(
 	[Parameter(Mandatory = $true, HelpMessage = "Please enter your PVWA address (For example: https://pvwa.mydomain.com/PasswordVault)")]
@@ -89,7 +90,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.9"
+$ScriptVersion = "2.10"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
