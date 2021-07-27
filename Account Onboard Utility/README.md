@@ -26,7 +26,7 @@ There are six FC's that are required to be added to the platform if an account h
 
 ## Parameters:
 ```powershell
-Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-AuthType] [-OTP] [-TemplateSafe] [-CsvPath] [-CsvDelimiter] [-DisableSSLVerify] [-NoSafeCreation] [-DisableAutoUpdate]
+Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-AuthType] [-OTP] [-TemplateSafe] [-CsvPath] [-CsvDelimiter] [-DisableSSLVerify] [-NoSafeCreation] [-DisableAutoUpdate] [-CreateOnUpdate]
 ```
 - PVWAURL
 	- The URL of the PVWA that you are working with. 
@@ -58,6 +58,9 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-A
 - DisableAutoUpdate
 	- By default, the script will automatically update itself to the latest version
 	- Using this switch will disable this ability and will keep the current version
+- CreateOnUpdate
+	- By default, the script will have a error message if you attempt to update a account that does not exist
+	- Using this switch will create accounts when attempting to do updates and a account is not found
 
 ### Create Command:
 ```powershell
