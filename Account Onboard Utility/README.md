@@ -93,7 +93,7 @@ If you want to Update existing Accounts only (without Safe creation):
 
 If you want to Create and Update Accounts (and safes):
 ```powershell
-& .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\accounts.csv -Update -Create
+& .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\accounts.csv -Update -CreateOnUpdate
 ```
 For any account that exists, the script will update
 For accounts that do not exist, the script will create the account
