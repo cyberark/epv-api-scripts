@@ -96,6 +96,7 @@ If you want to Update the description and members of a list of safes from a file
 ```
 > *Note*: This command will try to Add the members from the file to the safe. Any existing member will be skipped (will not update it's permissions)
 
+
 ### Delete Command:
 ```powershell
 Safe-Management.ps1 -PVWAURL <string> -Delete [-SafeName <string>] [-FilePath <string>] [<CommonParameters>]
@@ -141,6 +142,11 @@ Safe-Management.ps1 -PVWAURL <string> -UpdateMembers [-FilePath <string>] [<Comm
 If you want to Update a list of members from a file:
 ```powershell
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -UpdateMembers -FilePath "C:\Temp\safe-members-sample.csv"
+```
+
+If you want to Update a list of members from a file and if member is missing attempt to add them:
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -UpdateMembers -FilePath "C:\Temp\safe-members-sample.csv" -AddonUpdate
 ```
 
 ### Delete Members Command:
