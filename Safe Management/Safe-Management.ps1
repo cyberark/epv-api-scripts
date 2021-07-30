@@ -174,7 +174,7 @@ Function Test-CommandExists
 # =================================================================================================================================
 Function ConvertTo-URL($sText)
 {
-<#
+    <#
 .SYNOPSIS
 	HTTP Encode test in URL
 .DESCRIPTION
@@ -986,7 +986,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                 }
                 else
                 {
-                    Write-LogMessage -Type Warning -Msg "User or Group was not found. To automaticly attempt to add use AddOnUpdate"
+                    Write-LogMessage -Type Warning -Msg "User or Group was not found. To automatically attempt to add use AddOnUpdate"
                 }
             }
             else
@@ -1155,126 +1155,140 @@ If (Test-CommandExists Invoke-RestMethod)
                     # For each line in the csv, import the safe
                     ForEach ($line in $sortedList)
                     {
-                        Write-LogMessage -Type Info -Msg "Importing safe $($line.safename) with safe member $($line.member)..."
-                        $parameters = @{ 
-                            safeName            = $line.safename; 
-                            safeDescription     = $line.description;
-                            managingCPM         = $line.ManagingCPM;
-                            numVersionRetention = $line.numVersionRetention;
-                            numDaysRetention    = $line.numDaysRetention;
-                            EnableOLAC          = $line.EnableOLAC;
-                        }
-                        if ([string]::IsNullOrEmpty($parameters.safeDescription))
+                        try
                         {
-                            $parameters.Remove('safeDescription') 
-                        }
-                        if ([string]::IsNullOrEmpty($parameters.ManagingCPM))
-                        {
-                            $parameters.Remove('managingCPM') 
-                        }
-                        if ([string]::IsNullOrEmpty($parameters.numVersionRetention))
-                        {
-                            $parameters.Remove('numVersionRetention') 
-                        }
-                        if ([string]::IsNullOrEmpty($parameters.numDaysRetention))
-                        {
-                            $parameters.Remove('numDaysRetention') 
-                        }
-                        if ([string]::IsNullOrEmpty($parameters.EnableOLAC)) 
-                        { 
-                            $parameters.Remove('EnableOLAC') 
-                        }
-                        Else
-                        {
-                            $parameters.EnableOLAC = Convert-ToBool $parameters.EnableOLAC
-                        }
-                        If ($Add)
-                        {
-                            #If safe doesn't exist, create the new safe
-                            if ((Test-Safe -SafeName $line.safename) -eq $false)
-                            {
-                                Write-LogMessage -Type Info -Msg "Adding the safe $($line.safename)..."
-                                New-Safe @parameters
+                            Write-LogMessage -Type Info -Msg "Importing safe $($line.safename) with safe member $($line.member)..."
+                            $parameters = @{ 
+                                safeName            = $line.safename; 
+                                safeDescription     = $line.description;
+                                managingCPM         = $line.ManagingCPM;
+                                numVersionRetention = $line.numVersionRetention;
+                                numDaysRetention    = $line.numDaysRetention;
+                                EnableOLAC          = $line.EnableOLAC;
                             }
-                            else
+                            if ([string]::IsNullOrEmpty($parameters.safeDescription))
                             {
-                                # Safe exists, would create an error creating it again
-                                Write-LogMessage -Type Error -Msg "Safe $($line.safename) already exists, to update it use the Update switch"
+                                $parameters.Remove('safeDescription') 
                             }
-                        }
-                        ElseIf ($Update)
-                        {
-                            Write-LogMessage -Type Info -Msg "Updating the safe $($line.safename)..."
-                            Update-Safe @parameters
-                        }
-                        ElseIf ($Delete)
-                        {
-                            Write-LogMessage -Type Info -Msg "Deleting safe $($line.safename)..."
-                            Remove-Safe -safename $parameters.safeName
-                        }
-						
-                        If ($Delete -eq $False)
-                        {
-                            If (![string]::IsNullOrEmpty($line.member))
+                            if ([string]::IsNullOrEmpty($parameters.ManagingCPM))
                             {
-                                # Add permissions to the safe
-                                Set-SafeMember -safename $line.safename -safeMember $line.member -updateMember:$UpdateMembers -deleteMember:$DeleteMembers -memberSearchInLocation $line.MemberLocation `
-                                    -permUseAccounts $(Convert-ToBool $line.UseAccounts) -permRetrieveAccounts $(Convert-ToBool $line.RetrieveAccounts) -permListAccounts $(Convert-ToBool $line.ListAccounts) `
-                                    -permAddAccounts $(Convert-ToBool $line.AddAccounts) -permUpdateAccountContent $(Convert-ToBool $line.UpdateAccountContent) -permUpdateAccountProperties $(Convert-ToBool $line.UpdateAccountProperties) `
-                                    -permInitiateCPMManagement $(Convert-ToBool $line.InitiateCPMAccountManagementOperations) -permSpecifyNextAccountContent $(Convert-ToBool $line.SpecifyNextAccountContent) `
-                                    -permRenameAccounts $(Convert-ToBool $line.RenameAccounts) -permDeleteAccounts $(Convert-ToBool $line.DeleteAccounts) -permUnlockAccounts $(Convert-ToBool $line.UnlockAccounts) `
-                                    -permManageSafe $(Convert-ToBool $line.ManageSafe) -permManageSafeMembers $(Convert-ToBool $line.ManageSafeMembers) -permBackupSafe $(Convert-ToBool $line.BackupSafe) `
-                                    -permViewAuditLog $(Convert-ToBool $line.ViewAuditLog) -permViewSafeMembers $(Convert-ToBool $line.ViewSafeMembers) `
-                                    -permRequestsAuthorizationLevel $line.RequestsAuthorizationLevel -permAccessWithoutConfirmation $(Convert-ToBool $line.AccessWithoutConfirmation) `
-                                    -permCreateFolders $(Convert-ToBool $line.CreateFolders) -permDeleteFolders $(Convert-ToBool $line.DeleteFolders) -permMoveAccountsAndFolders $(Convert-ToBool $line.MoveAccountsAndFolders)
+                                $parameters.Remove('managingCPM') 
                             }
+                            if ([string]::IsNullOrEmpty($parameters.numVersionRetention))
+                            {
+                                $parameters.Remove('numVersionRetention') 
+                            }
+                            if ([string]::IsNullOrEmpty($parameters.numDaysRetention))
+                            {
+                                $parameters.Remove('numDaysRetention') 
+                            }
+                            if ([string]::IsNullOrEmpty($parameters.EnableOLAC)) 
+                            { 
+                                $parameters.Remove('EnableOLAC') 
+                            }
+                            Else
+                            {
+                                $parameters.EnableOLAC = Convert-ToBool $parameters.EnableOLAC
+                            }
+                            If ($Add)
+                            {
+                                # If safe doesn't exist, create the new safe
+                                if ((Test-Safe -SafeName $line.safename) -eq $false)
+                                {
+                                    Write-LogMessage -Type Info -Msg "Adding the safe $($line.safename)..."
+                                    New-Safe @parameters
+                                }
+                                else
+                                {
+                                    # Safe exists, would create an error creating it again
+                                    Write-LogMessage -Type Error -Msg "Safe $($line.safename) already exists, to update it use the Update switch"
+                                }
+                            }
+                            ElseIf ($Update)
+                            {
+                                Write-LogMessage -Type Info -Msg "Updating the safe $($line.safename)..."
+                                Update-Safe @parameters
+                            }
+                            ElseIf ($Delete)
+                            {
+                                Write-LogMessage -Type Info -Msg "Deleting safe $($line.safename)..."
+                                Remove-Safe -safename $parameters.safeName
+                            }
+                            
+                            If ($Delete -eq $False)
+                            {
+                                If (![string]::IsNullOrEmpty($line.member))
+                                {
+                                    # Add permissions to the safe
+                                    Set-SafeMember -safename $line.safename -safeMember $line.member -updateMember:$UpdateMembers -deleteMember:$DeleteMembers -memberSearchInLocation $line.MemberLocation `
+                                        -permUseAccounts $(Convert-ToBool $line.UseAccounts) -permRetrieveAccounts $(Convert-ToBool $line.RetrieveAccounts) -permListAccounts $(Convert-ToBool $line.ListAccounts) `
+                                        -permAddAccounts $(Convert-ToBool $line.AddAccounts) -permUpdateAccountContent $(Convert-ToBool $line.UpdateAccountContent) -permUpdateAccountProperties $(Convert-ToBool $line.UpdateAccountProperties) `
+                                        -permInitiateCPMManagement $(Convert-ToBool $line.InitiateCPMAccountManagementOperations) -permSpecifyNextAccountContent $(Convert-ToBool $line.SpecifyNextAccountContent) `
+                                        -permRenameAccounts $(Convert-ToBool $line.RenameAccounts) -permDeleteAccounts $(Convert-ToBool $line.DeleteAccounts) -permUnlockAccounts $(Convert-ToBool $line.UnlockAccounts) `
+                                        -permManageSafe $(Convert-ToBool $line.ManageSafe) -permManageSafeMembers $(Convert-ToBool $line.ManageSafeMembers) -permBackupSafe $(Convert-ToBool $line.BackupSafe) `
+                                        -permViewAuditLog $(Convert-ToBool $line.ViewAuditLog) -permViewSafeMembers $(Convert-ToBool $line.ViewSafeMembers) `
+                                        -permRequestsAuthorizationLevel $line.RequestsAuthorizationLevel -permAccessWithoutConfirmation $(Convert-ToBool $line.AccessWithoutConfirmation) `
+                                        -permCreateFolders $(Convert-ToBool $line.CreateFolders) -permDeleteFolders $(Convert-ToBool $line.DeleteFolders) -permMoveAccountsAndFolders $(Convert-ToBool $line.MoveAccountsAndFolders)
+                                }
+                            }
+                        }   
+                        catch
+                        {
+                            Write-LogMessage -Type Error -Msg "Error configuring safe '$($line.SafeName)'. Error: $(Join-ExceptionMessage $_.Exception)"
                         }
                     }
                 }
                 else
                 {
-                    $parameters = @{ 
-                        safeName            = $SafeName; 
-                        safeDescription     = $SafeDescription;
-                        managingCPM         = $ManagingCPM;
-                        numVersionRetention = $NumVersionRetention
-                    }
-                    # Keep only relevant properties (and keeping defaults when needed)
-                    if ([string]::IsNullOrEmpty($SafeDescription))
+                    try
                     {
-                        $parameters.Remove('safeDescription')
+                        $parameters = @{ 
+                            safeName            = $SafeName; 
+                            safeDescription     = $SafeDescription;
+                            managingCPM         = $ManagingCPM;
+                            numVersionRetention = $NumVersionRetention
+                        }
+                        # Keep only relevant properties (and keeping defaults when needed)
+                        if ([string]::IsNullOrEmpty($SafeDescription))
+                        {
+                            $parameters.Remove('safeDescription')
+                        }
+                        if ([string]::IsNullOrEmpty($ManagingCPM))
+                        {
+                            $parameters.Remove('managingCPM')
+                        }
+                        if ([string]::IsNullOrEmpty($NumVersionRetention))
+                        {
+                            $parameters.Remove('numVersionRetention')
+                        }
+                        If ($Add)
+                        {
+                            # Create one Safe
+                            Write-LogMessage -Type Info -Msg "Adding the safe $SafeName..."
+                            New-Safe @parameters
+                        }
+                        ElseIf ($Update)
+                        {
+                            # Update the Safe
+                            Write-LogMessage -Type Info -Msg "Updating the safe $SafeName..."
+                            Update-Safe @parameters
+                        }
+                        ElseIf ($Delete)
+                        {
+                            # Deleting one Safe
+                            Write-LogMessage -Type Info -Msg "Deleting the safe $SafeName..."
+                            Remove-Safe -safename $parameters.safeName
+                        }
                     }
-                    if ([string]::IsNullOrEmpty($ManagingCPM))
+                    catch
                     {
-                        $parameters.Remove('managingCPM')
-                    }
-                    if ([string]::IsNullOrEmpty($NumVersionRetention))
-                    {
-                        $parameters.Remove('numVersionRetention')
-                    }
-                    If ($Add)
-                    {
-                        # Create one Safe
-                        Write-LogMessage -Type Info -Msg "Adding the safe $SafeName..."
-                        New-Safe @parameters
-                    }
-                    ElseIf ($Update)
-                    {
-                        # Update the Safe
-                        Write-LogMessage -Type Info -Msg "Updating the safe $SafeName..."
-                        Update-Safe @parameters
-                    }
-                    ElseIf ($Delete)
-                    {
-                        # Deleting one Safe
-                        Write-LogMessage -Type Info -Msg "Deleting the safe $SafeName..."
-                        Remove-Safe -safename $parameters.safeName
+                        Write-LogMessage -Type Error -Msg "Error configuring safe '$SafeName'. Error: $(Join-ExceptionMessage $_.Exception)"
                     }
                 }			
             }
             catch
             {
-                Write-LogMessage -Type Error -Msg "Error configuring safe '$($line.SafeName)'. Error: $(Join-ExceptionMessage $_.Exception)"
+                Write-LogMessage -Type Error -Msg "Error configuring safe. Error: $(Join-ExceptionMessage $_.Exception)"
             }
         }
         "Members"
