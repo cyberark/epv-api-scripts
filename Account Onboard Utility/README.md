@@ -8,7 +8,7 @@
 - The tool supports basic Account and Safe Creation, much like the Password Upload Utility
 - The tool supports Template Safe (currently one for all Accounts)
 - The tool can take a simple CSV file with only the relevant Account information
-- The tool will automatically update it self to the latest version if one exists in thie GitHub folder
+- The tool will automatically update it self to the latest version if one exists in this GitHub folder
 
 In order to run the tool you need to run some simple commands in Powershell.
 The Tool supports three modes: [*Create*](#create-command), [*Update*](#update-command) and [*Delete*](#delete-command)
@@ -26,7 +26,7 @@ There are six FC's that are required to be added to the platform if an account h
 
 ## Parameters:
 ```powershell
-Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-AuthType] [-OTP] [-TemplateSafe] [-CsvPath] [-CsvDelimiter] [-DisableSSLVerify] [-NoSafeCreation] [-DisableAutoUpdate]
+Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-AuthType] [-OTP] [-TemplateSafe] [-CsvPath] [-CsvDelimiter] [-DisableSSLVerify] [-NoSafeCreation] [-DisableAutoUpdate] [-CreateOnUpdate]
 ```
 - PVWAURL
 	- The URL of the PVWA that you are working with. 
@@ -58,6 +58,9 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-A
 - DisableAutoUpdate
 	- By default, the script will automatically update itself to the latest version
 	- Using this switch will disable this ability and will keep the current version
+- CreateOnUpdate
+	- By default, the script will automatically not create new accounts when in update mode
+	- Using this switch will automatic create accounts that do not exist when running in update mode
 
 ### Create Command:
 ```powershell
@@ -84,7 +87,7 @@ If you want to Create Accounts but not create the safes (if they don’t exist):
 Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Update [-AuthType <string>] [-OTP <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [-NoSafeCreation] [<CommonParameters>]
 ```
 
-> **Note:** In order to update specific accounts, make sure you include the account name in the CSV. The uniqeness of an account would be the Safe name and the Account name (object name)
+> **Note:** In order to update specific accounts, make sure you include the account name in the CSV. The uniqueness of an account would be the Safe name and the Account name (object name)
 
 If you want to Update existing Accounts only (without Safe creation):
 ```powershell
@@ -93,7 +96,7 @@ If you want to Update existing Accounts only (without Safe creation):
 
 If you want to Create and Update Accounts (and safes):
 ```powershell
-& .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\accounts.csv -Update -Create
+& .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\accounts.csv -Update -CreateOnUpdate
 ```
 For any account that exists, the script will update
 For accounts that do not exist, the script will create the account
