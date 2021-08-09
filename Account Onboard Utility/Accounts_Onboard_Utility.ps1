@@ -887,7 +887,7 @@ Function Get-Account {
 			Write-LogMessage -Type Debug -MSG "Getting accounts next link: $nextLink"
 			
 			While (-not [string]::IsNullOrEmpty($nextLink)) {
-				$GetAccountsResponse = Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header (Get-LogonHeader $VaultCredentials)
+				$GetAccountsResponse = Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header $g_LogonHeader
 				$nextLink = $GetAccountsResponse.nextLink
 				Write-LogMessage -Type Debug -MSG "Getting accounts next link: $nextLink"
 				$GetAccountsList += $GetAccountsResponse.value
