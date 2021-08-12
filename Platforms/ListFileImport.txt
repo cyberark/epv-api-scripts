@@ -1,0 +1,6 @@
+C:\temp\WinDesktopLocal.zip
+C:\temp\WinServerLocal.zip
+C:\temp\WinDomain.zip
+C:\temp\UnixSSH.zip
+C:\temp\UnixSSHKeys.zip
+C:\temp\CyberArkPTA.zip

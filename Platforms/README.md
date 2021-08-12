@@ -9,30 +9,79 @@ The Tool supports two modes: [*Import*](#import-command) and [*Export*](#export-
 
 ## Usage
 ```powershell
-Export-Import-Platform.ps1 -PVWAURL <string> -Import -PlatformZipPath <string> [<CommonParameters>]
 Export-Import-Platform.ps1 -PVWAURL <string> -Export -PlatformID <string> -PlatformZipPath <string> [<CommonParameters>]
+Export-Import-Platform.ps1 -PVWAURL <string> -ExportFile -ListFile <string> -PlatformZipPath <string> [<CommonParameters>]
+
+Export-Import-Platform.ps1 -PVWAURL <string> -ExportActive -PlatformZipPath <string> [<CommonParameters>]
+Export-Import-Platform.ps1 -PVWAURL <string> -ExportAll -PlatformZipPath <string> [<CommonParameters>]
+
+Export-Import-Platform.ps1 -PVWAURL <string> -Import -PlatformZipPath <string> [<CommonParameters>]
+Export-Import-Platform.ps1 -PVWAURL <string> -ImportFile -ListFile <string> [<CommonParameters>]
+```
+
+
+### Export Command:
+```powershell
+Export-Import-Platform.ps1 -Export -PVWAURL <PVWA URL> -PlatformID <Platform ID> -PlatformZipPath <The path to save the Platform ZIP output>
+```
+### ExportFile Command:
+```powershell
+Export-Import-Platform.ps1 -ExportFile -PVWAURL <PVWA URL> -ListFile <The path to the txt file with the PlatformID to export> -PlatformZipPath <The path to save the Platform ZIP output>
+```
+
+### ExportActive Command:
+During the export process a file named "_Export.txt" is created in the PlatformZipPath location. This file can be updated to only include the zip files you wish to import and then leveraged by the -ImportFile command.
+Requires PVWA v11.1 or higher
+```powershell
+Export-Import-Platform.ps1 -ExportActive -PVWAURL <PVWA URL> -PlatformZipPath <The path to save the Platform ZIP files>
+```
+### ExportAll Command:
+During the export process a file named "_Export.txt" is created in the PlatformZipPath location. This file can be updated to only include the zip files you wish to import and then leveraged by the -ImportFile command.
+Requires PVWA v11.1 or higher
+```powershell
+Export-Import-Platform.ps1 -ExportAll -PVWAURL <PVWA URL> -PlatformZipPath <The path to save the Platform ZIP files>
 ```
 
 ### Import Command:
 ```powershell
 Export-Import-Platform.ps1 -Import -PVWAURL <PVWA URL> -PlatformZipPath <The path of the Platform ZIP to import>
 ```
-
-### Export Command:
+### ImportFile Command:
 ```powershell
-Export-Import-Platform.ps1 -Export -PVWAURL <PVWA URL> -PlatformID <Platform ID> -PlatformZipPath <The path to save the Platform ZIP output>
+Export-Import-Platform.ps1 -ImportFile -PVWAURL <PVWA URL> -ListFile <The path to the txt file with the ZIP files to import>
 ```
 
 ### Examples
+Export Sample Platform
+```powershell
+Export-Import-Platform.ps1 -Export -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformID SamplePlatform -PlatformZipPath C:\Temp\Export-SamplePlatform.zip
+```
+
+ExportFile Sample Platform
+```powershell
+Export-Import-Platform.ps1 -Export -PVWAURL https://PAS.mydomain.com/PasswordVault -ListFile C:\Temp\ListFileExport.txt -PlatformZipPath C:\Temp\
+```
+
+ExportActive Sample Platform
+```powershell
+Export-Import-Platform.ps1 -ExportActive -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformZipPath C:\Temp\Export-SamplePlatform.zip
+```
+
+ExportAll Sample Platform
+```powershell
+Export-Import-Platform.ps1 -ExportAll -PVWAURL https://PAS.mydomain.com/PasswordVault  -PlatformZipPath C:\Temp\Export-SamplePlatform.zip
+```
+
 Import Sample Platform
 ```powershell
 Export-Import-Platform.ps1 -Import -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformZipPath C:\Temp\SamplePlatform.zip
 ```
 
-Export Sample Platform
+ImportFile Sample Platform
 ```powershell
-Export-Import-Platform.ps1 -Export -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformID SamplePlatform -PlatformZipPath C:\Temp\Export-SamplePlatform.zip
+Export-Import-Platform.ps1 -ImportFile -PVWAURL https://PAS.mydomain.com/PasswordVault -ListFile C:\Temp\ListFileImport.txt
 ```
+
 
 # Import Connection Component
 In order to run the tool you need to run some simple commands in Powershell.
