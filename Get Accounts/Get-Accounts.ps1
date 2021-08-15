@@ -126,9 +126,9 @@ Function Convert-Date($epochdate)
 	else { return (Get-Date -Date "01/01/1970").AddSeconds($epochdate) }
 }
 
-Function Create-SearchCriteria
+Function New-SearchCriteria
 {
-	param ([string]$sURL, [string]$sSearch, [string]$sSortParam, [string]$sSafeName, [int]$iLimitPage, [int]$iOffsetPage)
+	param ([string]$sURL, [string]$sSearch, [string]$sSortParam, [string]$sSafeName, [int]$iLimitPage, [int]$iOffsetPage = 0)
 	[string]$retURL = $sURL
 	$retURL += "?"
 	
@@ -157,6 +157,26 @@ Function Create-SearchCriteria
 	Write-Debug "URL: $retURL"
 	
 	return $retURL
+}
+
+Function Update-SearchCriteria
+{
+	param (
+		[string]$nextLinkURL,
+		[int]$counter = 1
+	)
+
+	# In order to get all the results, we need to increase the Limit
+	$newNextLink = $nextLinkURL
+	# First find the limit in the next link URL
+	if($nextLinkURL -match "(?:limit=)(\d{1,})")
+	{
+		$limitText = $Matches[0]
+		$limitNumber = [int]$Matches[1]
+		$newNextLink = $nextLinkURL.Replace($limitText,"limit={0}" -f ($limitNumber * $counter))
+	}
+
+	return $newNextLink
 }
 
 #endregion
@@ -228,7 +248,7 @@ If (Test-CommandExists Invoke-RestMethod)
 			try
    			{
 				$AccountsURLWithFilters = ""
-				$AccountsURLWithFilters = $(Create-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSortParam $SortBy -sSafeName $SafeName -iLimitPage $Limit)
+				$AccountsURLWithFilters = $(New-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSortParam $SortBy -sSafeName $SafeName -iLimitPage $Limit)
 				Write-Debug $AccountsURLWithFilters
 			}
 			catch
@@ -247,18 +267,20 @@ If (Test-CommandExists Invoke-RestMethod)
 			If ($AutoNextPage)
 			{
 				$GetAccountsList = @()
+				$counter = 1
 				$GetAccountsList += $GetAccountsResponse.value
 				Write-Debug "Found $($GetAccountsList.count) accounts so far..."
-				$nextLink = $GetAccountsResponse.nextLink
+				$nextLink = Update-SearchCriteria -nextLinkURL $("$PVWAURL/$($GetAccountsResponse.nextLink))") -counter $counter
 				Write-Debug "Getting accounts next link: $nextLink"
-			
 				While (-not [string]::IsNullOrEmpty($nextLink))
 				{
-					$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $("$PVWAURL/$nextLink") -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700	
-					$nextLink = $GetAccountsResponse.nextLink
-					Write-Debug "Getting accounts next link: $nextLink"
+					$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $nextLink -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700	
 					$GetAccountsList += $GetAccountsResponse.value
 					Write-Debug "Found $($GetAccountsList.count) accounts so far..."
+					# Increase the counter
+					$counter++
+					$nextLink = Update-SearchCriteria -nextLinkURL $("$PVWAURL/$($GetAccountsResponse.nextLink))") -counter $counter
+					Write-Debug "Getting accounts next link: $nextLink"
 				}
 				
 				Write-Host "Showing $($GetAccountsList.count) accounts"
