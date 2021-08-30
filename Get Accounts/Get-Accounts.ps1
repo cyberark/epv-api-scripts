@@ -163,7 +163,8 @@ Function Update-SearchCriteria
 {
 	param (
 		[string]$nextLinkURL,
-		[int]$counter = 1
+		[int]$counter = 1,
+		[int]$limit
 	)
 
 	# In order to get all the results, we need to increase the Limit
@@ -173,7 +174,15 @@ Function Update-SearchCriteria
 	{
 		$limitText = $Matches[0]
 		$limitNumber = [int]$Matches[1]
-		$newNextLink = $nextLinkURL.Replace($limitText,"limit={0}" -f ($limitNumber * $counter))
+		# Verify that we have an increased the limit
+		if($limitNumber -ge $limit)
+		{
+			$newNextLink = $nextLinkURL.Replace($limitText,"limit={0}" -f ($limit * $counter))
+		}
+		else {
+			Write-Debug "Limits are not correct. Next Link limit: $limitNumber; current limit: $limit; Next limit should be: $($limit * $counter)"
+			# No change to the next link URL
+		}
 	}
 
 	return $newNextLink
@@ -270,7 +279,7 @@ If (Test-CommandExists Invoke-RestMethod)
 				$counter = 1
 				$GetAccountsList += $GetAccountsResponse.value
 				Write-Debug "Found $($GetAccountsList.count) accounts so far..."
-				$nextLink = Update-SearchCriteria -nextLinkURL $("$PVWAURL/$($GetAccountsResponse.nextLink))") -counter $counter
+				$nextLink = Update-SearchCriteria -nextLinkURL $("$PVWAURL/$($GetAccountsResponse.nextLink))") -counter $counter -limit $Limit
 				Write-Debug "Getting accounts next link: $nextLink"
 				While (-not [string]::IsNullOrEmpty($nextLink))
 				{
@@ -279,7 +288,7 @@ If (Test-CommandExists Invoke-RestMethod)
 					Write-Debug "Found $($GetAccountsList.count) accounts so far..."
 					# Increase the counter
 					$counter++
-					$nextLink = Update-SearchCriteria -nextLinkURL $("$PVWAURL/$($GetAccountsResponse.nextLink))") -counter $counter
+					$nextLink = Update-SearchCriteria -nextLinkURL $("$PVWAURL/$($GetAccountsResponse.nextLink))") -counter $counter -limit $Limit
 					Write-Debug "Getting accounts next link: $nextLink"
 				}
 				
