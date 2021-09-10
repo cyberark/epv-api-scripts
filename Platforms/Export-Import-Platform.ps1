@@ -185,8 +185,6 @@ Function Get-PlatformsList {
 		[switch]$GetAll
 	)
 
-	
-
 	$idList = @()
 	
 	try {
@@ -294,38 +292,30 @@ If (Test-CommandExists Invoke-RestMethod) {
 
 		"ImportFile" {
 			foreach ($line in Get-Content $listFile) {
-				if ("" -ne $line) { import-platform $line }
+				Write-Debug "Trying to import $line" 
+				if (![string]::IsNullOrEmpty($line)) { import-platform $line }
 			} 
 		}
 
 		"Export" {
-			export-platform $PlatformID
+			if (![string]::IsNullOrEmpty($PlatformID)) { export-platform $PlatformID}
+			
 		}
 
 		"ExportFile" {
 			foreach ($line in Get-Content $listFile) {
-				$line 
-				if ("" -ne $line) { export-platform $line }		
+				Write-Debug "Trying to export $line" 
+				if (![string]::IsNullOrEmpty($line)) { export-platform $line }		
 			} 
 	
 		}
-		"ExportActive" {
-			$platforms = Get-PlatformsList
+		{"ExportActive" -or "ExportAll"} {
+			$platforms = Get-PlatformsList -GetAll:$(($PsCmdlet.ParameterSetName -eq "ExportAll"))
 			$null | Out-File -FilePath "$PlatformZipPath\_Export.txt" -Force
 			foreach ($line in $platforms) {
-				$line 
+				Write-Debug "Trying to export $line" 
 				("$PlatformZipPath\$line.zip").Replace("\\","\").Replace("/","\") | Out-File -FilePath "$PlatformZipPath\_Export.txt" -Append
-				if ("" -ne $line) { export-platform $line }		
-			} 
-
-		}
-		"ExportAll" {
-			$platforms = Get-PlatformsList -GetAll
-			$null | Out-File -FilePath "$PlatformZipPath\_Export.txt" -Force
-			foreach ($line in $platforms) {
-				$line 
-				("$PlatformZipPath\$line.zip").Replace("\\","\").Replace("/","\") | Out-File -FilePath "$PlatformZipPath\_Export.txt" -Append
-				if ("" -ne $line) { export-platform $line }		
+				if (![string]::IsNullOrEmpty($line)) { export-platform $line }		
 			} 
 
 		}
