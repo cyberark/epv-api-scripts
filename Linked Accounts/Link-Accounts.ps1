@@ -58,6 +58,7 @@ $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 # Global URLS
 # -----------
 $URL_PVWAAPI = $PVWAURL + "/api"
+$URL_PIMServer = $PVWAURL + "/WebServices/PIMServices.svc"
 $URL_Authentication = $URL_PVWAAPI + "/auth"
 $URL_Authentication = $URL_PVWAAPI + "/auth"
 $URL_Logon = $URL_Authentication + "/$AuthType/Logon"
@@ -67,6 +68,7 @@ $URL_Logoff = $URL_Authentication + "/Logoff"
 # -----------
 $URL_Accounts = $URL_PVWAAPI + "/Accounts"
 $URL_LinkAccounts = $URL_PVWAAPI + "/Accounts/{0}/LinkAccount"
+$URL_Version = $URL_PIMServer + "/Server"
 
 # Script Defaults
 # ---------------
@@ -118,6 +120,14 @@ Function ConvertTo-URL($sText)
 		return $sText
 	}
 }
+Function Get-Version () {
+
+	$version = $(Invoke-Rest -Uri ($URL_LinkAccounts -f $MasterID) -Header $g_LogonHeader -Command "POST" -Body $($linkBody | ConvertTo-Json)).ExternalVersion
+
+	Return $version
+}
+
+
 
 Function ConvertTo-Date($epochdate)
 {
