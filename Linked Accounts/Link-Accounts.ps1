@@ -54,7 +54,6 @@ $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 # Global URLS
 # -----------
 $URL_PVWAAPI = $PVWAURL + "/api"
-$URL_PIMServer = $PVWAURL + "/WebServices/PIMServices.svc"
 $URL_Authentication = $URL_PVWAAPI + "/auth"
 $URL_Authentication = $URL_PVWAAPI + "/auth"
 $URL_Logon = $URL_Authentication + "/$AuthType/Logon"
@@ -64,7 +63,7 @@ $URL_Logoff = $URL_Authentication + "/Logoff"
 # -----------
 $URL_Accounts = $URL_PVWAAPI + "/Accounts"
 $URL_LinkAccounts = $URL_PVWAAPI + "/Accounts/{0}/LinkAccount"
-$URL_Version = $URL_PIMServer + "/Server"
+$URL_Server = $URL_PVWAAPI + "/Server"
 
 # Script Defaults
 # ---------------
@@ -105,28 +104,45 @@ Function ConvertTo-URL($sText) {
 		return $sText
 	}
 }
-Function Compare-Version () {
+
+Function Test-RESTVersion {
 	<#
 .SYNOPSIS
-	Get current version of PAS and return if it is greater then supplied version
+Tests if the requested version exists in the PVWA REST API
 .DESCRIPTION
-	Used to detemin if the current version of PAS or PCloud is greater then the version supplied.
-.PARAMETER version
-	The text to encode
+Tests if the requested version exists in the PVWA REST API
+.PARAMETER Version
+A string of the requested PVWA REST version to test
 #>
-	[Parameter(Mandatory = $false)]
-	[Switch]$version
-	
 
-	$result = $(Invoke-Rest -Uri ($URL_Version) -Header $g_LogonHeader -Command "GET" -Body $($linkBody | ConvertTo-Json))
+	param (
+		[Parameter(Mandatory=$true)]
+		[string]$version
+	)
 
-	If ([version]($result.InternalVersion) -gt [version]$version) {
-		Return $False
-	} else {
-		Return $true
+	$retVersionExists = $false
+	try{
+		Write-LogMessage -Type debug -Msg "Testing to see if the PVWA is at least in version $version"
+		$serverResponse = Invoke-REST -Command GET -URI $URL_Server
+		if($null -ne $serverResponse) {
+			Write-LogMessage -Type debug -Msg "The current PVWA is in version $($serverResponse.ExternalVersion)"
+			If ([version]($serverResponse.InternalVersion) -ge [version]$version) {$retVersionExists = $true}
+		} else {
+			Throw "An error occurred while testing the PVWA version"
+		}
+
+		return $retVersionExists
+	} catch {
+		# Check the error code returned from the REST call
+		$innerExcp = $_.Exception.InnerException
+		Write-LogMessage -Type Verbose -Msg "Status Code: $($innerExcp.StatusCode); Status Description: $($innerExcp.StatusDescription); REST Error: $($innerExcp.CyberArkErrorMessage)"
+		if($innerExcp.StatusCode -eq "NotFound") {
+			return $false
+		} else{
+			Throw $(New-Object System.Exception ("Test-RESTVersion: There was an error checking for REST version $version.",$_.Exception))
+		}
 	}
 }
-
 Function ConvertTo-Date($epochdate) {
 	if (($epochdate).length -gt 10 ) {
 		return (Get-Date -Date "01/01/1970").AddMilliseconds($epochdate)
@@ -200,6 +216,7 @@ Function Write-LogMessage {
 		}
 		# Check the message type
 		switch ($type) {
+
 			"Info" {
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
@@ -540,7 +557,7 @@ if ($null -ne $creds) {
 }
 #endregion
 
-If (Compare-Version("11.7")) {$extraPass = "extraPasswordIndex"} else {$extraPass = "extraPasswordID"}
+If (Test-RESTVersion -version "11.7") {$extraPass = "extraPasswordIndex"} else {$extraPass = "extraPasswordID"}
 
 #region [Read Accounts CSV file and link Accounts]
 If ([string]::IsNullOrEmpty($CsvPath)) {
@@ -549,14 +566,14 @@ If ([string]::IsNullOrEmpty($CsvPath)) {
 $delimiter = $((Get-Culture).TextInfo.ListSeparator)
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
 
-$ExtraPass1Count = @($accountsCSV |Where-Object ExtraPass1Name -ne "" ).count
-$ExtraPass2Count = @($accountsCSV |Where-Object ExtraPass2Name -ne "" ).count
-$ExtraPass3Count = @($accountsCSV |Where-Object ExtraPass3Name -ne "" ).count
+$ExtraPass1Count = @($accountsCSV | Where-Object ExtraPass1Name -NE "" ).count
+$ExtraPass2Count = @($accountsCSV | Where-Object ExtraPass2Name -NE "" ).count
+$ExtraPass3Count = @($accountsCSV | Where-Object ExtraPass3Name -NE "" ).count
 $linkCount =  $ExtraPass1Count + $ExtraPass2Count + $ExtraPass3Count
 
 $masterCount = @($accountsCSV | Select-Object -Property userName,address -Unique).Count
 
-$counterMaster = $counter = 0
+$counterMaster = $counterLink = 0
 Write-LogMessage -Type Info -MSG "Starting to add links to $masterCount master accounts" -SubHeader
 # Read Account dependencies
 ForEach ($account in $accountsCSV) {
