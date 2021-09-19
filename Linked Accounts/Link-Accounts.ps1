@@ -36,12 +36,9 @@ param
 	[switch]$concurrentSession
 )
 
-$concurrentSessionSwitch = if ($concurrentSession)
-{
+$concurrentSessionSwitch = if ($concurrentSession) {
 	"true"
-}
-else
-{
+} else {
 	"false"
 } 
 
@@ -53,7 +50,6 @@ $LOG_FILE_PATH = "$ScriptLocation\Link_Accounts_Utility.log"
 
 $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
-
 
 # Global URLS
 # -----------
@@ -67,6 +63,7 @@ $URL_Logoff = $URL_Authentication + "/Logoff"
 # -----------
 $URL_Accounts = $URL_PVWAAPI + "/Accounts"
 $URL_LinkAccounts = $URL_PVWAAPI + "/Accounts/{0}/LinkAccount"
+$URL_Server = $URL_PVWAAPI + "/Server"
 
 # Script Defaults
 # ---------------
@@ -76,30 +73,22 @@ $URL_LinkAccounts = $URL_PVWAAPI + "/Accounts/{0}/LinkAccount"
 $g_LogonHeader = ""
 
 #region Functions
-Function Test-CommandExists
-{
+Function Test-CommandExists {
 	Param ($command)
 	$oldPreference = $ErrorActionPreference
 	$ErrorActionPreference = 'stop'
-	try
-	{
-		if (Get-Command $command)
-		{
+	try {
+		if (Get-Command $command) {
 			RETURN $true
 		}
-	}
-	Catch
-	{
+	} Catch {
 		Write-Host "$command does not exist"; RETURN $false
-	}
-	Finally
-	{
+	} Finally {
 		$ErrorActionPreference = $oldPreference
 	}
 } #end function test-CommandExists
 
-Function ConvertTo-URL($sText)
-{
+Function ConvertTo-URL($sText) {
 	<#
 .SYNOPSIS
 	HTTP Encode test in URL
@@ -108,37 +97,66 @@ Function ConvertTo-URL($sText)
 .PARAMETER sText
 	The text to encode
 #>
-	if (![string]::IsNullOrEmpty($sText))
-	{
+	if (![string]::IsNullOrEmpty($sText)) {
 		Write-Debug "Returning URL Encode of $sText"
 		return [URI]::EscapeDataString($sText)
-	}
-	else
-	{
+	} else {
 		return $sText
 	}
 }
 
-Function ConvertTo-Date($epochdate)
-{
-	if (($epochdate).length -gt 10 )
- {
+Function Test-RESTVersion {
+	<#
+.SYNOPSIS
+Tests if the requested version exists in the PVWA REST API
+.DESCRIPTION
+Tests if the requested version exists in the PVWA REST API
+.PARAMETER Version
+A string of the requested PVWA REST version to test
+#>
+
+	param (
+		[Parameter(Mandatory=$true)]
+		[string]$version
+	)
+
+	$retVersionExists = $false
+	try{
+		Write-LogMessage -Type debug -Msg "Testing to see if the PVWA is at least in version $version"
+		$serverResponse = Invoke-REST -Command GET -URI $URL_Server
+		if($null -ne $serverResponse) {
+			Write-LogMessage -Type debug -Msg "The current PVWA is in version $($serverResponse.ExternalVersion)"
+			If ([version]($serverResponse.InternalVersion) -ge [version]$version) {$retVersionExists = $true}
+		} else {
+			Throw "An error occurred while testing the PVWA version"
+		}
+
+		return $retVersionExists
+	} catch {
+		# Check the error code returned from the REST call
+		$innerExcp = $_.Exception.InnerException
+		Write-LogMessage -Type Verbose -Msg "Status Code: $($innerExcp.StatusCode); Status Description: $($innerExcp.StatusDescription); REST Error: $($innerExcp.CyberArkErrorMessage)"
+		if($innerExcp.StatusCode -eq "NotFound") {
+			return $false
+		} else{
+			Throw $(New-Object System.Exception ("Test-RESTVersion: There was an error checking for REST version $version.",$_.Exception))
+		}
+	}
+}
+Function ConvertTo-Date($epochdate) {
+	if (($epochdate).length -gt 10 ) {
 		return (Get-Date -Date "01/01/1970").AddMilliseconds($epochdate)
- }
-	else
-	{
+ } else {
 		return (Get-Date -Date "01/01/1970").AddSeconds($epochdate)
  }
 }
 
-Function ConvertTo-EPOCHDate($inputDate)
-{
+Function ConvertTo-EPOCHDate($inputDate) {
 	return (New-TimeSpan -Start (Get-Date "01/01/1970") -End ($inputDate)).TotalSeconds
 }
 
 
-Function Write-LogMessage
-{
+Function Write-LogMessage {
 	<#
 .SYNOPSIS
 	Method to log a message on screen and in a log file
@@ -176,15 +194,11 @@ Function Write-LogMessage
 		[Parameter(Mandatory = $false)]
 		[String]$LogFile = $LOG_FILE_PATH
 	)
-	Try
-	{
-		If ($Header)
-		{
+	Try {
+		If ($Header) {
 			"=======================================" | Out-File -Append -FilePath $LogFile
 			Write-Output "======================================="
-		}
-		ElseIf ($SubHeader)
-		{
+		} ElseIf ($SubHeader) {
 			"------------------------------------" | Out-File -Append -FilePath $LogFile
 			Write-Output "------------------------------------"
 		}
@@ -192,78 +206,60 @@ Function Write-LogMessage
 		$msgToWrite = "[$(Get-Date -Format "yyyy-MM-dd hh:mm:ss")]`t"
 		$writeToFile = $true
 		# Replace empty message with 'N/A'
-		if ([string]::IsNullOrEmpty($Msg))
-		{
+		if ([string]::IsNullOrEmpty($Msg)) {
 			$Msg = "N/A" 
   }
 
 		# Mask Passwords
-		if ($Msg -match '((?:"password":|password=|"secret":|"NewCredentials":|"credentials":)\s{0,}["]{0,})(?=([\w`~!@#$%^&*()-_\=\+\\\/|;:\.,\[\]{}]+))')
-		{
+		if ($Msg -match '((?:"password":|password=|"secret":|"NewCredentials":|"credentials":)\s{0,}["]{0,})(?=([\w`~!@#$%^&*()-_\=\+\\\/|;:\.,\[\]{}]+))') {
 			$Msg = $Msg.Replace($Matches[2], "****")
 		}
 		# Check the message type
-		switch ($type)
-		{
-			"Info"
-   {
+		switch ($type) {
+
+			"Info" {
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
 			}
-			"Warning"
-			{
+			"Warning" {
 				Write-Warning $MSG.ToString() -WarningAction ([System.Management.Automation.ActionPreference]::Continue)
 				$msgToWrite += "[WARNING]`t$Msg"
 			}
-			"Error"
-			{
+			"Error" {
 				Write-Host $MSG.ToString() -ForegroundColor Red
 				$msgToWrite += "[ERROR]`t$Msg"
 			}
-			"Debug"
-			{
-				if ($InDebug -or $InVerbose)
-				{
+			"Debug" {
+				if ($InDebug -or $InVerbose) {
 					Write-Debug -Message $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
-				}
-				else
-				{
+				} else {
 					$writeToFile = $False 
     }
 			}
-			"Verbose"
-			{
-				if ($InVerbose)
-				{
+			"Verbose" {
+				if ($InVerbose) {
 					Write-Verbose -Message $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
-				}
-				else
-				{
+				} else {
 					$writeToFile = $False 
     }
 			}
 		}
 
-		If ($writeToFile)
-		{
+		If ($writeToFile) {
 			$msgToWrite | Out-File -Append -FilePath $LogFile 
   }
-		If ($Footer)
-		{
+		If ($Footer) {
 			"=======================================" | Out-File -Append -FilePath $LogFile
 			Write-Output "======================================="
 		}
-	}
-	catch
-	{
+	} catch {
 		Throw $(New-Object System.Exception ("Cannot write message"), $_.Exception)
 	}
 }
 
-Function Join-ExceptionMessage
-{
+Function Join-ExceptionMessage {
 	<#
 .SYNOPSIS
 	Formats exception messages
@@ -276,26 +272,21 @@ Function Join-ExceptionMessage
 		[Exception]$e
 	)
 
-	Begin
-	{
+	Begin {
 	}
-	Process
-	{
+	Process {
 		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
-		while ($e.InnerException)
-		{
+		while ($e.InnerException) {
 			$e = $e.InnerException
 			$msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		}
 		return $msg
 	}
-	End
-	{
+	End {
 	}
 }
 
-Function Open-FileDialog($initialDirectory)
-{
+Function Open-FileDialog($initialDirectory) {
 	[System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
 
 	$OpenFileDialog = New-Object System.Windows.Forms.OpenFileDialog
@@ -305,8 +296,7 @@ Function Open-FileDialog($initialDirectory)
 	$OpenFileDialog.filename
 }
 
-Function Invoke-Rest
-{
+Function Invoke-Rest {
 	<#
 .SYNOPSIS
 	Invoke REST Method
@@ -339,97 +329,74 @@ Function Invoke-Rest
 		[String]$ErrAction = "Continue"
 	)
 
-	If ((Test-CommandExists Invoke-RestMethod) -eq $false)
-	{
+	If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
 		Throw "This script requires PowerShell version 3 or above"
 	}
 	$restResponse = ""
-	try
-	{
-		if ([string]::IsNullOrEmpty($Body))
-		{
+	try {
+		if ([string]::IsNullOrEmpty($Body)) {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700 -ErrorAction $ErrAction
-		}
-		else
-		{
+		} else {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
 		}
-	}
- catch [System.Net.WebException]
-	{
-		if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b"))
-		{
+	} catch [System.Net.WebException] {
+		if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
 			Write-LogMessage -Type Error -Msg "Error Message: $_"
 			Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
 			Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
 			Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
 		}
 		$restResponse = $null
-	}
- catch
-	{
+	} catch {
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
 	}
 	Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $restResponse"
 	return $restResponse
 }
 
-Function Add-SearchCriteria
-{
+Function Add-SearchCriteria {
 	param ([string]$sURL, [string]$sSearch, [string]$sSortParam, [string]$sSafeName, [int]$iLimitPage, [int]$iOffsetPage)
 	[string]$retURL = $sURL
 	$retURL += "?"
 
-	if ($sSearch.Trim() -ne "")
-	{
+	if ($sSearch.Trim() -ne "") {
 		$retURL += "search=$(ConvertTo-URL $sSearch)&"
 	}
-	if ($sSafeName.Trim() -ne "")
-	{
+	if ($sSafeName.Trim() -ne "") {
 		$retURL += "filter=safename eq $(ConvertTo-URL $sSafeName)&"
 	}
-	if ($sSortParam.Trim() -ne "")
-	{
+	if ($sSortParam.Trim() -ne "") {
 		$retURL += "sort=$(ConvertTo-URL $sSortParam)&"
 	}
-	if ($iLimitPage -gt 0)
-	{
+	if ($iLimitPage -gt 0) {
 		$retURL += "limit=$iLimitPage&"
 	}
 
-	if ($retURL[-1] -eq '&')
-	{
+	if ($retURL[-1] -eq '&') {
 		$retURL = $retURL.substring(0, $retURL.length - 1) 
  }
 
 	return $retURL
 }
 
-Function Find-MasterAccount
-{
+Function Find-MasterAccount {
 	param ($accountName, $accountAddress, $safeName)
 	$result = $null
-	try
-	{
+	try {
 		$AccountsURLWithFilters = ""
 		$Keywords = "$($accountName) $($accountAddress)"
 		$AccountsURLWithFilters = $(Add-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSafeName $safeName)
 		Write-LogMessage -Type Debug -Msg "Accounts Filter: $AccountsURLWithFilters"
 		$GetMasterAccountsResponse = Invoke-Rest -Command Get -Uri $AccountsURLWithFilters -Header $g_LogonHeader
-		If (($null -eq $GetMasterAccountsResponse) -or ($GetMasterAccountsResponse.count -eq 0))
-		{
+		If (($null -eq $GetMasterAccountsResponse) -or ($GetMasterAccountsResponse.count -eq 0)) {
 			# No accounts found
 			Write-LogMessage -Type Debug -MSG "Account $accountName does not exist"
 			$result = $null
-		}
-		else
-		{
-			ForEach ($item in $GetMasterAccountsResponse.Value)
-			{
-				if ($item.userName -eq $accountName -and $item.address -eq $accountAddress)
-				{
+		} else {
+			ForEach ($item in $GetMasterAccountsResponse.Value) {
+				if ($item.userName -eq $accountName -and $item.address -eq $accountAddress) {
 					$result = $item.id
 					break
 				}
@@ -438,15 +405,12 @@ Function Find-MasterAccount
 			Write-LogMessage -Type Info -MSG "Account $accountName exist"
 		}
 		return $result
-	}
-	catch
-	{
+	} catch {
 		Write-LogMessage -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
 	}
 }
 
-Function Get-LogonHeader
-{
+Function Get-LogonHeader {
 	param(
 		[Parameter(Mandatory = $true)]
 		[PSCredential]$Credentials,
@@ -459,25 +423,20 @@ Function Get-LogonHeader
 	# Create the POST Body for the Logon
 	# ----------------------------------
 	$logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password; concurrentSession = $concurrentSessionSwitch } | ConvertTo-Json
-	If (![string]::IsNullOrEmpty($RadiusOTP))
-	{
+	If (![string]::IsNullOrEmpty($RadiusOTP)) {
 		$logonBody.Password += ",$RadiusOTP"
 	}
-	try
-	{
+	try {
 		# Logon
 		$logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
 		# Clear logon body
 		$logonBody = ""
-	}
- catch
-	{
+	} catch {
 		Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
 	}
 
 	$logonHeader = $null
-	If ([string]::IsNullOrEmpty($logonToken))
-	{
+	If ([string]::IsNullOrEmpty($logonToken)) {
 		Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
 	}
 
@@ -489,29 +448,23 @@ Function Get-LogonHeader
 }
 
 
-Function Add-AccountLink
-{
+Function Add-AccountLink {
 	param ($linkBody, $MasterID)
 	
-	try
- 	{
+	try {
 		$retResult = $false
 
 		$addLinkAccountBodyResult = $(Invoke-Rest -Uri ($URL_LinkAccounts -f $MasterID) -Header $g_LogonHeader -Command "POST" -Body $($linkBody | ConvertTo-Json))
-		If ($null -eq $addLinkAccountBodyResult)
-		{
+		If ($null -eq $addLinkAccountBodyResult) {
 			# No accounts onboarded
 			throw "There was an error linking account $($linkBody.name) to account ID $($MasterID)."
-		}
-		else
-		{
+		} else {
 			Write-LogMessage -Type Info -MSG "Account link $($linkBody.name) was successfully linked as ExtraPass$($linkBody.extraPasswordIndex)"
 			$retResult = $true
 		}
-	}
-	catch
-	{
+	} catch {
 		Write-LogMessage -Type Error -MSG $_.Exception.Message -ErrorAction "SilentlyContinue"
+		Throw 
 	}
 	return $retResult
 }
@@ -519,8 +472,7 @@ Function Add-AccountLink
 #endregion
 
 # Check if Powershell is running in Constrained Language Mode
-If ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
-{
+If ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
 	Write-LogMessage -Type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
 	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
@@ -530,10 +482,8 @@ If ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 
 
 # Check if to disable SSL verification
-If ($DisableSSLVerify)
-{
-	try
- {
+If ($DisableSSLVerify) {
+	try {
 		Write-Warning "It is not Recommended to disable SSL verification" -WarningAction Inquire
 		# Using Proxy Default credentials if the Server needs Proxy credentials
 		[System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
@@ -541,63 +491,45 @@ If ($DisableSSLVerify)
 		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls11
 		# Disable SSL Verification
 		[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
-	}
- catch
-	{
+	} catch {
 		Write-LogMessage -Type Error -MSG "Could not change SSL validation"
 		Write-LogMessage -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
 		return
 	}
-}
-Else
-{
-	try
- {
+} Else {
+	try {
 		Write-LogMessage -Type Debug -MSG "Setting script to use TLS 1.2"
 		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-	}
- catch
-	{
+	} catch {
 		Write-LogMessage -Type Error -MSG "Could not change SSL settings to use TLS 1.2"
 		Write-LogMessage -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
 	}
 }
 
-If ((Test-CommandExists Invoke-RestMethod) -eq $false)
-{
+If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
 	Write-LogMessage -Type Error -MSG "This script requires PowerShell version 3 or above"
 	return
 }
 
 # Check that the PVWA URL is OK
-If (![string]::IsNullOrEmpty($PVWAURL))
-{
-	If ($PVWAURL.Substring($PVWAURL.Length - 1) -eq "/")
-	{
+If (![string]::IsNullOrEmpty($PVWAURL)) {
+	If ($PVWAURL.Substring($PVWAURL.Length - 1) -eq "/") {
 		$PVWAURL = $PVWAURL.Substring(0, $PVWAURL.Length - 1)
 	}
 
-	try
-	{
+	try {
 		# Validate PVWA URL is OK
 		Write-LogMessage -Type Debug -MSG "Trying to validate URL: $PVWAURL"
 		Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $PVWAURL -Method 'Head' -TimeoutSec 30 | Out-Null
-	}
- catch [System.Net.WebException]
-	{
-		If (![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__))
-		{
+	} catch [System.Net.WebException] {
+		If (![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__)) {
 			Write-LogMessage -Type Error -MSG $_.Exception.Response.StatusCode.Value__
 		}
-	}
-	catch
-	{
+	} catch {
 		Write-LogMessage -Type Error -MSG "PVWA URL could not be validated"
 		Write-LogMessage -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
 	}
-}
-else
-{
+} else {
 	Write-LogMessage -Type Error -MSG "PVWA URL can not be empty"
 	return
 }
@@ -613,98 +545,94 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Linking acco
 $caption = "Account Link Utility"
 $msg = "Enter your User name and Password";
 $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
-if ($null -ne $creds)
-{
-	if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP))
-	{
+if ($null -ne $creds) {
+	if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
 		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP)
-	}
-	else
-	{
+	} else {
 		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds )
 	}
-}
-else
-{
+} else {
 	Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
 	exit
 }
 #endregion
 
+If (Test-RESTVersion -version "11.7") {$extraPass = "extraPasswordIndex"} else {$extraPass = "extraPasswordID"}
+
 #region [Read Accounts CSV file and link Accounts]
-If ([string]::IsNullOrEmpty($CsvPath))
-{
+If ([string]::IsNullOrEmpty($CsvPath)) {
 	$CsvPath = Open-FileDialog($g_CsvDefaultPath)
 }
 $delimiter = $((Get-Culture).TextInfo.ListSeparator)
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
-$rowCount = $accountsCSV.Count
-$counterMaster = 0
-Write-LogMessage -Type Info -MSG "Starting to add links to $rowCount master accounts" -SubHeader
+
+$ExtraPass1Count = @($accountsCSV | Where-Object ExtraPass1Name -NE "" ).count
+$ExtraPass2Count = @($accountsCSV | Where-Object ExtraPass2Name -NE "" ).count
+$ExtraPass3Count = @($accountsCSV | Where-Object ExtraPass3Name -NE "" ).count
+$linkCount =  $ExtraPass1Count + $ExtraPass2Count + $ExtraPass3Count
+
+$masterCount = @($accountsCSV | Select-Object -Property userName,address -Unique).Count
+
+$counterMaster = $counterLink = 0
+Write-LogMessage -Type Info -MSG "Starting to add links to $masterCount master accounts" -SubHeader
 # Read Account dependencies
-ForEach ($account in $accountsCSV)
-{
-	if (![string]::IsNullOrEmpty($account))
-	{
+ForEach ($account in $accountsCSV) {
+	if (![string]::IsNullOrEmpty($account)) {
 		# Search for Master Account
 		$foundMasterAccountID = $null
-		try
-		{
+		try {
 			$foundMasterAccountID = Find-MasterAccount -accountName $account.userName -accountAddress $account.address
-		}
-		catch
-		{
+			if ([string]::IsNullOrEmpty($foundMasterAccountID)) {Throw "No Master Account Found"}
+		} catch {
 			Write-LogMessage -Type Error -Msg "Error searching for Master Account. Error: $(Join-ExceptionMessage $_.Exception)"
-		}
-		
-		#If logon account is found link
-		if (![string]::IsNullOrEmpty($account.ExtraPass1Name))
-		{
-			$addLinkAccountBody = @{
-				"safe"               = $account.ExtraPass1Safe; 
-				"name"               = $account.ExtraPass1Name; 
-				"folder"             = $account.ExtraPass1Folder;
-				"extraPasswordIndex" = "1";
-			}
-
-			if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID)
-			{
-				$counter++ 
-			}
+			continue
 		}
 
-		#If enable account is found link
-		if (![string]::IsNullOrEmpty($account.ExtraPass2Name))
-		{
-			$addLinkAccountBody = @{
-				"safe"               = $account.ExtraPass2Safe; 
-				"name"               = $account.ExtraPass2Name; 
-				"folder"             = $account.ExtraPass2Folder;
-				"extraPasswordIndex" = "2";
+		Try{
+			#If logon account is found link
+			if (![string]::IsNullOrEmpty($account.ExtraPass1Name)) {
+				$addLinkAccountBody = @{
+					"safe"       = $account.ExtraPass1Safe; 
+					"name"       = $account.ExtraPass1Name; 
+					"folder"     = $account.ExtraPass1Folder;
+					"$extraPass" = "1";
+				}
+
+				if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID) {
+					$counterLink++ 
+				}
 			}
 
-			if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID)
-			{
-				$counter++ 
+			#If enable account is found link
+			if (![string]::IsNullOrEmpty($account.ExtraPass2Name)) {
+				$addLinkAccountBody = @{
+					"safe"       = $account.ExtraPass2Safe; 
+					"name"       = $account.ExtraPass2Name; 
+					"folder"     = $account.ExtraPass2Folder;
+					"$extraPass" = "2";
+				}
+
+				if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID) {
+					$counterLink++ 
+				}
 			}
+
+			#If reconcile account is found link
+			if (![string]::IsNullOrEmpty($account.ExtraPass3Name)) {
+				$addLinkAccountBody = @{
+					"safe"       = $account.ExtraPass3Safe; 
+					"name"       = $account.ExtraPass3Name; 
+					"folder"     = $account.ExtraPass3Folder;
+					"$extraPass" = "3";
+				}
+
+				if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID) {
+					$counterLink++ 
+				}
+			}
+		} Catch {
+			Write-LogMessage -Type Error -Msg "Error linking Master Account. Error: $(Join-ExceptionMessage $_.Exception)"
 		}
-
-        #If reconcile account is found link
-		if (![string]::IsNullOrEmpty($account.ExtraPass3Name))
-		{
-			$addLinkAccountBody = @{
-				"safe"               = $account.ExtraPass3Safe; 
-				"name"               = $account.ExtraPass3Name; 
-				"folder"             = $account.ExtraPass3Folder;
-				"extraPasswordIndex" = "3";
-			}
-
-			if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID)
-			{
-				$counter++ 
-			}
-		}
-
 		$counterMaster++
 	}
 }
@@ -717,6 +645,6 @@ ForEach ($account in $accountsCSV)
 Write-Host "Logoff Session..."
 Invoke-Rest -Uri $URL_Logoff -Header $g_LogonHeader -Command "Post"
 # Footer
-Write-LogMessage -Type Info -MSG "A total of ${counterMaster} accounts out of ${rowCount} accounts had links added successfully." -Footer
-Write-LogMessage -Type Info -MSG "A total of ${counter} individual links where created successfully." -Footer
+Write-LogMessage -Type Info -MSG "A total of ${counterMaster} accounts out of ${masterCount} accounts had links processed" -Footer
+Write-LogMessage -Type Info -MSG "A total of ${counterLink} individual links out of ${linkCount} links where created successfully." -Footer
 #endregion
