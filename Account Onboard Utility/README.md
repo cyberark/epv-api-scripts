@@ -70,7 +70,7 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-A
 
 - BypassAccountSearch
 	- By default, the script will automatically search for requested accounts to determine if they exist. This search is done via "name" property or "username" and "address" if name is not present
-	- Using this switch in create mode will assume that the account does not exist and will attempt to create them. If the "name" property is not populated, there is no checking for duplicate accounts. If the name property is populated only duplicate "name" properties will be detected and will cause a failure. All other scenarios MAY result in duplicates including if only username and address properties are populated as this will cause name field to be auto populated and duplicates incremented up 1. USE WITH EXTREME CAUTION. 
+	- Using this switch in create mode will assume that the account does not exist and will attempt to create them. If the "name" property is not populated, there is no checking for duplicate accounts. If the name property is populated only duplicate "name" properties will be detected and will cause a failure. All other scenarios MAY result in duplicates including if only "username" and "address" properties are populated as this will cause "name" field to be auto populated and automatically incremented up by 1. USE WITH EXTREME CAUTION. 
 
 ### Create Command:
 ```powershell
