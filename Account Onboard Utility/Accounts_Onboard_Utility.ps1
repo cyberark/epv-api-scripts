@@ -84,7 +84,6 @@ param(
 	[Switch]$BypassSafeSearch,
 
 	[Parameter(ParameterSetName='Create',Mandatory=$false)]
-	[Parameter(ParameterSetName='Update',Mandatory=$false)]
 	[Switch]$BypassAccountSearch
 )
 
