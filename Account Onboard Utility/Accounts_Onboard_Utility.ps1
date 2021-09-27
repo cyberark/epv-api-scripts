@@ -12,7 +12,9 @@ CyberArk PVWA v10.4 and above
 CyberArk Privilege Cloud
 
 Change Notes
-2021-07-29	- Added CreateOnUpdate and applied formating via VSCode	
+2021-07-29	- 	Added CreateOnUpdate and applied formating via VSCode	
+2021-09-27	- 	Added BypassAccountSearch and BypassSafeSearch
+				Added conncurrentLogon switch
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -71,8 +73,19 @@ param(
 	[Parameter(Mandatory=$false)]
 	[Switch]$DisableAutoUpdate,
 
+	[Parameter(Mandatory=$false)]
+	[Switch]$concurrentSession,
+
 	[Parameter(ParameterSetName='Update',Mandatory=$false)]
-	[Switch]$CreateOnUpdate
+	[Switch]$CreateOnUpdate,
+
+	[Parameter(ParameterSetName='Create',Mandatory=$false)]
+	[Parameter(ParameterSetName='Update',Mandatory=$false)]
+	[Switch]$BypassSafeSearch,
+
+	[Parameter(ParameterSetName='Create',Mandatory=$false)]
+	[Parameter(ParameterSetName='Update',Mandatory=$false)]
+	[Switch]$BypassAccountSearch
 )
 
 # Get Script Location 
@@ -83,7 +96,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.10"
+$ScriptVersion = "2.11"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
@@ -722,12 +735,12 @@ Function Test-Safe {
 }
 
 # @FUNCTION@ ======================================================================================================================
-# Name...........: Create-Safe
+# Name...........: New-Safe
 # Description....: Creates a new Safe
 # Parameters.....: Safe name, (optional) CPM name, (optional) Template Safe
 # Return Values..: Bool
 # =================================================================================================================================
-Function Create-Safe {
+Function New-Safe {
 	<# 
 .SYNOPSIS 
 	Creates a new Safe
@@ -1026,11 +1039,18 @@ Function Get-LogonHeader {
 		[Parameter(Mandatory=$true)]
 		[PSCredential]$Credentials,
 		[Parameter(Mandatory=$false)]
+		[bool]$concurrentSession,
+		[Parameter(Mandatory=$false)]
 		[string]$RadiusOTP
 	)
 	# Create the POST Body for the Logon
 	# ----------------------------------
-	$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
+	If ($concurrentSession){
+		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password;concurrentSession="true"} | ConvertTo-Json -Compress
+	}
+	else {
+		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
+	}
 	If(![string]::IsNullOrEmpty($RadiusOTP)) {
 		$logonBody.Password += ",$RadiusOTP"
 	}
@@ -1167,6 +1187,19 @@ If($DisableSSLVerify) {
 	}
 }
 
+#Verify to skip searches
+If ($BypassSafeSearch) {
+	Write-Warning "It is not Recommended to bypass searching for existing safes. This will also disable the ability to create new safes." -WarningAction Inquire
+}
+
+If ($BypassAccountSearch){
+	Write-Warning "
+	It is not Recommended to bypass searching for existing accounts. 
+	This may result in the creation of duplicate accounts. 
+	
+	If 'name' property is not populated, no protection against duplicate accounts exist.
+	Bypassing Account Searching should be used only on unpopulated vaults" -WarningAction Inquire	
+}
 
 # Check that the PVWA URL is OK
 If (![string]::IsNullOrEmpty($PVWAURL)) {
@@ -1205,9 +1238,9 @@ $msg = "Enter your $AuthType User name and Password";
 $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 if ($null -ne $creds) {
 	if($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP)
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession -RadiusOTP $OTP )
 	} else {
-		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds)
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession)
 	}
 	# Verify that we successfully logged on
 	If ($null -eq $g_LogonHeader) { 
@@ -1272,15 +1305,21 @@ ForEach ($account in $accountsCSV) {
 			# Create the account object
 			$objAccount = (New-AccountObject -AccountLine $account)
 
-			# Check if the Safe Exists
-			$safeExists = $(Test-Safe -safeName $objAccount.safeName)
+			# Check if bypass safe search is set to $true
+			If (!$BypassSafeSearch){
+				# Check if the Safe Exists
+				$safeExists = $(Test-Safe -safeName $objAccount.safeName)
+			} else {
+				#Bypass set to true, assuming safe does exist
+				$safeExists = $true
+			}
 			# Check if we can create safes or not
 			If (($NoSafeCreation -eq $False) -and ($safeExists -eq $false)) {
 				try{
 					If($Create) {
 						# The target safe does not exist
 						# The user chose to create safes during this process
-						$shouldSkip = Create-Safe -TemplateSafe $TemplateSafeDetails -Safe $account.Safe
+						$shouldSkip = New-Safe -TemplateSafe $TemplateSafeDetails -Safe $account.Safe
 						if (($shouldSkip -eq $false) -and ($null -ne $TemplateSafeDetails) -and ($TemplateSafeMembers -ne $null)) {
 							$addOwnerResult = Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
 							if($null -eq $addOwnerResult)
@@ -1300,9 +1339,14 @@ ForEach ($account in $accountsCSV) {
 				$shouldSkip = $true
 			}
 			If($shouldSkip -eq $False) {
-				# Check if the Account exists
-				$accExists = $(Test-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address -accountObjectName $objAccount.name)
-					
+				# Check if bypass account search is set to $true
+				if (!$BypassAccountSearch){
+					# Check if the Account exists
+					$accExists = $(Test-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address -accountObjectName $objAccount.name)
+				} else {
+					#Bypass set to true, assuming account does not exist
+					$accExists = $false
+				}
 				try{
 					If($accExists) {
 						Write-LogMessage -Type Verbose -MSG "Account '$g_LogAccountName' exists"
