@@ -1311,6 +1311,8 @@ ForEach ($account in $accountsCSV) {
 				$safeExists = $(Test-Safe -safeName $objAccount.safeName)
 			} else {
 				#Bypass set to true, assuming safe does exist
+				Write-LogMessage -Type Warning -MSG "Safe Search Bypassed"
+				Write-LogMessage -Type Warning -MSG "Assuming safe `"$($objAccount.safeName)`" already exists"
 				$safeExists = $true
 			}
 			# Check if we can create safes or not
@@ -1345,6 +1347,8 @@ ForEach ($account in $accountsCSV) {
 					$accExists = $(Test-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address -accountObjectName $objAccount.name)
 				} else {
 					#Bypass set to true, assuming account does not exist
+					Write-LogMessage -Type Warning -MSG "Account Search Bypassed"
+					Write-LogMessage -Type Warning -MSG "Assuming Account with username `"$($objAccount.userName)`" at address `"$($objAccount.address)`" does not exists"
 					$accExists = $false
 				}
 				try{
