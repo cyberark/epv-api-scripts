@@ -26,7 +26,7 @@ There are six FC's that are required to be added to the platform if an account h
 
 ## Parameters:
 ```powershell
-Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-AuthType] [-OTP] [-TemplateSafe] [-CsvPath] [-CsvDelimiter] [-DisableSSLVerify] [-NoSafeCreation] [-DisableAutoUpdate] [-CreateOnUpdate]
+Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-AuthType] [-OTP] [-TemplateSafe] [-CsvPath] [-CsvDelimiter] [-DisableSSLVerify] [-NoSafeCreation] [-DisableAutoUpdate] [-CreateOnUpdate] -[ConcurrentSession] [-BypassSafeSearch] [-BypassAccountSearch]
 ```
 - PVWAURL
 	- The URL of the PVWA that you are working with. 
@@ -61,6 +61,15 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-A
 - CreateOnUpdate
 	- By default, the script will automatically not create new accounts when in update mode
 	- Using this switch will automatic create accounts that do not exist when running in update mode
+- ConcurrentSession
+	- By default, Any sessions logged into will be disconnected.
+	- Using this switch will allow for Concurrent Sessions for the user. This includes additional REST API calls (Which must also be set to ConcurrentSession) or allow for connected PVWA user sessions to remain.
+- BypassSafeSearch
+	- By default, the script will automatically search to see if the account exists or if it needs to be created
+	- Using this switch in create/update mode well prevent safe searches, but may result in account operations failures if the safe does not exist. This should only be used when it is known all safes listed already exist. USE WITH EXTREME CAUTION. 
+- BypassAccountSearch
+	- By default, the script will automatically search for requested accounts to determine if they exist. This search is done via "name" property or "username" and "address" if name is not present
+	- Using this switch in create mode will assume that the account does not exist and will attempt to create them. If the "name" property is not populated, there is no checking for duplicate accounts. If the name property is populated only duplicate "name" properties will be detected and will cause a failure. All other scenarios MAY result in duplicates including if only "username" and "address" properties are populated as this will cause "name" field to be auto populated and automatically incremented up by 1. USE WITH EXTREME CAUTION. 
 
 ### Create Command:
 ```powershell
@@ -82,6 +91,16 @@ If you want to Create Accounts but not create the safes (if they don’t exist):
 & .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\accounts.csv -Create -NoSafeCreation
 ```
 
+If you want to Create Accounts and bypass safes searches:
+```powershell
+& .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\accounts.csv -Create -BypassSafeSearch
+```
+
+If you want to Create Accounts and bypass account searches:
+```powershell
+& .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\accounts.csv -Create -BypassAccountSearch
+```
+
 ### Update Command:
 ```powershell
 Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Update [-AuthType <string>] [-OTP <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [-NoSafeCreation] [<CommonParameters>]
@@ -101,6 +120,10 @@ If you want to Create and Update Accounts (and safes):
 For any account that exists, the script will update
 For accounts that do not exist, the script will create the account
 
+If you want to Update Accounts and bypass safes searches:
+```powershell
+& .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\accounts.csv -Update -BypassSafeSearch
+```
 
 ### Delete Command:
 ```powershell
