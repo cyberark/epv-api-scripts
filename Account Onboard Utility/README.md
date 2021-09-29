@@ -66,10 +66,10 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-A
 	- Using this switch will allow for Concurrent Sessions for the user. This includes additional REST API calls (Which must also be set to ConcurrentSession) or allow for connected PVWA user sessions to remain.
 - BypassSafeSearch
 	- By default, the script will automatically search to see if the account exists or if it needs to be created
-	- Using this switch in create/update mode well prevent safe searches, but may result in account operations failures if the safe does not exist. This should only be used when it is known all safes listed already exist. USE WITH EXTREME CAUTION. 
+	- Using this switch in create/update mode will prevent safe searches, but may result in account operations failures if the safe does not exist. This should only be used when it is known all safes listed already exist. USE WITH EXTREME CAUTION.
 - BypassAccountSearch
-	- By default, the script will automatically search for requested accounts to determine if they exist. This search is done via "name" property or "username" and "address" if name is not present
-	- Using this switch in create mode will assume that the account does not exist and will attempt to create them. If the "name" property is not populated, there is no checking for duplicate accounts. If the name property is populated only duplicate "name" properties will be detected and will cause a failure. All other scenarios MAY result in duplicates including if only "username" and "address" properties are populated as this will cause "name" field to be auto populated and automatically incremented up by 1. USE WITH EXTREME CAUTION. 
+	- By default, the script will automatically search for requested accounts to determine if they exist. This search is done via "name" property or a combination of "username" and "address" if "name" is not present
+	- Using this switch in create mode will assume that the account does not exist and will attempt to create them. If the name property is populated only duplicate "name" properties will be detected and will cause a failure.  If the "name" property is not populated, there is no checking for duplicate accounts and all other scenarios MAY result in duplicates. USE WITH EXTREME CAUTION. 
 
 ### Create Command:
 ```powershell
