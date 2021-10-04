@@ -1002,7 +1002,7 @@ Function Add-SafeOwner
 	If ($ownerName -NotIn $g_DefaultUsers)
 	{
 		try
-  		{   
+		{   
 			$SafeMembersBody = @{
 				member = @{
 					MemberName               = "$ownerName"
@@ -1164,13 +1164,14 @@ try
 		if ($null -ne $bulkID)
 		{
 			$bulkResult = Invoke-Rest -Command Get -URI ($URL_BulkAccountsTask -f $bulkID) -Header $authHeader
-			while ( $bulkResult.Status -eq "inProgress")
+			while ( ($bulkResult.Status -eq "inProgress") -or ($bulkResult.Status -eq "Pending"))
 			{
 				Start-Sleep -Seconds 5
+				Write-LogMessage -type Info -MSG "Current status of onboarding is: $($bulkResult.Status -creplace '([A-Z])','$1')"
 				$bulkResult = Invoke-Rest -Command Get -URI ($URL_BulkAccountsTask -f $bulkID) -Header $authHeader
 			}
 			# Bulk action completed (no longer in progress)
-			Write-LogMessage -type Info -MSG "Onboarding of personal privileged accounts $($bulkResult.Status -creplace '([A-Z])',' $1')"
+			Write-LogMessage -type Info -MSG "Onboarding of personal privileged accounts $($bulkResult.Status -creplace '([A-Z])','$1')"
 			Switch ($bulkResult.Status)
 			{
 				"completedWithErrors"
