@@ -1002,7 +1002,7 @@ Function Add-SafeOwner
 	If ($ownerName -NotIn $g_DefaultUsers)
 	{
 		try
-  {   
+  		{   
 			$SafeMembersBody = @{
 				member = @{
 					MemberName               = "$ownerName"
@@ -1036,7 +1036,7 @@ Function Add-SafeOwner
             
 			# Adding the member
 			Write-LogMessage -Type Verbose -Msg "Adding $ownerName located in $memberSearchInLocation to $safeName in the vault..."
-			$setSafeMember = Invoke-Rest -Command POST -Uri ($URL_SafeMembers -f $(ConvertTo-URL $safeName)) -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Headers $Header
+			$setSafeMember = Invoke-Rest -Command POST -Uri ($URL_SafeMembers -f $(ConvertTo-URL $safeName)) -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Header $Header
 			If ($null -ne $setSafeMember)
 			{
 				Write-LogMessage -Type Verbose -Msg "Member '$ownerName' was successfully added to safe $SafeName with Role '$ownerRole'..."
@@ -1044,12 +1044,12 @@ Function Add-SafeOwner
 		}
 		catch
 		{
-			$(New-Object System.Exception ("Add-SafeOwner: There was an error setting the membership for $safeMember on $safeName in the Vault.", $_.Exception))
+			Throw $(New-Object System.Exception ("Add-SafeOwner: There was an error setting the membership for $ownerName on $safeName in the Vault.", $_.Exception))
 		}
 	}
 	else
 	{
-		Write-LogMessage -Type Info -Msg "Skipping default user $safeMember..."
+		Write-LogMessage -Type Info -Msg "Skipping default user $ownerName..."
 	}
 }
 #endregion
