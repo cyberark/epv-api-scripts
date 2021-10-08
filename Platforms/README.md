@@ -63,12 +63,12 @@ Export-Import-Platform.ps1 -Export -PVWAURL https://PAS.mydomain.com/PasswordVau
 
 ExportActive Sample Platform
 ```powershell
-Export-Import-Platform.ps1 -ExportActive -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformZipPath C:\Temp\Export-SamplePlatform.zip
+Export-Import-Platform.ps1 -ExportActive -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformZipPath C:\Temp\
 ```
 
 ExportAll Sample Platform
 ```powershell
-Export-Import-Platform.ps1 -ExportAll -PVWAURL https://PAS.mydomain.com/PasswordVault  -PlatformZipPath C:\Temp\Export-SamplePlatform.zip
+Export-Import-Platform.ps1 -ExportAll -PVWAURL https://PAS.mydomain.com/PasswordVault  -PlatformZipPath C:\Temp\
 ```
 
 Import Sample Platform
