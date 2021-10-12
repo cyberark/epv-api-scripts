@@ -90,7 +90,7 @@ Or execute a single account action on all accounts from a file.
 
 ## Usage
 ```powershell
-Invoke-BulkAccountActions.ps1 -PVWAURL <string> -AuthType <["cyberark","ldap","radius"]> [-DisableSSLVerify] -AccountsAction <["Verify","Change","Reconcile"]> [-SafeName <string>] [-PlatformID <string>] [-UserName <string>] [-Address <string>] [-Custom <string>] [<CommonParameters>]
+Invoke-BulkAccountActions.ps1 -PVWAURL <string> -AuthType <["cyberark","ldap","radius"]> [-DisableSSLVerify] -AccountsAction <["Verify","Change","Reconcile"]> [-SafeName <string>] [-PlatformID <string>] [-UserName <string>] [-Address <string>] [-Custom <string>] [-FailedOnly] [<CommonParameters>]
 ```
 
 ## Available filters
@@ -100,6 +100,7 @@ Invoke-BulkAccountActions.ps1 -PVWAURL <string> -AuthType <["cyberark","ldap","r
     - 	UserName
     - 	Address
     - 	Custom - Using this parameter will not validate the results
+    -   FailedOnly - run the action only on failed accounts
 > Note: All filters will be by default with OR between them
 > Each filter (except custom) will be validated to bring the exact results
 
@@ -125,6 +126,11 @@ Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -Addre
 ### Reconcile a specific account
 ```powershell
 Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -UserName "Administrator" -PlatformID "WindowsServerLocal" -SafeName "WIN-IT-Admin" -Address "myserver.mydomain.com" -AccountsAction "Reconcile"
+```
+
+### Reconcile all failed accounts in a specific safe
+```powershell
+Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -SafeName "PRD-ATL-App01-Admin" -FailedOnly -AccountsAction "Reconcile"
 ```
 
 ## Supported version
