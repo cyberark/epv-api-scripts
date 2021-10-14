@@ -49,6 +49,32 @@ Export-Import-Platform.ps1 -Import -PVWAURL <PVWA URL> [-AuthType <string>] -Bul
 ```
 ### ImportFile Command:
 ```powershell
+Export-Import-Platform.ps1 -ImportFile -PVWAURL <PVWA URL> -ListFile <The path to the txt file with the ZIP files to import>
+```
+
+### Examples
+Export Sample Platform
+```powershell
+Export-Import-Platform.ps1 -Export -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformID SamplePlatform -PlatformZipPath C:\Temp\Export-SamplePlatform.zip
+```
+
+ExportFile Sample Platform
+```powershell
+Export-Import-Platform.ps1 -Export -PVWAURL https://PAS.mydomain.com/PasswordVault -ListFile C:\Temp\ListFileExport.txt -PlatformZipPath C:\Temp\
+```
+
+ExportActive Sample Platform
+```powershell
+Export-Import-Platform.ps1 -ExportActive -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformZipPath C:\Temp\
+```
+
+ExportAll Sample Platform
+```powershell
+Export-Import-Platform.ps1 -ExportAll -PVWAURL https://PAS.mydomain.com/PasswordVault  -PlatformZipPath C:\Temp\
+```
+
+Import Sample Platform
+```powershell
 Export-Import-Platform.ps1 -Import -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformZipPath C:\Temp\SamplePlatform.zip
 ```
 
