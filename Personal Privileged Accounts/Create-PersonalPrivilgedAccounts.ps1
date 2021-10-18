@@ -677,7 +677,7 @@ Function New-AccountObject
 		
 		
 		# Check if there are custom properties
-		$excludedProperties = @("accountuser", "accountaddress", "accountplatform", "name", "username", "address", "safe", "platformid", "password", "key", "enableautomgmt", "manualmgmtreason", "groupname", "groupplatformid", "remotemachineaddresses", "restrictmachineaccesstolist", "sshkey")
+		$excludedProperties = @("accountuser", "accountaddress", "accountplatform", "name", "username", "address", "safename", "platformid", "password", "key", "enableautomgmt", "manualmgmtreason", "groupname", "groupplatformid", "remotemachineaddresses", "restrictmachineaccesstolist", "sshkey")
 		$customProps = $($AccountLine.PSObject.Properties | Where-Object { $_.Name.ToLower() -NotIn $excludedProperties })
 		#region [Account object mapping]
 		# Convert Account from CSV to Account Object (properties mapping)
@@ -1179,7 +1179,7 @@ try
 					Write-LogMessage -Type Info -MSG ("There are {0} personal privileged accounts that successfully onaborded and {1} accounts that failed" -f $bulkResult.Result.succeeded, $bulkResult.Result.failed)
 					ForEach ($item in $bulkResult.FailedItems.Items)
 					{
-						$failedAccount = "{0}@{1} (index: {2})" - $item.userName, $item.address, $item.uploadIndex
+						$failedAccount = "{0}@{1} (index: {2})" -f $item.userName, $item.address, $item.uploadIndex
 						Write-LogMessage -Type Info -Msg ("Account {0} failed with the following error {1}" -f $failedAccount, $item.error)
 					}
 				}
