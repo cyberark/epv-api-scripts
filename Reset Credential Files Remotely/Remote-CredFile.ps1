@@ -60,8 +60,11 @@ param(
 	[String]$targetServer,
 
 	[Parameter(Mandatory=$false,HelpMessage="Target Component")]
-	[ValidateSet("CPM","PSM","PVWA")]
-	[String]$Component
+	[ValidateSet("CPM","PSM","PVWA","CP")]
+	[String]$Component,
+
+	[Parameter(Mandatory=$false,HelpMessage="Mapping File")]
+	[String]$mapfile
 	
 )
 
@@ -85,9 +88,9 @@ $Script:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -joi
 $ScriptVersion = "0.10"
 
 # Set Log file path
-New-Variable -name LOG_FILE_PATH -Value "$ScriptLocation\Remote-CredFileReset.log" -Scope Global -Force
-New-Variable -name PVWAURL -Value $PVWAURL -scope Global -Force 
-New-Variable -name AuthType -Value $AuthType -Scope Global -Force
+New-Variable -Name LOG_FILE_PATH -Value "$ScriptLocation\Remote-CredFileReset.log" -Scope Global -Force
+New-Variable -Name PVWAURL -Value $PVWAURL -Scope Global -Force 
+New-Variable -Name AuthType -Value $AuthType -Scope Global -Force
 
 $InDebug = $PSBoundParameters.Debug.IsPresent
 $InVerbose = $PSBoundParameters.Verbose.IsPresent
@@ -136,14 +139,27 @@ If($allComponents) {$selectedComponents = $components}
 else {
 	$selectedComponents = $components | Sort-Object $_.'Component Type' | Out-GridView -OutputMode Multiple -Title "Select Component(s)"
 }
+If (![string]::IsNullOrEmpty($mapfile)){
+	$map = Import-Csv $mapfile}
 
 Write-LogMessage -Type Info -MSG "Getting Component List"
 $targetComponents = @()
 $availableServers = @()
 ForEach ($comp in $selectedComponents) {
 	if ($comp.'Total Amount' -gt 0){
-		$result = Get-ComponentDetails $comp.'Component Type'
-		$availableServers += $result	
+		If ($PVWAURL.Contains("privilegecloud.cyberark.com") -and ("PVWA" -eq $comp.'Component Type')) {continue}
+		$results = Get-ComponentDetails $comp.'Component Type'
+		ForEach ($result in $results) {
+			If ($null -ne $map){
+				$checkComponentUser = $map.Where({$_.ComponentUser -eq $result.'Component User'})
+				If (0 -ne $checkComponentUser.Count){
+					$result.'IP Address' = $checkComponentUser.'IP Address'
+					
+				}
+			}
+			If ("255.255.255.255" -eq $result.'IP Address') {continue}
+			$availableServers += $result	
+		}
 	} else {
 		Write-LogMessage -type Error -MSG "No $($comp.'Component Type') Components Found"
 	}
@@ -160,8 +176,9 @@ Write-LogMessage -Type Info -MSG "Processing Lists"
 
 Get-Job | Remove-Job -Force
 foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
-	$fqdn = (Resolve-DnsName $target.'IP Address').namehost
-	If (!(Test-TargetWinRM -server $fqdn )) {"Error connectint to WinRM for $fqdn";continue } 
+
+	$fqdn = (Resolve-DnsName $target.'IP Address'  -ErrorAction SilentlyContinue).namehost
+	If (!(Test-TargetWinRM -server $fqdn )) {"Error connectint to WinRM for Component User $($target.'Component User') on $($target.'IP Address') $fqdn";continue } 
 	$type = $target.'Component Type'
 	if (!$jobs){
 		Try{
@@ -170,7 +187,7 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 
 	} else {
 		Write-LogMessage -Type Info -MSG "Creating Job for $Type on $fqdn"
-		$null = Start-Job -Name "$($type.Replace("AAM Credential Provider","CP")) on $fqdn" -ScriptBlock {$Script:PVWAURL = $using:PVWAURL;$Script:g_LogonHeader = $using:g_LogonHeader;Import-Module -Name D:\GIT\Remote-CredFile\CyberArk-Common.psm1 -Force;Reset-Credentials -ComponentType $using:type -Server $using:fqdn} -InitializationScript {Set-Location D:\GIT\Remote-CredFile\; }
+		$null = Start-Job -Name "$($type.Replace("AAM Credential Provider","CP")) on $fqdn" -ScriptBlock {$Script:PVWAURL = $using:PVWAURL;$Script:g_LogonHeader = $using:g_LogonHeader;Import-Module -Name D:\GIT\Remote-CredFile\CyberArk-Common.psm1 -Force;Reset-Credentials -ComponentType $using:type -Server $using:fqdn} -InitializationScript {Set-Location $PSScriptRoot; }
 		$jobsRunning=$true
 	}
 
@@ -210,9 +227,9 @@ Write-Host "Logoff Session..."
 Invoke-Logoff
 
 
-Remove-Variable -name LOG_FILE_PATH  -Force
-Remove-Variable -name PVWAURL  -Force
-Remove-Variable -name AuthType -Force
+Remove-Variable -Name LOG_FILE_PATH -Scope Global -Force
+Remove-Variable -Name PVWAURL -Scope Global -Force
+Remove-Variable -Name AuthType -Scope Global -Force
 
 # Footer
 

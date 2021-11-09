@@ -23,21 +23,37 @@ $g_aamservices = @("CyberArk Application Password Provider")
 
 
 #Commands to reset PVWA credential files
-$g_pvwagwuserCred = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_pvwagwuserCredv12 = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_pvwaappuserCredv12 = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
 
-$g_pvwaappuserCred = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_pvwagwuserCredv = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_pvwaappuserCredv = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
+
+$g_pvwagwuserCredv12 = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_pvwaappuserCredv12 = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
+
+$g_pvwagwuserCredv = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_pvwaappuserCredv = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
+
 
 #commands to reset PSM credential files
-$g_psmappuserCred = ".\CreateCredFile.exe psmapp.cred Password /Username {0} /AppType PSMApp  /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
+$g_psmappuserCredv12 = ".\CreateCredFile.exe psmapp.cred Password /Username {0} /AppType PSMApp  /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
+$g_psmgwuserCredv12 = ".\CreateCredFile.exe psmgw.cred Password /Username {0} /AppType PSMApp  /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
 
-$g_psmgwuserCred = ".\CreateCredFile.exe psmgw.cred Password /Username {0} /AppType PSMApp  /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
+$g_psmappuserCredv = ".\CreateCredFile.exe psmapp.cred Password /Username {0} /AppType PSMApp  /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
+$g_psmgwuserCredv = ".\CreateCredFile.exe psmgw.cred Password /Username {0} /AppType PSMApp  /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
 
 
 
 #commands to reset CPM credential files
+$g_cpmuserCredv12 = ".\CreateCredFile.exe user.ini Password /Username {0} /AppType CPM /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
+
 $g_cpmuserCred = ".\CreateCredFile.exe user.ini Password /Username {0} /AppType CPM /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
 
-#commands to reset CPM credential files
+
+#commands to reset AAM credential files
+$g_aamuserCredv12 = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
+
 $g_aamuserCred = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
 
 
@@ -1137,7 +1153,7 @@ function Reset-PVWACredentials{
             
             $compInfo = Get-ComponentInfo -Server $Server -ComponentType "PVWA" -Session $Session          
             $installLocation = $compInfo.path
-            $version = $compInfo.Version
+            [version]$version = $compInfo.Version
             Write-LogMessage -type Verbose -MSG "Retrived Component Information"
             Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
             Write-LogMessage -type Verbose -MSG "Version: $version"
@@ -1167,7 +1183,7 @@ function Reset-PVWACredentials{
             Invoke-Command -Session $session -ScriptBlock {Rename-Item "..\CredFiles\appuser.ini.entropy" -NewName "appuser.ini.entropy.$($args[0])" -Force} -ArgumentList $tag
             Write-LogMessage -type Verbose -MSG "Backed up APPUser credential files"
         
-            $appcommand = $g_pvwaappuserCred -f $appuserItem, $(Convert-SecureString($tempPassword))
+            $appcommand = $g_pvwaappuserCredv12 -f $appuserItem, $(Convert-SecureString($tempPassword))
             Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $appcommand -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
             Remove-Variable appcommand
             Write-LogMessage -type Verbose -MSG "Ran CreateCredFile on AppUser"
@@ -1197,7 +1213,7 @@ function Reset-PVWACredentials{
 		
             Write-LogMessage -type Verbose -MSG "Backed up GWUser credential files"
 
-            $gwcommand = $g_pvwagwuserCred -f $gwuserItem, $(Convert-SecureString($tempPassword))
+            $gwcommand = $g_pvwagwuserCredv12 -f $gwuserItem, $(Convert-SecureString($tempPassword))
             Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $gwcommand -ErrorAction SilentlyContinue -ErrorVariable invokeResultGw
             Remove-Variable gwcommand
            
@@ -1296,7 +1312,7 @@ function Reset-PSMCredentials{
             $compInfo = Get-ComponentInfo -Server $Server -ComponentType "PSM" -Session $Session
 
             $installLocation = $compInfo.path
-            $version = $compInfo.Version
+            [version]$version = $compInfo.Version
             Write-LogMessage -type Verbose -MSG "Retrived Component Information"
             Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
             Write-LogMessage -type Verbose -MSG "Version: $version"
@@ -1316,7 +1332,7 @@ function Reset-PSMCredentials{
             Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmapp.cred.entropy" -NewName "psmapp.cred.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
             Write-LogMessage -type Verbose -MSG "Backed up APP User credential files"
             
-            $appcommand = $g_psmappuserCred -f $appuserItem, $(Convert-SecureString($tempPassword))
+            $appcommand = $g_psmappuserCredv12 -f $appuserItem, $(Convert-SecureString($tempPassword))
             Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $appcommand -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
             Remove-Variable appcommand
 		
@@ -1344,7 +1360,7 @@ function Reset-PSMCredentials{
             Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmgw.cred.entropy" -NewName "psmgw.cred.entropy.$($args[0])" -Force} -ArgumentList $tag
             Write-LogMessage -type Verbose -MSG "Backed up GW User credential files"
 
-            $gwcommand = $g_psmgwuserCred -f $gwuserItem, $(Convert-SecureString($tempPassword))
+            $gwcommand = $g_psmgwuserCredv12 -f $gwuserItem, $(Convert-SecureString($tempPassword))
             Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $gwcommand -ErrorAction SilentlyContinue -ErrorVariable invokeResultGW
             Remove-Variable gwcommand
             
@@ -1433,7 +1449,7 @@ function Reset-CPMCredentials{
             Write-LogMessage -type Verbose -MSG "Modules imported. Getting information about the installed components"
             $compInfo = Get-ComponentInfo -Server $Server -ComponentType "CPM" -Session $Session            
             $installLocation = $compInfo.path
-            $version = $compInfo.Version
+            [version]$version = $compInfo.Version
             Write-LogMessage -type Verbose -MSG "Retrived Component Information"
             Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
             Write-LogMessage -type Verbose -MSG "Version: $version"
@@ -1452,7 +1468,7 @@ function Reset-CPMCredentials{
             Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\user.ini.entropy" -NewName "user.ini.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue } -ArgumentList $tag
             Write-LogMessage -type Verbose -MSG "Backed up credential files"
 
-            $command = $g_cpmuserCred -f $userItem, $(Convert-SecureString($tempPassword))
+            $command = $g_cpmuserCredv12 -f $userItem, $(Convert-SecureString($tempPassword))
             Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $command -ErrorAction SilentlyContinue -ErrorVariable invokeResult
             Remove-Variable command
             If ($invokeResult[0].TargetObject -ne "Command ended successfully"){
@@ -1530,7 +1546,7 @@ function Reset-AAMCredentials{
                 $compInfo = Get-ComponentInfo -Server $Server -ComponentType "AIM" -Session $Session          
                 
                 $installLocation = $compInfo.path
-                $version = $compInfo.Version
+                [version]$version = $compInfo.Version
                 Write-LogMessage -type Verbose -MSG "Retrived Component Information"
                 Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
                 Write-LogMessage -type Verbose -MSG "Version: $version"
@@ -1550,7 +1566,7 @@ function Reset-AAMCredentials{
                 Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\AppProviderUser.cred.entropy" -NewName "AppProviderUser.cred.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
                 Write-LogMessage -type Verbose -MSG "Backed up AppProviderUser credential files"
         
-                $command = $g_aamuserCred -f $userItem, $(Convert-SecureString($tempPassword))
+                $command = $g_aamuserCredv12 -f $userItem, $(Convert-SecureString($tempPassword))
                 Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $command -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
                 Remove-Variable command
                 If ($invokeResultApp[0].TargetObject -ne "Command ended successfully"){
@@ -1667,7 +1683,7 @@ Function Get-ComponentDetails{
 	Try{
 		$restResponse = $(Invoke-Rest -Uri $URLHealthDetails -Header $g_LogonHeader -Command "Get")
 
-		$selection = $restResponse.ComponentsDetails | Select-Object @{Name="Component Type"; Expression = {$component} },@{Name="IP Address"; Expression = {$_.'ComponentIP'} },@{Name="Component User"; Expression = {$_.'ComponentUserName'} },@{Name="Connected"; Expression = {$_.'IsLoggedOn'}},@{Name="Last Connection"; Expression = {Get-LogonTimeUnixTime $_.'LastLogonDate'}} | Sort-Object -Property "IP Address" 
+		$selection = $restResponse.ComponentsDetails | Select-Object @{Name="Component Type"; Expression = {$component} },@{Name="Component Version"; Expression = {$_.ComponentVersion} },@{Name="IP Address"; Expression = {$_.'ComponentIP'} },@{Name="Component User"; Expression = {$_.'ComponentUserName'} },@{Name="Connected"; Expression = {$_.'IsLoggedOn'}},@{Name="Last Connection"; Expression = {Get-LogonTimeUnixTime $_.'LastLogonDate'}} | Sort-Object -Property "IP Address" 
 		
 		#$selection = $restResponse.ComponentsDetails | Select-Object @{Name="Component Type"; Expression = {$component} },@{Name="IP Address"; Expression = {$_.'ComponentIP'} },@{Name="Component User"; Expression = {$_.'ComponentUserName'} },@{Name="Connected"; Expression = {$_.'IsLoggedOn'}},@{Name="Last Connection"; Expression = {Get-LogonTimeUnixTime $_.'LastLogonDate'}} | Sort-Object -Property "IP Address" | Out-GridView -OutputMode Multiple -Title "Select Server(s)"
 		
@@ -1683,7 +1699,7 @@ Function Test-TargetWinRM {
 		[string]$server
 	)
 	try {
-		$null = Invoke-Command -ComputerName $server -ScriptBlock {$null} -ErrorAction Stop
+		$null = Invoke-Command -ComputerName $server -ScriptBlock {$null} -ErrorAction Stop -ErrorVariable $null
 		Return $true
 	} catch {
 		Return $false
