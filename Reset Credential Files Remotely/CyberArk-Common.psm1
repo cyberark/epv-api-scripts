@@ -1,11 +1,12 @@
+[CmdletBinding()]
+
 # Global URLS
 # -----------
-
+#region Global Variables
 $URL_PVWAAPI = $global:PVWAURL+"/api"
 $URL_Authentication = $URL_PVWAAPI+"/auth"
 $URL_Logon = $URL_Authentication+"/$global:AuthType/Logon"
 $URL_Logoff = $URL_Authentication+"/Logoff"
-
 
 $URL_UserSearch = $URL_PVWAAPI+"/Users?filter=componentUser&search={0}"
 $URL_UserResetPassword = $URL_PVWAAPI+"/Users/{0}/ResetPassword"
@@ -14,32 +15,40 @@ $URL_Activate = $URL_PVWAAPI+"/Users/{0}/Activate"
 $URL_HealthSummery = $URL_PVWAAPI+"/ComponentsMonitoringSummary"
 $URL_HealthDetails = $URL_PVWAAPI+"/ComponentsMonitoringDetails/{0}"
 
-
-
 $g_cpmservices = @("CyberArk Password Manager","CyberArk Central Policy Manager Scanner")
 $g_pvwaservices = @("CyberArk Scheduled Tasks")
 $g_psmservices = @("Cyber-Ark Privileged Session Manager")
 $g_aamservices = @("CyberArk Application Password Provider")
 
-
 #Commands to reset PVWA credential files
-$g_pvwagwuserCred = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_pvwagwuserCredv12 = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_pvwaappuserCredv12 = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
 
-$g_pvwaappuserCred = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_pvwagwuserCred = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /Password {1}"
+$g_pvwaappuserCred = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /Password {1}"
 
 #commands to reset PSM credential files
-$g_psmappuserCred = ".\CreateCredFile.exe psmapp.cred Password /Username {0} /AppType PSMApp  /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
+$g_psmappuserCredv12 = ".\CreateCredFile.exe psmapp.cred Password /Username {0} /AppType PSMApp  /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
+$g_psmgwuserCredv12 = ".\CreateCredFile.exe psmgw.cred Password /Username {0} /AppType PSMApp  /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
 
-$g_psmgwuserCred = ".\CreateCredFile.exe psmgw.cred Password /Username {0} /AppType PSMApp  /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
-
-
-
-#commands to reset CPM credential files
-$g_cpmuserCred = ".\CreateCredFile.exe user.ini Password /Username {0} /AppType CPM /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
+$g_psmappuserCred = ".\CreateCredFile.exe psmapp.cred Password /Username {0} /AppType PSMApp /IpAddress /Hostname /Password {1}"
+$g_psmgwuserCred = ".\CreateCredFile.exe psmgw.cred Password /Username {0} /AppType PSMApp /IpAddress /Hostname /Password {1}"
 
 #commands to reset CPM credential files
-$g_aamuserCred = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
+$g_cpmuserCredv12 = ".\CreateCredFile.exe user.ini Password /Username {0} /AppType CPM /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
 
+$g_cpmuserCred = ".\CreateCredFile.exe user.ini Password /Username {0} /AppType CPM /IpAddress /Hostname /Password {1}"
+
+#commands to reset AAM credential files
+$g_aamuserCredv12 = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /EntropyFile /DPAPIMachineProtection /Password {1}"
+
+$g_aamuserCred = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /Password {1}"
+
+if($InVerbose){
+    $VerbosePreference = "continue"
+}
+
+#endregion
 
 # Initialize Script Variables
 # ---------------------------
@@ -92,7 +101,9 @@ Function Write-LogMessage {
         [String]$LogFile = $LOG_FILE_PATH
     )
 
-    If (![string]::IsNullOrEmpty($PSSenderInfo)) {$WriteLog = $false}
+    If (![string]::IsNullOrEmpty($PSSenderInfo)) {
+        $WriteLog = $false
+    }
     Try{
         If([string]::IsNullOrEmpty($LogFile) -and $WriteLog) {
             # User wanted to write logs, but did not provide a log file - Create a temporary file
@@ -376,12 +387,21 @@ Function Write-ProgressStatus{
 
     
 }
+Function Set-PSSessionCred{
+
+    param(
+        [Parameter(Mandatory=$false)]
+        [PSCredential]$PSCredentials
+
+    )
+    if ($null -eq $PSCredentials) {$PSCredentials = $Host.UI.PromptForCredential($caption,$msg,"","")}
+}
 
 Function Invoke-Logon{
 
     param(
         [Parameter(Mandatory=$false)]
-        [PSCredential]$creds
+        [PSCredential]$Credentials
 
     )
 
@@ -389,12 +409,12 @@ Function Invoke-Logon{
     # ------------------------
     $caption = "Reset Remote Cred File Utility"
     $msg = "Enter your $AuthType User name and Password"; 
-    if ($null -eq $creds) {$creds = $Host.UI.PromptForCredential($caption,$msg,"","")}
-    if ($null -ne $creds) {
+    if ($null -eq $Credentials) {$Credentials = $Host.UI.PromptForCredential($caption,$msg,"","")}
+    if ($null -ne $Credentials) {
         if($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-            Set-Variable -Scope Global -force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP)
+            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $Credentials -RadiusOTP $OTP)
         } else {
-            Set-Variable -Scope Global -force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds)
+            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $Credentials)
         }
         # Verify that we successfully logged on
         If ($null -eq $g_LogonHeader) { 
@@ -829,7 +849,6 @@ function Start-ComponentService {
         [Parameter(Mandatory=$false)]
         [int]$wait=1,
 
-        
         [Parameter(Mandatory=$false)]
         [int]$attempts=1
     )
@@ -849,9 +868,7 @@ function Start-ComponentService {
                 $null = Invoke-Command -Session $session -ScriptBlock {Stop-ServiceProcess -name $args[0]} -ArgumentList $service 
                 Start-Sleep 1
                 $startResult.clear()
-            }
-
-            else {
+            } else {
                 $running = $true
                 Write-LogMessage -Type "Debug" -MSG "`"$service`" on $server Started"
                 Start-Sleep -Seconds $wait
@@ -871,7 +888,6 @@ function Stop-ComponentService {
         [Parameter(Mandatory=$true)]
         [System.Management.Automation.Runspaces.PSSession]$session
 
-
     )
 
     ForEach ($service in $services){
@@ -879,11 +895,11 @@ function Stop-ComponentService {
         Invoke-Command -Session $session -ScriptBlock {$targetService = Get-Service -Name $args[0];$targetService.Stop();$targetService.WaitForStatus('Stopped',(New-TimeSpan -Seconds 15))} -ArgumentList $service -ErrorAction SilentlyContinue -ErrorVariable stopResult
 
         If ($stopResult.Count -gt 0){
-            If ("InvalidOperationException" -ieq $stopResult[0].FullyQualifiedErrorId){$null}
-            else {
+            If ("InvalidOperationException" -ieq $stopResult[0].FullyQualifiedErrorId){
+                $null
+            } else {
                 Write-LogMessage -Type "Debug" -MSG "Unable to stop `"$service`" on $server, force stopping processes"
-                $null = Invoke-Command -Session $session -ScriptBlock {Stop-ServiceProcess -name $args[0]} -ArgumentList $service 
-           
+                $null = Invoke-Command -Session $session -ScriptBlock {Stop-ServiceProcess -name $args[0]} -ArgumentList $service
             }
         }
         Write-LogMessage -Type "Debug" -MSG "`"$service`" on $server Started"
@@ -905,7 +921,6 @@ Function Set-UserPassword {
         [Parameter(Mandatory=$true)]
         [SecureString]$Password
     )
-
     Process {
         Write-LogMessage -type Verbose -MSG "URL for PVWA: $PVWAURL"
         Write-LogMessage -type Verbose -MSG "URL for PVWA API: $URL_PVWAAPI"
@@ -927,22 +942,18 @@ Function Set-UserPassword {
                         $bodyReset = @{ id=$accountID;newPassword=$(Convert-SecureString($Password))} | ConvertTo-Json -Depth 3 -Compress
                         $urlReset = $Script:URL_UserResetPassword -f $accountID
                         $null = Invoke-Rest -Uri $urlReset -Header $g_LogonHeader -Command "Post" -Body $bodyReset
-
-
-                        
                     } catch {
                         Throw $_   
                     }
                 }
             }
-            If (!$userFound) {Write-LogMessage -type Verbose -MSG "Unable to locate component account for $Username"}
+            If (!$userFound) {
+                Write-LogMessage -type Verbose -MSG "Unable to locate component account for $Username"
+            }
         } else {
             Write-LogMessage -type Verbose -MSG "Unable to locate component account for $Username"
-        }
-      
+        } 
     }
-
-
 }
 
 
@@ -1124,7 +1135,7 @@ function Reset-PVWACredentials{
         }
         try {
             Try {
-                $session = New-PSSession $server
+                $session = New-PSLogon $server
             } Catch {
                 Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a windows server and winRM has been enabled."             
                 break
@@ -1137,18 +1148,18 @@ function Reset-PVWACredentials{
             
             $compInfo = Get-ComponentInfo -Server $Server -ComponentType "PVWA" -Session $Session          
             $installLocation = $compInfo.path
-            $version = $compInfo.Version
+            [version]$version = $compInfo.Version
             Write-LogMessage -type Verbose -MSG "Retrived Component Information"
             Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
             Write-LogMessage -type Verbose -MSG "Version: $version"
 
             Write-LogMessage -type Verbose -MSG "Attempting to stop PVWA Services" 
             Stop-ComponentService -services $Script:g_pvwaservices -session $session -server $server
-            $null = Invoke-Command -Session $session -ScriptBlock{iisreset /stop} -OutVariable iisresetStopResult
+            Invoke-Command -Session $session -ScriptBlock{iisreset /stop} -OutVariable iisresetStopResult | Out-Null
 
-            if (!$iisresetStopResult[3] -contains "Internet services successfully stopped") {
+            if (!$iisresetStopResult[3] -contains "Internet Information Services successfully stopped") {
                 $failed = $true
-                Write-LogMessage -type Error -MSG "Error while trying to Internet services"
+                Write-LogMessage -type Error -MSG "Error while trying to Internet Information Services"
                 Throw "Error Stopping IIS"; 
                 
             }
@@ -1159,15 +1170,18 @@ function Reset-PVWACredentials{
             $appuserItem = Invoke-Command -Session $session -ScriptBlock {((Select-String -Path ..\CredFiles\appuser.ini -Pattern "username=").Line).split("=")[1]}
             Write-LogMessage -type Verbose -MSG "AppUser Username: $appuserItem"
             
-
-
             $tempPassword = New-RandomPassword -Length 14 -Lowercase -Uppercase -Numbers -Symbols | ConvertTo-SecureString -AsPlainText -Force 
             $tag = [DateTimeOffset]::Now.ToUnixTimeSeconds()
             Invoke-Command -Session $session -ScriptBlock {Rename-Item "..\CredFiles\appuser.ini" -NewName "appuser.ini.$($args[0])" -Force} -ArgumentList $tag
             Invoke-Command -Session $session -ScriptBlock {Rename-Item "..\CredFiles\appuser.ini.entropy" -NewName "appuser.ini.entropy.$($args[0])" -Force} -ArgumentList $tag
             Write-LogMessage -type Verbose -MSG "Backed up APPUser credential files"
         
-            $appcommand = $g_pvwaappuserCred -f $appuserItem, $(Convert-SecureString($tempPassword))
+            if ($version -ge [version]'12.1'){
+                $appcommand = $g_pvwaappuserCredv12 -f $appuserItem, $(Convert-SecureString($tempPassword))
+            } else {
+                $appcommand = $g_pvwaappuserCred -f $appuserItem, $(Convert-SecureString($tempPassword))
+            }
+
             Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $appcommand -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
             Remove-Variable appcommand
             Write-LogMessage -type Verbose -MSG "Ran CreateCredFile on AppUser"
@@ -1197,7 +1211,12 @@ function Reset-PVWACredentials{
 		
             Write-LogMessage -type Verbose -MSG "Backed up GWUser credential files"
 
-            $gwcommand = $g_pvwagwuserCred -f $gwuserItem, $(Convert-SecureString($tempPassword))
+            if ($version -ge [version]'12.1'){
+                $gwcommand = $g_pvwagwuserCredv12 -f $gwuserItem, $(Convert-SecureString($tempPassword))
+            } else {
+                $gwcommand = $g_pvwagwuserCred -f $gwuserItem, $(Convert-SecureString($tempPassword))
+            }
+
             Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $gwcommand -ErrorAction SilentlyContinue -ErrorVariable invokeResultGw
             Remove-Variable gwcommand
            
@@ -1220,15 +1239,15 @@ function Reset-PVWACredentials{
             Set-UserPassword -username $gwuserItem -Password $tempPassword
             Write-LogMessage -type Verbose -MSG "Update of GWUser via RESTAPI Complete"
 
-            Write-LogMessage -type Verbose -MSG "Attempting to start Internet services"
-            $null = Invoke-Command -Session $session -ScriptBlock{iisreset /start} -OutVariable iisresetStartResult
+            Write-LogMessage -type Verbose -MSG "Attempting to start Internet Information Services"
+            Invoke-Command -Session $session -ScriptBlock{iisreset /start} -OutVariable iisresetStartResult | Out-Null
                       
-            if (!$iisresetStartResult[3] -contains "Internet services successfully started") {
+            if (!$iisresetStartResult[3] -contains "Internet Information Services successfully started") {
                 $failed = $true
-                Write-LogMessage -type Error -MSG "Error Starting Internet services "
-                Throw "Error Starting Internet services" 
+                Write-LogMessage -type Error -MSG "Error Starting Internet Information Services"
+                Throw "Error Starting Internet Information Services" 
             }
-            Write-LogMessage -type Verbose -MSG "Started Internet Services" 
+            Write-LogMessage -type Verbose -MSG "Started Internet Information Services" 
 
             Write-LogMessage -type Verbose -MSG "Attempting to start PVWA Services"  
             $complete = Start-ComponentService -services $Script:g_pvwaservices -session $session -server $server
@@ -1278,12 +1297,12 @@ function Reset-PSMCredentials{
         Do as function due to reuse in multiple places
         $User = "administrator"
         $PWord = ConvertTo-SecureString -String "Cyberark1!" -AsPlainText -Force
-        $creds = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, $PWord
+        $Credentials = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, $PWord
         
 #>
 
             Try {
-                $session = New-PSSession $server
+                $session = New-PSLogon $server
             } Catch {
                 Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a windows server and winRM has been enabled."             
                 break
@@ -1296,7 +1315,7 @@ function Reset-PSMCredentials{
             $compInfo = Get-ComponentInfo -Server $Server -ComponentType "PSM" -Session $Session
 
             $installLocation = $compInfo.path
-            $version = $compInfo.Version
+            [version]$version = $compInfo.Version
             Write-LogMessage -type Verbose -MSG "Retrived Component Information"
             Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
             Write-LogMessage -type Verbose -MSG "Version: $version"
@@ -1316,13 +1335,18 @@ function Reset-PSMCredentials{
             Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmapp.cred.entropy" -NewName "psmapp.cred.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
             Write-LogMessage -type Verbose -MSG "Backed up APP User credential files"
             
-            $appcommand = $g_psmappuserCred -f $appuserItem, $(Convert-SecureString($tempPassword))
+            if ($version -ge [version]'12.1'){
+                $appcommand = $g_psmappuserCredv12 -f $appuserItem, $(Convert-SecureString($tempPassword))
+            } else {
+                $appcommand = $g_psmappuserCred -f $appuserItem, $(Convert-SecureString($tempPassword))
+            }
+                    
             Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $appcommand -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
             Remove-Variable appcommand
 		
             If ($invokeResultApp[0].TargetObject -ne "Command ended successfully"){
                 Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmapp.cred.$($args[0])" -NewName "psmapp.cred" -Force} -ArgumentList $tag
-                Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmapp.cred.entropy.$($args[0])" -NewName "psmapp.cred.entropy" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
+                Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmapp.cred.entropy.$($args[0])" -NewName "psmapp.cred.entropy" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag | Out-Null
                 $failed = $true
                 Write-LogMessage -type Error -MSG "Error while resetting AppUser on $server"
                 Throw "Error while resetting AppUser on $server"
@@ -1344,7 +1368,12 @@ function Reset-PSMCredentials{
             Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmgw.cred.entropy" -NewName "psmgw.cred.entropy.$($args[0])" -Force} -ArgumentList $tag
             Write-LogMessage -type Verbose -MSG "Backed up GW User credential files"
 
-            $gwcommand = $g_psmgwuserCred -f $gwuserItem, $(Convert-SecureString($tempPassword))
+            if ($version -ge [version]'12.1'){
+                $gwcommand = $g_psmgwuserCredv12 -f $gwuserItem, $(Convert-SecureString($tempPassword))
+            } else {
+                $gwcommand = $g_psmgwuserCred -f $gwuserItem, $(Convert-SecureString($tempPassword))
+            }
+            
             Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $gwcommand -ErrorAction SilentlyContinue -ErrorVariable invokeResultGW
             Remove-Variable gwcommand
             
@@ -1354,7 +1383,6 @@ function Reset-PSMCredentials{
                 $failed = $true
                 Write-LogMessage -type Error -MSG "Error while resetting GWUser on $server"
                 Throw "Error while resetting GWUser on $server"
-
             } else {
                 Invoke-Command -Session $session -ScriptBlock {Remove-Item ".\psmgw.cred.$($args[0])" -Force} -ArgumentList $tag
                 Invoke-Command -Session $session -ScriptBlock {Remove-Item ".\psmgw.cred.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
@@ -1378,7 +1406,6 @@ function Reset-PSMCredentials{
             } else {
                 Write-LogMessage -type Info -MSG "PSM on $server reset failed, restarting"
             }
-
         } catch {
             Write-LogMessage -type Error -MSG "Error during reset of PSM on $server"
             Throw $_
@@ -1395,20 +1422,26 @@ function Reset-Credentials{
         [string]$ComponentType,
 
         [Parameter(Mandatory=$true)]
-        [string]$Server
+        [string]$Server,
 
+        [Parameter(Mandatory=$true)]
+        [string]$OS
     )
-	
-    switch ($ComponentType) {
-        "CPM" {Reset-CPMCredentials $server; break}
-        "PVWA" {Reset-PVWACredentials $server;break }
-        "PSM/PSMP" { Reset-PSMCredentials $server;break }
-        "AAM Credential Provider" { Reset-AAMCredentials $server;break }
-        "Secrets Manager Credential Providers" { Reset-AAMCredentials $server;break }
-        default {Write-LogMessage -type Error -MSG "No Component Type passed for $server"}
+    IF ("Windows" -eq $os){
+        switch ($ComponentType) {
+            "CPM" {Reset-CPMCredentials $server; break}
+            "PVWA" {Reset-PVWACredentials $server;break }
+            "PSM" {Reset-PSMCredentials $server;break }
+            "AAM Credential Provider" { Reset-AAMCredentialsWindows $server;break }
+            "Secrets Manager Credential Providers" { Reset-AAMCredentialsWindows $server;break }
+            default {Write-LogMessage -type Error -MSG "No Component Type passed for $server"}
+        }
+    } elseIf ("Linux" -eq $os) {
+        Write-LogMessage -type Error -msg "Unable to reset PSMP credentials at this time. Manual reset required for $server"
+    } else {
+        Write-LogMessage -type Error -msg "Unable to determine OS type for $server"
     }
 }
-
 function Reset-CPMCredentials{
     param (
         [Parameter(Mandatory=$true)]
@@ -1420,7 +1453,7 @@ function Reset-CPMCredentials{
     While (!$complete -and !$failed) {
         try {
             Try {
-                $session = New-PSSession $server
+                $session = New-PSLogon $server
             } Catch {
                 Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a windows server and winRM has been enabled."             
                 break
@@ -1433,7 +1466,7 @@ function Reset-CPMCredentials{
             Write-LogMessage -type Verbose -MSG "Modules imported. Getting information about the installed components"
             $compInfo = Get-ComponentInfo -Server $Server -ComponentType "CPM" -Session $Session            
             $installLocation = $compInfo.path
-            $version = $compInfo.Version
+            [version]$version = $compInfo.Version
             Write-LogMessage -type Verbose -MSG "Retrived Component Information"
             Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
             Write-LogMessage -type Verbose -MSG "Version: $version"
@@ -1452,7 +1485,11 @@ function Reset-CPMCredentials{
             Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\user.ini.entropy" -NewName "user.ini.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue } -ArgumentList $tag
             Write-LogMessage -type Verbose -MSG "Backed up credential files"
 
-            $command = $g_cpmuserCred -f $userItem, $(Convert-SecureString($tempPassword))
+            if ($version -ge [version]'12.1'){
+                $command = $g_cpmuserCredv12 -f $userItem, $(Convert-SecureString($tempPassword))
+            } else {
+                $command = $g_cpmuserCred -f $userItem, $(Convert-SecureString($tempPassword))
+            }
             Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $command -ErrorAction SilentlyContinue -ErrorVariable invokeResult
             Remove-Variable command
             If ($invokeResult[0].TargetObject -ne "Command ended successfully"){
@@ -1466,7 +1503,6 @@ function Reset-CPMCredentials{
                 Invoke-Command -Session $session -ScriptBlock {Remove-Item ".\user.ini.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
             }
             
-
             Write-LogMessage -type Verbose -MSG "CreateCredFile on CPM successful"
             Write-LogMessage -type Verbose -MSG "Updating CPM via RESTAPI"
             Set-UserPassword -username $userItem -Password $tempPassword
@@ -1502,7 +1538,7 @@ function Reset-CPMCredentials{
         }
     }
 }
-function Reset-AAMCredentials{
+function Reset-AAMCredentialsWindows{
     param (
         [Parameter(Mandatory=$true)]
         [string]$Server
@@ -1516,7 +1552,7 @@ function Reset-AAMCredentials{
             $attempts = 0
             While (!$complete){
                 Try {
-                    $session = New-PSSession $server
+                    $session = New-PSLogon $server
                 } Catch {
                     Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a windows server and winRM has been enabled."             
                     break
@@ -1530,7 +1566,7 @@ function Reset-AAMCredentials{
                 $compInfo = Get-ComponentInfo -Server $Server -ComponentType "AIM" -Session $Session          
                 
                 $installLocation = $compInfo.path
-                $version = $compInfo.Version
+                [version]$version = $compInfo.Version
                 Write-LogMessage -type Verbose -MSG "Retrived Component Information"
                 Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
                 Write-LogMessage -type Verbose -MSG "Version: $version"
@@ -1549,13 +1585,18 @@ function Reset-AAMCredentials{
                 Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\AppProviderUser.cred" -NewName "AppProviderUser.cred.$($args[0])" -Force} -ArgumentList $tag
                 Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\AppProviderUser.cred.entropy" -NewName "AppProviderUser.cred.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
                 Write-LogMessage -type Verbose -MSG "Backed up AppProviderUser credential files"
-        
-                $command = $g_aamuserCred -f $userItem, $(Convert-SecureString($tempPassword))
+                
+                if ($version -ge [version]'12.0'){
+                    $command = $g_aamuserCredv12 -f $userItem, $(Convert-SecureString($tempPassword))
+                } else {
+                    $command = $g_aamuserCred -f $userItem, $(Convert-SecureString($tempPassword))
+                }
+
                 Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $command -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
                 Remove-Variable command
                 If ($invokeResultApp[0].TargetObject -ne "Command ended successfully"){
-                    $null =   Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\AppProviderUser.cred.$($args[0])" -NewName "AppProviderUser.cred" -Force} -ArgumentList $tag       
-                    $null =   Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\AppProviderUser.cred.entropy.$($args[0])" -NewName "AppProviderUser.cred.entropy" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag       
+                    Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\AppProviderUser.cred.$($args[0])" -NewName "AppProviderUser.cred" -Force} -ArgumentList $tag | Out-Null
+                    Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\AppProviderUser.cred.entropy.$($args[0])" -NewName "AppProviderUser.cred.entropy" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag | Out-Null
 			
                     Write-LogMessage -type Error -MSG "Error resetting credential file on $server"
                     $failed = $true
@@ -1621,71 +1662,83 @@ function Get-ComponentInfo{
 		
         if($Session.State -ne "Opened"){
             $newSession = $true
-			
-            $Session = New-PSSession $server
+            $Session = New-PSLogon $server
         }
-
-  
         $ComponentsFound = Invoke-Command -Session $Session -ScriptBlock {Find-Components $args[0]} -ArgumentList $ComponentType
         return $ComponentsFound
 
     } catch {
         Throw "error"
-    }
-
-    Finally {
-        If($newSession) {Remove-PSSession $Session}
+    } Finally {
+        If($newSession) {
+            Remove-PSSession $Session
+        }
     }
 
 }
 
 Function Get-ComponentStatus{
 
-	try {
-	
-		$restResponse = $(Invoke-Rest -Uri $URL_HealthSummery -Header $g_LogonHeader -Command "Get")	
-		$selection = $restResponse.Components | Where-Object {$_.ComponentTotalCount -gt 0} | Select-Object @{Name="Component Type"; Expression = {$_.'ComponentName'} },@{Name="Amount Connected"; Expression = {$_.'ConnectedComponentCount'} },@{Name="Total Amount"; Expression = {$_.'ComponentTotalCount'} } | Sort-Object -Property "Component Type" 
-		Return $selection
-	} catch {
-		return $null
-	}
+    try {
+        $restResponse = $(Invoke-Rest -Uri $URL_HealthSummery -Header $g_LogonHeader -Command "Get")	
+        $selection = $restResponse.Components | Where-Object {$_.ComponentTotalCount -gt 0} | Select-Object @{Name="Component Type"; Expression = {$_.'ComponentName'} },@{Name="Amount Connected"; Expression = {$_.'ConnectedComponentCount'} },@{Name="Total Amount"; Expression = {$_.'ComponentTotalCount'} } | Sort-Object -Property "Component Type" 
+        Return $selection
+    } catch {
+        return $null
+    }
 }
 Function Get-ComponentDetails{
 
-	param (
-		[Parameter(Mandatory=$true)]
-		$component
-	)
+    param (
+        [Parameter(Mandatory=$true)]
+        $component
+    )
 
-	switch ($component) {
-		"PSM/PSMP" { $targetComp = "SessionManagement"; break }
-		"Secrets Manager Credential Providers" { $targetComp = "AIM"; break }
-		"AAM Credential Provider" { $targetComp = "AIM"; break }
-		Default {$targetComp = $component}
-	} 
-	$URLHealthDetails= $URL_HealthDetails -f $targetComp
-	Try{
-		$restResponse = $(Invoke-Rest -Uri $URLHealthDetails -Header $g_LogonHeader -Command "Get")
+    switch ($component) {
+        "PSM/PSMP" { $targetComp = "SessionManagement"; break }
+        "Secrets Manager Credential Providers" { $targetComp = "AIM"; break }
+        "AAM Credential Provider" { $targetComp = "AIM"; break }
+        Default {$targetComp = $component}
+    } 
+    $URLHealthDetails= $URL_HealthDetails -f $targetComp
+    Try{
+        $restResponse = $(Invoke-Rest -Uri $URLHealthDetails -Header $g_LogonHeader -Command "Get")
 
-		$selection = $restResponse.ComponentsDetails | Select-Object @{Name="Component Type"; Expression = {$component} },@{Name="IP Address"; Expression = {$_.'ComponentIP'} },@{Name="Component User"; Expression = {$_.'ComponentUserName'} },@{Name="Connected"; Expression = {$_.'IsLoggedOn'}},@{Name="Last Connection"; Expression = {Get-LogonTimeUnixTime $_.'LastLogonDate'}} | Sort-Object -Property "IP Address" 
+        $selection = $restResponse.ComponentsDetails | Select-Object @{Name="Component Type"; Expression = {$component} },@{Name="Component Version"; Expression = {$_.ComponentVersion} },@{Name="IP Address"; Expression = {$_.'ComponentIP'} },@{Name="Component User"; Expression = {$_.'ComponentUserName'} },@{Name="Connected"; Expression = {$_.'IsLoggedOn'}},@{Name="Last Connection"; Expression = {Get-LogonTimeUnixTime $_.'LastLogonDate'}} | Sort-Object -Property "IP Address" 
 		
-		#$selection = $restResponse.ComponentsDetails | Select-Object @{Name="Component Type"; Expression = {$component} },@{Name="IP Address"; Expression = {$_.'ComponentIP'} },@{Name="Component User"; Expression = {$_.'ComponentUserName'} },@{Name="Connected"; Expression = {$_.'IsLoggedOn'}},@{Name="Last Connection"; Expression = {Get-LogonTimeUnixTime $_.'LastLogonDate'}} | Sort-Object -Property "IP Address" | Out-GridView -OutputMode Multiple -Title "Select Server(s)"
+        #$selection = $restResponse.ComponentsDetails | Select-Object @{Name="Component Type"; Expression = {$component} },@{Name="IP Address"; Expression = {$_.'ComponentIP'} },@{Name="Component User"; Expression = {$_.'ComponentUserName'} },@{Name="Connected"; Expression = {$_.'IsLoggedOn'}},@{Name="Last Connection"; Expression = {Get-LogonTimeUnixTime $_.'LastLogonDate'}} | Sort-Object -Property "IP Address" | Out-GridView -OutputMode Multiple -Title "Select Server(s)"
 		
-		Return $selection
-	} Catch{
-		Return $null
-	}
+        Return $selection
+    } Catch{
+        Return $null
+    }
 }
 
 Function Test-TargetWinRM {
-	param (
-		[Parameter()]
-		[string]$server
-	)
-	try {
-		$null = Invoke-Command -ComputerName $server -ScriptBlock {$null} -ErrorAction Stop
-		Return $true
-	} catch {
-		Return $false
-	}
+    param (
+        [Parameter()]
+        [string]$server
+    )
+    try {
+        If ($null -ne $G_PSCredentials) {
+            Invoke-Command -ComputerName $server -ScriptBlock {$null} -ErrorAction Stop -ErrorVariable $null -Credential $G_PSCredentials | Out-Null
+        } else {
+            Invoke-Command -ComputerName $server -ScriptBlock {$null} -ErrorAction Stop -ErrorVariable $null | Out-Null
+        }   
+        Return $true
+    } catch {
+        Return $false
+    }
+}
+
+function New-PSLogon {
+    param (
+        [Parameter()]
+        [string]$server
+    )
+    If ($null -ne $G_PSCredentials) {
+        Return New-PSSession $server -Credential $G_PSCredentials -Authentication Negotiate 
+    } else {   
+        return New-PSSession $server
+    }
 }
