@@ -2,13 +2,13 @@
 #
 # NAME: Manage Safes using REST API
 #
-# AUTHOR:  Jake DeSantis, Carl Anderson, Brian Bors
+# AUTHOR: Jake DeSantis, Carl Anderson, Brian Bors
 #
 # COMMENT: 
 # This script will help in Safe Management tasks
 #
 # SUPPORTED VERSIONS:
-# CyberArk PVWA v9.8 and above
+# CyberArk PVWA v12.1 and above
 # CyberArk Privilege Cloud
 #
 # VERSION HISTORY:
@@ -16,6 +16,7 @@
 # 1.1 06/02/2019 - Bug fix
 # 1.9 09/07/2021 - Added ability to create new members on updates. 
 #                  General Format cleanup according to standards
+# 2.0 15/11/2021 - Working only with 2nd Gen REST API of Safes. Supported version 12.1 and above
 #
 ###########################################################################
 [CmdletBinding(DefaultParameterSetName = "List")]
@@ -25,6 +26,14 @@ param
     [ValidateScript( { Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30 })]
     [Alias("url")]
     [String]$PVWAURL,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Enter the Authentication type (Default:CyberArk)")]
+    [ValidateSet("cyberark", "ldap", "radius")]
+    [String]$AuthType = "cyberark",
+
+    [Parameter(Mandatory = $false, HelpMessage = "Enter the RADIUS OTP")]
+    [ValidateScript({ $AuthType -eq "radius" })]
+    [String]$OTP,
 		
     # Use this switch to list Safes
     [Parameter(ParameterSetName = 'List', Mandatory = $true)][switch]$List,
@@ -115,7 +124,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "1.9.1"
+$ScriptVersion = "2.0"
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -130,15 +139,14 @@ $global:g_DefaultUsers = @("Master", "Batch", "Backup Users", "Auditors", "Opera
 
 # Global URLS
 # -----------
-$URL_PVWAWebServices = $PVWAURL + "/WebServices"
-$URL_PVWABaseAPI = $URL_PVWAWebServices + "/PIMServices.svc"
-$URL_CyberArkAuthentication = $URL_PVWAWebServices + "/auth/cyberark/CyberArkAuthenticationService.svc"
-$URL_Logon = $URL_CyberArkAuthentication + "/Logon"
-$URL_Logoff = $URL_CyberArkAuthentication + "/Logoff"
+$URL_PVWAAPI = $PVWAURL + "/api"
+$URL_Authentication = $URL_PVWAAPI + "/auth"
+$URL_Logon = $URL_Authentication + "/$AuthType/Logon"
+$URL_Logoff = $URL_Authentication + "/Logoff"
 
 # URL Methods
 # -----------
-$URL_Safes = $URL_PVWABaseAPI + "/Safes"
+$URL_Safes = $URL_PVWAAPI + "/Safes"
 $URL_SpecificSafe = $URL_Safes + "/{0}"
 $URL_SafeMembers = $URL_SpecificSafe + "/Members"
 $URL_SafeSpecificMember = $URL_SpecificSafe + "/Members/{1}"
@@ -362,6 +370,8 @@ Function Get-LogonHeader
         [Parameter(Mandatory = $true)]
         [System.Management.Automation.CredentialAttribute()]$Credentials,
         [Parameter(Mandatory = $false)]
+        [string]$RadiusOTP,
+        [Parameter(Mandatory = $false)]
         [ValidateScript( { ($_ -ge 0) -and ($_ -lt 100) })]
         [int]$ConnectionNumber = 0
     )
@@ -384,6 +394,11 @@ Function Get-LogonHeader
         {
             $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password; connectionNumber = $ConnectionNumber } | ConvertTo-Json
         }
+        # Check if we need to add RADIUS OTP
+        If (![string]::IsNullOrEmpty($RadiusOTP))
+        {
+            $logonBody.Password += ",$RadiusOTP"
+        } 
         try
         {
             # Logon
@@ -407,14 +422,7 @@ Function Get-LogonHeader
         {
             # Create a Logon Token Header (This will be used through out all the script)
             # ---------------------------
-            If ($logonToken.PSObject.Properties.Name -contains "CyberArkLogonResult")
-            {
-                $logonHeader = @{Authorization = $($logonToken.CyberArkLogonResult) }
-            }
-            else
-            {
-                $logonHeader = @{Authorization = $logonToken }
-            }	
+            $logonHeader = @{Authorization = $logonToken }
 
             Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
         }
@@ -536,8 +544,22 @@ Get-Safes
         If ($null -eq $g_SafesList)
         {
             Write-LogMessage -Type Debug -Msg "Retrieving safes from the vault..."
-            $safes = (Invoke-RestMethod -Uri $URL_Safes -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700).GetSafesResult
-            Set-Variable -Name g_SafesList -Value $safes -Scope Global
+            $GetSafesList = @()
+            $safes = (Invoke-RestMethod -Uri $URL_Safes -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700)
+            $GetSafesList += $safes.value
+            Write-LogMessage -Type Debug -Msg "Total safes response: $($safes.count)"
+            $nextLink = $safes.nextLink
+            Write-LogMessage -Type Debug -Msg $nextLink
+				
+            While ($nextLink -ne "" -and $null -ne $nextLink)
+            {
+                $safes = (Invoke-RestMethod -Method Get -Uri $("$PVWAURL/$nextLink") -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700)
+                $nextLink = $safes.nextLink
+                Write-LogMessage -Type Debug -Msg $nextLink
+                $GetSafesList += $safes.value
+                Write-LogMessage -Type Debug -Msg "Current safes collected: $($GetSafesList.count)"
+            }
+            Set-Variable -Name g_SafesList -Value $GetSafesList -Scope Global
         }
 		
         return $g_SafesList
@@ -570,7 +592,7 @@ Get-Safe -safeName "x0-Win-S-Admins"
     try
     {
         $accSafeURL = $URL_SpecificSafe -f $(ConvertTo-URL $safeName)
-        $_safe = $(Invoke-RestMethod -Uri $accSafeURL -Method "Get" -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue").GetSafeResult
+        $_safe = $(Invoke-RestMethod -Uri $accSafeURL -Method "Get" -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue")
     }
     catch
     {
@@ -696,7 +718,7 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
         #Set-Variable -Name g_SafesList -Value $null -Scope Global
         # Update Safes list to include new safe
         #Get-Safes | out-null
-        $g_SafesList += $safeAdd.AddSafeResult
+        $g_SafesList += $safeAdd
     }
     catch
     {
@@ -906,36 +928,35 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
     If ($safeMember -NotIn $g_DefaultUsers)
     {
         $SafeMembersBody = @{
-            member = @{
-                MemberName               = "$safeMember"
-                SearchIn                 = "$memberSearchInLocation"
-                MembershipExpirationDate = "$null"
-                Permissions              = @(
-                    @{Key = "UseAccounts"; Value = $permUseAccounts }
-                    @{Key = "RetrieveAccounts"; Value = $permRetrieveAccounts }
-                    @{Key = "ListAccounts"; Value = $permListAccounts }
-                    @{Key = "AddAccounts"; Value = $permAddAccounts }
-                    @{Key = "UpdateAccountContent"; Value = $permUpdateAccountContent }
-                    @{Key = "UpdateAccountProperties"; Value = $permUpdateAccountProperties }
-                    @{Key = "InitiateCPMAccountManagementOperations"; Value = $permInitiateCPMManagement }
-                    @{Key = "SpecifyNextAccountContent"; Value = $permSpecifyNextAccountContent }
-                    @{Key = "RenameAccounts"; Value = $permRenameAccounts }
-                    @{Key = "DeleteAccounts"; Value = $permDeleteAccounts }
-                    @{Key = "UnlockAccounts"; Value = $permUnlockAccounts }
-                    @{Key = "ManageSafe"; Value = $permManageSafe }
-                    @{Key = "ManageSafeMembers"; Value = $permManageSafeMembers }
-                    @{Key = "BackupSafe"; Value = $permBackupSafe }
-                    @{Key = "ViewAuditLog"; Value = $permViewAuditLog }
-                    @{Key = "ViewSafeMembers"; Value = $permViewSafeMembers }
-                    @{Key = "RequestsAuthorizationLevel"; Value = $permRequestsAuthorizationLevel }
-                    @{Key = "AccessWithoutConfirmation"; Value = $permAccessWithoutConfirmation }
-                    @{Key = "CreateFolders"; Value = $permCreateFolders }
-                    @{Key = "DeleteFolders"; Value = $permDeleteFolders }
-                    @{Key = "MoveAccountsAndFolders"; Value = $permMoveAccountsAndFolders }
-                )
-            }  
-        }
-
+            MemberName               = "$safeMember"
+            SearchIn                 = "$memberSearchInLocation"
+            MembershipExpirationDate = "$null"
+            Permissions              = @{
+                useAccounts                            = $permUseAccounts
+                retrieveAccounts                       = $permRetrieveAccounts
+                listAccounts                           = $permListAccounts
+                addAccounts                            = $permAddAccounts
+                updateAccountContent                   = $permUpdateAccountContent
+                updateAccountProperties                = $permUpdateAccountProperties
+                initiateCPMAccountManagementOperations = $permInitiateCPMManagement
+                specifyNextAccountContent              = $permSpecifyNextAccountContent 
+                renameAccounts                         = $permRenameAccounts
+                deleteAccounts                         = $permDeleteAccounts
+                unlockAccounts                         = $permUnlockAccounts
+                manageSafe                             = $permManageSafe
+                manageSafeMembers                      = $permManageSafeMembers
+                backupSafe                             = $permBackupSafe
+                viewAuditLog                           = $permViewAuditLog
+                viewSafeMembers                        = $permViewSafeMembers
+                accessWithoutConfirmation              = $permAccessWithoutConfirmation
+                createFolders                          = $permCreateFolders
+                deleteFolders                          = $permDeleteFolders
+                moveAccountsAndFolders                 = $permMoveAccountsAndFolders
+                requestsAuthorizationLevel1            = ($permRequestsAuthorizationLevel -eq 1)
+                requestsAuthorizationLevel2            = ($permRequestsAuthorizationLevel -eq 2)
+            }
+        }  
+    
         try
         {
             If ($updateMember)
@@ -1026,7 +1047,7 @@ Get-SafeMember -safename "Win-Local-Admins"
         $accSafeMembersURL = $URL_SafeMembers -f $(ConvertTo-URL $safeName)
         $_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue")
         # Remove default users and change UserName to MemberName
-        $_safeOwners = $_safeMembers.members | Where-Object { $_.UserName -NotIn $g_DefaultUsers } | Select-Object -Property @{Name = 'MemberName'; Expression = { $_.UserName } }, Permissions
+        $_safeOwners = $_safeMembers.value | Where-Object { $_.MemberName -NotIn $g_DefaultUsers }
     }
     catch
     {
