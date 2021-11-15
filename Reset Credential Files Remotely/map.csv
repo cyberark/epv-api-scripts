@@ -1,4 +1,4 @@
-ComponentUser,"IP Address"
-PrimaryCPM,255.255.255.255
-PVWAAPPUser,192.168.239.55
-Prov_PVWA2,192.168.239.55
+ComponentUser,"IP Address","Component Type","OS"
+PrimaryCPM,,"CPM",
+PVWAAPPUser,255.255.255.255,,"Windows"
+Prov_PVWA2,,,"Linux"

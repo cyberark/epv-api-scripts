@@ -37,21 +37,21 @@ param(
 	[ValidateScript({$AuthType -eq "radius"})]
 	[String]$OTP,
 
-	[Parameter(Mandatory=$false,HelpMessage="Stored Credentials")]
-	[PSCredential]$creds,
+	[Parameter(Mandatory=$false,HelpMessage="Vault Stored Credentials")]
+	[PSCredential]$PVWACredentials,
 
 	# Use this switch to Disable SSL verification (NOT RECOMMENDED)
 	[Parameter(Mandatory=$false)]
 	[Switch]$DisableSSLVerify,
 
 	[Parameter(Mandatory=$false)]
-	[Switch]$jobs,
+	[Switch]$Jobs,
 
 	[Parameter(Mandatory=$false)]
-	[Switch]$allComponents,
+	[Switch]$AllComponents,
 
 	[Parameter(Mandatory=$false)]
-	[Switch]$allServers,
+	[Switch]$AllServers,
 
 	[Parameter(Mandatory=$false)]
 	[Switch]$DisconnectedOnly,
@@ -64,14 +64,20 @@ param(
 	[String]$Component,
 
 	[Parameter(Mandatory=$false,HelpMessage="Mapping File")]
-	[String]$mapfile
-	
+	[String]$MapFile,
+
+	[Parameter(Mandatory=$false,HelpMessage="PSSession Credentials")]
+	[PSCredential]$PSCredentials
 )
 
 #region Writer Functions
-$InDebug = $PSBoundParameters.Debug.IsPresent
-$InVerbose = $PSBoundParameters.Verbose.IsPresent
-
+$global:InDebug = $PSBoundParameters.Debug.IsPresent
+$global:InVerbose = $PSBoundParameters.Verbose.IsPresent
+$oldverbose = $VerbosePreference
+if($InVerbose){
+	$VerbosePreference = "continue"
+}
+If ($null -ne $PSCredentials) {New-Variable -Scope Global -Name G_PSCredentials -Value $PSCredentials}
 
 #Region
 
@@ -92,24 +98,45 @@ New-Variable -Name LOG_FILE_PATH -Value "$ScriptLocation\Remote-CredFileReset.lo
 New-Variable -Name PVWAURL -Value $PVWAURL -Scope Global -Force 
 New-Variable -Name AuthType -Value $AuthType -Scope Global -Force
 
-$InDebug = $PSBoundParameters.Debug.IsPresent
-$InVerbose = $PSBoundParameters.Verbose.IsPresent
+$global:InDebug = $PSBoundParameters.Debug.IsPresent
+$global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
+Import-Module -Name ".\CyberArk-Common.psm1" -Force
 
+If($DisableSSLVerify) {
+	try{
+		Write-Warning "It is not Recommended to disable SSL verification" -WarningAction Inquire
+		# Using Proxy Default credentials if the Server needs Proxy credentials
+		[System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
+		# Using TLS 1.2 as security protocol verification
+		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls11
+		# Disable SSL Verification
+		[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
+	} catch {
+		Write-LogMessage -Type Error -MSG "Could not change SSL validation"
+		Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+		return
+	}
+} Else {
+	try{
+		Write-LogMessage -Type Debug -MSG "Setting script to use TLS 1.2"
+		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+	} catch {
+		Write-LogMessage -Type Error -MSG "Could not change SSL settings to use TLS 1.2"
+		Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+	}
+}
 
 # URL Methods
 # -----------
 
 
 
-Import-Module -Name ".\CyberArk-Common.psm1" -Force
-
 # Check that the PVWA URL is OK
 If (![string]::IsNullOrEmpty($PVWAURL)) {
 	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/") {
 		$PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
 	}
-	
 	try{
 		# Validate PVWA URL is OK
 		Write-LogMessage -Type Debug -MSG "Trying to validate URL: $PVWAURL"
@@ -129,9 +156,11 @@ If (![string]::IsNullOrEmpty($PVWAURL)) {
 	Write-LogMessage -Type Error -MSG "PVWA URL can not be empty"
 	return
 }
+
 Import-Module -Name ".\CyberArk-Common.psm1" -Force
 Write-LogMessage -Type Info -MSG "Getting Logon Token"
-Invoke-Logon -creds $creds
+
+Invoke-Logon -Credentials $PVWACredentials
 
 Write-LogMessage -Type Info -MSG "Getting Server List"
 $components = Get-ComponentStatus | Sort-Object $_.'Component Type'
@@ -140,7 +169,8 @@ else {
 	$selectedComponents = $components | Sort-Object $_.'Component Type' | Out-GridView -OutputMode Multiple -Title "Select Component(s)"
 }
 If (![string]::IsNullOrEmpty($mapfile)){
-	$map = Import-Csv $mapfile}
+	$map = Import-Csv $mapfile
+}
 
 Write-LogMessage -Type Info -MSG "Getting Component List"
 $targetComponents = @()
@@ -150,11 +180,35 @@ ForEach ($comp in $selectedComponents) {
 		If ($PVWAURL.Contains("privilegecloud.cyberark.com") -and ("PVWA" -eq $comp.'Component Type')) {continue}
 		$results = Get-ComponentDetails $comp.'Component Type'
 		ForEach ($result in $results) {
+			$user= ($result.'Component User')
+			switch ($user) {
+				{$user.Substring(0,7) -eq "PSMPApp"} {
+					$result.'Component Type'="PSM";
+					Add-Member -InputObject $result -MemberType NoteProperty -Name "OS" -Value "Linux"
+					break
+				}
+				{$user.Substring(0,6) -eq "PSMApp"} {
+					$result.'Component Type'="PSM";
+					Add-Member -InputObject $result -MemberType NoteProperty -Name "OS" -Value "Windows"
+					break
+				}
+				Default{
+					Add-Member -InputObject $result -MemberType NoteProperty -Name "OS" -Value "Windows"
+					break
+				} 
+			}
 			If ($null -ne $map){
 				$checkComponentUser = $map.Where({$_.ComponentUser -eq $result.'Component User'})
 				If (0 -ne $checkComponentUser.Count){
-					$result.'IP Address' = $checkComponentUser.'IP Address'
-					
+					if (![string]::IsNullOrEmpty($checkComponentUser.'IP Address')) {
+						$result.'IP Address' = $checkComponentUser.'IP Address'
+					}
+					if (![string]::IsNullOrEmpty($checkComponentUser.'Component Type')){
+						$result.'Component Type' = $checkComponentUser.'Component Type'
+					}
+					if (![string]::IsNullOrEmpty($checkComponentUser.'OS')){
+						$result.'OS' = $checkComponentUser.'OS'
+					}
 				}
 			}
 			If ("255.255.255.255" -eq $result.'IP Address') {continue}
@@ -164,6 +218,7 @@ ForEach ($comp in $selectedComponents) {
 		Write-LogMessage -type Error -MSG "No $($comp.'Component Type') Components Found"
 	}
 }
+
 If   ($DisconnectedOnly) {
 	$targetComponents = $availableServers | Where-Object Connected -EQ $false
 } elseif ($allServers){
@@ -177,17 +232,24 @@ Write-LogMessage -Type Info -MSG "Processing Lists"
 Get-Job | Remove-Job -Force
 foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 
-	$fqdn = (Resolve-DnsName $target.'IP Address'  -ErrorAction SilentlyContinue).namehost
-	If (!(Test-TargetWinRM -server $fqdn )) {"Error connectint to WinRM for Component User $($target.'Component User') on $($target.'IP Address') $fqdn";continue } 
-	$type = $target.'Component Type'
+	$fqdn = (Resolve-DnsName $target.'IP Address' -ErrorAction SilentlyContinue).namehost
+	If ("Windows" -eq $target.os){
+		If (!(Test-TargetWinRM -server $fqdn )) {"Error connectint to WinRM for Component User $($target.'Component User') on $($target.'IP Address') $fqdn";continue }
+	} elseif ("Linux" -eq  $target.os) {
+		Write-LogMessage -type Error -msg "Unable to reset credentials on linux based servers at this time. Manual reset required for Component User $($target.'Component User') on $($target.'IP Address') $fqdn"
+		break
+	}
+
 	if (!$jobs){
 		Try{
-			Reset-Credentials -ComponentType $type -Server $fqdn
-		} Catch {Write-LogMessage -type Error -MSG $_}
+			Reset-Credentials -ComponentType $target.'Component Type' -Server $fqdn -OS $target.os
+		} Catch {
+			Write-LogMessage -type Error -MSG $_
+		}
 
 	} else {
 		Write-LogMessage -Type Info -MSG "Creating Job for $Type on $fqdn"
-		$null = Start-Job -Name "$($type.Replace("AAM Credential Provider","CP")) on $fqdn" -ScriptBlock {$Script:PVWAURL = $using:PVWAURL;$Script:g_LogonHeader = $using:g_LogonHeader;Import-Module -Name D:\GIT\Remote-CredFile\CyberArk-Common.psm1 -Force;Reset-Credentials -ComponentType $using:type -Server $using:fqdn} -InitializationScript {Set-Location $PSScriptRoot; }
+		Start-Job -Name "$($type.Replace("AAM Credential Provider","CP")) on $fqdn" -ScriptBlock {$Script:PVWAURL = $using:PVWAURL;$Script:g_LogonHeader = $using:g_LogonHeader;Import-Module -Name D:\GIT\Remote-CredFile\CyberArk-Common.psm1 -Force;Reset-Credentials -ComponentType $using:type -Server $using:fqdn} -InitializationScript {Set-Location $PSScriptRoot; } | Out-Null
 		$jobsRunning=$true
 	}
 
@@ -226,12 +288,13 @@ Write-Host "Logoff Session..."
 
 Invoke-Logoff
 
-
 Remove-Variable -Name LOG_FILE_PATH -Scope Global -Force
 Remove-Variable -Name PVWAURL -Scope Global -Force
 Remove-Variable -Name AuthType -Scope Global -Force
+IF ($null -ne $G_PSCredentials){Remove-Variable -Name G_PSCredentials -Scope Global -Force}
 
 # Footer
 
 #endregion
 
+$VerbosePreference = $oldverbose
