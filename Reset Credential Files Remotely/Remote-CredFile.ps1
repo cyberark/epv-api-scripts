@@ -21,7 +21,6 @@ Change Log:
 ########################################################################### 
 #>
 
-
 [CmdletBinding()]
 param(
 	[Parameter(Mandatory=$true,HelpMessage="Please enter your PVWA address (For example: https://pvwa.mydomain.com/PasswordVault)")]
@@ -79,10 +78,6 @@ if($InVerbose){
 }
 If ($null -ne $PSCredentials) {New-Variable -Scope Global -Name G_PSCredentials -Value $PSCredentials}
 
-#Region
-
-#endregion
-
 # Get Script Location 
 $ScriptFullPath = $MyInvocation.MyCommand.Path
 $ScriptLocation = Split-Path -Parent $ScriptFullPath
@@ -126,11 +121,6 @@ If($DisableSSLVerify) {
 		Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 	}
 }
-
-# URL Methods
-# -----------
-
-
 
 # Check that the PVWA URL is OK
 If (![string]::IsNullOrEmpty($PVWAURL)) {
@@ -234,7 +224,10 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 
 	$fqdn = (Resolve-DnsName $target.'IP Address' -ErrorAction SilentlyContinue).namehost
 	If ("Windows" -eq $target.os){
-		If (!(Test-TargetWinRM -server $fqdn )) {"Error connectint to WinRM for Component User $($target.'Component User') on $($target.'IP Address') $fqdn";continue }
+		If (!(Test-TargetWinRM -server $fqdn )) {
+			"Error connectint to WinRM for Component User $($target.'Component User') on $($target.'IP Address') $fqdn"
+			continue
+		}
 	} elseif ("Linux" -eq  $target.os) {
 		Write-LogMessage -type Error -msg "Unable to reset credentials on linux based servers at this time. Manual reset required for Component User $($target.'Component User') on $($target.'IP Address') $fqdn"
 		break
@@ -291,9 +284,10 @@ Invoke-Logoff
 Remove-Variable -Name LOG_FILE_PATH -Scope Global -Force
 Remove-Variable -Name PVWAURL -Scope Global -Force
 Remove-Variable -Name AuthType -Scope Global -Force
-IF ($null -ne $G_PSCredentials){Remove-Variable -Name G_PSCredentials -Scope Global -Force}
+IF ($null -ne $G_PSCredentials) {
+	Remove-Variable -Name G_PSCredentials -Scope Global -Force
+}
 
-# Footer
 
 #endregion
 

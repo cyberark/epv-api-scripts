@@ -1,7 +1,5 @@
 [CmdletBinding()]
 
-
-
 # Global URLS
 # -----------
 #region Global Variables
@@ -47,7 +45,7 @@ $g_aamuserCredv12 = ".\CreateCredFile.exe AppProviderUser.cred Password /Usernam
 $g_aamuserCred = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /Password {1}"
 
 if($InVerbose){
-	$VerbosePreference = "continue"
+    $VerbosePreference = "continue"
 }
 
 #endregion
@@ -103,7 +101,9 @@ Function Write-LogMessage {
         [String]$LogFile = $LOG_FILE_PATH
     )
 
-    If (![string]::IsNullOrEmpty($PSSenderInfo)) {$WriteLog = $false}
+    If (![string]::IsNullOrEmpty($PSSenderInfo)) {
+        $WriteLog = $false
+    }
     Try{
         If([string]::IsNullOrEmpty($LogFile) -and $WriteLog) {
             # User wanted to write logs, but did not provide a log file - Create a temporary file
@@ -895,8 +895,9 @@ function Stop-ComponentService {
         Invoke-Command -Session $session -ScriptBlock {$targetService = Get-Service -Name $args[0];$targetService.Stop();$targetService.WaitForStatus('Stopped',(New-TimeSpan -Seconds 15))} -ArgumentList $service -ErrorAction SilentlyContinue -ErrorVariable stopResult
 
         If ($stopResult.Count -gt 0){
-            If ("InvalidOperationException" -ieq $stopResult[0].FullyQualifiedErrorId){$null}
-            else {
+            If ("InvalidOperationException" -ieq $stopResult[0].FullyQualifiedErrorId){
+                $null
+            } else {
                 Write-LogMessage -Type "Debug" -MSG "Unable to stop `"$service`" on $server, force stopping processes"
                 $null = Invoke-Command -Session $session -ScriptBlock {Stop-ServiceProcess -name $args[0]} -ArgumentList $service
             }
@@ -946,7 +947,9 @@ Function Set-UserPassword {
                     }
                 }
             }
-            If (!$userFound) {Write-LogMessage -type Verbose -MSG "Unable to locate component account for $Username"}
+            If (!$userFound) {
+                Write-LogMessage -type Verbose -MSG "Unable to locate component account for $Username"
+            }
         } else {
             Write-LogMessage -type Verbose -MSG "Unable to locate component account for $Username"
         } 
@@ -1667,7 +1670,9 @@ function Get-ComponentInfo{
     } catch {
         Throw "error"
     } Finally {
-        If($newSession) {Remove-PSSession $Session}
+        If($newSession) {
+            Remove-PSSession $Session
+        }
     }
 
 }
