@@ -47,6 +47,8 @@
     - Used to override paramaters received from the PVWA System Health page
         - To use the file enter the "Component User" to match the Component User found on the System Health Page.
             - IP address, Component Type, and OS can be set via the file.
+            - If the IP Address in the mapping file is set to 255.255.255.255 those components users will be bypassed. 
     - This file must be used with Privileged Cloud environments
+    - If IP Address 
 - PSCredentials
     - Allows for use of alternate credentials to make connections to WinRM
