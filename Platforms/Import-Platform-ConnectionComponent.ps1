@@ -74,7 +74,8 @@ Function Get-ZipContent
 	try{
 		If(Test-Path $zipPath)
 		{
-			$zipContent = [System.IO.File]::ReadAllBytes($(Resolve-Path $zipPath))
+			# Converting to Base64, following bug 00015428
+			$zipContent = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($(Resolve-Path $zipPath)))
 		}
 	} catch {
 		throw "Error while reading ZIP file: $($_.Exception.Message)"
