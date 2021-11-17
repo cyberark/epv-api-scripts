@@ -98,8 +98,10 @@ Function Get-ZipContent
 		{
 			Write-Debug "Reading ZIP file..."
 			$zipContent = [System.IO.File]::ReadAllBytes($(Resolve-Path $zipPath))
-			If([string]::IsNullOrEmpty($zipContent)) { throw "Zip file empty or error reading  it" }
+			If([string]::IsNullOrEmpty($zipContent)) { throw "Zip file empty or error reading it" }
 			Write-Debug "Zip file size read $($zipContent.Length)"
+			# Converting to Base64, following bug 00015428
+			$zipContent = [Convert]::ToBase64String($zipContent)
 		}
 	} catch {
 		throw "Error while reading ZIP file: $($_.Exception.Message)"
