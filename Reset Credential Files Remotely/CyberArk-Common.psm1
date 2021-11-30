@@ -47,13 +47,10 @@ $g_aamuserCred = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {
 if($InVerbose){
     $VerbosePreference = "continue"
 }
-
 #endregion
 
 # Initialize Script Variables
 # ---------------------------
-
-
 
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Write-LogMessage
@@ -310,7 +307,6 @@ Function Get-TrimmedString($sText) {
     return $sText
 }
 
-
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Invoke-Rest
 # Description....: Invoke REST Method
@@ -376,35 +372,23 @@ Function Invoke-Rest {
     Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $restResponse"
     return $restResponse
 }
-
 If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
     Write-LogMessage -Type Error -MSG "This script requires PowerShell version 3 or above"
     return
 }
-
-
-Function Write-ProgressStatus{
-
-    
-}
 Function Set-PSSessionCred{
-
     param(
         [Parameter(Mandatory=$false)]
         [PSCredential]$PSCredentials
-
     )
     if ($null -eq $PSCredentials) {$PSCredentials = $Host.UI.PromptForCredential($caption,$msg,"","")}
 }
 
 Function Invoke-Logon{
-
     param(
         [Parameter(Mandatory=$false)]
         [PSCredential]$Credentials
-
     )
-
     # Get Credentials to Login
     # ------------------------
     $caption = "Reset Remote Cred File Utility"
@@ -424,7 +408,6 @@ Function Invoke-Logon{
         Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
         return
     }
-
 }
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Get-LogonHeader
@@ -453,7 +436,6 @@ Function Get-LogonHeader {
     If(![string]::IsNullOrEmpty($RadiusOTP)) {
         $logonBody.Password += ",$RadiusOTP"
     }
-	
     try{
         # Logon
         $logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
@@ -462,7 +444,6 @@ Function Get-LogonHeader {
     } catch {
         Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)",$_.Exception))
     }
-    
     $logonHeader = $null
     If ([string]::IsNullOrEmpty($logonToken)) {
         Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
@@ -471,21 +452,8 @@ Function Get-LogonHeader {
     # Create a Logon Token Header (This will be used through out all the script)
     # ---------------------------
     $logonHeader = @{Authorization = $logonToken}
-	
     return $logonHeader
 }
-
-Function Reset-ComponentUser {
-
-
-
-	
-}
-
-
-
-
-
 
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Set-SSLVerify
@@ -531,7 +499,6 @@ Function Set-DisableSSLVerify {
             Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
         }
     }
-
 }
 #endregion
 # @FUNCTION@ ======================================================================================================================
@@ -545,11 +512,9 @@ Function Get-LogonTimeUnixTime {
         [Parameter()]
         [string]$unixTime
     )
-
     [datetime]$origin = '1970-01-01 00:00:00'
     return $origin.AddSeconds($unixTime).ToLocalTime()
 }
-
 
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Get-FileVersion
@@ -668,7 +633,6 @@ Function Get-ServiceInstallPath {
         } catch{
             Throw $(New-Object System.Exception ("Cannot get Service Install path for $ServiceName",$_.Exception))
         }
-
         return $retInstallPath
     }
     End {
@@ -955,8 +919,6 @@ Function Set-UserPassword {
         } 
     }
 }
-
-
 
 # @FUNCTION@ ======================================================================================================================
 # Name...........: New-RandomPassword
@@ -1600,13 +1562,12 @@ function Reset-AAMCredentialsWindows{
 			
                     Write-LogMessage -type Error -MSG "Error resetting credential file on $server"
                     $failed = $true
-                    Throw "Error resetting credential file"
+                    Throw "Error resetting AAM credential file"
                 } else {
                     Invoke-Command -Session $session -ScriptBlock {Remove-Item ".\AppProviderUser.cred.$($args[0])" -Force} -ArgumentList $tag
                     Invoke-Command -Session $session -ScriptBlock {Remove-Item ".\AppProviderUser.cred.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
                 }
-        
-        
+                
                 Write-LogMessage -type Verbose -MSG "CreateCredFile on AppProviderUser successful"
                 Write-LogMessage -type Verbose -MSG "Updating AppProviderUser via RESTAPI"
                 Set-UserPassword -username $userItem -Password $tempPassword

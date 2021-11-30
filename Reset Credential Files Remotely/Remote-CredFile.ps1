@@ -241,8 +241,10 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 		}
 
 	} else {
+		$type =  $target.'Component Type'
+		$os = $target.os
 		Write-LogMessage -Type Info -MSG "Creating Job for $Type on $fqdn"
-		Start-Job -Name "$($type.Replace("AAM Credential Provider","CP")) on $fqdn" -ScriptBlock {$Script:PVWAURL = $using:PVWAURL;$Script:g_LogonHeader = $using:g_LogonHeader;Import-Module -Name D:\GIT\Remote-CredFile\CyberArk-Common.psm1 -Force;Reset-Credentials -ComponentType $using:type -Server $using:fqdn} -InitializationScript {Set-Location $PSScriptRoot; } | Out-Null
+		Start-Job -Name "$($type.Replace("AAM Credential Provider","CP")) on $fqdn" -ScriptBlock {$Script:PVWAURL = $using:PVWAURL;$Script:g_LogonHeader = $using:g_LogonHeader;Import-Module -Name $using:ScriptLocation\CyberArk-Common.psm1 -Force;Reset-Credentials -ComponentType $using:type -Server $using:fqdn -os $using:os} -InitializationScript {Set-Location $PSScriptRoot; } | Out-Null
 		$jobsRunning=$true
 	}
 
