@@ -383,6 +383,15 @@ Function Set-PSSessionCred{
     )
     if ($null -eq $PSCredentials) {$PSCredentials = $Host.UI.PromptForCredential($caption,$msg,"","")}
 }
+Function Set-PSSessionCred{
+
+    param(
+        [Parameter(Mandatory=$false)]
+        [PSCredential]$PSCredentials
+
+    )
+    if ($null -eq $PSCredentials) {$PSCredentials = $Host.UI.PromptForCredential($caption,$msg,"","")}
+}
 
 Function Invoke-Logon{
     param(
