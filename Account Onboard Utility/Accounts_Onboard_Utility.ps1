@@ -1652,7 +1652,7 @@ ForEach ($account in $accountsCSV)
 								Write-LogMessage -Type Info -MSG "Account Onboarded Successfully"
 								# Increment counter
 								$counter++
-								Write-LogMessage -Type Info -MSG "[$counter/$rowCount] Added $tmpAccountName successfully."  
+								Write-LogMessage -Type Info -MSG "[$counter/$rowCount] Added $g_LogAccountName successfully."  
 							}
 						}
 						catch
