@@ -12,9 +12,9 @@ CyberArk PVWA v10.4 and above
 CyberArk Privilege Cloud
 
 Change Notes
-2021-07-29	- 	Added CreateOnUpdate and applied formating via VSCode	
+2021-07-29	- 	Added CreateOnUpdate and applied formatting via VSCode	
 2021-09-27	- 	Added BypassAccountSearch and BypassSafeSearch
-			Added conncurrentLogon switch
+			Added concurrentLogon switch
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -869,7 +869,7 @@ Function Get-Account {
 		[ValidateSet("Continue","Ignore","Inquire","SilentlyContinue","Stop","Suspend")]
 		[String]$ErrAction="Continue"
 	)
-	$_retaccount = $null
+	$_retAccount = $null
 	$GetAccountsList = @()
 
 	try{
@@ -912,18 +912,18 @@ Function Get-Account {
 		
 		# Filter Accounts based on input properties
 		$WhereFilter = [scriptblock]::Create( ($WhereArray -join " -and ") )
-		$_retaccount = ( $GetAccountsList | Where-Object $WhereFilter )
+		$_retAccount = ( $GetAccountsList | Where-Object $WhereFilter )
 		# Verify that we have only one result
-		If ($_retaccount.count -gt 1) { 
+		If ($_retAccount.count -gt 1) { 
 			Write-LogMessage -Type Debug -MSG "Found too many accounts"
-			$_retaccount = $null
-			throw "Found $($_retaccount.count) accounts in search - fix duplications" 
+			$_retAccount = $null
+			throw "Found $($_retAccount.count) accounts in search - fix duplications" 
 		}
 	} catch {
 		Throw $(New-Object System.Exception ("Get-Account: Error getting Account.",$_.Exception))
 	}
 	
-	return $_retaccount
+	return $_retAccount
 }
 
 # @FUNCTION@ ======================================================================================================================
@@ -1279,7 +1279,7 @@ If(![string]::IsNullOrEmpty($TemplateSafe) -and !$NoSafeCreation) {
 
 if ($CreateOnUpdate) {$Create = $CreateOnUpdate}
 
-#endRetion
+#endregion
 
 #region [Read Accounts CSV file and Create Accounts]
 If([string]::IsNullOrEmpty($CsvPath)) {
@@ -1536,7 +1536,7 @@ ForEach ($account in $accountsCSV) {
 								Write-LogMessage -Type Info -MSG "Account Onboarded Successfully"
 								# Increment counter
 								$counter++
-								Write-LogMessage -Type Info -MSG "[$counter/$rowCount] Added $tmpAccountName successfully."  
+								Write-LogMessage -Type Info -MSG "[$counter/$rowCount] Added $g_LogAccountName successfully."  
 							}
 						} catch {
 							Throw $(New-Object System.Exception ("There was an error creating the account",$_.Exception))
