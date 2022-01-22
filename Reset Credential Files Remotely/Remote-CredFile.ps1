@@ -65,6 +65,12 @@ param(
 	[Parameter(Mandatory=$false,HelpMessage="Mapping File")]
 	[String]$MapFile,
 
+	[Parameter(Mandatory=$false,HelpMessage="Old Domain for FQDN")]
+	[String]$OldDomain,
+
+	[Parameter(Mandatory=$false,HelpMessage="New Domain for FQDN")]
+	[String]$newDomain,
+
 	[Parameter(Mandatory=$false,HelpMessage="PSSession Credentials")]
 	[PSCredential]$PSCredentials
 )
@@ -223,6 +229,9 @@ Get-Job | Remove-Job -Force
 foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 
 	$fqdn = (Resolve-DnsName $target.'IP Address' -ErrorAction SilentlyContinue).namehost
+	if ((![string]::IsNullOrEmpty($oldDomain)) -and (![string]::IsNullOrEmpty($newDomain)) ){
+		$fqdn = $fqdn.replace($oldDomain,$newDomain)
+	}
 	If ("Windows" -eq $target.os){
 		If (!(Test-TargetWinRM -server $fqdn )) {
 			"Error connectint to WinRM for Component User $($target.'Component User') on $($target.'IP Address') $fqdn"
