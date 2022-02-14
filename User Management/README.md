@@ -1,19 +1,29 @@
 # User Management
 
 > **General**
-> - This script Uses REST API and can support v10.9 of PVWA and up
 > - The goal for these scripts is to demonstrate use of User Management REST API
+> - These scripts uses the 2nd Gen REST API and can support v10.9 of PVWA and up
 
-## Main capabilities
+## Activate User
 -----------------
-- The script Uses REST API and can support v10.9 of PVWA and up
+- This script will activate a suspended user. It does not activate an inactive user.
+- The user running this Web service must have Audit users permissions.
+- Users on the same level as your user or lower in the Vault hierarchy are retrieved.
+
+### Parameters:
+```powershell
+Activate-User.ps1 [-PVWAURL] <string> [-EPVUserName] <string>
+```
+
+## Get Inactive Users Report
+-----------------
 - In order to use the ability to filter Users according to inactivity time, you would need version 11.1 (minimum)
 - The script can report the users to the screen or to a CSV file (with additional details)
 
 The script will create a log file in the same folder of the script called: _"InactiveUsersReport.log"_
 Running the script with common parameters of Debug and Verbose will add more information to the log
 
-## Parameters:
+### Parameters:
 ```powershell
 Get-InactiveUsersReport.ps1 [-PVWAURL] <string> [[-AuthType] <string>] [[-InactiveDays] <int>] [[-CSVPath] <string>] [-DisableSSLVerify] [<CommonParameters>]
 ```
@@ -36,9 +46,9 @@ Get-InactiveUsersReport.ps1 [-PVWAURL] <string> [[-AuthType] <string>] [[-Inacti
 	**(NOT RECOMMENDED)**
 	- In cases when you want to test the script on a PVWA environment that does not include a valid SSL certificate, you can use this parameter
 
-## Output Examples:
+### Output Examples:
 ----------------
-### Report Sample to screen
+#### Report Sample to screen
 > When using v10.10 - no ability to filter users
 
 |username           |source   |userType       |componentUser |IsEnabled |IsSuspended |LastSuccessfulLoginDate
@@ -58,7 +68,7 @@ Get-InactiveUsersReport.ps1 [-PVWAURL] <string> [[-AuthType] <string>] [[-Inacti
 |Operator           |CyberArk |Built-InAdmins         |False     |False      |False |N/A
 |DR                 |CyberArk |Built-InAdmins         |False     |False      |False |N/A
 
-### Report Sample to file
+#### Report Sample to file
 > Using version 11.1
 
 |username|FirstName|LastName|source|userType|componentUser|IsEnabled|IsSuspended|LastSuccessfulLoginDate|VaultAuthorization

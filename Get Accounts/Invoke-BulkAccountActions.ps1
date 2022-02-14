@@ -554,6 +554,7 @@ Function Get-FilteredAccounts {
 		If(-not [string]::IsNullOrEmpty($sAddress)) { $WhereArray += '$_.address -eq $sAddress' }
 		If(-not [string]::IsNullOrEmpty($sPlatformID)) { $WhereArray += '$_.platformId -eq $sPlatformID' }
 		If($bFailedOnly) { $WhereArray += '($_.secretManagement.status -eq "failure" -or $_.secretManagement.status -eq "failed")' }
+
 		# Filter Accounts based on input properties
 		$WhereFilter = [scriptblock]::Create( ($WhereArray -join " -and ") )
 		$FilteredAccountsList = ( $GetAccountsList | Where-Object $WhereFilter )
