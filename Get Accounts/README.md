@@ -133,5 +133,16 @@ Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -UserN
 Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -SafeName "PRD-ATL-App01-Admin" -FailedOnly -AccountsAction "Reconcile"
 ```
 
+### Reconcile all CPMDisabled accounts
+```powershell
+Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -CPMDisabled -AccountsAction "Reconcile"
+```
+
+### Reconcile all accounts marked as CPMDisabled OR failed accounts
+This uses a "or" statement, not a "and" statement. Added to add backwards compatibility with older accounts.
+```powershell
+Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -CPMDisabled -FailedOnly -AccountsAction "Verify"
+```
+
 ## Supported version
 CyberArk PAS version 10.4 and above

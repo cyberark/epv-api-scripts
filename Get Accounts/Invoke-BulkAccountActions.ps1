@@ -68,7 +68,10 @@ param
 	[String]$Custom,
 
 	[Parameter(ParameterSetName='Filters',Mandatory=$false)]
-	[Switch]$FailedOnly
+	[Switch]$FailedOnly,
+
+	[Parameter(ParameterSetName='Filters',Mandatory=$false)]
+	[Switch]$CPMDisabled
 )
 
 # Get Script Location 
@@ -553,7 +556,10 @@ Function Get-FilteredAccounts {
 		If(-not [string]::IsNullOrEmpty($sUserName)) { $WhereArray += '$_.userName -eq $sUserName' }
 		If(-not [string]::IsNullOrEmpty($sAddress)) { $WhereArray += '$_.address -eq $sAddress' }
 		If(-not [string]::IsNullOrEmpty($sPlatformID)) { $WhereArray += '$_.platformId -eq $sPlatformID' }
-		If($bFailedOnly) { $WhereArray += '($_.secretManagement.status -eq "failure" -or $_.secretManagement.status -eq "failed")' }
+		
+		If($FailedOnly -and $CPMDisabled) { $WhereArray += '($_.secretManagement.status -eq "failure" -or $_.secretManagement.status -eq "failed" -or $_.secretManagement.manualManagementReason -like "(CPM)*")' }
+		elseIf($FailedOnly) { $WhereArray += '($_.secretManagement.status -eq "failure" -or $_.secretManagement.status -eq "failed")' }
+		elseIf($CPMDisabled) { $WhereArray += '$_.secretManagement.manualManagementReason -like "(CPM)*"' }
 		# Filter Accounts based on input properties
 		$WhereFilter = [scriptblock]::Create( ($WhereArray -join " -and ") )
 		$FilteredAccountsList = ( $GetAccountsList | Where-Object $WhereFilter )
