@@ -44,8 +44,8 @@ param
 	# Account Actions to be used
 	[Parameter(Mandatory=$true)]
 	[ValidateSet('Verify',
-	             'Change',
-	             'Reconcile')]
+		'Change',
+		'Reconcile')]
 	[Alias("Action")]
 	[String]$AccountsAction = "Verify",
 	
@@ -109,9 +109,8 @@ $URL_Platforms = $URL_PVWAAPI+"/Platforms/{0}"
 # Parameters.....: LogFile, MSG, (Switch)Header, (Switch)SubHeader, (Switch)Footer, Type
 # Return Values..: None
 # =================================================================================================================================
-Function Write-LogMessage
-{
-<# 
+Function Write-LogMessage {
+	<# 
 .SYNOPSIS 
 	Method to log a message on screen and in a log file
 
@@ -149,16 +148,14 @@ Function Write-LogMessage
 		[String]$LogFile = $LOG_FILE_PATH
 	)
 	Try{
-		If([string]::IsNullOrEmpty($LogFile))
-		{
+		If([string]::IsNullOrEmpty($LogFile)) {
 			# Create a temporary log file
 			$LogFile = "$ScriptLocation\tmp.log"
 		}
 		
 		If ($Header) {
 			"=======================================" | Out-File -Append -FilePath $LogFile 
-		}
-		ElseIf($SubHeader) { 
+		} ElseIf($SubHeader) { 
 			"------------------------------------" | Out-File -Append -FilePath $LogFile 
 		}
 		
@@ -167,14 +164,12 @@ Function Write-LogMessage
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		
 		# Mask Passwords
-		if($Msg -match '((?>password|secret)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))')
-		{
+		if($Msg -match '((?>password|secret)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))') {
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
 		$writeToFile = $true
 		# Check the message type
-		switch ($type)
-		{
+		switch ($type) {
 			"Info" { 
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
@@ -191,30 +186,25 @@ Function Write-LogMessage
 				break
 			}
 			"Debug" { 
-				if($InDebug -or $InVerbose)
-				{
+				if($InDebug -or $InVerbose) {
 					Write-Debug $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
 					break
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 			"Verbose" { 
-				if($InVerbose)
-				{
+				if($InVerbose) {
 					Write-Verbose $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
 					break
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 		}
 		If($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LogFile }
 		If ($Footer) { 
 			"=======================================" | Out-File -Append -FilePath $LogFile 
 		}
-	}
-	catch{
+	} catch{
 		Throw $(New-Object System.Exception ("Cannot write message '$Msg' to file '$Logfile'",$_.Exception))
 	}
 }
@@ -225,9 +215,8 @@ Function Write-LogMessage
 # Parameters.....: Exception
 # Return Values..: Formatted String of Exception messages
 # =================================================================================================================================
-Function Collect-ExceptionMessage
-{
-<# 
+Function Collect-ExceptionMessage {
+	<# 
 .SYNOPSIS 
 	Formats exception messages
 .DESCRIPTION
@@ -244,8 +233,8 @@ Function Collect-ExceptionMessage
 	Process {
 		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		while ($e.InnerException) {
-		  $e = $e.InnerException
-		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+			$e = $e.InnerException
+			$msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		}
 		return $msg
 	}
@@ -255,14 +244,13 @@ Function Collect-ExceptionMessage
 #endregion
 
 #region Helper Functions
-Function Test-CommandExists
-{
-    Param ($command)
-    $oldPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'stop'
-    try {if(Get-Command $command){RETURN $true}}
-    Catch {Write-Host "$command does not exist"; RETURN $false}
-    Finally {$ErrorActionPreference=$oldPreference}
+Function Test-CommandExists {
+	Param ($command)
+	$oldPreference = $ErrorActionPreference
+	$ErrorActionPreference = 'stop'
+	try {if(Get-Command $command){RETURN $true}}
+	Catch {Write-Host "$command does not exist"; RETURN $false}
+	Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
 # @FUNCTION@ ======================================================================================================================
@@ -271,9 +259,8 @@ Function Test-CommandExists
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Disable-SSLVerification
-{
-<# 
+Function Disable-SSLVerification {
+	<# 
 .SYNOPSIS 
 	Bypass SSL certificate validations
 .DESCRIPTION
@@ -285,7 +272,7 @@ Function Disable-SSLVerification
 	[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 	# Disable SSL Verification
 	if (-not("DisableCertValidationCallback" -as [type])) {
-    add-type -TypeDefinition @"
+		Add-Type -TypeDefinition @"
 using System;
 using System.Net;
 using System.Net.Security;
@@ -301,7 +288,8 @@ public static class DisableCertValidationCallback {
         return new RemoteCertificateValidationCallback(DisableCertValidationCallback.ReturnTrue);
     }
 }
-"@ }
+"@ 
+ }
 
 	[System.Net.ServicePointManager]::ServerCertificateValidationCallback = [DisableCertValidationCallback]::GetDelegate()
 }
@@ -312,9 +300,8 @@ public static class DisableCertValidationCallback {
 # Parameters.....: Command method, URI, Header, Body
 # Return Values..: REST response
 # =================================================================================================================================
-Function Invoke-Rest
-{
-<# 
+Function Invoke-Rest {
+	<# 
 .SYNOPSIS 
 	Invoke REST Method
 .DESCRIPTION
@@ -345,19 +332,15 @@ Function Invoke-Rest
 		[String]$ErrAction="Continue"
 	)
 	
-	If ((Test-CommandExists Invoke-RestMethod) -eq $false)
-	{
-	   Throw "This script requires PowerShell version 3 or above"
+	If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
+		Throw "This script requires PowerShell version 3 or above"
 	}
 	$restResponse = ""
 	try{
-		if([string]::IsNullOrEmpty($Body))
-		{
+		if([string]::IsNullOrEmpty($Body)) {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700
-		}
-		else
-		{
+		} else {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700
 		}
@@ -365,7 +348,9 @@ Function Invoke-Rest
 		Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)" -ErrorAction $ErrAction
 		Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
 		Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)" -ErrorAction $ErrAction
+		Write-LogMessage -Type Error -Msg "Error Message: $($_.ErrorDetails.Message)" -ErrorAction $ErrAction
 		$restResponse = $null
+		Throw
 	} catch { 
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'",$_.Exception))
 	}
@@ -379,9 +364,8 @@ Function Invoke-Rest
 # Parameters.....: Credentials
 # Return Values..: Logon Header
 # =================================================================================================================================
-Function Get-LogonHeader
-{
-<# 
+Function Get-LogonHeader {
+	<# 
 .SYNOPSIS 
 	Get-LogonHeader
 .DESCRIPTION
@@ -394,17 +378,15 @@ Function Get-LogonHeader
 		[PSCredential]$Credentials
 	)
 	
-	if([string]::IsNullOrEmpty($g_LogonHeader))
-	{
+	if([string]::IsNullOrEmpty($g_LogonHeader)) {
 		# Disable SSL Verification to contact PVWA
-		If($DisableSSLVerify)
-		{
+		If($DisableSSLVerify) {
 			Disable-SSLVerification
 		}
 		
 		# Create the POST Body for the Logon
 		# ----------------------------------
-		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
+		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password;concurrentSession="true" } | ConvertTo-Json
 		try{
 			# Logon
 			$logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
@@ -416,8 +398,7 @@ Function Get-LogonHeader
 		}
 
 		$logonHeader = $null
-		If ([string]::IsNullOrEmpty($logonToken))
-		{
+		If ([string]::IsNullOrEmpty($logonToken)) {
 			Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
 		}
 		
@@ -438,21 +419,19 @@ Function Get-LogonHeader
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Run-Logoff
-{
-<# 
+Function Run-Logoff {
+	<# 
 .SYNOPSIS 
 	Run-Logoff
 .DESCRIPTION
 	Logoff a PVWA session
 #>
 	try{
-		If($null -ne $g_LogonHeader)
-		{
+		If($null -ne $g_LogonHeader) {
 			# Logoff the session
 			# ------------------
 			Write-LogMessage -Type Info -Msg "Logoff Session..."
-			Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader | out-null
+			Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader | Out-Null
 			Set-Variable -Name g_LogonHeader -Value $null -Scope global
 		}
 	} catch {
@@ -466,21 +445,17 @@ Function Run-Logoff
 # Parameters.....: Text
 # Return Values..: Encoded Text
 # =================================================================================================================================
-Function Encode-URL($sText)
-{
-<# 
+Function Encode-URL($sText) {
+	<# 
 .SYNOPSIS 
 	Encode-URL
 .DESCRIPTION
 	Encodes a text for URL
 #>
-	if ($sText.Trim() -ne "")
-	{
+	if ($sText.Trim() -ne "") {
 		Write-LogMessage -Type Verbose -Msg "Returning URL Encode of $sText"
 		return [URI]::EscapeDataString($sText)
-	}
-	else
-	{
+	} else {
 		return ""
 	}
 }
@@ -491,9 +466,8 @@ Function Encode-URL($sText)
 # Parameters.....: Base URL, Search keywords, safe name
 # Return Values..: None
 # =================================================================================================================================
-Function Get-SearchCriteria
-{
-<# 
+Function Get-SearchCriteria {
+	<# 
 .SYNOPSIS 
 	Get-SearchCriteria
 .DESCRIPTION
@@ -503,13 +477,11 @@ Function Get-SearchCriteria
 	[string]$retURL = $sURL
 	$retURL += "?"
 	
-	if($sSearch.Trim() -ne "")
-	{
+	if($sSearch.Trim() -ne "") {
 		Write-LogMessage -Type Debug -Msg "Search: $sSearch"
 		$retURL += "search=$(Encode-URL $sSearch)&"
 	}
-	if($sSafeName.Trim() -ne "")
-	{
+	if($sSafeName.Trim() -ne "") {
 		Write-LogMessage -Type Debug -Msg "Safe: $sSafeName"
 		$retURL += "filter=safename eq $(Encode-URL $sSafeName)&"
 	}
@@ -526,9 +498,8 @@ Function Get-SearchCriteria
 # Parameters.....: Safe name, Platform ID, Custom keywords, User name, address
 # Return Values..: List of Filtered Accounts
 # =================================================================================================================================
-Function Get-FilteredAccounts
-{
-<# 
+Function Get-FilteredAccounts {
+	<# 
 .SYNOPSIS 
 	Get-FilteredAccounts
 .DESCRIPTION
@@ -569,8 +540,7 @@ Function Get-FilteredAccounts
 		$nextLink = $GetAccountsResponse.nextLink
 		Write-LogMessage -Type Debug -MSG "Getting accounts next link: $nextLink"
 		
-		While (-not [string]::IsNullOrEmpty($nextLink))
-		{
+		While (-not [string]::IsNullOrEmpty($nextLink)) {
 			$GetAccountsResponse = Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header (Get-LogonHeader $VaultCredentials)
 			$nextLink = $GetAccountsResponse.nextLink
 			Write-LogMessage -Type Debug -MSG "Getting accounts next link: $nextLink"
@@ -583,7 +553,8 @@ Function Get-FilteredAccounts
 		If(-not [string]::IsNullOrEmpty($sUserName)) { $WhereArray += '$_.userName -eq $sUserName' }
 		If(-not [string]::IsNullOrEmpty($sAddress)) { $WhereArray += '$_.address -eq $sAddress' }
 		If(-not [string]::IsNullOrEmpty($sPlatformID)) { $WhereArray += '$_.platformId -eq $sPlatformID' }
-		If($bFailedOnly) { $WhereArray += '$_.secretManagement.status -eq "failure"' }
+		If($bFailedOnly) { $WhereArray += '($_.secretManagement.status -eq "failure" -or $_.secretManagement.status -eq "failed")' }
+
 		# Filter Accounts based on input properties
 		$WhereFilter = [scriptblock]::Create( ($WhereArray -join " -and ") )
 		$FilteredAccountsList = ( $GetAccountsList | Where-Object $WhereFilter )
@@ -600,8 +571,7 @@ if($InDebug) { Write-LogMessage -Type Info -MSG "Running in Debug Mode" -LogFile
 if($InVerbose) { Write-LogMessage -Type Info -MSG "Running in Verbose Mode" -LogFile $LOG_FILE_PATH }
 Write-LogMessage -Type Debug -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ", ")" -LogFile $LOG_FILE_PATH
 # Verify the Powershell version is compatible
-If (!($PSVersionTable.PSCompatibleVersions -join ", ") -like "*3*")
-{
+If (!($PSVersionTable.PSCompatibleVersions -join ", ") -like "*3*") {
 	Write-LogMessage -Type Error -Msg "The Powershell version installed on this machine is not compatible with the required version for this script.`
 	Installed PowerShell version $($PSVersionTable.PSVersion.Major) is compatible with versions $($PSVersionTable.PSCompatibleVersions -join ", ").`
 	Please install at least PowerShell version 3."
@@ -609,8 +579,7 @@ If (!($PSVersionTable.PSCompatibleVersions -join ", ") -like "*3*")
 	return
 }
 # Check if Powershell is running in Constrained Language Mode
-If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
-{
+If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
 	Write-LogMessage -Type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
 	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
@@ -618,15 +587,11 @@ If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 	return
 }
 # Check that the PVWA URL is OK
-If ($PVWAURL -ne "")
-{
-	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/")
-	{
+If ($PVWAURL -ne "") {
+	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/") {
 		$PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
 	}
-}
-else
-{
+} else {
 	Write-LogMessage -Type Error -MSG "PVWA URL can not be empty"
 	return
 }
@@ -639,20 +604,16 @@ $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 
 try {
 	$accountAction = ""
-	Switch($AccountsAction)
-	{
-		"Verify"
-		{
+	Switch($AccountsAction) {
+		"Verify" {
 			Write-LogMessage -Type Info -MSG "Running Verify on all filtered accounts"
 			$accountAction = $URL_AccountVerify
 		}
-		"Change"
-		{
+		"Change" {
 			Write-LogMessage -Type Info -MSG "Running Change on all filtered accounts"
 			$accountAction = $URL_AccountChange
 		}
-		"Reconcile"
-		{
+		"Reconcile" {
 			Write-LogMessage -Type Info -MSG "Running Reconcile on all filtered accounts"
 			$accountAction = $URL_AccountReconcile
 		}
@@ -661,9 +622,14 @@ try {
 	$filteredAccounts = Get-FilteredAccounts -sSafeName $SafeName -sPlatformID $PlatformID -sUserName $UserName -sAddress $Address -sCustomKeywords $Custom -bFailedOnly $FailedOnly -VaultCredentials $creds
 	Write-LogMessage -Type Info -MSG "Going over $($filteredAccounts.Count) filtered accounts"
 	# Run Account Action on relevant Accounts
-	ForEach ($account in $filteredAccounts)
-	{
-		Invoke-Rest -Uri ($accountAction -f $account.id) -Command POST -Body "" -Header (Get-LogonHeader $creds)
+	ForEach ($account in $filteredAccounts) {
+		Write-LogMessage -Type Debug -MSG "Submitting account `"$($account.Name)`" in safe `"$($account.safeName)`""
+		try {
+			Invoke-Rest -Uri ($accountAction -f $account.id) -Command POST -Body "" -Header (Get-LogonHeader $creds)
+			Write-LogMessage -Type Debug -MSG "Submitted account `"$($account.Name)`" in safe `"$($account.safeName)`""
+		} Catch {
+			Write-LogMessage -Type Error -MSG "Error Submitting account `"$($account.Name)`" in safe `"$($account.safeName)`""
+		}
 	}
 } catch {
 	Write-LogMessage -Type Error -MSG "There was an Error running bulk account actions. Error: $(Collect-ExceptionMessage $_.Exception)"
