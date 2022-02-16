@@ -26,4 +26,4 @@ Please see our [`CONTRIBUTING`](CONTRIBUTING.md) for more details.
 
 This repository is licensed under Apache License 2.0 - see [`LICENSE`](LICENSE) for more details.
 
-Copyright © 2021 CyberArk Software Ltd. All rights reserved.
+Copyright © 2022 CyberArk Software Ltd. All rights reserved.

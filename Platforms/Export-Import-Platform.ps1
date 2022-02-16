@@ -135,8 +135,7 @@ Function import-platform {
 		[string]$PlatformZipPath
 	)
 	If (Test-Path $PlatformZipPath) {
-		# Converting to Base64, following bug 00015428
-		$zipContent = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($(Resolve-Path $PlatformZipPath)))
+		$zipContent = [System.IO.File]::ReadAllBytes($(Resolve-Path $PlatformZipPath))
 		$importBody = @{ ImportFile = $zipContent; } | ConvertTo-Json -Depth 3 -Compress
 		try {
 			$ImportPlatformResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportPlatforms -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700 -Body $importBody

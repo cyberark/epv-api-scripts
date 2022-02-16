@@ -1,5 +1,4 @@
 .gitignore
 .vscode/launch.json
-.vscode/settings.json
-Reset Credential Files Remotely/Remote-CredFileReset.log
-ScarpFile
+.creds
+
