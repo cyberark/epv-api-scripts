@@ -1,5 +1,4 @@
-*.log
+.gitignore
 .vscode/launch.json
 .creds
-ScarpFile
-.vscode/settings.json
+
