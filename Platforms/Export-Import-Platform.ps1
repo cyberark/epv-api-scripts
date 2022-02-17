@@ -308,7 +308,7 @@ If (Test-CommandExists Invoke-RestMethod) {
 				if (![string]::IsNullOrEmpty($line)) 
 				{ 
 					export-platform $line 	
-					("$PlatformZipPath\$line.zip").Replace("\\","\").Replace("/","\") | Out-File -FilePath "$PlatformZipPath\_Export.txt" -Append
+					("$PlatformZipPath\$line.zip").Replace("\\","\").Replace("/","\") | Out-File -FilePath "$PlatformZipPath\_Exported.txt" -Append
 				}
 			} 
 	
@@ -318,7 +318,7 @@ If (Test-CommandExists Invoke-RestMethod) {
 			$null | Out-File -FilePath "$PlatformZipPath\_Export.txt" -Force
 			foreach ($line in $platforms) {
 				Write-Debug "Trying to export $line" 
-				("$PlatformZipPath\$line.zip").Replace("\\","\").Replace("/","\") | Out-File -FilePath "$PlatformZipPath\_Export.txt" -Append
+				("$PlatformZipPath\$line.zip").Replace("\\","\").Replace("/","\") | Out-File -FilePath "$PlatformZipPath\_Exported.txt" -Append
 				if (![string]::IsNullOrEmpty($line)) { export-platform $line }		
 			} 
 
