@@ -3,7 +3,7 @@
 
 Main capabilities
 -----------------
-- The tool Uses REST API and can support v9.8 of PVWA and up
+- The tool Uses REST API and can support v12.1 of PVWA and up
 - The tool supports listing of Safes, Adding new safes and adding new members to safes
 - The tool can take a simple CSV file with safe details or members to add or update them
 - The tool can support comma delimited CSV files (default) or tab delimited CSV files
