@@ -685,7 +685,7 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [string]$safeDescription,
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$managingCPM = "PasswordManager",
+        [string]$managingCPM,
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [int]$numVersionRetention = 7,
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
@@ -704,8 +704,8 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
 
     If ($numDaysRetention -gt -1)
     {
-        $createSafeBody.Safe.Add("NumberOfDaysRetention", $numDaysRetention)
-        $createSafeBody.Safe.Remove("NumberOfVersionsRetention")
+        $createSafeBody.Add("NumberOfDaysRetention", $numDaysRetention)
+        $createSafeBody.Remove("NumberOfVersionsRetention")
     }
 
     try
