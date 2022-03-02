@@ -1,4 +1,4 @@
 .gitignore
 .vscode/launch.json
 .creds
-
+*.log
