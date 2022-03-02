@@ -124,7 +124,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "2.0"
+$ScriptVersion = "2.0.1"
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -695,13 +695,11 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
     )
 
     $createSafeBody = @{
-        safe = @{
             "SafeName"                  = "$safename"; 
             "Description"               = "$safeDescription"; 
             "OLACEnabled"               = $enableOLAC; 
             "ManagingCPM"               = "$managingCPM";
             "NumberOfVersionsRetention" = $numVersionRetention;
-        }
     }
 
     If ($numDaysRetention -gt -1)
@@ -793,14 +791,12 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     }
 	
     $updateSafeBody = @{
-        safe = @{
             "SafeName"                  = "$safeName"; 
             "Description"               = "$updateDescription"; 
             "OLACEnabled"               = $updateOLAC; 
             "ManagingCPM"               = "$updateManageCPM";
             "NumberOfVersionsRetention" = $updateRetVersions;
             "NumberOfDaysRetention"     = $updateRetDays;
-        }
     } | ConvertTo-Json
 
     try
