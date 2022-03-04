@@ -311,7 +311,7 @@ Function Invoke-Rest {
 #>
     param (
         [Parameter(Mandatory=$true)]
-        [ValidateSet("GET","POST","DELETE","PATCH")]
+        [ValidateSet("GET","POST","DELETE","PATCH","PUT")]
         [String]$Command, 
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()] 
@@ -345,7 +345,8 @@ Function Invoke-Rest {
                     
                     Write-LogMessage -Type Error -Msg "Was able to connect to the PVWA successfully, but the account was locked" 
                     Write-LogMessage -Type Error -Msg "URI:  $URI"
-                } ElseIf (!($($_.ErrorDetails.Message | ConvertFrom-Json).ErrorCode -in $SkipErrorCode)){
+                    Throw "Account Locked"
+                } ElseIf (!($($_.ErrorDetails.Message | ConvertFrom-Json).ErrorCode -in $global:SkipErrorCode)){
                     Write-LogMessage -Type Error -Msg "Was able to connect to the PVWA successfully, but the command resulted in a error"
                     Write-LogMessage -Type Error -Msg "URI:  $URI"
                     Write-LogMessage -Type Error -Msg "Command:  $Command"
@@ -380,15 +381,16 @@ Function New-SearchCriteria {
 	
     if (![string]::IsNullOrEmpty($sSearch)) {
         Write-LogMessage -Type Debug -Msg "Search: $sSearch"
-        $retURL += "search=$(Encode-URL $sSearch)&"
+        $retURL += "search=$(Convert-ToURL $sSearch)&"
     }
     if (![string]::IsNullOrEmpty($sSafeName)) {
         Write-LogMessage -Type Debug -Msg "Safe: $sSafeName"
-        $retURL += "filter=safename eq $(Encode-URL $sSafeName)&"
+        $retURL += "filter=safename eq $(Convert-ToURL $sSafeName)&"
     }
     if (![string]::IsNullOrEmpty($sSortParam)) {
         Write-LogMessage -Type Debug -Msg "Sort: $sSortParam"
-        $retURL += "sort=$(Encode-URL $sSortParam)&"
+        $retURL += "sort=$(Convert-ToURL $sSortParam)&"
+
     }
     if ($startswith) {
         Write-LogMessage -Type Debug -Msg "startswith: $sSortParam"
@@ -419,7 +421,8 @@ Function Update-SearchCriteria {
         $limitNumber = [int]$Matches[1]
         # Verify that we have an increased the limit
         if($limitNumber -ge $limit) {
-            $newNextLink = $nextLinkURL.Replace($limitText,"limit={0}" -f ($limit * $counter))
+            $newNextLink = $nextLinkURL.Replace($limitText,"limit={0}" -f "1000")
+
         } else {
             Write-LogMessage -Type Debug -Msg "Limits are not correct. Next Link limit: $limitNumber; current limit: $limit; Next limit should be: $($limit * $counter)"
             # No change to the next link URL
@@ -477,29 +480,34 @@ Function Get-Accounts{
         Write-LogMessage -Type Error -Msg $_.Exception.Response.StatusDescription
     }
 						
-    If ($AutoNextPage) {
-        $GetAccountsList = @()
-        $counter = 1
-        $GetAccountsList += $GetAccountsResponse.value
-        Write-LogMessage -Type Debug -Msg "Found $($GetAccountsList.count) accounts so far..."
-        $nextLink = Update-SearchCriteria -nextLinkURL $("$PVWAURL/$($GetAccountsResponse.nextLink))") -counter $counter -limit $Limit
+    $GetAccountsList = @()
+    $counter = 1
+    $GetAccountsList += $GetAccountsResponse.value
+    Write-LogMessage -Type debug -Msg "Found $($GetAccountsList.count) accounts so far..."
+    $nextLink =  $("$URL/$($GetAccountsResponse.nextLink)")
+    If (![string]::IsNullOrEmpty($GetAccountsResponse.nextLink)){
+        $nextLink = $("$URL/$($GetAccountsResponse.nextLink)")
         Write-LogMessage -Type Debug -Msg "Getting accounts next link: $nextLink"
-        While (-not [string]::IsNullOrEmpty($nextLink)) {
-            $GetAccountsResponse = Invoke-Rest -Command Get -Uri $nextLink -Headers $logonHeader
-            $GetAccountsList += $GetAccountsResponse.value
-            Write-LogMessage -Type Debug -Msg "Found $($GetAccountsList.count) accounts so far..."
-            # Increase the counter
-            $counter++
-            $nextLink = Update-SearchCriteria -nextLinkURL $("$PVWAURL/$($GetAccountsResponse.nextLink))") -counter $counter -limit $Limit
-            Write-LogMessage -Type Debug -Msg "Getting accounts next link: $nextLink"
-        }
-				
-        Write-LogMessage -Type Debug -Msg "Showing $($GetAccountsList.count) accounts"
-        $response = $GetAccountsList
-    } else {
-        Write-LogMessage -Type Debug -Msg "Showing up to $Limit accounts" 
-        $response = $GetAccountsResponse.value
+    } else             {
+        $nextLink = $null
     }
+    While (-not [string]::IsNullOrEmpty($nextLink)) {
+        $GetAccountsResponse = Invoke-Rest -Command Get -Uri $nextLink -Header $logonHeader
+        $GetAccountsList += $GetAccountsResponse.value
+        Write-LogMessage -Type info -Msg "Found $($GetAccountsList.count) accounts so far..."
+        # Increase the counter
+        $counter++
+        If (![string]::IsNullOrEmpty($GetAccountsResponse.nextLink)){
+            $nextLink = $("$URL/$($GetAccountsResponse.nextLink)")
+            Write-LogMessage -Type Debug -Msg "Getting accounts next link: $nextLink"
+        } else             {
+            $nextLink = $null
+        }
+    }
+				
+    Write-LogMessage -Type debug -Msg "Completed retriving $($GetAccountsList.count) accounts"
+    $response = $GetAccountsList
+
     return $response
 }
 
@@ -567,7 +575,11 @@ Function Invoke-Logon{
         [Parameter(Mandatory=$true)]
         [PSCredential]$Credentials,
         [Parameter(Mandatory=$false)]
-        [String]$url=$global:PVWAURL
+
+        [String]$url=$global:PVWAURL,
+        [Parameter(Mandatory=$false)]
+        [String]$AuthType=$global:AuthType
+
     )
 
     # Get Credentials to Login
@@ -577,9 +589,10 @@ Function Invoke-Logon{
     if ($null -eq $Credentials) {$Credentials = $Host.UI.PromptForCredential($caption,$msg,"","")}
     if ($null -ne $Credentials) {
         if($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $Credentials -RadiusOTP $OTP)
+            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $Credentials -AuthType $AuthType -RadiusOTP $OTP )
         } else {
-            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $Credentials)
+            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $Credentials -AuthType $AuthType)
+
         }
         # Verify that we successfully logged on
         If ($null -eq $g_LogonHeader) { 
@@ -596,7 +609,10 @@ Function Get-Logon{
         [Parameter(Mandatory=$true)]
         [PSCredential]$Credentials,
         [Parameter(Mandatory=$false)]
-        [string]$url=$global:PVWAURL
+        [string]$url=$global:PVWAURL,
+        [Parameter(Mandatory=$false)]
+        [string]$AuthType=$global:AuthType
+
     )
 
     $URL_Logon = "$url/api/auth/$AuthType/Logon"
@@ -652,6 +668,7 @@ Function Get-LogonHeader {
         [Parameter(Mandatory=$false)]
         [string]$URL=$URL_Logon
     )
+
     # Create the POST Body for the Logon
     # ----------------------------------
     $logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password;concurrentSession="true" } | ConvertTo-Json -Compress
@@ -1004,6 +1021,7 @@ Function New-RandomPassword{
     }
 }
 
+
 Function Process-Accounts{
 
     Param
@@ -1245,13 +1263,9 @@ Function Get-Secret{
         } else {
             return $null
         }
-    } catch {
-        "Catch"
+    } catch [System.Management.Automation.RuntimeException] {
+        If ("Account Locked" -eq $_.Exception.Message){Throw "Account Locked"}
     }
- 
-    
-
-
 }
 
 Function Compare-SecureString{
@@ -1346,10 +1360,116 @@ Function New-Safe {
         [Parameter(Mandatory=$false)]
         [hashtable]$logonHeader=$g_LogonHeader,
         [Parameter(Mandatory=$true)]
-        $safe
+        $safe,
+        [Parameter(Mandatory=$false)]
+        [string]$cpnNameOld,
+        [Parameter(Mandatory=$false)]
+        [string]$cpnNameNew
     )
     $URL_NewSafe = "$url/api/Safes/"
 
-    return Invoke-Rest -Command Post -Uri $URL_NewSafe -header $logonHeader -Body $($safe | ConvertTo-Json -Compress)
+    $safe = $safe | Select-Object -Property numberOfDaysRetention,numberOfVersionsRetention,oLACEnabled,autoPurgeEnabled,managingCPM,safeName,description,location
+
+    If ((![string]::IsNullOrEmpty($cpnNameOld)) -and (![string]::IsNullOrEmpty($cpnNameNew))) {
+        return Invoke-Rest -Command Post -Uri $URL_NewSafe -header $logonHeader -Body $($safe | ConvertTo-Json -Compress).replace($cpnNameOld,$cpnNameNew)
+    } else {
+        return Invoke-Rest -Command Post -Uri $URL_NewSafe -header $logonHeader -Body $($safe | ConvertTo-Json -Compress)
+    }
+}
+
+Function New-SafeMember {
+    Param
+    (
+        [Parameter(Mandatory=$false)]
+        [string]$url=$global:PVWAURL,
+        [Parameter(Mandatory=$false)]
+        [hashtable]$logonHeader=$g_LogonHeader,
+        [Parameter(Mandatory=$true)]
+        $safe,
+        [Parameter(Mandatory=$true)]
+        $safeMember,
+        [Parameter(Mandatory=$false)]
+        $newLDAP
+    )
+    $URL_SafeMembers =    "$url/api/Safes/$safe/Members"
+    
+
+    $safeMember = $safeMember | Select-Object -Property memberName,searchIn,membershipExpirationDate,permissions
+    if (![string]::IsNullOrEmpty($newLDAP)){    
+        $safeMember.searchIn =  $safeMember.searchIn.replace("LDAP",$newLDAP)
+    }
+    
+    return Invoke-Rest -Command Post -Uri $URL_SafeMembers -header $logonHeader -Body $($safeMember | ConvertTo-Json -Compress)
+    
+}
+Function Get-UserSource {
+    Param
+    (
+        [Parameter(Mandatory=$false)]
+        [string]$url=$global:PVWAURL,
+        [Parameter(Mandatory=$false)]
+        [hashtable]$logonHeader=$g_LogonHeader,
+        [Parameter(Mandatory=$true)]
+        $safeMember
+    )
+
+    $URL_UserDetail = "$url/api/Users/$($safeMember.memberId)"
+    Write-LogMessage -Type Debug -Msg "Getting member source: $URL_UserDetail"
+    Write-LogMessage c -Msg "Using Member: $safeMember"
+
+    $user = Invoke-Rest -Command GET -Uri $URL_UserDetail -header $logonHeader
+    return $user.source
+    
+}
+
+Function Get-GroupSource {
+    Param
+    (
+        [Parameter(Mandatory=$false)]
+        [string]$url=$global:PVWAURL,
+        [Parameter(Mandatory=$false)]
+        [hashtable]$logonHeader=$g_LogonHeader,
+        [Parameter(Mandatory=$true)]
+        $safeMember
+    )
+
+    $URL_Groups = "$url/api/UserGroups?search=$($safeMember.memberName)"
+    Write-LogMessage -Type Debug -Msg "Getting member source: $URL_Groups"
+    Write-LogMessage -Type Debug -Msg "Using Member: $safeMember"
+
+    $groups = Invoke-Rest -Command GET -Uri $URL_Groups -header $logonHeader
+
+    foreach ($group in $groups.value){
+        if ($safeMember.memberName -eq $group.groupName){
+            return $group.directory
+        }
+    }
+}
+Function Update-SafeMember {
+    Param
+    (
+        [Parameter(Mandatory=$false)]
+        [string]$url=$global:PVWAURL,
+        [Parameter(Mandatory=$false)]
+        [hashtable]$logonHeader=$g_LogonHeader,
+        [Parameter(Mandatory=$true)]
+        $safe,
+        [Parameter(Mandatory=$true)]
+        $safeMember,
+        [Parameter(Mandatory=$false)]
+        $newLDAP
+    )
+    $URL_SafeMembers =    "$url/api/Safes/$safe/Members/$($safeMember.memberName)"
+    
+    Write-LogMessage -Type Debug -Msg "Updating Safe Member: $safeMember"
+
+    $safeMember = $safeMember | Select-Object -Property memberName,searchIn,membershipExpirationDate,permissions
+    
+    if (![string]::IsNullOrEmpty($newLDAP)){    
+        $safeMember.searchIn =  $safeMember.searchIn.replace("LDAP",$newLDAP)
+    }
+    
+    return Invoke-Rest -Command PUT -Uri $URL_SafeMembers -header $logonHeader -Body $($safeMember | ConvertTo-Json -Compress)
+
     
 }
