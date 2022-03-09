@@ -130,9 +130,8 @@ $URL_DiscoveredAccountDetails = $URL_PVWAAPI+"/DiscoveredAccounts/{0}"
 # Parameters.....: LogFile, MSG, (Switch)Header, (Switch)SubHeader, (Switch)Footer, Type
 # Return Values..: None
 # =================================================================================================================================
-Function Write-LogMessage
-{
-<# 
+Function Write-LogMessage {
+	<# 
 .SYNOPSIS 
 	Method to log a message on screen and in a log file
 
@@ -170,16 +169,14 @@ Function Write-LogMessage
 		[String]$LogFile = $LOG_FILE_PATH
 	)
 	Try{
-		If([string]::IsNullOrEmpty($LogFile))
-		{
+		If([string]::IsNullOrEmpty($LogFile)) {
 			# Create a temporary log file
 			$LogFile = "$ScriptLocation\tmp.log"
 		}
 		
 		If ($Header) {
 			"=======================================" | Out-File -Append -FilePath $LogFile 
-		}
-		ElseIf($SubHeader) { 
+		} ElseIf($SubHeader) { 
 			"------------------------------------" | Out-File -Append -FilePath $LogFile 
 		}
 		
@@ -188,14 +185,12 @@ Function Write-LogMessage
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		
 		# Mask Passwords
-		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
-		{
+		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))') {
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
 		$writeToFile = $true
 		# Check the message type
-		switch ($type)
-		{
+		switch ($type) {
 			"Info" { 
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
@@ -212,30 +207,25 @@ Function Write-LogMessage
 				break
 			}
 			"Debug" { 
-				if($InDebug -or $InVerbose)
-				{
+				if($InDebug -or $InVerbose) {
 					Write-Debug $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
 					break
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 			"Verbose" { 
-				if($InVerbose)
-				{
+				if($InVerbose) {
 					Write-Verbose $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
 					break
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 		}
 		If($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LogFile }
 		If ($Footer) { 
 			"=======================================" | Out-File -Append -FilePath $LogFile 
 		}
-	}
-	catch{
+	} catch{
 		Throw $(New-Object System.Exception ("Cannot write message '$Msg' to file '$Logfile'",$_.Exception))
 	}
 }
@@ -246,9 +236,8 @@ Function Write-LogMessage
 # Parameters.....: Exception
 # Return Values..: Formatted String of Exception messages
 # =================================================================================================================================
-Function Collect-ExceptionMessage
-{
-<# 
+Function Collect-ExceptionMessage {
+	<# 
 .SYNOPSIS 
 	Formats exception messages
 .DESCRIPTION
@@ -265,8 +254,8 @@ Function Collect-ExceptionMessage
 	Process {
 		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		while ($e.InnerException) {
-		  $e = $e.InnerException
-		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+			$e = $e.InnerException
+			$msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		}
 		return $msg
 	}
@@ -282,9 +271,8 @@ Function Collect-ExceptionMessage
 # Parameters.....: Command
 # Return Values..: True / False
 # =================================================================================================================================
-Function Test-CommandExists
-{
-<# 
+Function Test-CommandExists {
+	<# 
 .SYNOPSIS 
 	Tests if a command exists
 .DESCRIPTION
@@ -293,12 +281,12 @@ Function Test-CommandExists
 	The command to test
 #>
 
-    Param ($command)
-    $oldPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'stop'
-    try { if(Get-Command $command){ return $true } }
-    Catch { return $false }
-    Finally {$ErrorActionPreference=$oldPreference}
+	Param ($command)
+	$oldPreference = $ErrorActionPreference
+	$ErrorActionPreference = 'stop'
+	try { if(Get-Command $command){ return $true } }
+	Catch { return $false }
+	Finally {$ErrorActionPreference=$oldPreference}
 } 
 
 # @FUNCTION@ ======================================================================================================================
@@ -307,9 +295,8 @@ Function Test-CommandExists
 # Parameters.....: EPOCH date
 # Return Values..: Date time
 # =================================================================================================================================
-Function Convert-Date($epochdate)
-{
-<# 
+Function Convert-Date($epochdate) {
+	<# 
 .SYNOPSIS 
 	Convert-Date
 .DESCRIPTION
@@ -327,9 +314,8 @@ Function Convert-Date($epochdate)
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Disable-SSLVerification
-{
-<# 
+Function Disable-SSLVerification {
+	<# 
 .SYNOPSIS 
 	Bypass SSL certificate validations
 .DESCRIPTION
@@ -341,7 +327,7 @@ Function Disable-SSLVerification
 	[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 	# Disable SSL Verification
 	if (-not("DisableCertValidationCallback" -as [type])) {
-    add-type -TypeDefinition @"
+		Add-Type -TypeDefinition @"
 using System;
 using System.Net;
 using System.Net.Security;
@@ -357,7 +343,8 @@ public static class DisableCertValidationCallback {
         return new RemoteCertificateValidationCallback(DisableCertValidationCallback.ReturnTrue);
     }
 }
-"@ }
+"@ 
+ }
 
 	[System.Net.ServicePointManager]::ServerCertificateValidationCallback = [DisableCertValidationCallback]::GetDelegate()
 }
@@ -368,9 +355,8 @@ public static class DisableCertValidationCallback {
 # Parameters.....: Command method, URI, Header, Body
 # Return Values..: REST response
 # =================================================================================================================================
-Function Invoke-Rest
-{
-<# 
+Function Invoke-Rest {
+	<# 
 .SYNOPSIS 
 	Invoke REST Method
 .DESCRIPTION
@@ -401,19 +387,15 @@ Function Invoke-Rest
 		[String]$ErrAction="Continue"
 	)
 	
-	If ((Test-CommandExists Invoke-RestMethod) -eq $false)
-	{
-	   Throw "This script requires PowerShell version 3 or above"
+	If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
+		Throw "This script requires PowerShell version 3 or above"
 	}
 	$restResponse = ""
 	try{
-		if([string]::IsNullOrEmpty($Body))
-		{
+		if([string]::IsNullOrEmpty($Body)) {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700
-		}
-		else
-		{
+		} else {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700
 		}
@@ -435,9 +417,8 @@ Function Invoke-Rest
 # Parameters.....: Credentials
 # Return Values..: Logon Header
 # =================================================================================================================================
-Function Get-LogonHeader
-{
-<# 
+Function Get-LogonHeader {
+	<# 
 .SYNOPSIS 
 	Get-LogonHeader
 .DESCRIPTION
@@ -450,11 +431,9 @@ Function Get-LogonHeader
 		[PSCredential]$Credentials
 	)
 	
-	if([string]::IsNullOrEmpty($g_LogonHeader))
-	{
+	if([string]::IsNullOrEmpty($g_LogonHeader)) {
 		# Disable SSL Verification to contact PVWA
-		If($DisableSSLVerify)
-		{
+		If($DisableSSLVerify) {
 			Disable-SSLVerification
 		}
 		
@@ -472,8 +451,7 @@ Function Get-LogonHeader
 		}
 
 		$logonHeader = $null
-		If ([string]::IsNullOrEmpty($logonToken))
-		{
+		If ([string]::IsNullOrEmpty($logonToken)) {
 			Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
 		}
 		
@@ -494,9 +472,8 @@ Function Get-LogonHeader
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Run-Logoff
-{
-<# 
+Function Run-Logoff {
+	<# 
 .SYNOPSIS 
 	Run-Logoff
 .DESCRIPTION
@@ -505,10 +482,9 @@ Function Run-Logoff
 	try{
 		# Logoff the session
 		# ------------------
-		If($null -ne $g_LogonHeader)
-		{
+		If($null -ne $g_LogonHeader) {
 			Write-LogMessage -Type Info -Msg "Logoff Session..."
-			Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 | out-null
+			Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 | Out-Null
 			Set-Variable -Name g_LogonHeader -Value $null -Scope global
 		}
 	} catch {
@@ -522,9 +498,8 @@ Function Run-Logoff
 # Parameters.....: URL, Platform Type, Privileged Account, Search keywords, Search Type
 # Return Values..: None
 # =================================================================================================================================
-Function Get-FilterParameters
-{
-<# 
+Function Get-FilterParameters {
+	<# 
 .SYNOPSIS 
 	Get-FilterParameters
 .DESCRIPTION
@@ -556,52 +531,40 @@ Function Get-FilterParameters
 	$retURL += "?"
 	$filters = @()
 	
-	if(![string]::IsNullOrEmpty($sSearch))
-	{
+	if(![string]::IsNullOrEmpty($sSearch)) {
 		$retURL += "search=$(Encode-URL $sSearch)&"
 	}
-	if(![string]::IsNullOrEmpty($sSearchType))
-	{
+	if(![string]::IsNullOrEmpty($sSearchType)) {
 		$retURL += "searchType=$sSearchType&"
 	}
-	if(![string]::IsNullOrEmpty($sPlatformType))
-	{
+	if(![string]::IsNullOrEmpty($sPlatformType)) {
 		$filters += "platformType eq $(Encode-URL $sPlatformType)"
 	}
-	if(!($bPrivileged -and $bNonPrivileged))
-	{
+	if(!($bPrivileged -and $bNonPrivileged)) {
 		# Filter only if the user chose privileged or non-privileged only (ignore if both)
-		if($bPrivileged)
-		{
+		if($bPrivileged) {
 			$filters += "privileged eq true"
 		}
-		if($bNonPrivileged)
-		{
+		if($bNonPrivileged) {
 			$filters += "privileged eq false"
 		}
 	}
-	if(!($bAccountEnabled -and $bAccountDisabled))
-	{
+	if(!($bAccountEnabled -and $bAccountDisabled)) {
 		# Filter only if the user chose enabled or disabled accounts only (ignore if both)
-		if($bAccountEnabled)
-		{
+		if($bAccountEnabled) {
 			$filters += "accountEnabled eq true"
 		}
-		if($bAccountDisabled)
-		{
+		if($bAccountDisabled) {
 			$filters += "accountEnabled eq false"
 		}
 	}
-	if(![string]::IsNullOrEmpty($filters))
-	{
+	if(![string]::IsNullOrEmpty($filters)) {
 		$retURL += "filter="+($filters -join " AND ")+"&"
 	}
-	if(![string]::IsNullOrEmpty($sSortParam))
-	{
+	if(![string]::IsNullOrEmpty($sSortParam)) {
 		$retURL += "sort=$(Encode-URL $sSortParam)&"
 	}
-	if($iLimitPage -gt 0)
-	{
+	if($iLimitPage -gt 0) {
 		$retURL += "limit=$iLimitPage&"
 	}
 		
@@ -620,8 +583,7 @@ if($InVerbose) { Write-LogMessage -Type Info -MSG "Running in Verbose Mode" -Log
 Write-LogMessage -Type Debug -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ", ")" -LogFile $LOG_FILE_PATH
 
 # Check if Powershell is running in Constrained Language Mode
-If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
-{
+If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
 	Write-LogMessage -Type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
 	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
@@ -629,15 +591,11 @@ If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 	return
 }
 # Check that the PVWA URL is OK
-If ($PVWAURL -ne "")
-{
-	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/")
-	{
+If ($PVWAURL -ne "") {
+	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/") {
 		$PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
 	}
-}
-else
-{
+} else {
 	Write-LogMessage -Type Error -MSG "PVWA URL can not be empty"
 	return
 }
@@ -650,23 +608,21 @@ $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 
 try {
 	$response = ""
-	switch($PsCmdlet.ParameterSetName)
-	{
-		"List"
-		{
+	switch($PsCmdlet.ParameterSetName) {
+		"List" {
 			# Get Discovered Accounts
 			Write-LogMessage -Type Info -MSG "Creating a list of Discovered Accounts based on requested filters"
 			try{
 				$filterParameters = @{
-					sURL=$URL_DiscoveredAccounts;
-					sPlatformType=$PlatformType;
-					bPrivileged=$OnlyPrivilegedAccounts;
-					bNonPrivileged=$OnlyNonPrivilegedAccounts;
-					bAccountEnabled=$OnlyEnabledAccounts;
-					bAccountDisabled=$OnlyDisabledAccounts;
-					sSearch=$SearchKeywords;
-					sSearchType=$SearchType;
-					iLimitPage=$Limit;
+					sURL             =$URL_DiscoveredAccounts;
+					sPlatformType    =$PlatformType;
+					bPrivileged      =$OnlyPrivilegedAccounts;
+					bNonPrivileged   =$OnlyNonPrivilegedAccounts;
+					bAccountEnabled  =$OnlyEnabledAccounts;
+					bAccountDisabled =$OnlyDisabledAccounts;
+					sSearch          =$SearchKeywords;
+					sSearchType      =$SearchType;
+					iLimitPage       =$Limit;
 				}
 				$urlFilteredAccounts = Get-FilterParameters @filterParameters
 			} catch {
@@ -678,16 +634,14 @@ try {
 				Write-LogMessage -Type Error -MSG "There was an Error getting filtered Discovered Accounts. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 						
-			If($AutoNextPage)
-			{
+			If($AutoNextPage) {
 				$GetDiscoveredAccountsList = @()
 				$GetDiscoveredAccountsList += $GetDiscoveredAccountsResponse.value
 				Write-LogMessage -Type Debug -MSG "$($GetDiscoveredAccountsList.count) Discovered accounts so far..."
 				$nextLink =  $GetDiscoveredAccountsResponse.nextLink
 				Write-LogMessage -Type Debug -MSG "Getting next link: $nextLink"
 				
-				While ($nextLink -ne "" -and $null -ne $nextLink)
-				{
+				While ($nextLink -ne "" -and $null -ne $nextLink) {
 					$GetAccountsResponse = Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header $(Get-LogonHeader -Credentials $creds)
 					$nextLink = $GetAccountsResponse.nextLink
 					Write-LogMessage -Type Debug -MSG "Getting next link: $nextLink"
@@ -696,47 +650,36 @@ try {
 				}
 				Write-LogMessage -Type Info -MSG "Showing $($GetDiscoveredAccountsList.count) accounts"
 				$response = $GetDiscoveredAccountsList
-			}
-			else 
-			{
+			} else {
 				Write-LogMessage -Type Info -MSG "Showing up to $Limit Discovered Accounts" 
 				$response = $GetDiscoveredAccountsResponse.value
 			}
 			
-			If(![string]::IsNullOrEmpty($SortBy))
-			{
+			If(![string]::IsNullOrEmpty($SortBy)) {
 				# Sort the list
 				$sortDirection = $(If($SortBy.Contains(" dsc")) { $SortBy = $SortBy.Replace(" dsc","").Trim(); $true } else { $SortBy = $SortBy.Replace(" asc","").Trim(); $false })
 				$response = $response | Sort-Object -Property $SortBy -Descending:$sortDirection
 			}
 		}
-		"Details"
-		{
-			if($DiscoveredAccountID -ne "")
-			{
+		"Details" {
+			if($DiscoveredAccountID -ne "") {
 				$GetDiscoveredAccountDetailsResponse = Invoke-Rest -Command Get -Uri $($URL_DiscoveredAccountDetails -f $DiscoveredAccountID) -Header $(Get-LogonHeader -Credentials $creds)
 				$response = $GetDiscoveredAccountDetailsResponse
 			}
 		}
 	}
 	
-	If($Report)
-	{
+	If($Report) {
 		Write-LogMessage -Type Info -MSG "Generating report"
 		$output = @()
 		$output = $response | Select-Object id,@{Name = 'UserName'; Expression = { $_.userName}}, @{Name = 'Address'; Expression = { $_.address}}, @{Name = 'AccountEnabled'; Expression = { $_.accountEnabled}}, @{Name = 'Platform'; Expression = { $_.platformType }}, @{Name = 'Privileged'; Expression = { $_.privileged }}, @{Name = 'Dependencies'; Expression = { $_.numberOfDependencies }}, @{Name = 'LastLogonDate'; Expression = { Convert-Date $_.lastLogonDateTime}}
 		
-		If([string]::IsNullOrEmpty($CSVPath))
-		{
-			$output | Format-Table -Autosize
+		If([string]::IsNullOrEmpty($CSVPath)) {
+			$output | Format-Table -AutoSize
+		} else {
+			$output | Export-Csv -NoTypeInformation -UseCulture -Path $CSVPath -Force
 		}
-		else
-		{
-			$output | Export-Csv -NoTypeInformation -UseCulture -Path $CSVPath -force
-		}
-	}
-	else
-	{
+	} else {
 		$response
 	}
 } catch {

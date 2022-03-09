@@ -1,0 +1,15 @@
+My default the user "settings.json" is at the location below
+%APPDATA%\Code\User\settings.json 
+
+The following settings are used to set the formating standards for this repository.
+
+"powershell.codeFormatting.whitespaceInsideBrace": false,
+"powershell.codeFormatting.whitespaceBetweenParameters": true,
+"powershell.codeFormatting.whitespaceBeforeOpenParen": false,
+"powershell.codeFormatting.whitespaceAroundOperator": false,
+"powershell.codeFormatting.whitespaceAfterSeparator": false,
+"powershell.codeFormatting.newLineAfterCloseBrace": false,
+"powershell.codeFormatting.whitespaceBeforeOpenBrace": false,
+"powershell.codeFormatting.trimWhitespaceAroundPipe": true,
+"powershell.codeFormatting.useCorrectCasing": true,
+"powershell.codeFormatting.autoCorrectAliases": true,
