@@ -72,9 +72,8 @@ $URL_Platforms = $URL_PVWAAPI+"/Platforms/{0}"
 # Parameters.....: LogFile, MSG, (Switch)Header, (Switch)SubHeader, (Switch)Footer, Type
 # Return Values..: None
 # =================================================================================================================================
-Function Write-LogMessage
-{
-<# 
+Function Write-LogMessage {
+	<# 
 .SYNOPSIS 
 	Method to log a message on screen and in a log file
 
@@ -112,16 +111,14 @@ Function Write-LogMessage
 		[String]$LogFile = $LOG_FILE_PATH
 	)
 	Try{
-		If([string]::IsNullOrEmpty($LogFile))
-		{
+		If([string]::IsNullOrEmpty($LogFile)) {
 			# Create a temporary log file
 			$LogFile = "$ScriptLocation\tmp.log"
 		}
 		
 		If ($Header) {
 			"=======================================" | Out-File -Append -FilePath $LogFile 
-		}
-		ElseIf($SubHeader) { 
+		} ElseIf($SubHeader) { 
 			"------------------------------------" | Out-File -Append -FilePath $LogFile 
 		}
 		
@@ -130,14 +127,12 @@ Function Write-LogMessage
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		
 		# Mask Passwords
-		if($Msg -match '((?>password|secret)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))')
-		{
+		if($Msg -match '((?>password|secret)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))') {
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
 		$writeToFile = $true
 		# Check the message type
-		switch ($type)
-		{
+		switch ($type) {
 			"Info" { 
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
@@ -154,30 +149,25 @@ Function Write-LogMessage
 				break
 			}
 			"Debug" { 
-				if($InDebug -or $InVerbose)
-				{
+				if($InDebug -or $InVerbose) {
 					Write-Debug $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
 					break
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 			"Verbose" { 
-				if($InVerbose)
-				{
+				if($InVerbose) {
 					Write-Verbose $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
 					break
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 		}
 		If($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LogFile }
 		If ($Footer) { 
 			"=======================================" | Out-File -Append -FilePath $LogFile 
 		}
-	}
-	catch{
+	} catch{
 		Throw $(New-Object System.Exception ("Cannot write message '$Msg' to file '$Logfile'",$_.Exception))
 	}
 }
@@ -188,9 +178,8 @@ Function Write-LogMessage
 # Parameters.....: Exception
 # Return Values..: Formatted String of Exception messages
 # =================================================================================================================================
-Function Collect-ExceptionMessage
-{
-<# 
+Function Collect-ExceptionMessage {
+	<# 
 .SYNOPSIS 
 	Formats exception messages
 .DESCRIPTION
@@ -207,8 +196,8 @@ Function Collect-ExceptionMessage
 	Process {
 		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		while ($e.InnerException) {
-		  $e = $e.InnerException
-		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+			$e = $e.InnerException
+			$msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		}
 		return $msg
 	}
@@ -224,9 +213,8 @@ Function Collect-ExceptionMessage
 # Parameters.....: Command
 # Return Values..: True / False
 # =================================================================================================================================
-Function Test-CommandExists
-{
-<# 
+Function Test-CommandExists {
+	<# 
 .SYNOPSIS 
 	Tests if a command exists
 .DESCRIPTION
@@ -235,12 +223,12 @@ Function Test-CommandExists
 	The command to test
 #>
 
-    Param ($command)
-    $oldPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'stop'
-    try { if(Get-Command $command){ return $true } }
-    Catch { return $false }
-    Finally {$ErrorActionPreference=$oldPreference}
+	Param ($command)
+	$oldPreference = $ErrorActionPreference
+	$ErrorActionPreference = 'stop'
+	try { if(Get-Command $command){ return $true } }
+	Catch { return $false }
+	Finally {$ErrorActionPreference=$oldPreference}
 } 
 
 # @FUNCTION@ ======================================================================================================================
@@ -249,15 +237,11 @@ Function Test-CommandExists
 # Parameters.....: text to encode
 # Return Values..: Encoded text for URL
 # =================================================================================================================================
-Function Encode-URL($sText)
-{
-	if ($sText.Trim() -ne "")
-	{
+Function Encode-URL($sText) {
+	if ($sText.Trim() -ne "") {
 		Write-LogMessage -Type Verbose -Msg "Returning URL Encode of '$sText'"
 		return [System.Web.HttpUtility]::UrlEncode($sText)
-	}
-	else
-	{
+	} else {
 		return $sText
 	}
 }
@@ -268,9 +252,8 @@ Function Encode-URL($sText)
 # Parameters.....: Date time
 # Return Values..: EPOCH date
 # =================================================================================================================================
-Function ConvertTo-EPOCHDate($inputDate)
-{
-<# 
+Function ConvertTo-EPOCHDate($inputDate) {
+	<# 
 .SYNOPSIS 
 	ConvertTo-EPOCHDate
 .DESCRIPTION
@@ -287,9 +270,8 @@ Function ConvertTo-EPOCHDate($inputDate)
 # Parameters.....: EPOCH date
 # Return Values..: Date time
 # =================================================================================================================================
-Function Convert-Date($epochdate)
-{
-<# 
+Function Convert-Date($epochdate) {
+	<# 
 .SYNOPSIS 
 	Convert-Date
 .DESCRIPTION
@@ -307,9 +289,8 @@ Function Convert-Date($epochdate)
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Disable-SSLVerification
-{
-<# 
+Function Disable-SSLVerification {
+	<# 
 .SYNOPSIS 
 	Bypass SSL certificate validations
 .DESCRIPTION
@@ -321,7 +302,7 @@ Function Disable-SSLVerification
 	[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 	# Disable SSL Verification
 	if (-not("DisableCertValidationCallback" -as [type])) {
-    add-type -TypeDefinition @"
+		Add-Type -TypeDefinition @"
 using System;
 using System.Net;
 using System.Net.Security;
@@ -337,7 +318,8 @@ public static class DisableCertValidationCallback {
         return new RemoteCertificateValidationCallback(DisableCertValidationCallback.ReturnTrue);
     }
 }
-"@ }
+"@ 
+ }
 
 	[System.Net.ServicePointManager]::ServerCertificateValidationCallback = [DisableCertValidationCallback]::GetDelegate()
 }
@@ -348,9 +330,8 @@ public static class DisableCertValidationCallback {
 # Parameters.....: Command method, URI, Header, Body
 # Return Values..: REST response
 # =================================================================================================================================
-Function Invoke-Rest
-{
-<# 
+Function Invoke-Rest {
+	<# 
 .SYNOPSIS 
 	Invoke REST Method
 .DESCRIPTION
@@ -381,19 +362,15 @@ Function Invoke-Rest
 		[String]$ErrAction="Continue"
 	)
 	
-	If ((Test-CommandExists Invoke-RestMethod) -eq $false)
-	{
-	   Throw "This script requires PowerShell version 3 or above"
+	If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
+		Throw "This script requires PowerShell version 3 or above"
 	}
 	$restResponse = ""
 	try{
-		if([string]::IsNullOrEmpty($Body))
-		{
+		if([string]::IsNullOrEmpty($Body)) {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700
-		}
-		else
-		{
+		} else {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700
 		}
@@ -415,9 +392,8 @@ Function Invoke-Rest
 # Parameters.....: Credentials
 # Return Values..: Logon Header
 # =================================================================================================================================
-Function Get-LogonHeader
-{
-<# 
+Function Get-LogonHeader {
+	<# 
 .SYNOPSIS 
 	Get-LogonHeader
 .DESCRIPTION
@@ -430,11 +406,9 @@ Function Get-LogonHeader
 		[PSCredential]$Credentials
 	)
 	
-	if([string]::IsNullOrEmpty($g_LogonHeader))
-	{
+	if([string]::IsNullOrEmpty($g_LogonHeader)) {
 		# Disable SSL Verification to contact PVWA
-		If($DisableSSLVerify)
-		{
+		If($DisableSSLVerify) {
 			Disable-SSLVerification
 		}
 		
@@ -452,8 +426,7 @@ Function Get-LogonHeader
 		}
 
 		$logonHeader = $null
-		If ([string]::IsNullOrEmpty($logonToken))
-		{
+		If ([string]::IsNullOrEmpty($logonToken)) {
 			Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
 		}
 		
@@ -475,9 +448,8 @@ Function Get-LogonHeader
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Run-Logoff
-{
-<# 
+Function Run-Logoff {
+	<# 
 .SYNOPSIS 
 	Run-Logoff
 .DESCRIPTION
@@ -487,7 +459,7 @@ Function Run-Logoff
 		# Logoff the session
 		# ------------------
 		Write-LogMessage -Type Info -Msg "Logoff Session..."
-		Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader | out-null
+		Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader | Out-Null
 		Set-Variable -Name g_LogonHeader -Value $null -Scope global
 	} catch {
 		Throw $(New-Object System.Exception ("Run-Logoff: Failed to logoff session",$_.Exception))
@@ -500,9 +472,8 @@ Function Run-Logoff
 # Parameters.....: Vault Credentials, Security Event object
 # Return Values..: Account ID
 # =================================================================================================================================
-Function Get-AccountFromEvent
-{
-<# 
+Function Get-AccountFromEvent {
+	<# 
 .SYNOPSIS 
 	Get-AccountFromEvent
 .DESCRIPTION
@@ -521,24 +492,17 @@ Function Get-AccountFromEvent
 
 	try{
 		Write-LogMessage -Type Verbose -Msg "Finding Account from Event..."
-		If($SecurityEvent.Audits.count -gt 0)
-		{
+		If($SecurityEvent.Audits.count -gt 0) {
 			$output = @()
-			ForEach($item in $SecurityEvent.Audits)
-			{
-				If($null -ne $item.Account)
-				{
+			ForEach($item in $SecurityEvent.Audits) {
+				If($null -ne $item.Account) {
 					Write-LogMessage -Type Verbose -Msg "Found account data for $($item.Account.accountAsStr)"
 					[string]$AccountsURLWithFilters = $URL_Accounts
 					$targetUser = $(Encode-URL $item.Account.Account.mUser)
-					if($null -ne $item.Account.Account.mTarget)
-					{
-						if($null -ne $item.Account.Account.mTarget.mOriginalAddress)
-						{
+					if($null -ne $item.Account.Account.mTarget) {
+						if($null -ne $item.Account.Account.mTarget.mOriginalAddress) {
 							$targetMachine = $(Encode-URL $item.Account.Account.mTarget.mOriginalAddress)
-						}
-						else
-						{
+						} else {
 							$targetMachine = $(Encode-URL $item.Account.accountAsStr.Split('@')[1])
 						}
 					}
@@ -546,18 +510,14 @@ Function Get-AccountFromEvent
 					$GetAccountsResponse = $(Invoke-Rest -Command "GET" -Uri $AccountsURLWithFilters -Header $(Get-LogonHeader -Credentials $VaultCredentials))
 					Write-LogMessage -Type Verbose -Msg "Found $($GetAccountsResponse.count) accounts for $($item.Account.accountAsStr)"
 					$output += $GetAccountsResponse.value
-				}
-				else
-				{
+				} else {
 					Write-LogMessage -Type Verbose -Msg "No account data found"
 				}
 			}
 			
 			# Return uniqe Accounts only
 			return ($output | Get-Unique)
-		}
-		else
-		{
+		} else {
 			Write-LogMessage -Type Debug -Msg "No audit data found"
 			return $null
 		}
@@ -572,9 +532,8 @@ Function Get-AccountFromEvent
 # Parameters.....: Account
 # Return Values..: the UNIX date time
 # =================================================================================================================================
-Function Get-LastChangeDate
-{
-<# 
+Function Get-LastChangeDate {
+	<# 
 .SYNOPSIS 
 	Get-LastChangeDate -Account $accountData
 .DESCRIPTION
@@ -591,12 +550,9 @@ Function Get-LastChangeDate
 		Write-LogMessage -Type Debug -Msg "Retrieving last Change date time for Account $("{0}@{1}" -f $Account.userName,$Account.Address)..."
 		$lastChange = $Account.secretManagement.lastModifiedTime
 		$lastReconcile = $Account.secretManagement.lastReconciledTime
-		If(lastChange -gt $lastReconcile)
-		{
+		If(lastChange -gt $lastReconcile) {
 			return $lastChange
-		}
-		Else
-		{
+		} Else {
 			return $lastReconcile
 		}		
 	} catch {
@@ -613,8 +569,7 @@ if($InVerbose) { Write-LogMessage -Type Info -MSG "Running in Verbose Mode" -Log
 Write-LogMessage -Type Debug -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ", ")" -LogFile $LOG_FILE_PATH
 
 # Check if Powershell is running in Constrained Language Mode
-If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
-{
+If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
 	Write-LogMessage -Type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
 	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
@@ -622,15 +577,11 @@ If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 	return
 }
 # Check that the PVWA URL is OK
-If ($PVWAURL -ne "")
-{
-	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/")
-	{
+If ($PVWAURL -ne "") {
+	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/") {
 		$PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
 	}
-}
-else
-{
+} else {
 	Write-LogMessage -Type Error -MSG "PVWA URL can not be empty"
 	return
 }
@@ -655,8 +606,7 @@ try {
 	# Find relevant Accounts
 	$accountEvent = @()
 	Write-LogMessage -Type Info -MSG "Finding Account information from $($GetEventsResponse.count) events"
-	Foreach ($event in $GetEventsResponse)
-	{
+	Foreach ($event in $GetEventsResponse) {
 		try{
 			$accountEvent += Get-AccountFromEvent -VaultCredentials $creds -SecurityEvent $event
 		} catch {
@@ -664,25 +614,20 @@ try {
 		}
 	}
 	Write-LogMessage -Type Info -MSG "Retrieving Account information and calculating Risks"
-	Foreach($Account in $accountEvent)
-	{
+	Foreach($Account in $accountEvent) {
 		try{
 			Write-LogMessage -Type Debug -MSG $("Retrieving Account information and calculating Risk for {0}@{1}" -f $Account.userName,$Account.Address)
 			# Get the Platform Name
 			$platformName = Invoke-Rest -Command Get -Uri $($URL_Platforms -f $Account.platformId) -Header $(Get-LogonHeader -Credentials $creds)
 			$output = $Account | Select-Object @{Name = 'UserName'; Expression = { $_.userName}}, @{Name = 'Address'; Expression = { $_.address}}, @{Name = 'SafeName'; Expression = { $_.safeName}}, @{Name = 'Platform'; Expression = { $platformName.Details.PolicyName}}, @{Name = 'Risk'; Expression = { $event.score }}, 'NumberOfEvents', @{Name = 'AccountCreateDate'; Expression = { Convert-Date $_.createdTime}}, @{Name = 'LastAccountChangeDate'; Expression = { Convert-Date $(Get-LastChangeDate -Account $Account) }}
 			$accountName = $("{0}@{1}" -f $Account.userName,$Account.Address)
-			if (!$AccountRiskReport.ContainsKey($accountName))
-			{
+			if (!$AccountRiskReport.ContainsKey($accountName)) {
 				Write-LogMessage -Type Verbose -MSG "Adding Account to output report"
 				$output.NumberOfEvents = 1
 				$AccountRiskReport.Add($("{0}@{1}" -f $Account.userName,$Account.Address),$output)
-			}
-			else
-			{
+			} else {
 				Write-LogMessage -Type Verbose -MSG "Assigning highest Account risk score"
-				if ($output.Risk -gt $AccountRiskReport[$accountName].Risk)
-				{
+				if ($output.Risk -gt $AccountRiskReport[$accountName].Risk) {
 					$AccountRiskReport[$accountName].Risk = $output.Risk
 				}
 				$AccountRiskReport[$accountName].NumberOfEvents++
@@ -693,13 +638,10 @@ try {
 	}
 	# Report on all Accounts Risks
 	Write-LogMessage -Type Info -MSG "Generating report"
-	If([string]::IsNullOrEmpty($CSVPath))
-	{
-		$AccountRiskReport.Values | Select-Object UserName, Address, SafeName, Risk, @{Name = 'NumEvents'; Expression = { $_.NumberOfEvents}}, @{Name = 'Create'; Expression = { $_.AccountCreateDate}}, @{Name = 'Change'; Expression = { $_.LastAccountChangeDate}} | FT -Autosize
-	}
-	else
-	{
-		$AccountRiskReport.Values | Export-Csv -NoTypeInformation -UseCulture -Path $CSVPath -force
+	If([string]::IsNullOrEmpty($CSVPath)) {
+		$AccountRiskReport.Values | Select-Object UserName, Address, SafeName, Risk, @{Name = 'NumEvents'; Expression = { $_.NumberOfEvents}}, @{Name = 'Create'; Expression = { $_.AccountCreateDate}}, @{Name = 'Change'; Expression = { $_.LastAccountChangeDate}} | Format-Table -AutoSize
+	} else {
+		$AccountRiskReport.Values | Export-Csv -NoTypeInformation -UseCulture -Path $CSVPath -Force
 	}	
 } catch {
 	Write-LogMessage -Type Error - MSG "There was an Error creating Account Risk report. Error: $(Collect-ExceptionMessage $_.Exception)"

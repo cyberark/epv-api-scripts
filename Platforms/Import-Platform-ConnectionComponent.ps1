@@ -56,24 +56,21 @@ $rstusername = $rstpassword = ""
 $logonToken  = ""
 
 #region Functions
-Function Test-CommandExists
-{
-    Param ($command)
-    $oldPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'stop'
-    try {if(Get-Command $command){RETURN $true}}
-    Catch {Write-Host "$command does not exist"; RETURN $false}
-    Finally {$ErrorActionPreference=$oldPreference}
+Function Test-CommandExists {
+	Param ($command)
+	$oldPreference = $ErrorActionPreference
+	$ErrorActionPreference = 'stop'
+	try {if(Get-Command $command){RETURN $true}}
+	Catch {Write-Host "$command does not exist"; RETURN $false}
+	Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
-Function Get-ZipContent
-{
+Function Get-ZipContent {
 	Param($zipPath)
 	
 	$zipContent = $null
 	try{
-		If(Test-Path $zipPath)
-		{
+		If(Test-Path $zipPath) {
 			# Converting to Base64, following bug 00015428
 			$zipContent = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($(Resolve-Path $zipPath)))
 		}
@@ -84,77 +81,63 @@ Function Get-ZipContent
 	return $zipContent
 }
 
-Function AddPlatform-PSMConnectionComponent
-{
+Function AddPlatform-PSMConnectionComponent {
 	Param($platformZipPath, $psmServerID = "PSMServer", $connectionComponentID)
 	
 	try{
-		If(Test-Path $platformZipPath)
-		{
+		If(Test-Path $platformZipPath) {
 			$Package = Get-Item -Path $platformZipPath
 			# load ZIP methods
 			Add-Type -AssemblyName System.IO.Compression.FileSystem
 			Write-Debug "Extracting Platform ZIP ('$platformZipPath')"
 			# Extract ZIP to temp folder
 			$tempFolder = Join-Path -Path $Package.Directory -ChildPath $Package.BaseName
-			if(Test-Path $tempFolder)
-			{
+			if(Test-Path $tempFolder) {
 				Remove-Item -Recurse $tempFolder
 			}
 			[System.IO.Compression.ZipFile]::ExtractToDirectory($Package.FullName,$tempFolder)
-		}
-		else
-		{
+		} else {
 			throw "Could not find Platform ZIP in '$platformZipPath'"
 		}
 		
 		Write-Debug "Adding PSM Connection component to platform $platformID"
 		# Find all XML files in the platform ZIP
 		$fileEntries = Get-ChildItem -Path $tempFolder -Filter '*.xml'
-		write-verbose $fileEntries
+		Write-Verbose $fileEntries
 		# There should be only one file
 		If($fileEntries.Count -ne 1)
 		{ throw "Invalid Platform ZIP file" }
 		[xml]$xmlContent = Get-Content $fileEntries[0].FullName
-		write-verbose $xmlContent
+		Write-Verbose $xmlContent
 		# Add PSM details to XML
-		ForEach($item in $xmlContent.Device.Policies.Policy)
-		{
-			If($item.key -eq "PrivilegedSessionManagement")
-			{
+		ForEach($item in $xmlContent.Device.Policies.Policy) {
+			If($item.key -eq "PrivilegedSessionManagement") {
 				$psmNodeExists = $true
 			}
-			If($item.key -eq "ConnectionComponent")
-			{
+			If($item.key -eq "ConnectionComponent") {
 				$ccNodeExists = $true
 			}
 		}
-		if($psmNodeExists -eq $false)
-		{
+		if($psmNodeExists -eq $false) {
 			Write-Verbose "Adding PSM to Platform"
 			$psmNode = $xmlContent.CreateNode("element","PrivilegedSessionManagement","")
 			$psmNode.SetAttribute("Enable","Yes")
 			$psmNode.SetAttribute("ID",$psmServerID)
 			$xmlContent.Device.Policies.Policy.AppendChild($psmNode) | Out-Null
-		}
-		else
-		{
+		} else {
 			Write-Verbose "PSM Node already exists"
 		}
-		if($ccNodeExists -eq $false)
-		{
+		if($ccNodeExists -eq $false) {
 			Write-Verbose "Adding Connection Component to Platform"
 			$concompNode = $xmlContent.CreateNode("element","ConnectionComponent","")
 			$concompNode.SetAttribute("Id",$connectionComponentID)
 			$conNode = $xmlContent.CreateNode("element","ConnectionComponents","")
 			$conNode.AppendChild($concompNode)
 			$xmlContent.Device.Policies.Policy.AppendChild($conNode) | Out-Null
-		}
-		else
-		{
+		} else {
 			Write-Verbose "Connection Component Node already exists"
 		}
-		write-verbose $xmlContent
+		Write-Verbose $xmlContent
 		$xmlContent.Save($fileEntries[0].FullName)
 		
 		Write-Debug "Delete original ZIP and Package the new Platform ZIP"
@@ -169,22 +152,17 @@ Function AddPlatform-PSMConnectionComponent
 }
 #endregion
 
-If (-not (Test-CommandExists Invoke-RestMethod))
-{
+If (-not (Test-CommandExists Invoke-RestMethod)) {
 	Write-Error "This script requires PowerShell version 3 or above"
 	return
 }
 
 # Check that the PVWA URL is OK
-If ($PVWAURL -ne "")
-{
-	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/")
-	{
+If ($PVWAURL -ne "") {
+	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/") {
 		$PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
 	}
-}
-else
-{
+} else {
 	Write-Host -ForegroundColor Red "PVWA URL can not be empty"
 	return
 }
@@ -197,12 +175,10 @@ Write-Host "Import Platform and Connection Component: Script Started" -Foregroun
 $caption = "Import Platform and Connection Component"
 $msg = "Enter your User name and Password"; 
 $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-if ($null -ne $creds)
-{
+if ($null -ne $creds) {
 	$rstusername = $creds.username.Replace('\','');    
 	$rstpassword = $creds.GetNetworkCredential().password
-}
-else { return }
+} else { return }
 
 # Create the POST Body for the Logon
 # ----------------------------------
@@ -211,14 +187,11 @@ $logonBody = $logonBody | ConvertTo-Json
 try{
 	# Logon
 	$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json"
-}
-catch
-{
+} catch {
 	Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
 	$logonToken = ""
 }
-If ($logonToken -eq "")
-{
+If ($logonToken -eq "") {
 	Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
 	return
 }
@@ -231,36 +204,31 @@ $logonHeader.Add("Authorization", $logonToken)
 
 # Importing the Connection Component
 $connectionComponentID = $null
-If (Test-Path $ConnectionComponentZipPath)
-{
-	$importBody = @{ ImportFile=$(Get-ZipContent $ConnectionComponentZipPath); } | ConvertTo-Json -Depth 3 -Compress
+If (Test-Path $ConnectionComponentZipPath) {
+	$importBody = @{ ImportFile =$(Get-ZipContent $ConnectionComponentZipPath); } | ConvertTo-Json -Depth 3 -Compress
 	try{
 		$ImportCCResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportConnectionComponent -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700 -Body $importBody
 		$connectionComponentID = ($ImportCCResponse.ConnectionComponentID)
 		Write-Host "Connection Component ID imported: $connectionComponentID"
 	} catch {
-		if($_.Exception.Response.StatusDescription -like "*Conflict*")
-		{
+		if($_.Exception.Response.StatusDescription -like "*Conflict*") {
 			Write-Host "The requested connection component already exists" -ForegroundColor Yellow
-		}
-		Else{
+		} Else{
 			Write-Error "Error importing the connection ID, Error: $($_.Exception.Response.StatusDescription)"
 		}
 		return
 	}
 }
 
-If (Test-Path $PlatformZipPath)
-{
-	If([string]::IsNullOrEmpty($connectionComponentID))
-	{
+If (Test-Path $PlatformZipPath) {
+	If([string]::IsNullOrEmpty($connectionComponentID)) {
 		Write-Error "No Connection Component ID to link"
 		Return
 	}
 	# Link Connection Component to Platform
 	AddPlatform-PSMConnectionComponent -platformZipPath $(Resolve-Path $PlatformZipPath) -psmServerID $PSMServerID -connectionComponentID $connectionComponentID
 	# Import Platform
-	$importBody = @{ ImportFile=$(Get-ZipContent $PlatformZipPath); } | ConvertTo-Json -Depth 3 -Compress
+	$importBody = @{ ImportFile =$(Get-ZipContent $PlatformZipPath); } | ConvertTo-Json -Depth 3 -Compress
 	try{
 		$ImportPlatformResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportPlatforms -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700 -Body $importBody
 		Write-Host "Platform ID imported: $($ImportPlatformResponse.PlatformID)"

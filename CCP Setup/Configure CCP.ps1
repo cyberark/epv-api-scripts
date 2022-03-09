@@ -152,7 +152,7 @@ $aamMachineIP = (Get-NetIPAddress -AddressState Preferred -AddressFamily IPv4).I
 
 $appAuth = (Get-ApplicationAuth -appID "AIMWebService").authentication
 
-if ([string]::IsNullOrEmpty($appAuth)){$appAuth=@{AuthValue=""}}
+if ([string]::IsNullOrEmpty($appAuth)){$appAuth=@{AuthValue =""}}
 
 If (!$appAuth.AuthValue.Contains($AIMWebServicepath)){
     New-ApplicationAuth -appID "AIMWebService" -AuthType "path" -AuthValue $path -ErrorAction SilentlyContinue
