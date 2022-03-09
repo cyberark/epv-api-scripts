@@ -170,6 +170,7 @@ if ($export) {
         Select-Object -Property "name","address","userName","safeName","platformId","id" | `
 
     Export-Csv -Path $exportCSV -NoTypeInformation
+
 }
 
 if ($processFile){
