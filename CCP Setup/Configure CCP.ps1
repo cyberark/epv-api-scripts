@@ -155,7 +155,7 @@ $appAuth = (Get-ApplicationAuth -appID "AIMWebService").authentication
 if ([string]::IsNullOrEmpty($appAuth)){$appAuth=@{AuthValue =""}}
 
 If (!$appAuth.AuthValue.Contains($AIMWebServicepath)){
-    New-ApplicationAuth -appID "AIMWebService" -AuthType "path" -AuthValue $path -ErrorAction SilentlyContinue
+    New-ApplicationAuth -appID "AIMWebService" -AuthType "path" -AuthValue $AIMWebServicepath -ErrorAction SilentlyContinue
     Write-Output "==> [SUCCESS] Added Path Authentication" | Use-Color Green
 } Else {
     Write-Output "==> [SKIP] Path Authentication already Found" | Use-Color Yellow
