@@ -40,9 +40,17 @@ $g_cpmuserCredv12 = ".\CreateCredFile.exe user.ini Password /Username {0} /AppTy
 $g_cpmuserCred = ".\CreateCredFile.exe user.ini Password /Username {0} /AppType CPM /IpAddress /Hostname /Password {1}"
 
 #commands to reset AAM credential files
-$g_aamuserCredv12 = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_aamuserwinCredv12 = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /EntropyFile /DPAPIMachineProtection /Password {1}"
 
-$g_aamuserCred = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /Password {1}"
+$g_aamuserwinCred = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /Password {1}"
+
+#vault.ini locations
+$g_aamvault = ".\vault.ini"
+$g_cpmvault = ".\vault.ini"
+$g_psmvault = ".\vault.ini"
+$g_pvwavault= ".\vault.ini"
+
+
 
 if($InVerbose){
     $VerbosePreference = "continue"
@@ -1387,6 +1395,32 @@ function Reset-PSMCredentials{
         }
     }
 }
+function Update-Vault{
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$ComponentType,
+
+        [Parameter(Mandatory=$true)]
+        [string]$Server,
+
+        [Parameter(Mandatory=$true)]
+        [string]$OS,
+
+        [Parameter(Mandatory=$true)]
+        [string]$vaultAddress
+    )
+
+    switch ($ComponentType) {
+        "CPM" {Update-CPMVault $server $vaultAddress; break}
+        "PVWA" {Update-PVWAVault $server $vaultAddress;break }
+        "PSM" {Update-PSMVault $server $vaultAddress;break }
+        "AAM Credential Provider" { Update-AAMWindowsVault $server $vaultAddress;break }
+        "Secrets Manager Credential Providers" { Update-AAMWindowsVault $server $vaultAddress;break }
+        default {Write-LogMessage -type Error -MSG "No Component Type passed for $server"}
+    }
+
+}
+
 function Reset-Credentials{
     param (
         [Parameter(Mandatory=$true)]
@@ -1396,7 +1430,13 @@ function Reset-Credentials{
         [string]$Server,
 
         [Parameter(Mandatory=$true)]
-        [string]$OS
+        [string]$OS,
+
+        [Parameter(Mandatory=$false)]
+        [switch]$updateVault = $false,
+
+        [Parameter(Mandatory=$false)]
+        [string]$vaultAddress
     )
     IF ("Windows" -eq $os){
         switch ($ComponentType) {
@@ -1407,12 +1447,23 @@ function Reset-Credentials{
             "Secrets Manager Credential Providers" { Reset-AAMCredentialsWindows $server;break }
             default {Write-LogMessage -type Error -MSG "No Component Type passed for $server"}
         }
-    } elseIf ("Linux" -eq $os) {
-        Write-LogMessage -type Error -msg "Unable to reset PSMP credentials at this time. Manual reset required for $server"
-    } else {
-        Write-LogMessage -type Error -msg "Unable to determine OS type for $server"
+        If ($updateVault -and (![string]::IsNullOrEmpty($vaultAddress))){
+            switch ($ComponentType) {
+                "CPM" {Update-CPMVault $server $vaultAddress; break}
+                "PVWA" {Update-PVWAVault $server $vaultAddress;break }
+                "PSM" {Update-PSMVault $server $vaultAddress;break }
+                "AAM Credential Provider" { Update-AAMWindowsVault $server $vaultAddress;break }
+                "Secrets Manager Credential Providers" { Update-AAMWindowsVault $server $vaultAddress;break }
+                default {Write-LogMessage -type Error -MSG "No Component Type passed for $server"}
+            }
+        }
     }
+} elseIf ("Linux" -eq $os) {
+    Write-LogMessage -type Error -msg "Unable to reset PSMP credentials at this time. Manual reset required for $server"
+} else {
+    Write-LogMessage -type Error -msg "Unable to determine OS type for $server"
 }
+
 function Reset-CPMCredentials{
     param (
         [Parameter(Mandatory=$true)]
@@ -1558,9 +1609,9 @@ function Reset-AAMCredentialsWindows{
                 Write-LogMessage -type Verbose -MSG "Backed up AppProviderUser credential files"
                 
                 if ($version -ge [version]'12.0'){
-                    $command = $g_aamuserCredv12 -f $userItem, $(Convert-SecureString($tempPassword))
+                    $command = $g_aamuserwinCredv12 -f $userItem, $(Convert-SecureString($tempPassword))
                 } else {
-                    $command = $g_aamuserCred -f $userItem, $(Convert-SecureString($tempPassword))
+                    $command = $g_aamuserwinCred -f $userItem, $(Convert-SecureString($tempPassword))
                 }
 
                 Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $command -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
@@ -1609,6 +1660,94 @@ function Reset-AAMCredentialsWindows{
             Throw $_
         }
 
+        Finally {
+            Write-LogMessage -type Verbose -MSG "Disconnecting from $server"  
+            Remove-PSSession $session
+            Write-LogMessage -type info -MSG "Disconnected from $server"
+        }
+    }
+}
+
+function Update-AAMWindowsVault{
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Server,
+        [Parameter(Mandatory=$true)]
+        [string]$vaultaddress
+
+    )
+    $complete = $failed = $false
+    $attempts = 0
+    While (!$complete -and !$failed) {
+        try {
+            $complete = $failed = $false
+            $attempts = 0
+            While (!$complete){
+                Try {
+                    $session = New-PSLogon $server
+                } Catch {
+                    Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a windows server and winRM has been enabled."             
+                    break
+                }
+                Write-LogMessage -type info -MSG "Connected to $Server and reseting Provider vault address"
+                Write-LogMessage -type Verbose -MSG "Connected to $Server. Importing required modules"
+                
+                Import-ModuleRemotely -moduleName CyberArk-Common -session $Session
+                Write-LogMessage -type Verbose -MSG "Modules imported. Getting information about the installed components"
+                
+                $compInfo = Get-ComponentInfo -Server $Server -ComponentType "AIM" -Session $Session          
+                
+                $installLocation = $compInfo.path
+                [version]$version = $compInfo.Version
+                Write-LogMessage -type Verbose -MSG "Retrived Component Information"
+                Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
+                Write-LogMessage -type Verbose -MSG "Version: $version"
+
+                Write-LogMessage -type Verbose -MSG "Attempting to stop AAM Services" 
+                Stop-ComponentService -services $Script:g_aamservices -session $session -server $server
+                Write-LogMessage -type Verbose -MSG "Stopped AAM Services"
+
+                Write-LogMessage -type Verbose -MSG "Updating vault.ini files"
+                Invoke-Command -Session $session -ScriptBlock {Set-Location -Path ($args[0]+"\vault");} -ArgumentList $installLocation
+  
+                $tag = [DateTimeOffset]::Now.ToUnixTimeSeconds()
+                Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\vault.ini" -NewName "vault.ini.$($args[0])" -Force} -ArgumentList $tag
+                Write-LogMessage -type Verbose -MSG "Backed up existing vault.ini file"
+
+                try{
+                    $vaultLocation = $g_aamvault
+                    $regex = '(^ADDRESS=.*)'
+                    Invoke-Command -Session $session -ScriptBlock {$file = $args[0];$regex = $args[1]} -ArgumentList $vaultLocation, $regex
+                    Invoke-Command -Session $session -ScriptBlock {(Get-Content $file) -replace $regex, "ADDRESS=$($args[0])" | Set-Content $file} -ArgumentList $vaultaddress
+                    Write-LogMessage -type Verbose -MSG "vault.ini updated successfully"
+                } catch {
+                    Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\vault.ini.$($args[0])" -NewName "vault.ini" -Force} -ArgumentList $tag
+                    Write-LogMessage -type Error -MSG "Error updating vault.ini file on $server"
+                    $failed = $true
+                    Throw "Error updating AAM vault.ini file"
+                }
+                $complete = Start-ComponentService -services $Script:g_aamservices -session $session -server $server
+
+                $attempts += 1
+		
+                if ($attempts -gt 5) {
+                    $failed = $true;
+                    Write-LogMessage -type Error -MSG "Failed to reset vault.ini on $server" 
+                    Throw "Failed to reset AAM Provider credentials on $server"
+                }
+
+                Write-LogMessage -type Verbose -MSG "AAM Provider Started"
+
+                if ($complete) {
+                    Write-LogMessage -type Info -MSG "AAM on $server vault update completed successful"
+                } else {
+                    Write-LogMessage -type Info -MSG "AAM on $server vault update failed, restarting"
+                }
+            }
+        } catch {
+            Write-LogMessage -type Error -MSG "Error during vault.ini update of AAM on $server"
+            Throw $_
+        }
         Finally {
             Write-LogMessage -type Verbose -MSG "Disconnecting from $server"  
             Remove-PSSession $session
