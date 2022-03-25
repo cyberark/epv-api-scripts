@@ -168,9 +168,7 @@ if ($export) {
     $srcAccounts | `
         Where-Object {$_.safename -notIn $objectSafesToRemove} | `
         Select-Object -Property "name","address","userName","safeName","platformId","id" | `
-
-    Export-Csv -Path $exportCSV -NoTypeInformation
-
+        Export-Csv -Path $exportCSV -NoTypeInformation
 }
 
 if ($processFile){
