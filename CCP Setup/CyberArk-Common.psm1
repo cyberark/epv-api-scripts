@@ -1782,22 +1782,22 @@ Function New-ApplicationAuth{
 
     Switch($AuthType.ToLower()) {
         "path"{
-            $authentication += @{AuthValue=$AuthValue}
+            $authentication += @{AuthValue =$AuthValue}
             $authentication += @{IsFolder =$IsFolder.IsPresent}
             $authentication +=@{AllowInternalScripts =$AllowInternalScripts.IsPresent}
         }
         "hash"{
-            $authentication += @{AuthValue=$AuthValue}
+            $authentication += @{AuthValue =$AuthValue}
             IF (![string]::IsNullOrEmpty($Comment)) {$authentication += @{Comment =$Comment}}
         }    
         "osuser" { 
-            $authentication += @{AuthValue=$AuthValue}
+            $authentication += @{AuthValue =$AuthValue}
         }
         "machineaddress" { 
-            $authentication += @{AuthValue=$AuthValue}
+            $authentication += @{AuthValue =$AuthValue}
         }
         "certificateserialnumber"{
-            $authentication += @{AuthValue=$AuthValue}
+            $authentication += @{AuthValue =$AuthValue}
             IF (![string]::IsNullOrEmpty($Comment)) {$authentication += @{Comment =$Comment}}
         }
         "certificateattr"{

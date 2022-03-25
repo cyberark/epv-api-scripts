@@ -81,42 +81,34 @@ $g_CsvDefaultPath = $Env:CSIDL_DEFAULT_DOWNLOADS
 $g_LogonHeader = ""
 
 #region Functions
-Function Test-CommandExists
-{
-    Param ($command)
-    $oldPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'stop'
-    try {if(Get-Command $command){RETURN $true}}
-    Catch {Write-Host "$command does not exist"; RETURN $false}
-    Finally {$ErrorActionPreference=$oldPreference}
+Function Test-CommandExists {
+	Param ($command)
+	$oldPreference = $ErrorActionPreference
+	$ErrorActionPreference = 'stop'
+	try {if(Get-Command $command){RETURN $true}}
+	Catch {Write-Host "$command does not exist"; RETURN $false}
+	Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
-Function Encode-URL($sText)
-{
-	if ($sText.Trim() -ne "")
-	{
+Function Encode-URL($sText) {
+	if ($sText.Trim() -ne "") {
 		Log-Msg -Type Debug -Msg "Returning URL Encode of $sText"
 		return [URI]::EscapeDataString($sText)
-	}
-	else
-	{
+	} else {
 		return $sText
 	}
 }
 
-Function Get-TrimmedString($sText)
-{
-	if($null -ne $sText)
-	{
+Function Get-TrimmedString($sText) {
+	if($null -ne $sText) {
 		return $sText.Trim()
 	}
 	# Else
 	return $sText
 }
 
-Function Log-MSG
-{
-<# 
+Function Log-MSG {
+	<# 
 .SYNOPSIS 
 	Method to log a message on screen and in a log file
 .DESCRIPTION
@@ -151,8 +143,7 @@ Function Log-MSG
 		If ($Header) {
 			"=======================================" | Out-File -Append -FilePath $LOG_FILE_PATH 
 			Write-Host "======================================="
-		}
-		ElseIf($SubHeader) { 
+		} ElseIf($SubHeader) { 
 			"------------------------------------" | Out-File -Append -FilePath $LOG_FILE_PATH 
 			Write-Host "------------------------------------"
 		}
@@ -162,13 +153,11 @@ Function Log-MSG
 		# Replace empty message with 'N/A'
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		# Mask Passwords
-		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
-		{
+		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))') {
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
 		# Check the message type
-		switch ($type)
-		{
+		switch ($type) {
 			"Info" { 
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
@@ -182,20 +171,16 @@ Function Log-MSG
 				$msgToWrite += "[ERROR]`t$Msg"
 			}
 			"Debug" { 
-				if($InDebug)
-				{
+				if($InDebug) {
 					Write-Debug $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 			"Verbose" { 
-				if($InVerbose)
-				{
+				if($InVerbose) {
 					Write-Verbose $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 		}
 		
@@ -207,9 +192,8 @@ Function Log-MSG
 	} catch { Write-Error "Error in writing log: $($_.Exception.Message)" }
 }
 
-Function Collect-ExceptionMessage
-{
-<# 
+Function Collect-ExceptionMessage {
+	<# 
 .SYNOPSIS 
 	Formats exception messages
 .DESCRIPTION
@@ -226,8 +210,8 @@ Function Collect-ExceptionMessage
 	Process {
 		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		while ($e.InnerException) {
-		  $e = $e.InnerException
-		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+			$e = $e.InnerException
+			$msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		}
 		return $msg
 	}
@@ -235,15 +219,14 @@ Function Collect-ExceptionMessage
 	}
 }
 
-Function OpenFile-Dialog($initialDirectory)
-{
-    [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
+Function OpenFile-Dialog($initialDirectory) {
+	[System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
     
-    $OpenFileDialog = New-Object System.Windows.Forms.OpenFileDialog
-    $OpenFileDialog.initialDirectory = $initialDirectory
-    $OpenFileDialog.filter = "CSV (*.csv)| *.csv"
-    $OpenFileDialog.ShowDialog() | Out-Null
-    $OpenFileDialog.filename
+	$OpenFileDialog = New-Object System.Windows.Forms.OpenFileDialog
+	$OpenFileDialog.initialDirectory = $initialDirectory
+	$OpenFileDialog.filter = "CSV (*.csv)| *.csv"
+	$OpenFileDialog.ShowDialog() | Out-Null
+	$OpenFileDialog.filename
 }
 
 # @FUNCTION@ ======================================================================================================================
@@ -252,9 +235,8 @@ Function OpenFile-Dialog($initialDirectory)
 # Parameters.....: Command method, URI, Header, Body
 # Return Values..: REST response
 # =================================================================================================================================
-Function Invoke-Rest
-{
-<# 
+Function Invoke-Rest {
+	<# 
 .SYNOPSIS 
 	Invoke REST Method
 .DESCRIPTION
@@ -285,19 +267,15 @@ Function Invoke-Rest
 		[String]$ErrAction="Continue"
 	)
 	
-	If ((Test-CommandExists Invoke-RestMethod) -eq $false)
-	{
-	   Throw "This script requires PowerShell version 3 or above"
+	If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
+		Throw "This script requires PowerShell version 3 or above"
 	}
 	$restResponse = ""
 	try{
-		if([string]::IsNullOrEmpty($Body))
-		{
+		if([string]::IsNullOrEmpty($Body)) {
 			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700 -ErrorAction $ErrAction
-		}
-		else
-		{
+		} else {
 			Log-Msg -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
 		}
@@ -317,38 +295,33 @@ Function Invoke-Rest
 }
 
 
-Function Get-LogonHeader
-{
+Function Get-LogonHeader {
 	param($Credentials, $RadiusOTP)
 	# Create the POST Body for the Logon
-    # ----------------------------------
-    $logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
-	If(![string]::IsNullOrEmpty($RadiusOTP))
-	{
+	# ----------------------------------
+	$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
+	If(![string]::IsNullOrEmpty($RadiusOTP)) {
 		$logonBody.Password += ",$RadiusOTP"
 	}
-	write-Verbose $logonBody
+	Write-Verbose $logonBody
 	try{
-	    # Logon
-	    $logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
+		# Logon
+		$logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
 		# Clear logon body
 		$logonBody = ""
-	}
-	catch
-	{
+	} catch {
 		Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
 		$logonToken = ""
 	}
-    If ([string]::IsNullOrEmpty($logonToken))
-    {
-        Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-        exit
-    }
+	If ([string]::IsNullOrEmpty($logonToken)) {
+		Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
+		exit
+	}
 	
-    # Create a Logon Token Header (This will be used through out all the script)
-    # ---------------------------
-    $logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-    $logonHeader.Add("Authorization", $logonToken)
+	# Create a Logon Token Header (This will be used through out all the script)
+	# ---------------------------
+	$logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+	$logonHeader.Add("Authorization", $logonToken)
 	
 	return $logonHeader
 }
@@ -358,8 +331,7 @@ Function Get-LogonHeader
 Log-Msg -Type Info -MSG "Welcome to OPM Rule Onboard Utility" -Header
 
 # Check if Powershell is running in Constrained Language Mode
-If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
-{
+If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
 	Log-Msg -Type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
 	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
@@ -368,8 +340,7 @@ If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 }
 
 # Check SSL verification
-If($DisableSSLVerify)
-{
+If($DisableSSLVerify) {
 	try{
 		Write-Warning "It is not recommended to disable SSL verification." -WarningAction Inquire
 		# Using Proxy Default credentials if the Server needs Proxy credentials
@@ -383,9 +354,7 @@ If($DisableSSLVerify)
 		Log-Msg -Type Error -MSG (Collect-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 		return
 	}
-}
-Else
-{
+} Else {
 	try{
 		Log-Msg -Type Debug -MSG "Setting script to use TLS 1.2"
 		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
@@ -397,31 +366,25 @@ Else
 
 
 # Check that the PVWA URL is OK
-If (![string]::IsNullOrEmpty($PVWAURL))
-{
-	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/")
-	{
+If (![string]::IsNullOrEmpty($PVWAURL)) {
+	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/") {
 		$PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
 	}
 	
 	try{
 		# Validate PVWA URL is OK
-		Log-Msg -Type Debug -MSG  "Trying to validate URL: $PVWAURL"
+		Log-Msg -Type Debug -MSG "Trying to validate URL: $PVWAURL"
 		Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $PVWAURL -Method 'Head' -TimeoutSec 30 | Out-Null
 	} catch [System.Net.WebException] {
-		If(![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__))
-		{
+		If(![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__)) {
 			Log-Msg -Type Error -MSG $_.Exception.Response.StatusCode.Value__
 		}
-	}
-	catch {		
+	} catch {		
 		Log-Msg -Type Error -MSG "PVWA URL could not be validated"
 		Log-Msg -Type Error -MSG (Collect-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 	}
 	
-}
-else
-{
+} else {
 	Log-Msg -Type Error -MSG "PVWA URL cannot be empty."
 	exit
 }
@@ -430,111 +393,103 @@ Log-Msg -Type Info -MSG "Getting PVWA Credentials to start Onboarding OPM Rules"
 
 
 #region [Logon]
-	# Get Credentials to Login
-	# ------------------------
-	$caption = "OPM Rule Onboarding Utility"
-	$msg = "Enter your User name and Password"; 
-	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($null -ne $creds)
-	{
-		if($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP))
-		{
-			$g_LogonHeader = $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP)
-		}
-		else
-		{
-			$g_LogonHeader = $(Get-LogonHeader -Credentials $creds)
-		}
+# Get Credentials to Login
+# ------------------------
+$caption = "OPM Rule Onboarding Utility"
+$msg = "Enter your User name and Password"; 
+$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
+if ($null -ne $creds) {
+	if($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
+		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP)
+	} else {
+		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds)
 	}
-	else { 
-		Log-Msg -Type Error -MSG "No credentials were entered." -Footer
-		exit
-	}
+} else { 
+	Log-Msg -Type Error -MSG "No credentials were entered." -Footer
+	exit
+}
 #endregion
 
 #region [Read Accounts CSV file and Create Accounts]
-	If([string]::IsNullOrEmpty($CsvPath))
-	{
-		$CsvPath = OpenFile-Dialog($g_CsvDefaultPath)
-	}
-	$delimiter = $(If ($CsvDelimiter -eq "Comma") { "," } else { "`t" } )
-	$rulesCSV = Import-CSV $csvPath -Delimiter $delimiter
-	$rowCount = $($rulesCSV.Safe.Count)
-	$counter = 0
-	$successCounter = 0
-	Log-Msg -Type Info -MSG "Starting to Onboard $rowCount rules." -SubHeader
-	ForEach ($rule in $rulesCSV)
-	{
-		if ($null -ne $rule)
-		{
+If([string]::IsNullOrEmpty($CsvPath)) {
+	$CsvPath = OpenFile-Dialog($g_CsvDefaultPath)
+}
+$delimiter = $(If ($CsvDelimiter -eq "Comma") { "," } else { "`t" } )
+$rulesCSV = Import-Csv $csvPath -Delimiter $delimiter
+$rowCount = $($rulesCSV.Safe.Count)
+$counter = 0
+$successCounter = 0
+Log-Msg -Type Info -MSG "Starting to Onboard $rowCount rules." -SubHeader
+ForEach ($rule in $rulesCSV) {
+	if ($null -ne $rule) {
+		try {
+			# Check mandatory fields
+			If([string]::IsNullOrEmpty($rule.PlatformId)) { throw "Missing mandatory field: Platform ID" }
+			If([string]::IsNullOrEmpty($rule.Command)) { throw "Missing mandatory field: Command" }
+			If([string]::IsNullOrEmpty($rule.UserName)) { throw "Missing mandatory field: UserName" }
+				
+			$rule.PlatformId = (Get-TrimmedString $rule.PlatformID)
+			$objRule = "" | Select-Object "Command", "CommandGroup", "PermissionType", "Restrictions", "UserName"
+			$objRule.Command = (Get-TrimmedString $rule.Command)
+			$objRule.CommandGroup = (Get-TrimmedString $rule.CommandGroup)
+			$objRule.PermissionType = (Get-TrimmedString $rule.PermissionType)
+			$objRule.Restrictions = (Get-TrimmedString $rule.Restrictions)
+			$objRule.UserName = (Get-TrimmedString $rule.UserName)
+				
+			if ([string]::IsNullOrEmpty($objRule.CommandGroup)) { 
+				$objRule.CommandGroup = $false
+			} elseif ($objRule.CommandGroup.ToLower() -eq "yes" -or $objRule.CommandGroup.ToLower() -eq "true") {
+				$objRule.CommandGroup = $true
+			} else {
+				$objRule.CommandGroup = $false
+			}
+				
+			if ([string]::IsNullOrEmpty($objRule.PermissionType)) { 
+				$objRule.PermissionType = "Allow"
+			} elseif ($objRule.permissionType.ToLower() -eq "allow" -or $objRule.permissionType.ToLower() -eq "deny") {
+				$objRule.PermissionType = (Get-Culture).TextInfo.ToTitleCase($objRule.PermissionType)
+			} else {
+				throw "Invalid field: PermissionType"
+			}
+				
+			if ($objRule.commandGroup -eq $false -and -Not $objRule.command.StartsWith("/") -and -Not $objRule.command -eq ".*") {
+				Log-Msg -Type Warning -Msg "Rule Number $counter : It is a recommended security best practice to define commands with an absolute path. Please reconfigure rules like (cat /etc/passwd) to (/usr/bin/cat /etc/passwd)"
+			}
 			try {
-				# Check mandatory fields
-				If([string]::IsNullOrEmpty($rule.PlatformId)) { throw "Missing mandatory field: Platform ID" }
-				If([string]::IsNullOrEmpty($rule.Command)) { throw "Missing mandatory field: Command" }
-				If([string]::IsNullOrEmpty($rule.UserName)) { throw "Missing mandatory field: UserName" }
-				
-				$rule.PlatformId = (Get-TrimmedString $rule.PlatformID)
-				$objRule = "" | Select-Object "Command", "CommandGroup", "PermissionType", "Restrictions", "UserName"
-				$objRule.Command = (Get-TrimmedString $rule.Command)
-				$objRule.CommandGroup = (Get-TrimmedString $rule.CommandGroup)
-				$objRule.PermissionType = (Get-TrimmedString $rule.PermissionType)
-				$objRule.Restrictions = (Get-TrimmedString $rule.Restrictions)
-				$objRule.UserName = (Get-TrimmedString $rule.UserName)
-				
-				if ([string]::IsNullOrEmpty($objRule.CommandGroup)) { 
-					$objRule.CommandGroup = $false
-				} elseif ($objRule.CommandGroup.ToLower() -eq "yes" -or $objRule.CommandGroup.ToLower() -eq "true") {
-					$objRule.CommandGroup = $true
-				} else {
-					$objRule.CommandGroup = $false
-				}
-				
-				if ([string]::IsNullOrEmpty($objRule.PermissionType)) { 
-					$objRule.PermissionType = "Allow"
-				} elseif ($objRule.permissionType.ToLower() -eq "allow" -or $objRule.permissionType.ToLower() -eq "deny") {
-					$objRule.PermissionType = (Get-Culture).TextInfo.ToTitleCase($objRule.PermissionType)
-				} else {
-					throw "Invalid field: PermissionType"
-				}
-				
-				if ($objRule.commandGroup -eq $false -and -Not $objRule.command.StartsWith("/") -and -Not $objRule.command -eq ".*") {
-					Log-Msg -Type Warning -Msg "Rule Number $counter : It is a recommended security best practice to define commands with an absolute path. Please reconfigure rules like (cat /etc/passwd) to (/usr/bin/cat /etc/passwd)"
-				}
-				try {
-					# Create the rule
-					$restBody = $objRule | ConvertTo-Json -Depth 5
-					$URL_PlatformCommands = $URL_PlatformCommands -f $rule.platformID
-					Log-Msg -Type Debug -Msg $restBody
-					$addRuleResult = $(Invoke-RestMethod -Method Put -Uri $URL_PlatformCommands -Headers $g_LogonHeader -Body $restBody -ContentType "application/json" -TimeoutSec 60)
-					if($null -ne $addRuleResult) {
-						Log-Msg -Type Info -Msg "Rule Onboarded Successfully"
-						# Increment counter
-						$successCounter++
-						Log-Msg -Type Info -Msg "Row [$counter/$rowCount] Added successfully."  
-					}
-				} catch {
-					if ($_.Exception.Response.StatusDescription.StartsWith("ITATS903E OlacObjectRuleAdd failed, because the same rule already exists")) {
-						Log-Msg -Type Warning -Msg "Skipping rule $counter. Rule already exists."
-					} else {
-						Log-Msg -Type Error -Msg "There was an error onboarding $counter rule into the Password Vault."
-						Log-Msg -Type Error -Msg "StatusCode: $($_.Exception.Response.StatusCode.value__) "
-						Log-Msg -Type Error -Msg "StatusDescription: $($_.Exception.Response.StatusDescription)"
-					}
+				# Create the rule
+				$restBody = $objRule | ConvertTo-Json -Depth 5
+				$URL_PlatformCommands = $URL_PlatformCommands -f $rule.platformID
+				Log-Msg -Type Debug -Msg $restBody
+				$addRuleResult = $(Invoke-RestMethod -Method Put -Uri $URL_PlatformCommands -Headers $g_LogonHeader -Body $restBody -ContentType "application/json" -TimeoutSec 60)
+				if($null -ne $addRuleResult) {
+					Log-Msg -Type Info -Msg "Rule Onboarded Successfully"
+					# Increment counter
+					$successCounter++
+					Log-Msg -Type Info -Msg "Row [$counter/$rowCount] Added successfully."  
 				}
 			} catch {
-				$l_c = $_.InvocationInfo.ScriptLineNumber
-				Log-Msg -Type Error -Msg "Line $l_c : Skipping onboarding rule into the Password Vault. Error: $(Collect-ExceptionMessage $_.Exception)"
+				if ($_.Exception.Response.StatusDescription.StartsWith("ITATS903E OlacObjectRuleAdd failed, because the same rule already exists")) {
+					Log-Msg -Type Warning -Msg "Skipping rule $counter. Rule already exists."
+				} else {
+					Log-Msg -Type Error -Msg "There was an error onboarding $counter rule into the Password Vault."
+					Log-Msg -Type Error -Msg "StatusCode: $($_.Exception.Response.StatusCode.value__) "
+					Log-Msg -Type Error -Msg "StatusDescription: $($_.Exception.Response.StatusDescription)"
+				}
 			}
+		} catch {
+			$l_c = $_.InvocationInfo.ScriptLineNumber
+			Log-Msg -Type Error -Msg "Line $l_c : Skipping onboarding rule into the Password Vault. Error: $(Collect-ExceptionMessage $_.Exception)"
 		}
-		$counter++
-	}	
+	}
+	$counter++
+}	
 #endregion
 
 #region [Logoff]
-	# Logoff the session
-    # ------------------
-    Write-Host "Logoff Session..."
-    $logoffResponse = Invoke-Rest -Uri $URL_Logoff -Header $g_LogonHeader -Command "Post"
-	# Footer
-	Log-Msg -Type Info -MSG "Vaulted $successCounter out of $counter accounts successfully." -Footer
+# Logoff the session
+# ------------------
+Write-Host "Logoff Session..."
+$logoffResponse = Invoke-Rest -Uri $URL_Logoff -Header $g_LogonHeader -Command "Post"
+# Footer
+Log-Msg -Type Info -MSG "Vaulted $successCounter out of $counter accounts successfully." -Footer
 #endregion

@@ -101,8 +101,7 @@ $NumberOfDaysRetention = 7
 # Parameters.....: LogFile, MSG, (Switch)Header, (Switch)SubHeader, (Switch)Footer, Type
 # Return Values..: None
 # =================================================================================================================================
-Function Write-LogMessage
-{
+Function Write-LogMessage {
 	<# 
 .SYNOPSIS 
 	Method to log a message on screen and in a log file
@@ -140,20 +139,15 @@ Function Write-LogMessage
 		[Parameter(Mandatory = $false)]
 		[String]$LogFile = $LOG_FILE_PATH
 	)
-	Try
-	{
-		If ([string]::IsNullOrEmpty($LogFile))
-		{
+	Try {
+		If ([string]::IsNullOrEmpty($LogFile)) {
 			# Create a temporary log file
 			$LogFile = "$ScriptLocation\tmp.log"
 		}
 		
-		If ($Header)
-  {
+		If ($Header) {
 			"=======================================" | Out-File -Append -FilePath $LogFile 
-		}
-		ElseIf ($SubHeader)
-		{ 
+		} ElseIf ($SubHeader) { 
 			"------------------------------------" | Out-File -Append -FilePath $LogFile 
 		}
 		
@@ -162,61 +156,47 @@ Function Write-LogMessage
 		if ([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		
 		# Mask Passwords
-		if ($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
-		{
+		if ($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))') {
 			$Msg = $Msg.Replace($Matches[2], "****")
 		}
 		$writeToFile = $true
 		# Check the message type
-		switch ($type)
-		{
-			"Info"
-   { 
+		switch ($type) {
+			"Info" { 
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
 				break
 			}
-			"Warning"
-			{
+			"Warning" {
 				Write-Host $MSG.ToString() -ForegroundColor DarkYellow
 				$msgToWrite += "[WARNING]`t$Msg"
 				break
 			}
-			"Error"
-			{
+			"Error" {
 				Write-Host $MSG.ToString() -ForegroundColor Red
 				$msgToWrite += "[ERROR]`t$Msg"
 				break
 			}
-			"Debug"
-			{ 
-				if ($InDebug -or $InVerbose)
-				{
+			"Debug" { 
+				if ($InDebug -or $InVerbose) {
 					Write-Debug $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
 					break
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
-			"Verbose"
-			{ 
-				if ($InVerbose)
-				{
+			"Verbose" { 
+				if ($InVerbose) {
 					Write-Verbose $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
 					break
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 		}
 		If ($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LogFile }
-		If ($Footer)
-		{ 
+		If ($Footer) { 
 			"=======================================" | Out-File -Append -FilePath $LogFile 
 		}
-	}
-	catch
-	{
+	} catch {
 		Throw $(New-Object System.Exception ("Cannot write message '$Msg' to file '$LogFile'", $_.Exception))
 	}
 }
@@ -227,8 +207,7 @@ Function Write-LogMessage
 # Parameters.....: Exception
 # Return Values..: Formatted String of Exception messages
 # =================================================================================================================================
-Function Join-ExceptionMessage
-{
+Function Join-ExceptionMessage {
 	<#
 .SYNOPSIS
 	Formats exception messages
@@ -241,21 +220,17 @@ Function Join-ExceptionMessage
 		[Exception]$e
 	)
 
-	Begin
-	{
+	Begin {
 	}
-	Process
-	{
+	Process {
 		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
-		while ($e.InnerException)
-		{
+		while ($e.InnerException) {
 			$e = $e.InnerException
 			$msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		}
 		return $msg
 	}
-	End
-	{
+	End {
 	}
 }
 #endregion
@@ -267,8 +242,7 @@ Function Join-ExceptionMessage
 # Parameters.....: Text
 # Return Values..: URL encoded text
 # =================================================================================================================================
-Function ConvertTo-URL($sText)
-{
+Function ConvertTo-URL($sText) {
 	<# 
 .SYNOPSIS 
 	HTTP Encode test in URL
@@ -277,13 +251,10 @@ Function ConvertTo-URL($sText)
 .PARAMETER sText
 	The text to encode
 #>
-	if (![string]::IsNullOrEmpty($sText))
-	{
+	if (![string]::IsNullOrEmpty($sText)) {
 		Write-Debug "Returning URL Encode of $sText"
 		return [URI]::EscapeDataString($sText)
-	}
-	else
-	{
+	} else {
 		return $sText
 	}
 }
@@ -294,8 +265,7 @@ Function ConvertTo-URL($sText)
 # Parameters.....: Text
 # Return Values..: Boolean value of the text
 # =================================================================================================================================
-Function ConvertTo-Bool
-{
+Function ConvertTo-Bool {
 	<# 
 .SYNOPSIS 
 	Converts text to Bool
@@ -309,16 +279,11 @@ Function ConvertTo-Bool
 	)
 	$retBool = $false
     
-	if ($txt -match "^y$|^yes$")
-	{
+	if ($txt -match "^y$|^yes$") {
 		$retBool = $true 
-	}
-	elseif ($txt -match "^n$|^no$")
-	{ 
+	} elseif ($txt -match "^n$|^no$") { 
 		$retBool = $false 
-	}
-	else
-	{
+	} else {
 		[bool]::TryParse($txt, [ref]$retBool) | Out-Null
 	}
     
@@ -331,8 +296,7 @@ Function ConvertTo-Bool
 # Parameters.....: User Name
 # Return Values..: The Safe name to be used
 # =================================================================================================================================
-Function Get-PersonalSafeNameFromPattern
-{
+Function Get-PersonalSafeNameFromPattern {
 	<# 
 .SYNOPSIS 
 	Get the personal safe name based on pattern
@@ -356,8 +320,7 @@ Function Get-PersonalSafeNameFromPattern
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Disable-SSLVerification
-{
+Function Disable-SSLVerification {
 	<# 
 .SYNOPSIS 
 	Bypass SSL certificate validations
@@ -369,8 +332,7 @@ Function Disable-SSLVerification
 	# Using TLS 1.2 as security protocol verification
 	[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 	# Disable SSL Verification
-	if (-not("DisableCertValidationCallback" -as [type]))
-	{
+	if (-not("DisableCertValidationCallback" -as [type])) {
 		Add-Type -TypeDefinition @"
 using System;
 using System.Net;
@@ -399,8 +361,7 @@ public static class DisableCertValidationCallback {
 # Parameters.....: Command method, URI, Header, Body
 # Return Values..: REST response
 # =================================================================================================================================
-Function Invoke-Rest
-{
+Function Invoke-Rest {
 	<# 
 .SYNOPSIS 
 	Invoke REST Method
@@ -434,32 +395,23 @@ Function Invoke-Rest
 	)
 	
 	$restResponse = ""
-	try
-	{
-		if ([string]::IsNullOrEmpty($Body))
-		{
+	try {
+		if ([string]::IsNullOrEmpty($Body)) {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700 -ErrorAction $ErrAction
-		}
-		else
-		{
+		} else {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
 		}
-	}
- catch [System.Net.WebException]
-	{
-		if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b"))
-		{
+	} catch [System.Net.WebException] {
+		if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
 			Write-LogMessage -Type Error -Msg "Error Message: $_"
 			Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
 			Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
 			Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
 		}
 		$restResponse = $null
-	}
- catch
-	{ 
+	} catch { 
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
 	}
 	Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $restResponse"
@@ -472,8 +424,7 @@ Function Invoke-Rest
 # Parameters.....: Credentials
 # Return Values..: Logon Header
 # =================================================================================================================================
-Function Get-LogonHeader
-{
+Function Get-LogonHeader {
 	<#
 .SYNOPSIS
 	Get-LogonHeader
@@ -488,26 +439,19 @@ Function Get-LogonHeader
 		[Parameter(Mandatory = $false)]
 		[string]$RadiusOTP
 	)
-	try
-	{
-		If ([string]::IsNullOrEmpty($RadiusOTP))
-		{
+	try {
+		If ([string]::IsNullOrEmpty($RadiusOTP)) {
 			# Use a new Logon session for each request
 			return $(Invoke-Logon -Credentials $Credentials)
-		}
-		else
-		{
+		} else {
 			# Use the same header using the RADIUS OTP (so we don't have to request the OTP every login)
-			if ([string]::IsNullOrEmpty($g_LogonHeader))
-			{
+			if ([string]::IsNullOrEmpty($g_LogonHeader)) {
 				Set-Variable -Name g_LogonHeader -Value $(Invoke-Logon -Credentials $Credentials -RadiusOTP $RadiusOTP) -Scope Script
 			}
             
 			return $g_LogonHeader
 		}
-	}
- catch
-	{
+	} catch {
 		Throw $(New-Object System.Exception ("Get-LogonHeader: Error returning the logon header.", $_.Exception))
 	}
 }
@@ -518,8 +462,7 @@ Function Get-LogonHeader
 # Parameters.....: Credentials, Radius OTP
 # Return Values..: Logon Header
 # =================================================================================================================================
-Function Invoke-Logon
-{
+Function Invoke-Logon {
 	<#
 .SYNOPSIS
 	Invoke-Logon
@@ -537,8 +480,7 @@ Function Invoke-Logon
 		[string]$RadiusOTP
 	)
 	# Disable SSL Verification to contact PVWA
-	If ($DisableSSLVerify -and !$g_SSLChanged)
-	{
+	If ($DisableSSLVerify -and !$g_SSLChanged) {
 		Disable-SSLVerification
 		Set-Variable -Name g_SSLChanged -Value $true -Scope Script
 	}
@@ -546,38 +488,30 @@ Function Invoke-Logon
 	# Create the POST Body for the Logon
 	# ----------------------------------
 	$logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password; concurrentSession = $true } | ConvertTo-Json -Compress
-	If (![string]::IsNullOrEmpty($RadiusOTP))
-	{
+	If (![string]::IsNullOrEmpty($RadiusOTP)) {
 		$logonBody.Password += ",$RadiusOTP"
 	}   
                 
-	try
-	{
+	try {
 		# Logon
 		$logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody 
 
 		# Clear logon body
 		$logonBody = ""
-	}
- catch
-	{
+	} catch {
 		Throw $(New-Object System.Exception ("Invoke-Logon: $($_.Exception.Response.StatusDescription)", $_.Exception))
 	}
 
 	$logonHeader = $null
-	If ([string]::IsNullOrEmpty($logonToken))
-	{
+	If ([string]::IsNullOrEmpty($logonToken)) {
 		Throw "Invoke-Logon: Logon Token is Empty - Cannot login"
 	}
 
 	# Create a Logon Token Header (This will be used through out all the script)
 	# ---------------------------
-	If ($logonToken.PSObject.Properties.Name -contains "CyberArkLogonResult")
-	{
+	If ($logonToken.PSObject.Properties.Name -contains "CyberArkLogonResult") {
 		$logonHeader = @{Authorization = $($logonToken.CyberArkLogonResult) }
-	}
- else
-	{
+	} else {
 		$logonHeader = @{Authorization = $logonToken }
 	}
 	
@@ -590,8 +524,7 @@ Function Invoke-Logon
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Invoke-Logoff
-{
+Function Invoke-Logoff {
 	<# 
 .SYNOPSIS 
 	Invoke-Logoff
@@ -602,19 +535,15 @@ Function Invoke-Logoff
 		[Parameter(Mandatory = $false)]
 		$Header = $g_LogonHeader
 	)
-	try
-	{
+	try {
 		# Logoff the session
 		# ------------------
-		If ($null -ne $Header)
-		{
+		If ($null -ne $Header) {
 			Write-LogMessage -Type Info -Msg "Logoff Session..."
 			Invoke-Rest -Command Post -Uri $URL_Logoff -Header $Header
 			Set-Variable -Name g_LogonHeader -Value $null -Scope script
 		}
-	}
- catch
-	{
+	} catch {
 		Throw $(New-Object System.Exception ("Invoke-Logoff: Failed to logoff session", $_.Exception))
 	}
 }
@@ -625,8 +554,7 @@ Function Invoke-Logoff
 # Parameters.....: Text
 # Return Values..: Trimmed text
 # =================================================================================================================================
-Function Get-TrimmedString($sText)
-{
+Function Get-TrimmedString($sText) {
 	<# 
 .SYNOPSIS 
 	Returns the trimmed text from a string
@@ -635,8 +563,7 @@ Function Get-TrimmedString($sText)
 .PARAMETER txt
 	The text to handle
 #>
-	if ($null -ne $sText)
-	{
+	if ($null -ne $sText) {
 		return $sText.Trim()
 	}
 	# Else
@@ -649,8 +576,7 @@ Function Get-TrimmedString($sText)
 # Parameters.....: Account line read from CSV
 # Return Values..: Account Object for onboarding
 # =================================================================================================================================
-Function New-AccountObject
-{
+Function New-AccountObject {
 	<# 
 .SYNOPSIS 
 	Creates a new Account Object
@@ -664,8 +590,7 @@ Function New-AccountObject
 		[ValidateNotNullOrEmpty()] 
 		[PSObject]$AccountLine
 	)
-	try
-	{
+	try {
 		$_safeName = $_platformID = ""
 		# Check mandatory fields for account creation
 		If ([string]::IsNullOrEmpty($AccountLine.accountUser)) { throw "Missing mandatory field: Account User Name" }
@@ -689,60 +614,47 @@ Function New-AccountObject
 		$_Account.platformId = (Get-TrimmedString $_platformID)
 		$_Account.safeName = (Get-TrimmedString $_safeName)
 		$_Account.secret = $AccountLine.password
-		if (![string]::IsNullOrEmpty($customProps))
-		{
+		if (![string]::IsNullOrEmpty($customProps)) {
 			# Convert any non-default property in the CSV as a new platform account property
 			if ($null -eq $_Account.platformAccountProperties) { $_Account.platformAccountProperties = New-Object PSObject }
-			For ($i = 0; $i -lt $customProps.count; $i++)
-			{
+			For ($i = 0; $i -lt $customProps.count; $i++) {
 				$prop = $customProps[$i]
-				If (![string]::IsNullOrEmpty($prop.Value))
-				{
+				If (![string]::IsNullOrEmpty($prop.Value)) {
 					$_Account.platformAccountProperties | Add-Member -MemberType NoteProperty -Name $prop.Name -Value (Get-TrimmedString $prop.Value)
 				}
 			}
 		}
-		If (![String]::IsNullOrEmpty($AccountLine.enableAutoMgmt))
-		{
+		If (![String]::IsNullOrEmpty($AccountLine.enableAutoMgmt)) {
 			$_Account.secretManagement.automaticManagementEnabled = ConvertTo-Bool $AccountLine.enableAutoMgmt
 			if ($_Account.secretManagement.automaticManagementEnabled -eq $false)
 			{ $_Account.secretManagement.manualManagementReason = $AccountLine.manualMgmtReason }
 		}
 		$_Account.remoteMachinesAccess = "" | Select-Object "remoteMachines", "accessRestrictedToRemoteMachines"
-		If (![String]::IsNullOrEmpty($AccountLine.remoteMachineAddresses))
-		{
+		If (![String]::IsNullOrEmpty($AccountLine.remoteMachineAddresses)) {
 			$_Account.remoteMachinesAccess.remoteMachines = $AccountLine.remoteMachineAddresses
 			$_Account.remoteMachinesAccess.accessRestrictedToRemoteMachines = ConvertTo-Bool $AccountLine.restrictMachineAccessToList
 		}
 		# Remove empty non-mandatory areas
-		If ($null -eq $_Account.platformAccountProperties)
-		{
+		If ($null -eq $_Account.platformAccountProperties) {
 			$_Account.PSObject.Properties.Remove('platformAccountProperties')
 		}
-		If ($null -eq $_Account.remoteMachinesAccess.remoteMachines)
-		{
+		If ($null -eq $_Account.remoteMachinesAccess.remoteMachines) {
 			$_Account.PSObject.Properties.Remove('remoteMachinesAccess')
 		}
-		If ($null -eq $_Account.secretManagement.automaticManagementEnabled)
-		{
+		If ($null -eq $_Account.secretManagement.automaticManagementEnabled) {
 			$_Account.PSObject.Properties.Remove('secretManagement')
 		}
 		#endregion [Account object mapping]
 		$logFormat = ""
-		If (([string]::IsNullOrEmpty($_Account.userName) -or [string]::IsNullOrEmpty($_Account.Address)) -and (![string]::IsNullOrEmpty($_Account.name)))
-		{
+		If (([string]::IsNullOrEmpty($_Account.userName) -or [string]::IsNullOrEmpty($_Account.Address)) -and (![string]::IsNullOrEmpty($_Account.name))) {
 			$logFormat = $_Account.name
-		}
-		Else
-		{
+		} Else {
 			$logFormat = ("{0}@{1}" -f $_Account.userName, $_Account.Address)
 		}
 		Set-Variable -Scope Global -Name g_LogAccountName -Value $logFormat
 				
 		return $_Account
-	}
- catch
-	{
+	} catch {
 		Throw $(New-Object System.Exception ("New-AccountObject: There was an error creating a new account object.", $_.Exception))
 	}
 }
@@ -753,8 +665,7 @@ Function New-AccountObject
 # Parameters.....: LocationPath
 # Return Values..: Selected file path
 # =================================================================================================================================
-Function Open-FileDialog
-{
+Function Open-FileDialog {
 	<# 
 .SYNOPSIS 
 	Opens a new "Open File" Dialog
@@ -785,8 +696,7 @@ Function Open-FileDialog
 # Parameters.....: Safe Name
 # Return Values..: Safe object
 # =================================================================================================================================
-Function Get-Safe
-{
+Function Get-Safe {
 	<# 
 .SYNOPSIS 
 	Returns an existing Safe object
@@ -807,13 +717,10 @@ Function Get-Safe
 		[String]$ErrAction = "Continue"
 	)
 	$_safe = $null
-	try
-	{
+	try {
 		$accSafeURL = $URL_SafeDetails -f $(ConvertTo-URL $safeName)
 		$_safe = $(Invoke-Rest -Uri $accSafeURL -Header $Header -Command "Get" -ErrAction $ErrAction)
-	}
-	catch
-	{
+	} catch {
 		Throw $(New-Object System.Exception ("Get-Safe: Error getting safe '$safeName' details.", $_.Exception))
 	}
 	
@@ -826,8 +733,7 @@ Function Get-Safe
 # Parameters.....: Safe name
 # Return Values..: Bool
 # =================================================================================================================================
-Function Test-Safe
-{
+Function Test-Safe {
 	<# 
 .SYNOPSIS 
 	Returns the Safe members
@@ -845,23 +751,17 @@ Function Test-Safe
 		[String]$safeName
 	)
 		
-	try
-	{
-		If ($null -eq $(Get-Safe -safeName $safeName -Header $Header -ErrAction "SilentlyContinue"))
-		{
+	try {
+		If ($null -eq $(Get-Safe -safeName $safeName -Header $Header -ErrAction "SilentlyContinue")) {
 			# Safe does not exist
 			Write-LogMessage -Type Warning -MSG "Safe $safeName does not exist"
 			return $false
-		}
-		else
-		{
+		} else {
 			# Safe exists
 			Write-LogMessage -Type Info -MSG "Safe $safeName exists"
 			return $true
 		}
-	}
-	catch
-	{
+	} catch {
 		Throw $(New-Object System.Exception ("Test-Safe: Error testing safe '$safeName' existence.", $_.Exception))
 	}
 }
@@ -872,8 +772,7 @@ Function Test-Safe
 # Parameters.....: Safe name, (optional) CPM name, (optional) Template Safe
 # Return Values..: Bool
 # =================================================================================================================================
-Function Add-Safe
-{
+Function Add-Safe {
 	<# 
 .SYNOPSIS 
 	Creates a new Safe
@@ -904,23 +803,17 @@ Function Add-Safe
 	$bodySafe = @{ SafeName = $safeName; Description = $description; OLACEnabled = $false; ManagingCPM = $CPM_NAME; NumberOfDaysRetention = $NumberOfDaysRetention }
 	$restBody = @{ safe = $bodySafe } | ConvertTo-Json -Depth 3 -Compress
 	
-	try
- {
+	try {
 		$createSafeResult = $(Invoke-Rest -Uri $URL_Safes -Header $Header -Command "Post" -Body $restBody)
-		if ($createSafeResult)
-		{
+		if ($createSafeResult) {
 			Write-LogMessage -Type Debug -MSG "Safe $safeName created"
 			return $true
-		}
-		else
-		{ 
+		} else { 
 			# Safe creation failed
 			Write-LogMessage -Type Error -MSG "Safe Creation failed - Should Skip Account Creation"
 			return $false 
 		}
-	}
- catch
-	{
+	} catch {
 		Throw $(New-Object System.Exception ("Add-Safe: Failed to create safe $safeName", $_.Exception))
 	}
 }
@@ -931,8 +824,7 @@ Function Add-Safe
 # Parameters.....: Safe name, Member to add
 # Return Values..: The Member object after added to the safe
 # =================================================================================================================================
-Function Add-SafeOwner
-{
+Function Add-SafeOwner {
 	<# 
 .SYNOPSIS 
 	Add a new owner to an existing safe
@@ -970,39 +862,31 @@ Function Add-SafeOwner
 		$permViewSafeMembers = $permAccessWithoutConfirmation = $permCreateFolders = $permDeleteFolders = $permMoveAccountsAndFolders = $false
 	[int]$permRequestsAuthorizationLevel = 0
 	Write-LogMessage -Type Verbose -Msg "Adding member '$ownerName' to safe $SafeName with Role '$ownerRole'..."
-	switch ($ownerRole)
-	{
-		"Admin"
-		{
+	switch ($ownerRole) {
+		"Admin" {
 			$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = `
 				$permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafe = $permManageSafeMembers = $permBackupSafe = `
 				$permViewAuditLog = $permViewSafeMembers = $permAccessWithoutConfirmation = $permCreateFolders = $permDeleteFolders = $permMoveAccountsAndFolders = $true
 			$permRequestsAuthorizationLevel = 1
 		}
-		"Auditor"
-		{
+		"Auditor" {
 			$permListAccounts = $permViewAuditLog = $permViewSafeMembers = $true
 		}
-		"EndUser"
-		{
+		"EndUser" {
 			$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permViewAuditLog = $permViewSafeMembers = $true
 		}
-		"Approver"
-		{
+		"Approver" {
 			$permListAccounts = $permViewAuditLog = $permViewSafeMembers = $true
 			$permRequestsAuthorizationLevel = 1
 		}
-		"Owner"
-		{
+		"Owner" {
 			$permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = $permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafeMembers = $permViewAuditLog = $permViewSafeMembers = $permMoveAccountsAndFolders = $true
 			$permRequestsAuthorizationLevel = 1
 		}
 	}
 
-	If ($ownerName -NotIn $g_DefaultUsers)
-	{
-		try
-		{   
+	If ($ownerName -NotIn $g_DefaultUsers) {
+		try {   
 			$SafeMembersBody = @{
 				member = @{
 					MemberName               = "$ownerName"
@@ -1037,18 +921,13 @@ Function Add-SafeOwner
 			# Adding the member
 			Write-LogMessage -Type Verbose -Msg "Adding $ownerName located in $memberSearchInLocation to $safeName in the vault..."
 			$setSafeMember = Invoke-Rest -Command POST -Uri ($URL_SafeMembers -f $(ConvertTo-URL $safeName)) -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Header $Header
-			If ($null -ne $setSafeMember)
-			{
+			If ($null -ne $setSafeMember) {
 				Write-LogMessage -Type Verbose -Msg "Member '$ownerName' was successfully added to safe $SafeName with Role '$ownerRole'..."
 			}
-		}
-		catch
-		{
+		} catch {
 			Throw $(New-Object System.Exception ("Add-SafeOwner: There was an error setting the membership for $ownerName on $safeName in the Vault.", $_.Exception))
 		}
-	}
-	else
-	{
+	} else {
 		Write-LogMessage -Type Info -Msg "Skipping default user $ownerName..."
 	}
 }
@@ -1063,15 +942,13 @@ Write-LogMessage -Type Info -MSG "Starting script (v$ScriptVersion)" -Header -Lo
 if ($InDebug) { Write-LogMessage -Type Info -MSG "Running in Debug Mode" -LogFile $LOG_FILE_PATH }
 if ($InVerbose) { Write-LogMessage -Type Info -MSG "Running in Verbose Mode" -LogFile $LOG_FILE_PATH }
 Write-LogMessage -Type Debug -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ", ")" -LogFile $LOG_FILE_PATH
-If ($PSVersionTable.PSVersion.Major -lt 3)
-{
+If ($PSVersionTable.PSVersion.Major -lt 3) {
 	Write-LogMessage -Type Error -Msg "This script requires PowerShell version 3 or above"
 	return
 }
 
 # Check if Powershell is running in Constrained Language Mode
-If ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
-{
+If ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
 	Write-LogMessage -Type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
 	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
@@ -1079,17 +956,14 @@ If ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 	return
 }
 # Check that the PVWA URL is OK
-If (![string]::IsNullOrEmpty($PVWAURL))
-{
-	If ($PVWAURL.Substring($PVWAURL.Length - 1) -eq "/")
-	{
+If (![string]::IsNullOrEmpty($PVWAURL)) {
+	If ($PVWAURL.Substring($PVWAURL.Length - 1) -eq "/") {
 		$PVWAURL = $PVWAURL.Substring(0, $PVWAURL.Length - 1)
 	}
 }
 
 # Get the CSV file to load
-If ([string]::IsNullOrEmpty($CsvPath))
-{
+If ([string]::IsNullOrEmpty($CsvPath)) {
 	$CsvPath = Open-FileDialog($g_CsvDefaultPath)
 }
 
@@ -1103,32 +977,24 @@ $counter = 1
 $accountsCSV = Import-Csv $csvPath
 $personalPrivAccounts = @()
 Write-LogMessage -Type Info -MSG "Creating needed personal safes and collecting accounts for onboard" -SubHeader
-ForEach ($account in $accountsCSV)
-{
-	if ($null -ne $account)
-	{
-		try
-		{
+ForEach ($account in $accountsCSV) {
+	if ($null -ne $account) {
+		try {
 			# Create the account object
 			$objAccount = (New-AccountObject -AccountLine $account)
 			# Get a new Authentication header
 			$authHeader = Get-LogonHeader -Credentials $creds -RadiusOTP $RadiusOTP
 			# Check if the Safe Exists
 			Write-LogMessage -Type Info -Msg "Checking if safe '$($objAccount.safeName)' exists..."
-			If (-not $(Test-Safe -safeName $objAccount.safeName -Header $authHeader))
-			{
+			If (-not $(Test-Safe -safeName $objAccount.safeName -Header $authHeader)) {
 				# Create the Safe
 				Write-LogMessage -Type Info -Msg "Creating safe '$($objAccount.safeName)' and adding '$($account.userName)' as an Owner"
-				try
-				{
-					If ($(Add-Safe -safeName $objAccount.safeName -Header $authHeader))
-					{
+				try {
+					If ($(Add-Safe -safeName $objAccount.safeName -Header $authHeader)) {
 						# Add the user as the Owner of the safe
 						Add-SafeOwner -safeName $objAccount.safeName -ownerName $account.userName -ownerRole "Owner" -Header $authHeader
 					}
-				}
-				catch
-				{
+				} catch {
 					Throw $(New-Object System.Exception ("There was an error creating the safe or adding safe members", $_.Exception))
 				}
 			}
@@ -1136,23 +1002,18 @@ ForEach ($account in $accountsCSV)
 			$personalPrivAccounts += $objAccount
 			$counter++
 			# Logoff temp session (if not using Radius)
-			If ($AuthType -ne "radius")
-			{
+			If ($AuthType -ne "radius") {
 				Invoke-Logoff -Header $authHeader
 			}
-		}
-		catch
-		{
+		} catch {
 			Write-LogMessage -Type Error -Msg "There was an error onboarding $g_LogAccountName into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
 		}
 	}
 }
 
 # Start Bulk onboarding all collected personal privileged accounts
-try
-{
-	If ($personalPrivAccounts.Count -gt 0)
-	{
+try {
+	If ($personalPrivAccounts.Count -gt 0) {
 
 		Write-LogMessage -Type Info -Msg "Starting onboarding $($personalPrivAccounts.Count) personal privileged accounts"
 		$authHeader = Get-LogonHeader -Credentials $creds -RadiusOTP $RadiusOTP
@@ -1161,54 +1022,39 @@ try
 			"accountsList" = $personalPrivAccounts
 		}
 		$bulkID = Invoke-Rest -Command POST -URI $URL_BulkAccounts -Body ($bulkBody | ConvertTo-Json -Depth 5) -Header $authHeader
-		if ($null -ne $bulkID)
-		{
+		if ($null -ne $bulkID) {
 			$bulkResult = Invoke-Rest -Command Get -URI ($URL_BulkAccountsTask -f $bulkID) -Header $authHeader
-			while ( ($bulkResult.Status -eq "inProgress") -or ($bulkResult.Status -eq "Pending"))
-			{
+			while ( ($bulkResult.Status -eq "inProgress") -or ($bulkResult.Status -eq "Pending")) {
 				Start-Sleep -Seconds 5
 				Write-LogMessage -type Info -MSG "Current status of onboarding is: $($bulkResult.Status -creplace '([A-Z])','$1')"
 				$bulkResult = Invoke-Rest -Command Get -URI ($URL_BulkAccountsTask -f $bulkID) -Header $authHeader
 			}
 			# Bulk action completed (no longer in progress)
 			Write-LogMessage -type Info -MSG "Onboarding of personal privileged accounts $($bulkResult.Status -creplace '([A-Z])','$1')"
-			Switch ($bulkResult.Status)
-			{
-				"completedWithErrors"
-				{
+			Switch ($bulkResult.Status) {
+				"completedWithErrors" {
 					Write-LogMessage -Type Info -MSG ("There are {0} personal privileged accounts that successfully onaborded and {1} accounts that failed" -f $bulkResult.Result.succeeded, $bulkResult.Result.failed)
-					ForEach ($item in $bulkResult.FailedItems.Items)
-					{
+					ForEach ($item in $bulkResult.FailedItems.Items) {
 						$failedAccount = "{0}@{1} (index: {2})" -f $item.userName, $item.address, $item.uploadIndex
 						Write-LogMessage -Type Info -Msg ("Account {0} failed with the following error {1}" -f $failedAccount, $item.error)
 					}
 				}
-				"failed"
-				{
+				"failed" {
 					Write-LogMessage -Type Info -MSG ("Personal privileged accounts onboarding failed due to the following error: {0}" -f $bulkResult.Result.Error)
 				}
-				"completed"
-				{
+				"completed" {
 					Write-LogMessage -Type Info -MSG ("There are {0} personal privileged accounts that successfully onaborded" -f $bulkResult.Result.succeeded)
 				}
 			}
-		}
-		else
-		{
+		} else {
 			Throw "The Bulk Account Upload ID returned empty"
 		}
-	}
-	else
-	{
+	} else {
 		Write-LogMessage -Type Info -Msg "No personal privileged accounts to onboard"
 	}
-}
-catch
-{
+} catch {
 	Write-LogMessage -Type Error -Msg "There was an error running bulk onboarding of accounts. Error: $(Join-ExceptionMessage $_.Exception)"
-}
-finally
-{
+} finally {
 	# Logoff the session
 	# ------------------
 	Invoke-Logoff -Header $authHeader

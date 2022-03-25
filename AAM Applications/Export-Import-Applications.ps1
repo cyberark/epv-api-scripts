@@ -16,15 +16,15 @@ param
 (
 	[Parameter(Mandatory=$true,HelpMessage="Please enter your PVWA address (For example: https://pvwa.mydomain.com/PasswordVault)")]
 	#[ValidateScript({Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30})]
-    [Alias("url")]
-    [ValidateNotNullOrEmpty()]
+	[Alias("url")]
+	[ValidateNotNullOrEmpty()]
 	[String]$PVWAURL,
 
 	[Parameter(Mandatory=$false,HelpMessage="Enter the Authentication type (Default:CyberArk)")]
 	[ValidateSet("cyberark","ldap","radius")]
-    [String]$AuthType="cyberark",
+	[String]$AuthType="cyberark",
 
-    # Use this switch to Disable SSL verification (NOT RECOMMENDED)
+	# Use this switch to Disable SSL verification (NOT RECOMMENDED)
 	[Parameter(Mandatory=$false)]
 	[Switch]$DisableSSLVerify,
 	
@@ -85,9 +85,8 @@ $script:g_LogonHeader = $null
 # Parameters.....: LogFile, MSG, (Switch)Header, (Switch)SubHeader, (Switch)Footer, Type
 # Return Values..: None
 # =================================================================================================================================
-Function Write-LogMessage
-{
-<# 
+Function Write-LogMessage {
+	<# 
 .SYNOPSIS 
 	Method to log a message on screen and in a log file
 
@@ -125,16 +124,14 @@ Function Write-LogMessage
 		[String]$LogFile = $LOG_FILE_PATH
 	)
 	Try{
-		If([string]::IsNullOrEmpty($LogFile))
-		{
+		If([string]::IsNullOrEmpty($LogFile)) {
 			# Create a temporary log file
 			$LogFile = "$ScriptLocation\tmp.log"
 		}
 		
 		If ($Header) {
 			"=======================================" | Out-File -Append -FilePath $LogFile 
-		}
-		ElseIf($SubHeader) { 
+		} ElseIf($SubHeader) { 
 			"------------------------------------" | Out-File -Append -FilePath $LogFile 
 		}
 		
@@ -143,14 +140,12 @@ Function Write-LogMessage
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		
 		# Mask Passwords
-		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
-		{
+		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))') {
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
 		$writeToFile = $true
 		# Check the message type
-		switch ($type)
-		{
+		switch ($type) {
 			"Info" { 
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
@@ -167,30 +162,25 @@ Function Write-LogMessage
 				break
 			}
 			"Debug" { 
-				if($InDebug -or $InVerbose)
-				{
+				if($InDebug -or $InVerbose) {
 					Write-Debug $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
 					break
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 			"Verbose" { 
-				if($InVerbose)
-				{
+				if($InVerbose) {
 					Write-Verbose $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
 					break
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 		}
 		If($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LogFile }
 		If ($Footer) { 
 			"=======================================" | Out-File -Append -FilePath $LogFile 
 		}
-	}
-	catch{
+	} catch{
 		Throw $(New-Object System.Exception ("Cannot write message '$Msg' to file '$Logfile'",$_.Exception))
 	}
 }
@@ -201,9 +191,8 @@ Function Write-LogMessage
 # Parameters.....: Exception
 # Return Values..: Formatted String of Exception messages
 # =================================================================================================================================
-Function Join-ExceptionMessage
-{
-<#
+Function Join-ExceptionMessage {
+	<#
 .SYNOPSIS
 	Formats exception messages
 .DESCRIPTION
@@ -220,8 +209,8 @@ Function Join-ExceptionMessage
 	Process {
 		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		while ($e.InnerException) {
-		  $e = $e.InnerException
-		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+			$e = $e.InnerException
+			$msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		}
 		return $msg
 	}
@@ -236,9 +225,8 @@ Function Join-ExceptionMessage
 # Parameters.....: Text
 # Return Values..: URL encoded text
 # =================================================================================================================================
-Function ConvertTo-URL($sText)
-{
-<# 
+Function ConvertTo-URL($sText) {
+	<# 
 .SYNOPSIS 
 	HTTP Encode test in URL
 .DESCRIPTION
@@ -246,13 +234,10 @@ Function ConvertTo-URL($sText)
 .PARAMETER sText
 	The text to encode
 #>
-	if (![string]::IsNullOrEmpty($sText))
-	{
+	if (![string]::IsNullOrEmpty($sText)) {
 		Write-Debug "Returning URL Encode of $sText"
 		return [URI]::EscapeDataString($sText)
-	}
-	else
-	{
+	} else {
 		return $sText
 	}
 }
@@ -263,9 +248,8 @@ Function ConvertTo-URL($sText)
 # Parameters.....: Text
 # Return Values..: Boolean value of the text (if a boolean), the input text if not
 # =================================================================================================================================
-Function TryConvertTo-Bool
-{
-<# 
+Function TryConvertTo-Bool {
+	<# 
 .SYNOPSIS 
 	Converts text to Bool
 .DESCRIPTION
@@ -279,24 +263,20 @@ Function TryConvertTo-Bool
 	$retBool = $false
 	$changed = $false
 	if($txt -match "^y$|^yes$") {
-        $retBool = $true 
-        $changed = $true
-    }
-	elseif ($txt -match "^n$|^no$") { 
-        $retBool = $false 
-        $changed = $true
-    }
-	else {
-        $changed = [bool]::TryParse($txt, [ref]$retBool)
-    }
+		$retBool = $true 
+		$changed = $true
+	} elseif ($txt -match "^n$|^no$") { 
+		$retBool = $false 
+		$changed = $true
+	} else {
+		$changed = [bool]::TryParse($txt, [ref]$retBool)
+	}
 
-    if($changed)
-    {
-        return $retBool
-    }
-    else {
-        return $txt
-    }
+	if($changed) {
+		return $retBool
+	} else {
+		return $txt
+	}
 }
     
 # @FUNCTION@ ======================================================================================================================
@@ -305,22 +285,20 @@ Function TryConvertTo-Bool
 # Parameters.....: Object
 # Return Values..: String of the object
 # =================================================================================================================================
-Function Convert-ObjectToString
-{
-    param(
-        [PSCustomObject]$Object
-    )
-    $retString = [string]::Empty
-    If($null -ne $Object)
-    {
+Function Convert-ObjectToString {
+	param(
+		[PSCustomObject]$Object
+	)
+	$retString = [string]::Empty
+	If($null -ne $Object) {
 		$retString += "{"
 		$arrItems = @()
 		$arrItems += $Object.PSObject.Properties | ForEach-Object { "{0}={1}" -f $_.Name,$_.Value }
-        $retString += $arrItems -join ','
-        $retString += "}"
-    }
+		$retString += $arrItems -join ','
+		$retString += "}"
+	}
 
-    return $retString
+	return $retString
 }
 
 # @FUNCTION@ ======================================================================================================================
@@ -329,27 +307,23 @@ Function Convert-ObjectToString
 # Parameters.....: String
 # Return Values..: Object
 # =================================================================================================================================
-Function Convert-StringToObject
-{
-    param(
-        [string]$String
-    )
-    $retObject = New-Object PSCustomObject
-    If(![string]::IsNullOrEmpty($String))
-    {
-        $escapedString = $String.Replace('{',"").Replace('}',"")
-        ForEach($item in $escapedString.Split(','))
-        {
+Function Convert-StringToObject {
+	param(
+		[string]$String
+	)
+	$retObject = New-Object PSCustomObject
+	If(![string]::IsNullOrEmpty($String)) {
+		$escapedString = $String.Replace('{',"").Replace('}',"")
+		ForEach($item in $escapedString.Split(',')) {
 			# Skip authID parameter
-            $KeyValue = $item.Split('=')
+			$KeyValue = $item.Split('=')
 			If($KeyValue[0].Trim() -ne "authID"){
 				# Skip empty values
-				If(![string]::IsNullOrEmpty($KeyValue[1]))
-				{
+				If(![string]::IsNullOrEmpty($KeyValue[1])) {
 					$retObject | Add-Member -NotePropertyName $KeyValue[0].Trim() -NotePropertyValue $(TryConvertTo-Bool -txt $KeyValue[1].Trim())
 				}
 			}
-        }
+		}
 	}
 	return $retObject
 }
@@ -360,9 +334,8 @@ Function Convert-StringToObject
 # Parameters.....: Text
 # Return Values..: Trimmed text
 # =================================================================================================================================
-Function Get-TrimmedString
-{
-<# 
+Function Get-TrimmedString {
+	<# 
 .SYNOPSIS 
 	Returns the trimmed text from a string
 .DESCRIPTION
@@ -376,9 +349,7 @@ Function Get-TrimmedString
 
 	if ([string]::IsNullOrEmpty($sText)) {
 		return $null
-	}
-	else
-	{
+	} else {
 		return $sText.Trim()
 	}
 }
@@ -388,9 +359,8 @@ Function Get-TrimmedString
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Disable-SSLVerification
-{
-<# 
+Function Disable-SSLVerification {
+	<# 
 .SYNOPSIS 
 	Bypass SSL certificate validations
 .DESCRIPTION
@@ -402,7 +372,7 @@ Function Disable-SSLVerification
 	[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 	# Disable SSL Verification
 	if (-not("DisableCertValidationCallback" -as [type])) {
-    add-type -TypeDefinition @"
+		Add-Type -TypeDefinition @"
 using System;
 using System.Net;
 using System.Net.Security;
@@ -418,7 +388,8 @@ public static class DisableCertValidationCallback {
         return new RemoteCertificateValidationCallback(DisableCertValidationCallback.ReturnTrue);
     }
 }
-"@ }
+"@ 
+ }
 
 	[System.Net.ServicePointManager]::ServerCertificateValidationCallback = [DisableCertValidationCallback]::GetDelegate()
 }
@@ -429,9 +400,8 @@ public static class DisableCertValidationCallback {
 # Parameters.....: Command method, URI, Header, Body
 # Return Values..: REST response
 # =================================================================================================================================
-Function Invoke-Rest
-{
-<# 
+Function Invoke-Rest {
+	<# 
 .SYNOPSIS 
 	Invoke REST Method
 .DESCRIPTION
@@ -464,27 +434,23 @@ Function Invoke-Rest
 	
 	$restResponse = ""
 	try{
-		if([string]::IsNullOrEmpty($Body))
-		{
+		if([string]::IsNullOrEmpty($Body)) {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700
-		}
-		else
-		{
+		} else {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700
 		}
 	} catch [System.Net.WebException] {
 		$restResponse = $null
-        if($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")){
+		if($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")){
 			Write-LogMessage -Type Error -Msg "Error Message: $_"
 			Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
 			Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
 			Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
-        }
-        else {
-            Throw $_.Exception.Message
-        }
+		} else {
+			Throw $_.Exception.Message
+		}
 	} catch { 
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'",$_.Exception))
 	}
@@ -498,9 +464,8 @@ Function Invoke-Rest
 # Parameters.....: Credentials
 # Return Values..: Logon Header
 # =================================================================================================================================
-Function Get-LogonHeader
-{
-<#
+Function Get-LogonHeader {
+	<#
 .SYNOPSIS
 	Get-LogonHeader
 .DESCRIPTION
@@ -515,51 +480,44 @@ Function Get-LogonHeader
 		[bool]$useRadius
 	)
 
-    if([string]::IsNullOrEmpty($g_LogonHeader))
-	{
+	if([string]::IsNullOrEmpty($g_LogonHeader)) {
 		# Disable SSL Verification to contact PVWA
-		If($DisableSSLVerify)
-		{
+		If($DisableSSLVerify) {
 			Disable-SSLVerification
 		}
 		
-        # Create the POST Body for the Logon
-        # ----------------------------------
-        if($useRadius)
-        {
-            $logonBody = @{ username=$Credentials.username.Replace('\','');useRadiusAuthentication=$true;password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -compress
-        }
-        else
-        {
-            $logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
-        }
+		# Create the POST Body for the Logon
+		# ----------------------------------
+		if($useRadius) {
+			$logonBody = @{ username=$Credentials.username.Replace('\','');useRadiusAuthentication=$true;password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
+		} else {
+			$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
+		}
             
-        try{
-            # Logon
-            $logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody 
+		try{
+			# Logon
+			$logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody 
 
-            # Clear logon body
-            $logonBody = ""
-        } catch {
-            Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)",$_.Exception))
-        }
+			# Clear logon body
+			$logonBody = ""
+		} catch {
+			Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)",$_.Exception))
+		}
 
-        $logonHeader = $null
-        If ([string]::IsNullOrEmpty($logonToken))
-        {
-            Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
-        }
+		$logonHeader = $null
+		If ([string]::IsNullOrEmpty($logonToken)) {
+			Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
+		}
 
-        # Create a Logon Token Header (This will be used through out all the script)
-        # ---------------------------
-        If($logonToken.PSObject.Properties.Name -contains "CyberArkLogonResult")
-        {
-            $logonHeader = @{Authorization = $($logonToken.CyberArkLogonResult)}
-        } else {
-            $logonHeader = @{Authorization = $logonToken}
-        }
-        Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope script		
-    }
+		# Create a Logon Token Header (This will be used through out all the script)
+		# ---------------------------
+		If($logonToken.PSObject.Properties.Name -contains "CyberArkLogonResult") {
+			$logonHeader = @{Authorization = $($logonToken.CyberArkLogonResult)}
+		} else {
+			$logonHeader = @{Authorization = $logonToken}
+		}
+		Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope script		
+	}
 	
 	return $g_LogonHeader
 }
@@ -570,9 +528,8 @@ Function Get-LogonHeader
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Invoke-Logoff
-{
-<# 
+Function Invoke-Logoff {
+	<# 
 .SYNOPSIS 
 	Invoke-Logoff
 .DESCRIPTION
@@ -581,8 +538,7 @@ Function Invoke-Logoff
 	try{
 		# Logoff the session
 		# ------------------
-		If($null -ne $g_LogonHeader)
-		{
+		If($null -ne $g_LogonHeader) {
 			Write-LogMessage -Type Info -Msg "Logoff Session..."
 			Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader
 			Set-Variable -Name g_LogonHeader -Value $null -Scope script
@@ -601,15 +557,13 @@ Write-LogMessage -Type Info -MSG "Starting script (v$ScriptVersion)" -Header -Lo
 if($InDebug) { Write-LogMessage -Type Info -MSG "Running in Debug Mode" -LogFile $LOG_FILE_PATH }
 if($InVerbose) { Write-LogMessage -Type Info -MSG "Running in Verbose Mode" -LogFile $LOG_FILE_PATH }
 Write-LogMessage -Type Debug -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ", ")" -LogFile $LOG_FILE_PATH
-If($PSVersionTable.PSVersion.Major -lt 3)
-{
+If($PSVersionTable.PSVersion.Major -lt 3) {
 	Write-LogMessage -Type Error -Msg "This script requires PowerShell version 3 or above"
 	return
 }
 
 # Check if Powershell is running in Constrained Language Mode
-If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
-{
+If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
 	Write-LogMessage -Type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
 	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
@@ -617,10 +571,8 @@ If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 	return
 }
 # Check that the PVWA URL is OK
-If (![string]::IsNullOrEmpty($PVWAURL))
-{
-	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/")
-	{
+If (![string]::IsNullOrEmpty($PVWAURL)) {
+	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/") {
 		$PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
 	}
 }
@@ -633,69 +585,60 @@ $msg = "Enter your PAS User name and Password ($AuthType)";
 $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 $radius = ($AuthType -eq "radius")
 
-switch($PsCmdlet.ParameterSetName)
-{
-    "Import"
-    {
-        try{
-            If(Test-Path $CSVPath)
-            {
-                $appData = Import-Csv $CSVPath
-                ForEach($app in $appData)
-                {
-                    try{
-                        # Add application
-                        $appBody = @{
-                            "application"=@{
-                                "AppID"=$app.AppID;
-                                "Description"=$app.Description;
-                                "Location"=$app.Location;
-                                "AccessPermittedFrom"=[int]::Parse($app.AccessPermittedFrom);
-                                "AccessPermittedTo"=[int]::Parse($app.AccessPermittedTo);
-                                "ExpirationDate"=(Get-TrimmedString $app.ExpirationDate);
-                                "Disabled"=(TryConvertTo-Bool $app.Disabled);
-                                "BusinessOwnerFName"=(Get-TrimmedString $app.BusinessOwnerFName);
-                                "BusinessOwnerLName"=(Get-TrimmedString $app.BusinessOwnerLName);
-                                "BusinessOwnerEmail"=(Get-TrimmedString $app.BusinessOwnerEmail);
-                                "BusinessOwnerPhone"=(Get-TrimmedString $app.BusinessOwnerPhone);
-                              }
-                        }
-                        $newApp = (Invoke-Rest -Command POST -URI $URL_Applications -Body $($appBody | ConvertTo-Json) -Header $(Get-LogonHeader -Credentials $creds -useRadius $radius))
-                        if($null -ne $newApp)
-                        {
-                            # Add the Application Authentication methods
-                            $arrAuths = $app.Authentications -split ';'
-                            ForEach($auth in $arrAuths)
-                            {
+switch($PsCmdlet.ParameterSetName) {
+	"Import" {
+		try{
+			If(Test-Path $CSVPath) {
+				$appData = Import-Csv $CSVPath
+				ForEach($app in $appData) {
+					try{
+						# Add application
+						$appBody = @{
+							"application" =@{
+								"AppID"               =$app.AppID;
+								"Description"         =$app.Description;
+								"Location"            =$app.Location;
+								"AccessPermittedFrom" =[int]::Parse($app.AccessPermittedFrom);
+								"AccessPermittedTo"   =[int]::Parse($app.AccessPermittedTo);
+								"ExpirationDate"      =(Get-TrimmedString $app.ExpirationDate);
+								"Disabled"            =(TryConvertTo-Bool $app.Disabled);
+								"BusinessOwnerFName"  =(Get-TrimmedString $app.BusinessOwnerFName);
+								"BusinessOwnerLName"  =(Get-TrimmedString $app.BusinessOwnerLName);
+								"BusinessOwnerEmail"  =(Get-TrimmedString $app.BusinessOwnerEmail);
+								"BusinessOwnerPhone"  =(Get-TrimmedString $app.BusinessOwnerPhone);
+							}
+						}
+						$newApp = (Invoke-Rest -Command POST -URI $URL_Applications -Body $($appBody | ConvertTo-Json) -Header $(Get-LogonHeader -Credentials $creds -useRadius $radius))
+						if($null -ne $newApp) {
+							# Add the Application Authentication methods
+							$arrAuths = $app.Authentications -split ';'
+							ForEach($auth in $arrAuths) {
 								try{
 									$authBody = @{
-										"authentication"=$(Convert-StringToObject -String $auth)
+										"authentication" =$(Convert-StringToObject -String $auth)
 									}
 									Write-LogMessage -Type Verbose -MSG "Adding '$($authBody.authentication.AuthType)' authentication method to '$($app.AppID)'"
 									$newAuth = (Invoke-Rest -Command POST -URI ($URL_ApplicationAuthMethod -f $app.AppID) -Body $($authBody | ConvertTo-Json) -Header $(Get-LogonHeader -Credentials $creds -useRadius $radius))
-									If($null -eq $newAuth)
-									{
+									If($null -eq $newAuth) {
 										Write-LogMessage -Type Error -Msg "Error adding new authentication method to application'$($app.AppID)'"
 									}
 								} catch {
 									Write-LogMessage -Type Error -Msg "Error adding new authentication method to application'$($app.AppID)'. Error: $(Join-ExceptionMessage $_.Exception)"
 								}
-                            }
-                        }
-                    } catch {
-                        Write-LogMessage -Type Error -Msg "Error adding application '$($app.AppID)'. Error: $(Join-ExceptionMessage $_.Exception)"
-                    }
-                }
-            }
-        } catch {
-            Write-LogMessage -Type Error -Msg "Error importing applications. Error: $(Join-ExceptionMessage $_.Exception)"
-        }
-    }
-    "Export"
-    {
+							}
+						}
+					} catch {
+						Write-LogMessage -Type Error -Msg "Error adding application '$($app.AppID)'. Error: $(Join-ExceptionMessage $_.Exception)"
+					}
+				}
+			}
+		} catch {
+			Write-LogMessage -Type Error -Msg "Error importing applications. Error: $(Join-ExceptionMessage $_.Exception)"
+		}
+	}
+	"Export" {
 		# Check if the CSV File exists already
-		If(Test-Path $CSVPath)
-		{
+		If(Test-Path $CSVPath) {
 			try{
 				Write-Warning -WarningAction Inquire -Message "CSV file ($CSVPath) already exist, Continue to overwrite or Halt to enter a new CSV path"
 				# User confirmed to overwrite - delete the exting file
@@ -705,52 +648,46 @@ switch($PsCmdlet.ParameterSetName)
 				return
 			}
 		}
-        try{
-            $arrApps = @()
-            if([string]::IsNullOrEmpty($AppID))
-            {
-                # Get all applications
-                $allApps = (Invoke-Rest -Command Get -URI $URL_Applications -Header $(Get-LogonHeader -Credentials $creds -useRadius $radius)).application
-            }
-            else {
-                $allApps = (Invoke-Rest -Command Get -URI ($URL_SpecificApplication -f $AppID) -Header $(Get-LogonHeader -Credentials $creds -useRadius $radius)).application
-            }
-            If($null -ne $allApps)
-            {
-                Write-LogMessage -type Info -MSG "Found $($allApps.Count) applications"
-                ForEach($app in $allApps)
-                {
-                    $appObject = New-Object psobject
-                    # Deep copy of the application
-                    $app.PSobject.Properties | ForEach-Object { $appObject | Add-Member -MemberType $_.MemberType -Name $_.Name -Value $_.Value }
-                    try{
-                        # Get the application authentication methods
-                        Write-LogMessage -Type Verbose -MSG "Getting application '$($app.AppID)' authentication methods"
-                        $appAuthMethods = Invoke-Rest -Command Get -URI $($URL_ApplicationAuthMethod -f $(Convertto-URL $app.AppID)) -Header (Get-LogonHeader -Credentials $creds -useRadius $radius)
-                    } catch {
-                        Write-LogMessage -Type Error -Msg "Error getting application '$($app.AppID)' authentication methods. Error: $(Join-ExceptionMessage $_.Exception)"
-                    }
-                    If($null -ne $appAuthMethods)
-                    {
-                        # Convert application auth. method to object
-                        $appAuth = @()
-                        ForEach($auth in $appAuthMethods.authentication)
-                        {
-                            $appAuth += $(Convert-ObjectToString -object $auth)
-                        }
-                        $appObject | Add-Member -NotePropertyName "Authentications" -NotePropertyValue $($appAuth -join ';')
-                        # Add the new object to the Apps array
-                        $arrApps += $appObject
-                    }
-                }
-                # Exporting Applications to CSV
-                Write-LogMessage -type Info -MSG "Exporting applications to CSV file..."
-                $arrApps | Export-Csv -NoClobber -NoTypeInformation -Encoding ASCII -Path $CSVPath -Force
-            }
-        } catch {
-            Write-LogMessage -Type Error -Msg "Error exporting applications. Error: $(Join-ExceptionMessage $_.Exception)"
-        }
-    }
+		try{
+			$arrApps = @()
+			if([string]::IsNullOrEmpty($AppID)) {
+				# Get all applications
+				$allApps = (Invoke-Rest -Command Get -URI $URL_Applications -Header $(Get-LogonHeader -Credentials $creds -useRadius $radius)).application
+			} else {
+				$allApps = (Invoke-Rest -Command Get -URI ($URL_SpecificApplication -f $AppID) -Header $(Get-LogonHeader -Credentials $creds -useRadius $radius)).application
+			}
+			If($null -ne $allApps) {
+				Write-LogMessage -type Info -MSG "Found $($allApps.Count) applications"
+				ForEach($app in $allApps) {
+					$appObject = New-Object psobject
+					# Deep copy of the application
+					$app.PSobject.Properties | ForEach-Object { $appObject | Add-Member -MemberType $_.MemberType -Name $_.Name -Value $_.Value }
+					try{
+						# Get the application authentication methods
+						Write-LogMessage -Type Verbose -MSG "Getting application '$($app.AppID)' authentication methods"
+						$appAuthMethods = Invoke-Rest -Command Get -URI $($URL_ApplicationAuthMethod -f $(Convertto-URL $app.AppID)) -Header (Get-LogonHeader -Credentials $creds -useRadius $radius)
+					} catch {
+						Write-LogMessage -Type Error -Msg "Error getting application '$($app.AppID)' authentication methods. Error: $(Join-ExceptionMessage $_.Exception)"
+					}
+					If($null -ne $appAuthMethods) {
+						# Convert application auth. method to object
+						$appAuth = @()
+						ForEach($auth in $appAuthMethods.authentication) {
+							$appAuth += $(Convert-ObjectToString -object $auth)
+						}
+						$appObject | Add-Member -NotePropertyName "Authentications" -NotePropertyValue $($appAuth -join ';')
+						# Add the new object to the Apps array
+						$arrApps += $appObject
+					}
+				}
+				# Exporting Applications to CSV
+				Write-LogMessage -type Info -MSG "Exporting applications to CSV file..."
+				$arrApps | Export-Csv -NoClobber -NoTypeInformation -Encoding ASCII -Path $CSVPath -Force
+			}
+		} catch {
+			Write-LogMessage -Type Error -Msg "Error exporting applications. Error: $(Join-ExceptionMessage $_.Exception)"
+		}
+	}
 }
 # Logoff the session
 # ------------------
