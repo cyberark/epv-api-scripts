@@ -582,7 +582,7 @@ ForEach ($account in $accountsCSV) {
 		$foundMasterAccountID = $null
 		try {
 			$foundMasterAccountID = Find-MasterAccount -accountName $account.userName -accountAddress $account.address
-			if ([string]::IsNullOrEmpty($foundMasterAccountID)) {Throw "No Master Account Found"}
+			if ([string]::IsNullOrEmpty($foundMasterAccountID)) {Throw "No Master Account Found - User: $($account.userName) Address: $($account.address) "}
 		} catch {
 			Write-LogMessage -Type Error -Msg "Error searching for Master Account. Error: $(Join-ExceptionMessage $_.Exception)"
 			continue
