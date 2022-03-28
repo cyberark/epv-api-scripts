@@ -617,6 +617,7 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
 
     try {
         Write-LogMessage -Type Debug -Msg "Adding the safe $safename to the Vault..."
+	Write-LogMessage -Type Debug -Msg "Rest Body $($createSafeBody | ConvertTo-Json)"
         $safeAdd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
         # Reset cached Safes list
         #Set-Variable -Name g_SafesList -Value $null -Scope Global
@@ -696,7 +697,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
 
     try {
         Write-LogMessage -Type Debug -Msg "Updating safe $safename..."
-        Write-LogMessage -Type Debug -Msg "Update Safe Body: $updateSafeBody" 
+        Write-LogMessage -Type Debug -Msg "Rest Body: $updateSafeBody" 
         $null = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
     } catch {
         Throw $(New-Object System.Exception ("Update-Safe: Error updating $safeName.", $_.Exception))
@@ -854,6 +855,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                 $urlSafeMembers = ($URL_SafeMembers -f $(ConvertTo-URL $safeName))
                 $restMethod = "POST"
             }
+	    Write-LogMessage -Type Debug -Msg "Rest Body : $($safeMembersBody | ConvertTo-Json -Depth 5)"
             $null = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorVariable rMethodErr
         } catch {
             if ($rMethodErr.message -like "*User or Group is already a member*") {
