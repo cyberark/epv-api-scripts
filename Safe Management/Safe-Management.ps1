@@ -262,7 +262,7 @@ Function Write-LogMessage {
                 $msgToWrite += "[ERROR]`t$Msg"
             }
             "Debug" { 
-                if ($InDebug) {
+                if ($InDebug -or $InVerbose) {
                     Write-Debug $MSG
                     $msgToWrite += "[DEBUG]`t$Msg"
                 } else {
