@@ -1113,6 +1113,13 @@ function Reset-Credentials{
         [Parameter(Mandatory=$false)]
         [string]$vaultAddress
     )
+
+$checkPVWA = $PVWAURL.replace("\","/").replace("https://","").Split("/").ToLower()
+If ($checkPVWA[0] -eq $server.ToLower()){
+Write-LogMessage -type Error -MSG "Unable to reset credentials of PVWA being used by script"
+continue
+}
+    
     IF ("Windows" -eq $os){
         switch ($ComponentType) {
             "CPM" { 
