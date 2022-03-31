@@ -3,3 +3,5 @@
 .creds
 *.log
 
+Reset Credential Files Remotely/Vault.ini
+.vscode/settings.json

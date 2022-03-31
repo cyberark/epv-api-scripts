@@ -16,7 +16,7 @@ $URL_HealthSummery = $URL_PVWAAPI+"/ComponentsMonitoringSummary"
 $URL_HealthDetails = $URL_PVWAAPI+"/ComponentsMonitoringDetails/{0}"
 
 $g_cpmservices = @("CyberArk Password Manager","CyberArk Central Policy Manager Scanner")
-$g_pvwaservices = @("CyberArk Scheduled Tasks")
+$g_pvwaservices = @("CyberArk Scheduled Tasks","W3SVC","IISADMIN")
 $g_psmservices = @("Cyber-Ark Privileged Session Manager")
 $g_aamservices = @("CyberArk Application Password Provider")
 
@@ -40,9 +40,17 @@ $g_cpmuserCredv12 = ".\CreateCredFile.exe user.ini Password /Username {0} /AppTy
 $g_cpmuserCred = ".\CreateCredFile.exe user.ini Password /Username {0} /AppType CPM /IpAddress /Hostname /Password {1}"
 
 #commands to reset AAM credential files
-$g_aamuserCredv12 = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_aamuserwinCredv12 = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /EntropyFile /DPAPIMachineProtection /Password {1}"
 
-$g_aamuserCred = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /Password {1}"
+$g_aamuserwinCred = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /Password {1}"
+
+#vault.ini locations
+$g_aamvault = "\vault\vault.ini"
+$g_cpmvault = ".\vault.ini"
+$g_psmvault = ".\vault.ini"
+$g_pvwavault= ".\vault.ini"
+
+
 
 if($InVerbose){
     $VerbosePreference = "continue"
@@ -1091,302 +1099,6 @@ Function Stop-ServiceProcess{
     }
 }
 
-function Reset-PVWACredentials{
-    param (
-        [Parameter(Mandatory=$true)]
-        [string]$Server
-
-    )
-    $complete = $failed = $false
-    $attempts = 0
-    While (!$complete -and !$failed) {
-        If ($PVWAURL -match $server) {
-            Write-LogMessage -type Error -MSG "Unable to reset credentials of PVWA being used by script"
-            break
-        }
-        try {
-            Try {
-                $session = New-PSLogon $server
-            } Catch {
-                Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a windows server and winRM has been enabled."             
-                break
-            }
-            Write-LogMessage -type info -MSG "Connected to $Server and starting to reset PVWA Credentials"
-            Write-LogMessage -type Verbose -MSG "Connected to $Server. Importing required modules"
-            
-            Import-ModuleRemotely -moduleName CyberArk-Common -session $Session
-            Write-LogMessage -type Verbose -MSG "Modules imported. Getting information about the installed components"
-            
-            $compInfo = Get-ComponentInfo -Server $Server -ComponentType "PVWA" -Session $Session          
-            $installLocation = $compInfo.path
-            [version]$version = $compInfo.Version
-            Write-LogMessage -type Verbose -MSG "Retrived Component Information"
-            Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
-            Write-LogMessage -type Verbose -MSG "Version: $version"
-
-            Write-LogMessage -type Verbose -MSG "Attempting to stop PVWA Services" 
-            Stop-ComponentService -services $Script:g_pvwaservices -session $session -server $server
-            Invoke-Command -Session $session -ScriptBlock{iisreset /stop} -OutVariable iisresetStopResult | Out-Null
-
-            if (!$iisresetStopResult[3] -contains "Internet Information Services successfully stopped") {
-                $failed = $true
-                Write-LogMessage -type Error -MSG "Error while trying to Internet Information Services"
-                Throw "Error Stopping IIS"; 
-                
-            }
-            Write-LogMessage -type Verbose -MSG "Stopped PVWA Services"
-            Write-LogMessage -type Verbose -MSG "Updating PVWA credential files"
-
-            Invoke-Command -Session $session -ScriptBlock {Set-Location -Path ($args[0]+"\Env");} -ArgumentList $installLocation
-            $appuserItem = Invoke-Command -Session $session -ScriptBlock {((Select-String -Path ..\CredFiles\appuser.ini -Pattern "username=").Line).split("=")[1]}
-            Write-LogMessage -type Verbose -MSG "AppUser Username: $appuserItem"
-            
-            $tempPassword = New-RandomPassword -Length 14 -Lowercase -Uppercase -Numbers -Symbols | ConvertTo-SecureString -AsPlainText -Force 
-            $tag = [DateTimeOffset]::Now.ToUnixTimeSeconds()
-            Invoke-Command -Session $session -ScriptBlock {Rename-Item "..\CredFiles\appuser.ini" -NewName "appuser.ini.$($args[0])" -Force} -ArgumentList $tag
-            Invoke-Command -Session $session -ScriptBlock {Rename-Item "..\CredFiles\appuser.ini.entropy" -NewName "appuser.ini.entropy.$($args[0])" -Force} -ArgumentList $tag
-            Write-LogMessage -type Verbose -MSG "Backed up APPUser credential files"
-        
-            if ($version -ge [version]'12.1'){
-                $appcommand = $g_pvwaappuserCredv12 -f $appuserItem, $(Convert-SecureString($tempPassword))
-            } else {
-                $appcommand = $g_pvwaappuserCred -f $appuserItem, $(Convert-SecureString($tempPassword))
-            }
-
-            Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $appcommand -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
-            Remove-Variable appcommand
-            Write-LogMessage -type Verbose -MSG "Ran CreateCredFile on AppUser"
-		
-            If ($invokeResultApp[0].TargetObject -ne "Command ended successfully"){
-                Invoke-Command -Session $session -ScriptBlock {Rename-Item "..\CredFiles\appuser.ini.$($args[0])" -NewName "appuser.ini" -Force} -ArgumentList $tag
-                Invoke-Command -Session $session -ScriptBlock {Rename-Item "..\CredFiles\appuser.ini.entropy.$($args[0])" -NewName "appuser.ini.entropy" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
-			
-                $failed = $true
-                Write-LogMessage -type Error -MSG "Error while resetting AppUser on  $server"
-                Throw "Error resetting AppUser credential file on $server"
-            } else {
-                Invoke-Command -Session $session -ScriptBlock {Remove-Item "..\CredFiles\appuser.ini.$($args[0])" -Force} -ArgumentList $tag
-                Invoke-Command -Session $session -ScriptBlock {Remove-Item "..\CredFiles\appuser.ini.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
-			
-            }
-            
-            Write-LogMessage -type Verbose -MSG "CreateCredFile on AppUser successful"
-
-            Write-LogMessage -type Verbose -MSG "Updating GWUser credential files"
-
-            $gwuserItem = Invoke-Command -Session $session -ScriptBlock {((Select-String -Path ..\CredFiles\gwuser.ini -Pattern "username=").Line).split("=")[1]}
-            Write-LogMessage -type Verbose -MSG "GWUser Username: $gwuserItem"
-
-            Invoke-Command -Session $session -ScriptBlock {Rename-Item "..\CredFiles\gwuser.ini" -NewName "gwuser.ini.$($args[0])" -Force} -ArgumentList $tag
-            Invoke-Command -Session $session -ScriptBlock {Rename-Item "..\CredFiles\gwuser.ini.entropy" -NewName "gwuser.ini.entropy.$($args[0])" -Force} -ArgumentList $tag
-		
-            Write-LogMessage -type Verbose -MSG "Backed up GWUser credential files"
-
-            if ($version -ge [version]'12.1'){
-                $gwcommand = $g_pvwagwuserCredv12 -f $gwuserItem, $(Convert-SecureString($tempPassword))
-            } else {
-                $gwcommand = $g_pvwagwuserCred -f $gwuserItem, $(Convert-SecureString($tempPassword))
-            }
-
-            Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $gwcommand -ErrorAction SilentlyContinue -ErrorVariable invokeResultGw
-            Remove-Variable gwcommand
-           
-            If ($invokeResultGW[0].TargetObject -ne "Command ended successfully"){
-                Invoke-Command -Session $session -ScriptBlock {Rename-Item "..\CredFiles\gwuser.ini.$($args[0])" -NewName "gwuser.ini" -Force} -ArgumentList $tag
-                Invoke-Command -Session $session -ScriptBlock {Rename-Item "..\CredFiles\gwuser.ini.entropy.$($args[0])" -NewName "gwuser.ini.entropy" -Force} -ArgumentList $tag
-                Write-LogMessage -type Error -MSG "Error while resetting GWUser"
-                $failed = $true
-                Throw "Error resetting Gateway credential file"
-            } else {
-                Invoke-Command -Session $session -ScriptBlock {Remove-Item "..\CredFiles\gwuser.ini.$($args[0])" -Force} -ArgumentList $tag
-                Invoke-Command -Session $session -ScriptBlock {Remove-Item "..\CredFiles\gwuser.ini.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
-            }
-
-            Write-LogMessage -type Verbose -MSG "CreateCredFile on GWUser successful"
-            Write-LogMessage -type Verbose -MSG "Updating AppUser via RESTAPI"
-            Set-UserPassword -username $appuserItem -Password $tempPassword
-            Write-LogMessage -type Verbose -MSG "Update of AppUser via RESTAPI Complete"
-            Write-LogMessage -type Verbose -MSG "Updating GWUser via RESTAPI"
-            Set-UserPassword -username $gwuserItem -Password $tempPassword
-            Write-LogMessage -type Verbose -MSG "Update of GWUser via RESTAPI Complete"
-
-            Write-LogMessage -type Verbose -MSG "Attempting to start Internet Information Services"
-            Invoke-Command -Session $session -ScriptBlock{iisreset /start} -OutVariable iisresetStartResult | Out-Null
-                      
-            if (!$iisresetStartResult[3] -contains "Internet Information Services successfully started") {
-                $failed = $true
-                Write-LogMessage -type Error -MSG "Error Starting Internet Information Services"
-                Throw "Error Starting Internet Information Services" 
-            }
-            Write-LogMessage -type Verbose -MSG "Started Internet Information Services" 
-
-            Write-LogMessage -type Verbose -MSG "Attempting to start PVWA Services"  
-            $complete = Start-ComponentService -services $Script:g_pvwaservices -session $session -server $server
-            Write-LogMessage -type Verbose -MSG "Started PVWA Services"  
-
-            $attempts += 1
-    
-            if ($attempts -gt 5) {$failed = $true;Throw}
-
-            if ($complete) {
-                Write-LogMessage -type Info -MSG "PVWA on $server reset completed successful"
-            } else {
-                Write-LogMessage -type Info -MSG "PVWA on $server reset failed, restarting"
-            }
-
-
-        } catch {
-            Write-LogMessage -type Error -MSG "Error during reset of PVWA on $server"
-            Throw $_
-        }
-
-        Finally {
-            Write-LogMessage -type Verbose -MSG "Disconnecting from $server"  
-            Remove-PSSession $session
-            Write-LogMessage -type Verbose -MSG "Disconnected from $server"
-        }
-    }
-}
-
-function Reset-PSMCredentials{
-    param (
-        [Parameter(Mandatory=$true)]
-        [string]$Server
-
-    )
-    $complete = $failed = $false
-    $attempts = 0
-    While (!$complete -and !$failed) {
-
-        try {
-
-            <#
-
-        $session = New-PSSession $server
-        Add the ability to use alt credentials
-
-        Do as function due to reuse in multiple places
-        $User = "administrator"
-        $PWord = ConvertTo-SecureString -String "Cyberark1!" -AsPlainText -Force
-        $Credentials = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, $PWord
-        
-#>
-
-            Try {
-                $session = New-PSLogon $server
-            } Catch {
-                Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a windows server and winRM has been enabled."             
-                break
-            }
-            Write-LogMessage -type info -MSG "Connected to $Server and reseting PSM Credentials"
-            Write-LogMessage -type Verbose -MSG "Connected to $Server. Importing required modules"            
-            Import-ModuleRemotely -moduleName CyberArk-Common -session $Session
-
-            Write-LogMessage -type Verbose -MSG "Modules imported. Getting information about the installed components"
-            $compInfo = Get-ComponentInfo -Server $Server -ComponentType "PSM" -Session $Session
-
-            $installLocation = $compInfo.path
-            [version]$version = $compInfo.Version
-            Write-LogMessage -type Verbose -MSG "Retrived Component Information"
-            Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
-            Write-LogMessage -type Verbose -MSG "Version: $version"
-
-            Write-LogMessage -type Verbose -MSG "Attempting to stop PSM Services" 
-            Stop-ComponentService -services $Script:g_psmservices -session $session -server $server
-            Write-LogMessage -type Verbose -MSG "PSM Stopped. Updating credential files" 
-
-            $tempPassword = New-RandomPassword -Length 14 -Lowercase -Uppercase -Numbers -Symbols | ConvertTo-SecureString -AsPlainText -Force 
-            $tag = [DateTimeOffset]::Now.ToUnixTimeSeconds()
-
-            Invoke-Command -Session $session -ScriptBlock {Set-Location -Path ($args[0]+"\vault");} -ArgumentList $installLocation
-            $appuserItem = Invoke-Command -Session $session -ScriptBlock {((Select-String -Path .\psmapp.cred -Pattern "username=").Line).split("=")[1]}
-            Write-LogMessage -type Verbose -MSG "APP Username: $appuserItem"
-
-            Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmapp.cred" -NewName "psmapp.cred.$($args[0])" -Force} -ArgumentList $tag
-            Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmapp.cred.entropy" -NewName "psmapp.cred.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
-            Write-LogMessage -type Verbose -MSG "Backed up APP User credential files"
-            
-            if ($version -ge [version]'12.1'){
-                $appcommand = $g_psmappuserCredv12 -f $appuserItem, $(Convert-SecureString($tempPassword))
-            } else {
-                $appcommand = $g_psmappuserCred -f $appuserItem, $(Convert-SecureString($tempPassword))
-            }
-                    
-            Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $appcommand -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
-            Remove-Variable appcommand
-		
-            If ($invokeResultApp[0].TargetObject -ne "Command ended successfully"){
-                Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmapp.cred.$($args[0])" -NewName "psmapp.cred" -Force} -ArgumentList $tag
-                Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmapp.cred.entropy.$($args[0])" -NewName "psmapp.cred.entropy" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag | Out-Null
-                $failed = $true
-                Write-LogMessage -type Error -MSG "Error while resetting AppUser on $server"
-                Throw "Error while resetting AppUser on $server"
-                
-            } else {
-                Invoke-Command -Session $session -ScriptBlock {Remove-Item ".\psmapp.cred.$($args[0])" -Force} -ArgumentList $tag
-                Invoke-Command -Session $session -ScriptBlock {Remove-Item ".\psmapp.cred.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
-            }
-            Write-LogMessage -type Verbose -MSG "APP CreateCredFile on PSM successful"
-            Write-LogMessage -type Verbose -MSG "Updating PSM APP User via RESTAPI"
-            Set-UserPassword -username $appuserItem -Password $tempPassword
-            Write-LogMessage -type Verbose -MSG "Update of PSM APP User via RESTAPI Complete"
-
-
-            $gwuserItem = Invoke-Command -Session $session -ScriptBlock {((Select-String -Path .\psmgw.cred -Pattern "username=").Line).split("=")[1]}
-            Write-LogMessage -type Verbose -MSG "GW Username: $gwuserItem"
-
-            Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmgw.cred" -NewName "psmgw.cred.$($args[0])" -Force} -ArgumentList $tag
-            Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmgw.cred.entropy" -NewName "psmgw.cred.entropy.$($args[0])" -Force} -ArgumentList $tag
-            Write-LogMessage -type Verbose -MSG "Backed up GW User credential files"
-
-            if ($version -ge [version]'12.1'){
-                $gwcommand = $g_psmgwuserCredv12 -f $gwuserItem, $(Convert-SecureString($tempPassword))
-            } else {
-                $gwcommand = $g_psmgwuserCred -f $gwuserItem, $(Convert-SecureString($tempPassword))
-            }
-            
-            Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $gwcommand -ErrorAction SilentlyContinue -ErrorVariable invokeResultGW
-            Remove-Variable gwcommand
-            
-            If ($invokeResultGW[0].TargetObject -ne "Command ended successfully"){
-                Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmgw.cred.$($args[0])" -NewName "psmgw.cred" -Force} -ArgumentList $tag
-                Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\psmgw.cred.entropy.$($args[0])" -NewName "psmgw.cred.entropy" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
-                $failed = $true
-                Write-LogMessage -type Error -MSG "Error while resetting GWUser on $server"
-                Throw "Error while resetting GWUser on $server"
-            } else {
-                Invoke-Command -Session $session -ScriptBlock {Remove-Item ".\psmgw.cred.$($args[0])" -Force} -ArgumentList $tag
-                Invoke-Command -Session $session -ScriptBlock {Remove-Item ".\psmgw.cred.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
-            }
-            Write-LogMessage -type Verbose -MSG "GW CreateCredFile on PSM successful"
-            Write-LogMessage -type Verbose -MSG "Updating PSM GW User via RESTAPI"
-            Set-UserPassword -username $gwuserItem -Password $tempPassword
-            Write-LogMessage -type Verbose -MSG "Update of PSM GW User via RESTAPI Complete"
-
-            Write-LogMessage -type Verbose -MSG "Attempting to start PSM services"
-
-            $complete = Start-ComponentService -services $Script:g_psmservices -session $session -server $server
-
-            $attempts += 1
-		
-            if ($attempts -gt 5) {$failed = $true;Throw}
-
-
-            if ($complete) {
-                Write-LogMessage -type Info -MSG "PSM on $server reset completed successful"
-            } else {
-                Write-LogMessage -type Info -MSG "PSM on $server reset failed, restarting"
-            }
-        } catch {
-            Write-LogMessage -type Error -MSG "Error during reset of PSM on $server"
-            Throw $_
-        } Finally {
-            Write-LogMessage -type Verbose -MSG "Disconnecting from $server"  
-            Remove-PSSession $session
-            Write-LogMessage -type info -MSG "Disconnected from $server"
-        }
-    }
-}
 function Reset-Credentials{
     param (
         [Parameter(Mandatory=$true)]
@@ -1396,16 +1108,38 @@ function Reset-Credentials{
         [string]$Server,
 
         [Parameter(Mandatory=$true)]
-        [string]$OS
+        [string]$OS,
+
+        [Parameter(Mandatory=$false)]
+        [string]$vaultAddress
     )
+
+$checkPVWA = $PVWAURL.replace("\","/").replace("https://","").Split("/").ToLower()
+If ($checkPVWA[0] -eq $server.ToLower()){
+Write-LogMessage -type Error -MSG "Unable to reset credentials of PVWA being used by script"
+continue
+}
+    
     IF ("Windows" -eq $os){
         switch ($ComponentType) {
-            "CPM" {Reset-CPMCredentials $server; break}
-            "PVWA" {Reset-PVWACredentials $server;break }
-            "PSM" {Reset-PSMCredentials $server;break }
-            "AAM Credential Provider" { Reset-AAMCredentialsWindows $server;break }
-            "Secrets Manager Credential Providers" { Reset-AAMCredentialsWindows $server;break }
-            default {Write-LogMessage -type Error -MSG "No Component Type passed for $server"}
+            "CPM" { 
+                Reset-Component -Server $server -component "CPM" -componentName $ComponentType -services $g_cpmservices -vaultaddress $vaultAddress;break 
+            }
+            "PVWA" { 
+                Reset-Component -Server $server -component "PVWA" -componentName $ComponentType -services $g_pvwaservices -vaultaddress $vaultAddress;break  
+            }
+            "PSM" { 
+                Reset-Component -Server $server -component "PSM" -componentName $ComponentType -services $g_psmservices -vaultaddress $vaultAddress;break  
+            }
+            "AAM Credential Provider" { 
+                Reset-Component -Server $server -component "AIM" -componentName $ComponentType -services $g_aamservices -vaultaddress $vaultAddress;break 
+            }
+            "Secrets Manager Credential Providers" { 
+                Reset-Component -Server $server -component "AIM" -componentName $ComponentType -services $g_aamservices -vaultaddress $vaultAddress;break 
+            }
+            default {
+                Write-LogMessage -type Error -MSG "No Component Type passed for $server"
+            }
         }
     } elseIf ("Linux" -eq $os) {
         Write-LogMessage -type Error -msg "Unable to reset PSMP credentials at this time. Manual reset required for $server"
@@ -1413,7 +1147,8 @@ function Reset-Credentials{
         Write-LogMessage -type Error -msg "Unable to determine OS type for $server"
     }
 }
-function Reset-CPMCredentials{
+
+<# function Reset-CPMCredentials{
     param (
         [Parameter(Mandatory=$true)]
         [string]$Server
@@ -1509,7 +1244,7 @@ function Reset-CPMCredentials{
         }
     }
 }
-function Reset-AAMCredentialsWindows{
+<# function Reset-AAMCredentialsWindows{
     param (
         [Parameter(Mandatory=$true)]
         [string]$Server
@@ -1546,41 +1281,7 @@ function Reset-AAMCredentialsWindows{
                 Stop-ComponentService -services $Script:g_aamservices -session $session -server $server
                 Write-LogMessage -type Verbose -MSG "Stopped AAM Services"
 
-                Write-LogMessage -type Verbose -MSG "Updating AppProviderUser credential files"
-                Invoke-Command -Session $session -ScriptBlock {Set-Location -Path ($args[0]+"\vault");} -ArgumentList $installLocation
-                $userItem = Invoke-Command -Session $session -ScriptBlock {((Select-String -Path .\AppProviderUser.cred -Pattern "username=").Line).split("=")[1]}
-                $tempPassword = New-RandomPassword -Length 14 -Lowercase -Uppercase -Numbers -Symbols | ConvertTo-SecureString -AsPlainText -Force 
-                Write-LogMessage -type Verbose -MSG "Username: $userItem"
-  
-                $tag = [DateTimeOffset]::Now.ToUnixTimeSeconds()
-                Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\AppProviderUser.cred" -NewName "AppProviderUser.cred.$($args[0])" -Force} -ArgumentList $tag
-                Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\AppProviderUser.cred.entropy" -NewName "AppProviderUser.cred.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
-                Write-LogMessage -type Verbose -MSG "Backed up AppProviderUser credential files"
-                
-                if ($version -ge [version]'12.0'){
-                    $command = $g_aamuserCredv12 -f $userItem, $(Convert-SecureString($tempPassword))
-                } else {
-                    $command = $g_aamuserCred -f $userItem, $(Convert-SecureString($tempPassword))
-                }
-
-                Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $command -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
-                Remove-Variable command
-                If ($invokeResultApp[0].TargetObject -ne "Command ended successfully"){
-                    Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\AppProviderUser.cred.$($args[0])" -NewName "AppProviderUser.cred" -Force} -ArgumentList $tag | Out-Null
-                    Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\AppProviderUser.cred.entropy.$($args[0])" -NewName "AppProviderUser.cred.entropy" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag | Out-Null
-			
-                    Write-LogMessage -type Error -MSG "Error resetting credential file on $server"
-                    $failed = $true
-                    Throw "Error resetting AAM credential file"
-                } else {
-                    Invoke-Command -Session $session -ScriptBlock {Remove-Item ".\AppProviderUser.cred.$($args[0])" -Force} -ArgumentList $tag
-                    Invoke-Command -Session $session -ScriptBlock {Remove-Item ".\AppProviderUser.cred.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
-                }
-                
-                Write-LogMessage -type Verbose -MSG "CreateCredFile on AppProviderUser successful"
-                Write-LogMessage -type Verbose -MSG "Updating AppProviderUser via RESTAPI"
-                Set-UserPassword -username $userItem -Password $tempPassword
-                Write-LogMessage -type Verbose -MSG "Update of AppUser via RESTAPI Complete"
+                $failed = Reset-CredFile -Server $server -compInfo $compInfo
 
                 Write-LogMessage -type Verbose -MSG "Attempting to start AAM services"
         
@@ -1616,6 +1317,299 @@ function Reset-AAMCredentialsWindows{
         }
     }
 }
+ #> #>
+function Reset-CredFile{
+
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Server,
+        [Parameter(Mandatory=$true)]
+        $compInfo,
+        [Parameter(Mandatory=$true)]
+        [System.Management.Automation.Runspaces.PSSession]$session
+    )
+    $installLocation = $compInfo.path
+    [version]$version = $compInfo.Version
+    $component = $compInfo.name
+
+    switch ($component) {
+        "AIM" {
+            $CompFiles += @(
+                @{
+                    type              = "AIM"
+                    createCredDir     = "\vault"
+                    credFilesDir      = ".\"
+                    credFiles         = "AppProviderUser.cred"
+                    componentName     = "AAM Credential Provider"
+                    CreateCredCommand = $(if ($version -ge [version]'12.0') {$g_aamuserwinCredv12} else {$g_aamuserwinCred})
+                }
+            )
+        }
+        "CPM" {
+            $CompFiles += @( 
+                @{
+                    type              = "CPM"
+                    createCredDir     = "\vault"
+                    credFilesDir      = ".\"
+                    credFiles         = ".\user.ini"
+                    componentName     = "CPM User"
+                    CreateCredCommand = $(if ($version -ge [version]'12.0') {$g_cpmuserCredv12} else {$g_cpmuserCred})
+                }
+            )
+        }
+        "PSM" {
+            $CompFiles += @(
+                @{
+                    type              = "PSM"
+                    createCredDir     = "\vault"
+                    credFilesDir      = ".\"
+                    credFiles         = "psmapp.cred"
+                    componentName     = "PSM Application User"
+                    CreateCredCommand = $(if ($version -ge [version]'12.0') {$g_psmappuserCredv12} else {$g_psmappuserCred})
+                }
+            )
+            $CompFiles += @(
+                @{
+                    type              = "PSM"
+                    createCredDir     = "\vault"
+                    credFilesDir      = ".\"
+                    credFiles         = "psmgw.cred"
+                    componentName     = "PSM Gateway User"
+                    CreateCredCommand = $(if ($version -ge [version]'12.0') {$g_psmgwuserCredv12} else {$g_psmgwuserCred})
+                }
+            )
+        }
+        "PVWA"{
+            $CompFiles += @(
+                @{
+                
+                    type              = "PVWA"
+                    createCredDir     = "\Env"
+                    credFilesDir      = "..\CredFiles\"
+                    credFiles         = "appuser.ini"
+                    componentName     = "PVWA Application User"
+                    CreateCredCommand = $(if ($version -ge [version]'12.0') {$g_pvwaappuserCredv12} else {$g_pvwaappuserCred})
+                }
+            )
+            $CompFiles += @( 
+                @{
+                    type              = "PVWA"
+                    createCredDir     = "\Env"
+                    credFilesDir      = "..\CredFiles\"
+                    credFiles         = "gwuser.ini"
+                    componentName     ="PVWA Gateway User"
+                    CreateCredCommand = $(if ($version -ge [version]'12.0') {$g_pvwagwuserCredv12} else {$g_pvwagwuserCred})
+                }
+            )
+        }
+    } 
+
+    foreach ($comp in $CompFiles){
+
+        $component = $comp.type
+        $file = $comp.CredFiles
+        $dir = $comp.credFilesDir
+        $createCredDir = "$installLocation\$($comp.createCredDir)"
+
+        Write-LogMessage -type Info -MSG "Updating $component $file credential file"
+        Invoke-Command -Session $session -ScriptBlock {Set-Location -Path ($args[0]);} -ArgumentList $createCredDir
+        $userItem = Invoke-Command -Session $session -ScriptBlock {((Select-String -Path "$($args[1])\$($args[0])" -Pattern "username=").Line).split("=")[1]} -ArgumentList $file, $dir
+        $tempPassword = New-RandomPassword -Length 14 -Lowercase -Uppercase -Numbers -Symbols | ConvertTo-SecureString -AsPlainText -Force 
+        Write-LogMessage -type Verbose -MSG "Username: $userItem"
+
+        $tag = [DateTimeOffset]::Now.ToUnixTimeSeconds()
+        Invoke-Command -Session $session -ScriptBlock {Rename-Item "$($args[2])\$($args[0])" -NewName "$($args[0]).$($args[1])" -Force} -ArgumentList $file, $tag, $dir
+        Invoke-Command -Session $session -ScriptBlock {Rename-Item "$($args[2])\$($args[0]).entropy" -NewName "$($args[0]).entropy.$($args[1])" -Force -ErrorAction SilentlyContinue} -ArgumentList $file, $tag, $dir
+        Write-LogMessage -type Verbose -MSG "Backed up $component credential files"
+    
+        $command = $comp.CreateCredCommand -f $userItem, $(Convert-SecureString($tempPassword))
+
+        Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $command -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
+        Remove-Variable command
+        If ($invokeResultApp[0].TargetObject -ne "Command ended successfully"){
+            Invoke-Command -Session $session -ScriptBlock {Rename-Item "$($args[2])\$($args[0]).$($args[1])" -NewName "$($args[0]).$($args[1])" -Force} -ArgumentList $file, $tag, $dir | Out-Null
+            Invoke-Command -Session $session -ScriptBlock {Rename-Item "$($args[2])\$($args[0]).entropy.$($args[1])" -NewName "$($args[0]).entropy" -Force -ErrorAction SilentlyContinue} -ArgumentList $file, $tag, $dir | Out-Null
+
+            Write-LogMessage -type Error -MSG "Error resetting credential file on $server"
+            Throw "Error resetting credential file on $server"
+        } else {
+            Invoke-Command -Session $session -ScriptBlock {Remove-Item "$($args[2])\$($args[0]).$($args[1])" -Force} -ArgumentList $file, $tag, $dir
+            Invoke-Command -Session $session -ScriptBlock {Remove-Item "$($args[2])\$($args[0]).entropy.$($args[1])" -Force -ErrorAction SilentlyContinue} -ArgumentList $file, $tag, $dir
+        }
+    
+        Write-LogMessage -type Info -MSG "CreateCredFile on $componentName $file successful"
+        Write-LogMessage -type Verbose -MSG "Updating $componentName via RESTAPI"
+        Set-UserPassword -username $userItem -Password $tempPassword
+        Write-LogMessage -type Info -MSG "Update of $componentName via RESTAPI Complete"
+    }
+}
+
+function Reset-VaultFile{
+
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Server,
+        [Parameter(Mandatory=$true)]
+        $compInfo,
+        [Parameter(Mandatory=$true)]
+        [System.Management.Automation.Runspaces.PSSession]$session
+    )
+    $installLocation = $compInfo.path
+    $component = $compInfo.name
+
+    switch ($component) {
+        "AIM" {
+            $CompFiles += @(
+                @{
+                    type          = "AIM"
+                    vaultdir      = "vault"
+                    componentName = "AAM"
+                }
+            )
+        }
+        "CPM" {
+            $CompFiles += @( 
+                @{
+                    type          = "CPM"
+                    vaultdir      = "vault"
+                    componentName = "CPM"
+
+                }
+            )
+        }
+        "PSM" {
+            $CompFiles += @(
+                @{
+                    type          = "PSM"
+                    vaultdir      = "vault"
+                    componentName = "PSM"
+                }    
+            )
+        }
+        "PVWA"{
+            $CompFiles += @(
+                @{
+                
+                    type          = "PVWA"
+                    vaultdir      = "VaultInfo"
+                    componentName = "PVWA"
+                }
+            )
+        }
+    } 
+    $failed =$false
+
+    foreach ($comp in $CompFiles){
+
+        $component = $comp.type
+        $file = $comp.CredFiles
+        $vaultDir = "$installLocation\$($comp.vaultdir)"
+        $vaultFile = "$vaultdir\vault.ini"
+
+        Write-LogMessage -type Info -MSG "Updating $component vault.ini files"
+        Invoke-Command -Session $session -ScriptBlock {Set-Location -Path "$($args[0])";} -ArgumentList $vaultDir
+
+        $tag = [DateTimeOffset]::Now.ToUnixTimeSeconds()
+        Invoke-Command -Session $session -ScriptBlock {Copy-Item $($args[0]) -Destination "$($args[0]).$($args[1])" -Force} -ArgumentList $vaultFile, $tag
+        Write-LogMessage -type Verbose -MSG "Backed up existing $component vault.ini file"
+
+        try{
+            $regex = '(^ADDRESS=.*)'
+            Invoke-Command -Session $session -ScriptBlock {$file = $args[0];$regex = $args[1]} -ArgumentList $vaultFile, $regex
+            Invoke-Command -Session $session -ScriptBlock {(Get-Content $file) -replace $regex, "ADDRESS=$($args[0])" | Set-Content $file} -ArgumentList $vaultaddress
+            Write-LogMessage -type Verbose -MSG "$component vault.ini updated successfully"
+            Invoke-Command -Session $session -ScriptBlock {Remove-Item "$($args[0]).$($args[1])" -Force} -ArgumentList $vaultFile, $tag
+        } catch {
+            Invoke-Command -Session $session -ScriptBlock {Rename-Item "$($args[0]).$($args[1])" -NewName "$($args[0])" -Force} -ArgumentList $vaultFile, $tag
+            Write-LogMessage -type Error -MSG "Error updating $component  vault.ini file on $server"
+            $failed = $true
+            Throw "Error updating $component vault.ini file"
+        }
+        Write-LogMessage -type Info -MSG "Vault.ini on $componentName updated successful"
+    }
+}
+
+function Reset-Component{
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Server,
+        [Parameter(Mandatory=$true)]
+        [string]$component,
+        [Parameter(Mandatory=$true)]
+        [string]$componentName,
+        [Parameter(Mandatory=$true)]
+        $services,
+        [Parameter(Mandatory=$false)]
+        [string]$vaultaddress
+
+    )
+    $complete = $failed = $false
+    $attempts = 0
+
+    While (!$complete -and !$failed) {
+        try {
+            $complete = $failed = $false
+            $attempts = 0
+
+            While (!$complete){
+                Try {
+                    $session = New-PSLogon $server
+                } Catch {
+                    Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a Windows server and winRM has been enabled."             
+                    break
+                }
+                Write-LogMessage -type info -MSG "Connected to $Server"
+                Write-LogMessage -type Verbose -MSG "Connected to $Server. Importing required modules"
+                
+                Import-ModuleRemotely -moduleName CyberArk-Common -session $Session
+                Write-LogMessage -type Verbose -MSG "Modules imported. Getting information about the installed components"
+                
+                $compInfo = Get-ComponentInfo -Server $Server -ComponentType $component -Session $Session          
+                
+                $installLocation = $compInfo.path
+                [version]$version = $compInfo.Version
+                Write-LogMessage -type Verbose -MSG "Retrived Component Information"
+                Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
+                Write-LogMessage -type Verbose -MSG "Version: $version"
+
+                Write-LogMessage -type Verbose -MSG "Attempting to stop $componentName Services" 
+                Stop-ComponentService -services $services -session $session -server $server
+                Write-LogMessage -type Verbose -MSG "Stopped $componentName Services"
+
+                $credfailed = Reset-CredFile -Server $server -compInfo $compInfo -session $session
+
+                IF (!($credfailed) -and (![string]::IsNullOrEmpty($vaultaddress))) {
+                    $vaultfailed =   Reset-VaultFile -Server $server -compInfo $compInfo -session $session
+                }
+                $complete = Start-ComponentService -services $services -session $session -server $server
+
+                $attempts += 1
+		
+                if ($attempts -gt 5) {
+                    $failed = $true;
+                    Write-LogMessage -type Error -MSG "Failed on $server" 
+                    Throw "Failed on $componentName credentials on $server"
+                }
+
+                Write-LogMessage -type Verbose -MSG "$componentName Started"
+
+                if ($complete) {
+                    Write-LogMessage -type Info -MSG "$componentName on $server update completed successful"
+                } else {
+                    Write-LogMessage -type Info -MSG "$componentName on $server update failed, restarting"
+                }
+            }
+        } catch {
+            Write-LogMessage -type Error -MSG "Error during update of $componentName on $server"
+            Throw $_
+        } Finally {
+            Write-LogMessage -type Verbose -MSG "Disconnecting from $server"  
+            Remove-PSSession $session
+            Write-LogMessage -type info -MSG "Disconnected from $server"
+        }
+    }
+}
+
 
 function Get-ComponentInfo{
     param (
