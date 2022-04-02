@@ -53,4 +53,4 @@
 - PSCredentials
     - Allows for use of alternate credentials to make connections to WinRM
 - VaultAddress
-    - Resets the vault address within the vault.ini file. What ever is provided will be set in the file. The new address(es) must be surrounded by double quotes ex: -vaultaddress "192.168.8.1,192.168.8.2"
+    - Resets the vault address within the vault.ini file. What ever is provided will be set in the file. The new address(es) must be surrounded by double quotes ex: -vaultaddress "192.168.8.1,192.168.8.2" or -vaultaddress "vault.lab.local"
