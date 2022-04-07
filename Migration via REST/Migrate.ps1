@@ -101,6 +101,7 @@ param(
     [String]$CPMNew,
 
     [Parameter(Mandatory=$false)]
+
     [String]$dstUPN
 
 )
@@ -168,7 +169,6 @@ if ($export) {
     $srcAccounts | `
         Where-Object {$_.safename -notIn $objectSafesToRemove} | `
         Select-Object -Property "name","address","userName","safeName","platformId","id" | `
-
         Export-Csv -Path $exportCSV -NoTypeInformation
 }
 
@@ -187,8 +187,9 @@ if ($processFile){
         $found = $false
 
         If (!$InVerbose){
-        Write-Progress -Activity "Processing objects" -CurrentOperation "$counter of $($objects.count)" -PercentComplete (($counter / $objects.count)*100)
-        }$srcAccount = Get-AccountDetail -url $SRCPVWAURL -logonHeader $srcToken -AccountID $object.id
+            Write-Progress -Activity "Processing objects" -CurrentOperation "$counter of $($objects.count)" -PercentComplete (($counter / $objects.count)*100)
+        }
+        $srcAccount = Get-AccountDetail -url $SRCPVWAURL -logonHeader $srcToken -AccountID $object.id
         If ($($srcAccount.safename) -in $objectSafesToRemove){
             Write-LogMessage -Type Debug -Msg "Safe $($srcMember.safename) is in the excluded safes list. Account with username of `"$($srcAccount.userName)`" with the address of `"$($srcAccount.address)`" will be skipped"
             continue

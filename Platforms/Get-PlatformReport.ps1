@@ -75,9 +75,8 @@ $global:g_LogonHeader = ""
 # Parameters.....: LogFile, MSG, (Switch)Header, (Switch)SubHeader, (Switch)Footer, Type
 # Return Values..: None
 # =================================================================================================================================
-Function Write-LogMessage
-{
-<# 
+Function Write-LogMessage {
+	<# 
 .SYNOPSIS 
 	Method to log a message on screen and in a log file
 
@@ -115,16 +114,14 @@ Function Write-LogMessage
 		[String]$LogFile = $LOG_FILE_PATH
 	)
 	Try{
-		If([string]::IsNullOrEmpty($LogFile))
-		{
+		If([string]::IsNullOrEmpty($LogFile)) {
 			# Create a temporary log file
 			$LogFile = "$ScriptLocation\tmp.log"
 		}
 		
 		If ($Header) {
 			"=======================================" | Out-File -Append -FilePath $LogFile 
-		}
-		ElseIf($SubHeader) { 
+		} ElseIf($SubHeader) { 
 			"------------------------------------" | Out-File -Append -FilePath $LogFile 
 		}
 		
@@ -133,14 +130,12 @@ Function Write-LogMessage
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		
 		# Mask Passwords
-		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
-		{
+		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))') {
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
 		$writeToFile = $true
 		# Check the message type
-		switch ($type)
-		{
+		switch ($type) {
 			"Info" { 
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
@@ -157,30 +152,25 @@ Function Write-LogMessage
 				break
 			}
 			"Debug" { 
-				if($InDebug -or $InVerbose)
-				{
+				if($InDebug -or $InVerbose) {
 					Write-Debug $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
 					break
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 			"Verbose" { 
-				if($InVerbose)
-				{
+				if($InVerbose) {
 					Write-Verbose $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
 					break
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 		}
 		If($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LogFile }
 		If ($Footer) { 
 			"=======================================" | Out-File -Append -FilePath $LogFile 
 		}
-	}
-	catch{
+	} catch{
 		Throw $(New-Object System.Exception ("Cannot write message '$Msg' to file '$Logfile'",$_.Exception))
 	}
 }
@@ -191,9 +181,8 @@ Function Write-LogMessage
 # Parameters.....: Exception
 # Return Values..: Formatted String of Exception messages
 # =================================================================================================================================
-Function Collect-ExceptionMessage
-{
-<# 
+Function Collect-ExceptionMessage {
+	<# 
 .SYNOPSIS 
 	Formats exception messages
 .DESCRIPTION
@@ -210,8 +199,8 @@ Function Collect-ExceptionMessage
 	Process {
 		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		while ($e.InnerException) {
-		  $e = $e.InnerException
-		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+			$e = $e.InnerException
+			$msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		}
 		return $msg
 	}
@@ -227,9 +216,8 @@ Function Collect-ExceptionMessage
 # Parameters.....: Command
 # Return Values..: True / False
 # =================================================================================================================================
-Function Test-CommandExists
-{
-<# 
+Function Test-CommandExists {
+	<# 
 .SYNOPSIS 
 	Tests if a command exists
 .DESCRIPTION
@@ -237,12 +225,12 @@ Function Test-CommandExists
 .PARAMETER Command
 	The command to test
 #>
-    Param ($command)
-    $oldPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'stop'
-    try {if(Get-Command $command){RETURN $true}}
-    Catch {Write-Host "$command does not exist"; RETURN $false}
-    Finally {$ErrorActionPreference=$oldPreference}
+	Param ($command)
+	$oldPreference = $ErrorActionPreference
+	$ErrorActionPreference = 'stop'
+	try {if(Get-Command $command){RETURN $true}}
+	Catch {Write-Host "$command does not exist"; RETURN $false}
+	Finally {$ErrorActionPreference=$oldPreference}
 }
 
 # @FUNCTION@ ======================================================================================================================
@@ -251,9 +239,8 @@ Function Test-CommandExists
 # Parameters.....: Text to encode
 # Return Values..: Encoded HTML URL text
 # =================================================================================================================================
-Function Encode-URL($sText)
-{
-<# 
+Function Encode-URL($sText) {
+	<# 
 .SYNOPSIS 
 	HTTP Encode test in URL
 .DESCRIPTION
@@ -261,13 +248,10 @@ Function Encode-URL($sText)
 .PARAMETER sText
 	The text to encode
 #>
-	if ($sText.Trim() -ne "")
-	{
+	if ($sText.Trim() -ne "") {
 		Log-Msg -Type Debug -Msg "Returning URL Encode of $sText"
 		return [System.Web.HttpUtility]::UrlEncode($sText)
-	}
-	else
-	{
+	} else {
 		return $sText
 	}
 }
@@ -278,9 +262,8 @@ Function Encode-URL($sText)
 # Parameters.....: Platform configuration
 # Return Values..: Relevant Platform Value
 # =================================================================================================================================
-Function Test-PlatformException
-{
-<# 
+Function Test-PlatformException {
+	<# 
 .SYNOPSIS 
 	Test-PlatformException -Config Platform.RequireDualControlPasswordAccessApproval
 .DESCRIPTION
@@ -288,10 +271,9 @@ Function Test-PlatformException
 .PARAMETER Config
 	The configuration to test
 #>
-    Param ($Config)
+	Param ($Config)
 	$retValue = ""
-    If($Config.IsAnException)
-	{
+	If($Config.IsAnException) {
 		$retValue += "*"
 	}
 	$retValue += $Config.IsActive
@@ -305,9 +287,8 @@ Function Test-PlatformException
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Disable-SSLVerification
-{
-<# 
+Function Disable-SSLVerification {
+	<# 
 .SYNOPSIS 
 	Bypass SSL certificate validations
 .DESCRIPTION
@@ -319,7 +300,7 @@ Function Disable-SSLVerification
 	[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 	# Disable SSL Verification
 	if (-not("DisableCertValidationCallback" -as [type])) {
-    add-type -TypeDefinition @"
+		Add-Type -TypeDefinition @"
 using System;
 using System.Net;
 using System.Net.Security;
@@ -335,7 +316,8 @@ public static class DisableCertValidationCallback {
         return new RemoteCertificateValidationCallback(DisableCertValidationCallback.ReturnTrue);
     }
 }
-"@ }
+"@ 
+ }
 
 	[System.Net.ServicePointManager]::ServerCertificateValidationCallback = [DisableCertValidationCallback]::GetDelegate()
 }
@@ -346,9 +328,8 @@ public static class DisableCertValidationCallback {
 # Parameters.....: Command method, URI, Header, Body
 # Return Values..: REST response
 # =================================================================================================================================
-Function Invoke-Rest
-{
-<# 
+Function Invoke-Rest {
+	<# 
 .SYNOPSIS 
 	Invoke REST Method
 .DESCRIPTION
@@ -379,19 +360,15 @@ Function Invoke-Rest
 		[String]$ErrAction="Continue"
 	)
 	
-	If ((Test-CommandExists Invoke-RestMethod) -eq $false)
-	{
-	   Throw "This script requires PowerShell version 3 or above"
+	If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
+		Throw "This script requires PowerShell version 3 or above"
 	}
 	$restResponse = ""
 	try{
-		if([string]::IsNullOrEmpty($Body))
-		{
+		if([string]::IsNullOrEmpty($Body)) {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700
-		}
-		else
-		{
+		} else {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700
 		}
@@ -413,9 +390,8 @@ Function Invoke-Rest
 # Parameters.....: Credentials
 # Return Values..: Logon Header
 # =================================================================================================================================
-Function Get-LogonHeader
-{
-<# 
+Function Get-LogonHeader {
+	<# 
 .SYNOPSIS 
 	Get-LogonHeader
 .DESCRIPTION
@@ -428,11 +404,9 @@ Function Get-LogonHeader
 		[PSCredential]$Credentials
 	)
 	
-	if([string]::IsNullOrEmpty($g_LogonHeader))
-	{
+	if([string]::IsNullOrEmpty($g_LogonHeader)) {
 		# Disable SSL Verification to contact PVWA
-		If($DisableSSLVerify)
-		{
+		If($DisableSSLVerify) {
 			Disable-SSLVerification
 		}
 		
@@ -450,8 +424,7 @@ Function Get-LogonHeader
 		}
 
 		$logonHeader = $null
-		If ([string]::IsNullOrEmpty($logonToken))
-		{
+		If ([string]::IsNullOrEmpty($logonToken)) {
 			Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
 		}
 		
@@ -472,9 +445,8 @@ Function Get-LogonHeader
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Run-Logoff
-{
-<# 
+Function Run-Logoff {
+	<# 
 .SYNOPSIS 
 	Run-Logoff
 .DESCRIPTION
@@ -483,8 +455,7 @@ Function Run-Logoff
 	try{
 		# Logoff the session
 		# ------------------
-		If($null -ne $g_LogonHeader)
-		{
+		If($null -ne $g_LogonHeader) {
 			Write-LogMessage -Type Info -Msg "Logoff Session..."
 			Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader
 			Set-Variable -Name g_LogonHeader -Value $null -Scope global
@@ -500,15 +471,13 @@ Write-LogMessage -Type Info -MSG "Starting script (v$ScriptVersion)" -Header -Lo
 if($InDebug) { Write-LogMessage -Type Info -MSG "Running in Debug Mode" -LogFile $LOG_FILE_PATH }
 if($InVerbose) { Write-LogMessage -Type Info -MSG "Running in Verbose Mode" -LogFile $LOG_FILE_PATH }
 Write-LogMessage -Type Debug -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ", ")" -LogFile $LOG_FILE_PATH
-If($PSVersionTable.PSVersion.Major -lt 3)
-{
+If($PSVersionTable.PSVersion.Major -lt 3) {
 	Write-LogMessage -Type Error -Msg "This script requires PowerShell version 3 or above"
 	return
 }
 
 # Check if Powershell is running in Constrained Language Mode
-If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
-{
+If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
 	Write-LogMessage -Type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
 	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
@@ -516,15 +485,11 @@ If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 	return
 }
 # Check that the PVWA URL is OK
-If ($PVWAURL -ne "")
-{
-	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/")
-	{
+If ($PVWAURL -ne "") {
+	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/") {
 		$PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
 	}
-}
-else
-{
+} else {
 	Write-LogMessage -Type Error -MSG "PVWA URL can not be empty"
 	return
 }
@@ -542,16 +507,13 @@ try{
 	# Get the active Platforms
 	$urlActivePlatforms = $URL_TargetPlatforms+"?active eq true"
 	$activePlatforms = Invoke-Rest -Command Get -Uri $urlActivePlatforms -Header $(Get-LogonHeader -Credentials $creds)
-	If($activePlatforms)
-	{
+	If($activePlatforms) {
 		Write-LogMessage -Type Info -Msg "Found $($activePlatforms.Total) active Platforms"
 		$reportPlatforms = @()
 		Write-LogMessage -Type Debug -Msg "Getting Platfroms PSM Connectors information"
-		ForEach($platform in $activePlatforms.Platforms)
-		{
+		ForEach($platform in $activePlatforms.Platforms) {
 			$psmServerTargetInfo = Invoke-REST -Command Get -Uri ($URL_TargetPlatformPSMConnectors -f $platform.id) -Header (Get-LogonHeader -Credentials $creds)
-			if($null -ne $platform.PrivilegedSessionManagement)
-			{
+			if($null -ne $platform.PrivilegedSessionManagement) {
 				$platform.PrivilegedSessionManagement | Add-Member -NotePropertyName PSMConnectors -NotePropertyValue $psmServerTargetInfo.PSMConnectors
 			}
 			$reportPlatforms += $platform
@@ -563,7 +525,7 @@ try{
 		$outputFields = @(
 			"id",`
 			@{Name = 'PlatformName'; Expression = { $_.Name}},`
-			"AllowedSafes",`
+				"AllowedSafes",`
 			@{Name = 'PeriodicVerify'; Expression = { $_.CredentialsManagementPolicy.Verification.PerformAutomatic}},`
 			@{Name = 'VerifyEveryXDays'; Expression = {$_.CredentialsManagementPolicy.Verification.RequirePasswordEveryXDays}},`
 			@{Name = 'PeriodicChange'; Expression = {$_.CredentialsManagementPolicy.Change.PerformAutomatic}},`
@@ -572,8 +534,7 @@ try{
 			@{Name = 'ReconcileEveryXDays'; Expression = {$_.CredentialsManagementPolicy.Reconcile.RequirePasswordEveryXDays}},`
 			@{Name = 'PSMConnectors'; Expression = { ($_.PrivilegedSessionManagement.PSMConnectors | Where-Object { $_.Enabled }).PSMConnectorID  -join ';' }}
 		)
-		If($ExtendedReport)
-		{
+		If($ExtendedReport) {
 			$outputFields += @(
 				@{Name = 'RequireUsersToSpecifyReasonForAccess'; Expression = { (Test-PlatformException -Config $_.PrivilegedAccessWorkflows.RequireUsersToSpecifyReasonForAccess) }},`
 				@{Name = 'EnforceOnetimePasswordAccess'; Expression = { (Test-PlatformException -Config $_.PrivilegedAccessWorkflows.EnforceOnetimePasswordAccess) }},`
@@ -584,17 +545,12 @@ try{
 		
 		$output = $reportPlatforms | Select-Object $outputFields
 		
-		If([string]::IsNullOrEmpty($CSVPath))
-		{
-			$output | Format-Table -Autosize
+		If([string]::IsNullOrEmpty($CSVPath)) {
+			$output | Format-Table -AutoSize
+		} else {
+			$output | Export-Csv -NoTypeInformation -UseCulture -Path $CSVPath -Force
 		}
-		else
-		{
-			$output | Export-Csv -NoTypeInformation -UseCulture -Path $CSVPath -force
-		}
-	}
-	Else
-	{
+	} Else {
 		Throw "There was a problem getting Active Platforms"
 	}
 } catch {

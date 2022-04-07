@@ -69,9 +69,8 @@ $URL_ExportPlatforms = $URL_PlatformDetails+"/Export"
 # Parameters.....: LogFile, MSG, (Switch)Header, (Switch)SubHeader, (Switch)Footer, Type
 # Return Values..: None
 # =================================================================================================================================
-Function Write-LogMessage
-{
-<# 
+Function Write-LogMessage {
+	<# 
 .SYNOPSIS 
 	Method to log a message on screen and in a log file
 
@@ -111,16 +110,14 @@ Function Write-LogMessage
 		[String]$LogFile = $LOG_FILE_PATH
 	)
 	Try{
-		If([string]::IsNullOrEmpty($LogFile))
-		{
+		If([string]::IsNullOrEmpty($LogFile)) {
 			# Create a temporary log file
 			$LogFile = "$ScriptLocation\tmp.log"
 		}
 		
 		If ($Header) {
 			"=======================================" | Out-File -Append -FilePath $LogFile 
-		}
-		ElseIf($SubHeader) { 
+		} ElseIf($SubHeader) { 
 			"------------------------------------" | Out-File -Append -FilePath $LogFile 
 		}
 		
@@ -129,14 +126,12 @@ Function Write-LogMessage
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		
 		# Mask Passwords
-		if($Msg -match '((?>password|secret)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))')
-		{
+		if($Msg -match '((?>password|secret)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))') {
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
 		$writeToFile = $true
 		# Check the message type
-		switch ($type)
-		{
+		switch ($type) {
 			"Info" { 
 				Write-Host $MSG.ToString() -ForegroundColor $ForegroundColor
 				$msgToWrite += "[INFO]`t$Msg"
@@ -153,30 +148,25 @@ Function Write-LogMessage
 				break
 			}
 			"Debug" { 
-				if($InDebug -or $InVerbose)
-				{
+				if($InDebug -or $InVerbose) {
 					Write-Debug $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
 					break
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 			"Verbose" { 
-				if($InVerbose)
-				{
+				if($InVerbose) {
 					Write-Verbose $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
 					break
-				}
-				else { $writeToFile = $False }
+				} else { $writeToFile = $False }
 			}
 		}
 		If($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LogFile }
 		If ($Footer) { 
 			"=======================================" | Out-File -Append -FilePath $LogFile 
 		}
-	}
-	catch{
+	} catch{
 		Throw $(New-Object System.Exception ("Cannot write message '$Msg' to file '$Logfile'",$_.Exception))
 	}
 }
@@ -187,9 +177,8 @@ Function Write-LogMessage
 # Parameters.....: Exception
 # Return Values..: Formatted String of Exception messages
 # =================================================================================================================================
-Function Collect-ExceptionMessage
-{
-<# 
+Function Collect-ExceptionMessage {
+	<# 
 .SYNOPSIS 
 	Formats exception messages
 .DESCRIPTION
@@ -206,8 +195,8 @@ Function Collect-ExceptionMessage
 	Process {
 		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		while ($e.InnerException) {
-		  $e = $e.InnerException
-		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+			$e = $e.InnerException
+			$msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		}
 		return $msg
 	}
@@ -223,9 +212,8 @@ Function Collect-ExceptionMessage
 # Parameters.....: Command
 # Return Values..: True / False
 # =================================================================================================================================
-Function Test-CommandExists
-{
-<# 
+Function Test-CommandExists {
+	<# 
 .SYNOPSIS 
 	Tests if a command exists
 .DESCRIPTION
@@ -234,12 +222,12 @@ Function Test-CommandExists
 	The command to test
 #>
 
-    Param ($command)
-    $oldPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'stop'
-    try { if(Get-Command $command){ return $true } }
-    Catch { return $false }
-    Finally {$ErrorActionPreference=$oldPreference}
+	Param ($command)
+	$oldPreference = $ErrorActionPreference
+	$ErrorActionPreference = 'stop'
+	try { if(Get-Command $command){ return $true } }
+	Catch { return $false }
+	Finally {$ErrorActionPreference=$oldPreference}
 } 
 
 # @FUNCTION@ ======================================================================================================================
@@ -248,9 +236,8 @@ Function Test-CommandExists
 # Parameters.....: Command method, URI, Header, Body
 # Return Values..: REST response
 # =================================================================================================================================
-Function Invoke-Rest
-{
-<# 
+Function Invoke-Rest {
+	<# 
 .SYNOPSIS 
 	Invoke REST Method
 .DESCRIPTION
@@ -285,19 +272,16 @@ Function Invoke-Rest
 		[String]$ErrAction="Continue"
 	)
 	
-	If ((Test-CommandExists Invoke-RestMethod) -eq $false)
-	{
-	   Throw "This script requires PowerShell version 3 or above"
+	If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
+		Throw "This script requires PowerShell version 3 or above"
 	}
 	$restResponse = ""
 	try{
 		$cmd = @{ Uri=$URI; Method=$Command; Header=$Header; ContentType="application/json"; TimeoutSec=36000 }
-		if(![string]::IsNullOrEmpty($Body))
-		{
+		if(![string]::IsNullOrEmpty($Body)) {
 			$cmd.Add("Body",$Body)
 		}
-		if(![string]::IsNullOrEmpty($OutFile))
-		{
+		if(![string]::IsNullOrEmpty($OutFile)) {
 			$cmd.Add("OutFile",$OutFile)
 		}
 		Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod $($cmd -join '-')"
@@ -314,14 +298,12 @@ Function Invoke-Rest
 	return $restResponse
 }
 
-Function Get-ZipContent
-{
+Function Get-ZipContent {
 	Param($zipPath)
 	
 	$zipContent = $null
 	try{
-		If(Test-Path $zipPath)
-		{
+		If(Test-Path $zipPath) {
 			$zipContent = [System.IO.File]::ReadAllBytes($(Resolve-Path $zipPath))
 		}
 	} catch {
@@ -331,27 +313,22 @@ Function Get-ZipContent
 	return $zipContent
 }
 
-Function AddPlatform-DualAccount
-{
+Function AddPlatform-DualAccount {
 	Param($platformZipPath)
 	
 	try{
-		If(Test-Path $platformZipPath)
-		{
+		If(Test-Path $platformZipPath) {
 			$Package = Get-Item -Path $platformZipPath
 			# load ZIP methods
 			Add-Type -AssemblyName System.IO.Compression.FileSystem
 			Write-LogMessage -Type Debug -Msg "Extracting Platform ZIP ('$platformZipPath')"
 			# Extract ZIP to temp folder
 			$tempFolder = Join-Path -Path $Package.Directory -ChildPath $Package.BaseName
-			if(Test-Path $tempFolder)
-			{
+			if(Test-Path $tempFolder) {
 				Remove-Item -Recurse $tempFolder
 			}
 			[System.IO.Compression.ZipFile]::ExtractToDirectory($Package.FullName,$tempFolder)
-		}
-		else
-		{
+		} else {
 			throw "Could not find Platform ZIP in '$platformZipPath'"
 		}
 		
@@ -415,9 +392,8 @@ Function AddPlatform-DualAccount
 # Parameters.....: Credentials
 # Return Values..: Logon Header
 # =================================================================================================================================
-Function Get-LogonHeader
-{
-<# 
+Function Get-LogonHeader {
+	<# 
 .SYNOPSIS 
 	Get-LogonHeader
 .DESCRIPTION
@@ -430,11 +406,9 @@ Function Get-LogonHeader
 		[PSCredential]$Credentials
 	)
 	
-	if([string]::IsNullOrEmpty($g_LogonHeader))
-	{
+	if([string]::IsNullOrEmpty($g_LogonHeader)) {
 		# Disable SSL Verification to contact PVWA
-		If($DisableSSLVerify)
-		{
+		If($DisableSSLVerify) {
 			Disable-SSLVerification
 		}
 		
@@ -452,8 +426,7 @@ Function Get-LogonHeader
 		}
 
 		$logonHeader = $null
-		If ([string]::IsNullOrEmpty($logonToken))
-		{
+		If ([string]::IsNullOrEmpty($logonToken)) {
 			Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
 		}
 		
@@ -474,9 +447,8 @@ Function Get-LogonHeader
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Disable-SSLVerification
-{
-<# 
+Function Disable-SSLVerification {
+	<# 
 .SYNOPSIS 
 	Bypass SSL certificate validations
 .DESCRIPTION
@@ -488,7 +460,7 @@ Function Disable-SSLVerification
 	[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 	# Disable SSL Verification
 	if (-not("DisableCertValidationCallback" -as [type])) {
-    add-type -TypeDefinition @"
+		Add-Type -TypeDefinition @"
 using System;
 using System.Net;
 using System.Net.Security;
@@ -504,7 +476,8 @@ public static class DisableCertValidationCallback {
         return new RemoteCertificateValidationCallback(DisableCertValidationCallback.ReturnTrue);
     }
 }
-"@ }
+"@ 
+ }
 
 	[System.Net.ServicePointManager]::ServerCertificateValidationCallback = [DisableCertValidationCallback]::GetDelegate()
 }
@@ -516,9 +489,8 @@ public static class DisableCertValidationCallback {
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Run-Logoff
-{
-<# 
+Function Run-Logoff {
+	<# 
 .SYNOPSIS 
 	Run-Logoff
 .DESCRIPTION
@@ -528,7 +500,7 @@ Function Run-Logoff
 		# Logoff the session
 		# ------------------
 		Write-LogMessage -Type Info -Msg "Logoff Session..."
-		Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader | out-null
+		Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader | Out-Null
 		Set-Variable -Name g_LogonHeader -Value $null -Scope global
 	} catch {
 		Throw $(New-Object System.Exception ("Run-Logoff: Failed to logoff session",$_.Exception))
@@ -537,22 +509,17 @@ Function Run-Logoff
 
 #endregion
 
-If (-not (Test-CommandExists Invoke-RestMethod))
-{
+If (-not (Test-CommandExists Invoke-RestMethod)) {
 	Write-Error "This script requires PowerShell version 3 or above"
 	return
 }
 
 # Check that the PVWA URL is OK
-If ($PVWAURL -ne "")
-{
-	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/")
-	{
+If ($PVWAURL -ne "") {
+	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/") {
 		$PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
 	}
-}
-else
-{
+} else {
 	Write-LogMessage -Type Error -Msg "PVWA URL can not be empty"
 	return
 }
@@ -585,10 +552,9 @@ try{
 	Run-Logoff
 }
 # Import new Platform
-If (Test-Path $exportPath)
-{
+If (Test-Path $exportPath) {
 	Write-LogMessage -Type Debug -Msg "Importing new platform from '$exportPath'"
-	$importBody = @{ ImportFile=$(Get-ZipContent $exportPath); } | ConvertTo-Json -Depth 5
+	$importBody = @{ ImportFile =$(Get-ZipContent $exportPath); } | ConvertTo-Json -Depth 5
 	try{
 		Write-LogMessage -Type Debug -Msg "Before import"
 		$ImportPlatformResponse = Invoke-Rest -Command POST -Uri $URL_ImportPlatforms -Header $(Get-LogonHeader $creds) -Body $importBody
