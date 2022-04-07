@@ -89,6 +89,7 @@ If you want to Update the safe Managing CPM:
 ```powershell
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Update -SafeName "MyDMZSafe" -ManagingCPM PassManagerDMZ
 ```
+> *Note*: To remove a Managing CPM use "NULL"
 
 If you want to Update the description and members of a list of safes from a file:
 ```powershell
