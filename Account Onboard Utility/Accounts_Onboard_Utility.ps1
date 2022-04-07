@@ -1493,7 +1493,7 @@ ForEach ($account in $accountsCSV) {
 							If($updateChange) {
 								# Increment counter
 								$counter++
-								Write-LogMessage -Type Info -MSG "[$counter/$rowCount] Updated $g_LogAccountName (CSV line: $csvLine) successfully."
+								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))/$rowCount] Updated $g_LogAccountName (CSV line: $csvLine) successfully."
 							}
 						} ElseIf($Create) {
 							try{
@@ -1514,7 +1514,7 @@ ForEach ($account in $accountsCSV) {
 							if($null -ne $DeleteAccountResult) {
 								# Increment counter
 								$counter++
-								Write-LogMessage -Type Info -MSG "[$counter/$rowCount] Deleted $g_LogAccountName successfully."
+								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))] Deleted $g_LogAccountName successfully."
 							}
 						}
 					} else { 
@@ -1536,7 +1536,7 @@ ForEach ($account in $accountsCSV) {
 								Write-LogMessage -Type Info -MSG "Account Onboarded Successfully"
 								# Increment counter
 								$counter++
-								Write-LogMessage -Type Info -MSG "[$counter/$rowCount] Added $g_LogAccountName successfully."  
+								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))] Added $g_LogAccountName successfully."  
 							}
 						} catch {
 							Throw $(New-Object System.Exception ("There was an error creating the account",$_.Exception))
