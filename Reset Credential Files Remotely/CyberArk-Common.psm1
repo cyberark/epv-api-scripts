@@ -5,7 +5,7 @@ NAME:
 AUTHOR:  
     Brian Bors <brian.bors@cyberark.com>
 COMMENT: 
-    Module used by other CyberArk scipts
+    Module used by other CyberArk scripts
 Version: 
     0.1
 Change Log:
