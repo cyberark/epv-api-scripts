@@ -1,3 +1,20 @@
+<# 
+###########################################################################
+NAME: 
+    CyerArk-Common.psm1 
+AUTHOR:  
+    Brian Bors <brian.bors@cyberark.com>
+COMMENT: 
+    Module used by other CyberArk scipts
+Version: 
+    0.1
+Change Log:
+    2020-09-13 
+        Initial Version
+########################################################################### 
+#>
+
+
 [CmdletBinding()]
 
 # Global URLS
