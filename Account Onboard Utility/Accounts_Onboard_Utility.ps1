@@ -1418,7 +1418,7 @@ ForEach ($account in $accountsCSV) {
 							} # [End] Check for existing properties
 							# Check for new Account Properties
 							ForEach($sProp in ($objAccount.PSObject.Properties | Where-Object { $_.Name -NotIn $s_ExcludeProperties })) {
-								Write-LogMessage -Type Verbose -MSG "Inspecting Account Property $($sProp.Name)"
+								Write-LogMessage -Type Verbose -MSG "Inspecting for New Property $($sProp.Name)"
 								If($sProp.Name -eq "remoteMachinesAccess") {
 									if(Test-PlatformProperty -platformId $s_Account.platformId -platformProperty "remoteMachinesAccess") {
 										ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties) {
