@@ -2,11 +2,6 @@
 .vscode/launch.json
 .creds
 *.log
-
-<<<<<<< HEAD
 .vscode/settings.json
 Reset Credential Files Remotely/plink.exe
 Safe Management/test.csv
-=======
-
->>>>>>> 14762bd3233be7bda526cda93865fbd4cdd6588c

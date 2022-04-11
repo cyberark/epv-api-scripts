@@ -283,10 +283,9 @@ Function Write-LogMessage
                 Write-Host $MSG.ToString() -ForegroundColor Red
                 $msgToWrite += "[ERROR]`t$Msg"
             }
-            "Debug"
-            { 
-                if ($InDebug)
-                {
+            "Debug" { 
+
+                if ($InDebug -or $InVerbose) {
                     Write-Debug $MSG
                     $msgToWrite += "[DEBUG]`t$Msg"
                 }
@@ -778,9 +777,12 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     {
         $updateOLAC = $EnableOLAC
     }
-    If (![string]::IsNullOrEmpty($managingCPM) -and $getSafe.ManagingCPM -ne $managingCPM)
-    {
-        $updateManageCPM = $managingCPM
+    If (![string]::IsNullOrEmpty($managingCPM) -and $getSafe.ManagingCPM -ne $managingCPM) {
+        If ("NULL" -eq $managingCPM){
+            $updateManageCPM = ""
+        } else {
+            $updateManageCPM = $managingCPM
+        }
     }
     If ($null -ne $numVersionRetention -and $numVersionRetention -gt 0 -and $getSafe.NumberOfVersionsRetention -ne $numVersionRetention)
     {

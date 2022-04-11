@@ -2,3 +2,4 @@ Safename,Description,ManagingCPM,numVersionRetention,numDaysRetention,EnableOLAC
 TESTSAFE,This is the test safe,PasswordManager,,7,FALSE
 TEST_SAFE,This is a different test safe,PasswordManager,2,,FALSE
 TESTSAFE2,This is the test safe,PassManager2,,,
+TESTSAFE3,This is the test safe to remove CPM,NULL,,,

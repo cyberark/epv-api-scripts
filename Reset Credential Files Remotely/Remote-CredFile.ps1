@@ -12,12 +12,13 @@ COMMENT:
     Script will attempt to regenerate the remote Applicative Cred File and Sync it in the Vault.
 
 Version: 
-    0.1
+    0.2
 
 Change Log:
     2020-09-13 
         Initial Version    
-
+    2022-04-01
+        Updated to allow vault address reset
 ########################################################################### 
 #>
 
