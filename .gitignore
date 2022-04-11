@@ -3,3 +3,6 @@
 .creds
 *.log
 
+.vscode/settings.json
+Reset Credential Files Remotely/plink.exe
+Safe Management/test.csv
