@@ -60,14 +60,15 @@ if($InVerbose){
 # Initialize Script Variables
 # ---------------------------
 
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Write-LogMessage
-# Description....: Writes the message to log and screen
-# Parameters.....: LogFile, MSG, (Switch)Header, (Switch)SubHeader, (Switch)Footer, Type
-# Return Values..: None
-# =================================================================================================================================
 
 Function Write-LogMessage {
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Write-LogMessage
+    # Description....: Writes the message to log and screen
+    # Parameters.....: LogFile, MSG, (Switch)Header, (Switch)SubHeader, (Switch)Footer, Type
+    # Return Values..: None
+    # =================================================================================================================================
+
     <# 
 .SYNOPSIS 
 	Method to log a message on screen and in a log file
@@ -185,13 +186,14 @@ Function Write-LogMessage {
     }
 }
 
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Join-ExceptionMessage
-# Description....: Formats exception messages
-# Parameters.....: Exception
-# Return Values..: Formatted String of Exception messages
-# =================================================================================================================================
 Function Join-ExceptionMessage {
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Join-ExceptionMessage
+    # Description....: Formats exception messages
+    # Parameters.....: Exception
+    # Return Values..: Formatted String of Exception messages
+    # =================================================================================================================================
+
     <#
 .SYNOPSIS
 	Formats exception messages
@@ -220,13 +222,13 @@ Function Join-ExceptionMessage {
 #endregion
 
 #region Helper Functions
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Test-CommandExists
-# Description....: Tests if a command exists
-# Parameters.....: Command
-# Return Values..: True / False
-# =================================================================================================================================
 Function Test-CommandExists {
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Test-CommandExists
+    # Description....: Tests if a command exists
+    # Parameters.....: Command
+    # Return Values..: True / False
+    # =================================================================================================================================
     <# 
 .SYNOPSIS 
 	Tests if a command exists
@@ -243,13 +245,14 @@ Function Test-CommandExists {
     Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
-# @FUNCTION@ ======================================================================================================================
-# Name...........: ConvertTo-URL
-# Description....: HTTP Encode test in URL
-# Parameters.....: Text to encode
-# Return Values..: Encoded HTML URL text
-# =================================================================================================================================
 Function ConvertTo-URL($sText) {
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: ConvertTo-URL
+    # Description....: HTTP Encode test in URL
+    # Parameters.....: Text to encode
+    # Return Values..: Encoded HTML URL text
+    # =================================================================================================================================
+
     <#
 .SYNOPSIS
 	HTTP Encode test in URL
@@ -266,13 +269,13 @@ Function ConvertTo-URL($sText) {
     }
 }
 
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Convert-ToBool
-# Description....: Converts text to Bool
-# Parameters.....: Text
-# Return Values..: Boolean value of the text
-# =================================================================================================================================
 Function Convert-ToBool {
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Convert-ToBool
+    # Description....: Converts text to Bool
+    # Parameters.....: Text
+    # Return Values..: Boolean value of the text
+    # =================================================================================================================================
     <#
 .SYNOPSIS
 	Converts text to Bool
@@ -293,13 +296,13 @@ Function Convert-ToBool {
     return $retBool
 }
 
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Get-TrimmedString
-# Description....: Returns the trimmed text from a string
-# Parameters.....: Text
-# Return Values..: Trimmed text
-# =================================================================================================================================
 Function Get-TrimmedString($sText) {
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Get-TrimmedString
+    # Description....: Returns the trimmed text from a string
+    # Parameters.....: Text
+    # Return Values..: Trimmed text
+    # =================================================================================================================================
     <# 
 .SYNOPSIS 
 	Returns the trimmed text from a string
@@ -315,13 +318,14 @@ Function Get-TrimmedString($sText) {
     return $sText
 }
 
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Invoke-Rest
-# Description....: Invoke REST Method
-# Parameters.....: Command method, URI, Header, Body
-# Return Values..: REST response
-# =================================================================================================================================
 Function Invoke-Rest {
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Invoke-Rest
+    # Description....: Invoke REST Method
+    # Parameters.....: Command method, URI, Header, Body
+    # Return Values..: REST response
+    # =================================================================================================================================
+
     <# 
 .SYNOPSIS 
 	Invoke REST Method
@@ -426,13 +430,13 @@ Function Invoke-Logon{
         return
     }
 }
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Get-LogonHeader
-# Description....: Invoke REST Method
-# Parameters.....: Credentials
-# Return Values..: Logon Header
-# =================================================================================================================================
 Function Get-LogonHeader {
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Get-LogonHeader
+    # Description....: Invoke REST Method
+    # Parameters.....: Credentials
+    # Return Values..: Logon Header
+    # =================================================================================================================================
     <# 
 .SYNOPSIS 
 	Get-LogonHeader
@@ -472,13 +476,14 @@ Function Get-LogonHeader {
     return $logonHeader
 }
 
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Set-SSLVerify
-# Description....: Controls if SSL should be verified REST Method
-# Parameters.....: Command method, URI, Header, Body
-# Return Values..: REST response
-# =================================================================================================================================
 Function Set-DisableSSLVerify {
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Set-SSLVerify
+    # Description....: Controls if SSL should be verified REST Method
+    # Parameters.....: Command method, URI, Header, Body
+    # Return Values..: REST response
+    # =================================================================================================================================
+
     <# 
 .SYNOPSIS 
 	Invoke REST Method
@@ -518,13 +523,14 @@ Function Set-DisableSSLVerify {
     }
 }
 #endregion
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Get-LogonTimeUnixTime
-# Description....: Translates Unix time to readable time
-# Parameters.....: Unixtime stamp
-# Return Values..: Data/Time object
-# =================================================================================================================================
 Function Get-LogonTimeUnixTime {
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Get-LogonTimeUnixTime
+    # Description....: Translates Unix time to readable time
+    # Parameters.....: Unixtime stamp
+    # Return Values..: Data/Time object
+    # =================================================================================================================================
+
     param (
         [Parameter()]
         [string]$unixTime
@@ -533,13 +539,14 @@ Function Get-LogonTimeUnixTime {
     return $origin.AddSeconds($unixTime).ToLocalTime()
 }
 
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Get-FileVersion
-# Description....: Method to return a file version
-# Parameters.....: File Path
-# Return Values..: File version
-# =================================================================================================================================
 Function Get-FileVersion {
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Get-FileVersion
+    # Description....: Method to return a file version
+    # Parameters.....: File Path
+    # Return Values..: File version
+    # =================================================================================================================================
+
     <#
 .SYNOPSIS
 	Method to return a file version
@@ -609,18 +616,15 @@ $exports;
 Function Invoke-Logoff {
     $null = Invoke-Rest -Uri $URL_Logoff -Header $g_LogonHeader -Command "Post"
 }
-
-
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Get-ServiceInstallPath
-# Description....: Get the installation path of a service
-# Parameters.....: Service Name
-# Return Values..: $true
-#                  $false
-# =================================================================================================================================
-# Save the Services List
-$m_ServiceList = $null
 Function Get-ServiceInstallPath {
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Get-ServiceInstallPath
+    # Description....: Get the installation path of a service
+    # Parameters.....: Service Name
+    # Return Values..: $true
+    #                  $false
+    # =================================================================================================================================
+    # Save the Services List
     <#
   .SYNOPSIS
   Get the installation path of a service
@@ -657,13 +661,13 @@ Function Get-ServiceInstallPath {
     }
 }
 
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Find-Components
-# Description....: Detects all CyberArk Components installed on the local server
-# Parameters.....: None
-# Return Values..: Array of detected components on the local server
-# =================================================================================================================================
-Function Find-Components {
+Function Find-WinComponents {
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Find-WinComponents
+    # Description....: Detects all CyberArk Components installed on the local server
+    # Parameters.....: None
+    # Return Values..: Array of detected components on the local server
+    # =================================================================================================================================
     <#
 .SYNOPSIS
 	Method to query a local server for CyberArk components
@@ -801,7 +805,7 @@ Function Find-Components {
                 "All" {
                     try{
                         ForEach($comp in @("Vault","CPM","PVWA","PSM","AIM","EPM","SecureTunnel")) {
-                            $retArrComponents += Find-Components -Component $comp
+                            $retArrComponents += Find-WinComponents -Component $comp
                         }
                         return $retArrComponents
                     } catch {
@@ -815,7 +819,6 @@ Function Find-Components {
     End {
     }
 }
-
 function Start-ComponentService {
     param (
         [Parameter(Mandatory=$true)]
@@ -936,14 +939,15 @@ Function Set-UserPassword {
         } 
     }
 }
-
-# @FUNCTION@ ======================================================================================================================
-# Name...........: New-RandomPassword
-# Description....: Creates a new random password
-# Parameters.....: Length, (Switch)Lowercase, (Switch)Uppercase, (Switch)Numbers, (Switch)Symbols
-# Return Values..: A random password based on the requirements
-# =================================================================================================================================
 Function New-RandomPassword{
+
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: New-RandomPassword
+    # Description....: Creates a new random password
+    # Parameters.....: Length, (Switch)Lowercase, (Switch)Uppercase, (Switch)Numbers, (Switch)Symbols
+    # Return Values..: A random password based on the requirements
+    # =================================================================================================================================
+
     [CmdletBinding()]
     [OutputType([string])]
     Param
@@ -1063,7 +1067,6 @@ Function New-RandomPassword{
         $output
     }
 }
-
 Function Convert-SecureString{
 
     [CmdletBinding()]
@@ -1080,7 +1083,6 @@ Function Convert-SecureString{
         return [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
     }
 }
-
 Function Stop-ServiceProcess{
     [CmdletBinding()]
     
@@ -1098,7 +1100,6 @@ Function Stop-ServiceProcess{
         }
     }
 }
-
 function Reset-Credentials{
     param (
         [Parameter(Mandatory=$true)]
@@ -1114,28 +1115,27 @@ function Reset-Credentials{
         [string]$vaultAddress
     )
 
-$checkPVWA = $PVWAURL.replace("\","/").replace("https://","").Split("/").ToLower()
-If ($checkPVWA[0] -eq $server.ToLower()){
-Write-LogMessage -type Error -MSG "Unable to reset credentials of PVWA being used by script"
-continue
-}
-    
+    $checkPVWA = $PVWAURL.replace("\","/").replace("https://","").Split("/").ToLower()
+    If ($checkPVWA[0] -eq $server.ToLower()){
+        Write-LogMessage -type Error -MSG "Unable to reset credentials of PVWA being used by script"
+        continue
+    }
     IF ("Windows" -eq $os){
         switch ($ComponentType) {
             "CPM" { 
-                Reset-Component -Server $server -component "CPM" -componentName $ComponentType -services $g_cpmservices -vaultaddress $vaultAddress;break 
+                Reset-WinComponent -Server $server -component "CPM" -componentName $ComponentType -services $g_cpmservices -vaultaddress $vaultAddress;break 
             }
             "PVWA" { 
-                Reset-Component -Server $server -component "PVWA" -componentName $ComponentType -services $g_pvwaservices -vaultaddress $vaultAddress;break  
+                Reset-WinComponent -Server $server -component "PVWA" -componentName $ComponentType -services $g_pvwaservices -vaultaddress $vaultAddress;break  
             }
             "PSM" { 
-                Reset-Component -Server $server -component "PSM" -componentName $ComponentType -services $g_psmservices -vaultaddress $vaultAddress;break  
+                Reset-WinComponent -Server $server -component "PSM" -componentName $ComponentType -services $g_psmservices -vaultaddress $vaultAddress;break  
             }
             "AAM Credential Provider" { 
-                Reset-Component -Server $server -component "AIM" -componentName $ComponentType -services $g_aamservices -vaultaddress $vaultAddress;break 
+                Reset-WinComponent -Server $server -component "AIM" -componentName $ComponentType -services $g_aamservices -vaultaddress $vaultAddress;break 
             }
             "Secrets Manager Credential Providers" { 
-                Reset-Component -Server $server -component "AIM" -componentName $ComponentType -services $g_aamservices -vaultaddress $vaultAddress;break 
+                Reset-WinComponent -Server $server -component "AIM" -componentName $ComponentType -services $g_aamservices -vaultaddress $vaultAddress;break 
             }
             default {
                 Write-LogMessage -type Error -MSG "No Component Type passed for $server"
@@ -1147,179 +1147,7 @@ continue
         Write-LogMessage -type Error -msg "Unable to determine OS type for $server"
     }
 }
-
-<# function Reset-CPMCredentials{
-    param (
-        [Parameter(Mandatory=$true)]
-        [string]$Server
-
-    )
-    $complete = $failed = $false
-    $attempts = 0
-    While (!$complete -and !$failed) {
-        try {
-            Try {
-                $session = New-PSLogon $server
-            } Catch {
-                Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a windows server and winRM has been enabled."             
-                break
-            }
-            Write-LogMessage -type info -MSG "Connected to $Server and reseting CPM Credentials"
-            Write-LogMessage -type Verbose -MSG "Connected to $Server. Importing required modules"
-
-            Import-ModuleRemotely -moduleName CyberArk-Common -session $Session
-
-            Write-LogMessage -type Verbose -MSG "Modules imported. Getting information about the installed components"
-            $compInfo = Get-ComponentInfo -Server $Server -ComponentType "CPM" -Session $Session            
-            $installLocation = $compInfo.path
-            [version]$version = $compInfo.Version
-            Write-LogMessage -type Verbose -MSG "Retrived Component Information"
-            Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
-            Write-LogMessage -type Verbose -MSG "Version: $version"
-
-            Write-LogMessage -type Verbose -MSG "Attempting to stop CPM Services" 
-            Stop-ComponentService -services $Script:g_cpmservices -session $session -server $server
-            Write-LogMessage -type Verbose -MSG "CPM Stopped. Updating credential files" 
-
-            Invoke-Command -Session $session -ScriptBlock {Set-Location -Path ($args[0]+"\vault");} -ArgumentList $installLocation
-            $userItem = Invoke-Command -Session $session -ScriptBlock {((Select-String -Path .\user.ini -Pattern "username=").Line).split("=")[1]}
-            Write-LogMessage -type Verbose -MSG "Username: $userItem"
-            $tempPassword = New-RandomPassword -Length 14 -Lowercase -Uppercase -Numbers -Symbols | ConvertTo-SecureString -AsPlainText -Force 
-            $tag = [DateTimeOffset]::Now.ToUnixTimeSeconds()
-        
-            Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\user.ini" -NewName "user.ini.$($args[0])" -Force} -ArgumentList $tag
-            Invoke-Command -Session $session -ScriptBlock {Rename-Item ".\user.ini.entropy" -NewName "user.ini.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue } -ArgumentList $tag
-            Write-LogMessage -type Verbose -MSG "Backed up credential files"
-
-            if ($version -ge [version]'12.1'){
-                $command = $g_cpmuserCredv12 -f $userItem, $(Convert-SecureString($tempPassword))
-            } else {
-                $command = $g_cpmuserCred -f $userItem, $(Convert-SecureString($tempPassword))
-            }
-            Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $command -ErrorAction SilentlyContinue -ErrorVariable invokeResult
-            Remove-Variable command
-            If ($invokeResult[0].TargetObject -ne "Command ended successfully"){
-                Invoke-Command -Session $session -ScriptBlock {Rename-Item "user.ini.$($args[0])" -NewName "user.ini" -Force} -ArgumentList $tag
-                Invoke-Command -Session $session -ScriptBlock {Rename-Item "user.ini.entropy.$($args[0])" -NewName "user.ini.entropy" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
-                Write-LogMessage -type Error -MSG "Error resetting credential file on $server"
-                $failed = $true
-                Throw "Error resetting credential file on $server"
-            } else {
-                Invoke-Command -Session $session -ScriptBlock {Remove-Item ".\user.ini.$($args[0])" -Force} -ArgumentList $tag
-                Invoke-Command -Session $session -ScriptBlock {Remove-Item ".\user.ini.entropy.$($args[0])" -Force -ErrorAction SilentlyContinue} -ArgumentList $tag
-            }
-            
-            Write-LogMessage -type Verbose -MSG "CreateCredFile on CPM successful"
-            Write-LogMessage -type Verbose -MSG "Updating CPM via RESTAPI"
-            Set-UserPassword -username $userItem -Password $tempPassword
-            Write-LogMessage -type Verbose -MSG "Update of CPM via RESTAPI Complete"
-		
-            Write-LogMessage -type Verbose -MSG "Attempting to start CPM services"
-            $complete = Start-ComponentService -services $Script:g_cpmservices -session $session -server $server -wait 2
-
-            $attempts += 1
-    
-            if ($attempts -gt 5) {
-                $failed = $true;
-                Write-LogMessage -type Error -MSG "Failed to reset CPM credentials on $server" 
-                Throw "Failed to reset CPM credentials on $server"
-            }
-		
-            if ($complete) {
-                Write-LogMessage -type Info -MSG "CPM on $server reset completed successful"
-            } else {
-                Write-LogMessage -type Info -MSG "CPM on $server reset  failed, restarting"
-            }
-
-
-        } catch {
-            Write-LogMessage -type Error -MSG "Error during reset of CPM on $server"
-            Throw $_
-        }
-
-        Finally {
-            Write-LogMessage -type Verbose -MSG "Disconnecting from $server"  
-            Remove-PSSession $session
-            Write-LogMessage -type info -MSG "Disconnected from $server"
-        }
-    }
-}
-<# function Reset-AAMCredentialsWindows{
-    param (
-        [Parameter(Mandatory=$true)]
-        [string]$Server
-
-    )
-    $complete = $failed = $false
-    $attempts = 0
-    While (!$complete -and !$failed) {
-        try {
-            $complete = $failed = $false
-            $attempts = 0
-            While (!$complete){
-                Try {
-                    $session = New-PSLogon $server
-                } Catch {
-                    Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a windows server and winRM has been enabled."             
-                    break
-                }
-                Write-LogMessage -type info -MSG "Connected to $Server and reseting Provider Credentials"
-                Write-LogMessage -type Verbose -MSG "Connected to $Server. Importing required modules"
-                
-                Import-ModuleRemotely -moduleName CyberArk-Common -session $Session
-                Write-LogMessage -type Verbose -MSG "Modules imported. Getting information about the installed components"
-                
-                $compInfo = Get-ComponentInfo -Server $Server -ComponentType "AIM" -Session $Session          
-                
-                $installLocation = $compInfo.path
-                [version]$version = $compInfo.Version
-                Write-LogMessage -type Verbose -MSG "Retrived Component Information"
-                Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
-                Write-LogMessage -type Verbose -MSG "Version: $version"
-
-                Write-LogMessage -type Verbose -MSG "Attempting to stop AAM Services" 
-                Stop-ComponentService -services $Script:g_aamservices -session $session -server $server
-                Write-LogMessage -type Verbose -MSG "Stopped AAM Services"
-
-                $failed = Reset-CredFile -Server $server -compInfo $compInfo
-
-                Write-LogMessage -type Verbose -MSG "Attempting to start AAM services"
-        
-                $complete = Start-ComponentService -services $Script:g_aamservices -session $session -server $server
-
-                $attempts += 1
-		
-                if ($attempts -gt 5) {
-                    $failed = $true;
-                    Write-LogMessage -type Error -MSG "Failed to reset AAM Provider credentials on $server" 
-                    Throw "Failed to reset AAM Provider credentials on $server"
-                }
-
-                Write-LogMessage -type Verbose -MSG "AAM Provider Started"
-
-                if ($complete) {
-                    Write-LogMessage -type Info -MSG "AAM on $server reset completed successful"
-                } else {
-                    Write-LogMessage -type Info -MSG "AAM on $server reset failed, restarting"
-                }
-    
-    
-            }
-        } catch {
-            Write-LogMessage -type Error -MSG "Error during reset of AAM on $server"
-            Throw $_
-        }
-
-        Finally {
-            Write-LogMessage -type Verbose -MSG "Disconnecting from $server"  
-            Remove-PSSession $session
-            Write-LogMessage -type info -MSG "Disconnected from $server"
-        }
-    }
-}
- #> #>
-function Reset-CredFile{
-
+function Reset-WinCredFile{
     param (
         [Parameter(Mandatory=$true)]
         [string]$Server,
@@ -1403,7 +1231,6 @@ function Reset-CredFile{
             )
         }
     } 
-
     foreach ($comp in $CompFiles){
 
         $component = $comp.type
@@ -1443,7 +1270,6 @@ function Reset-CredFile{
         Write-LogMessage -type Info -MSG "Update of $componentName via RESTAPI Complete"
     }
 }
-
 function Reset-VaultFile{
 
     param (
@@ -1528,8 +1354,7 @@ function Reset-VaultFile{
         Write-LogMessage -type Info -MSG "Vault.ini on $componentName updated successful"
     }
 }
-
-function Reset-Component{
+function Reset-WinComponent{
     param (
         [Parameter(Mandatory=$true)]
         [string]$Server,
@@ -1576,7 +1401,7 @@ function Reset-Component{
                 Stop-ComponentService -services $services -session $session -server $server
                 Write-LogMessage -type Verbose -MSG "Stopped $componentName Services"
 
-                $credfailed = Reset-CredFile -Server $server -compInfo $compInfo -session $session
+                $credfailed = Reset-WinCredFile -Server $server -compInfo $compInfo -session $session
 
                 IF (!($credfailed) -and (![string]::IsNullOrEmpty($vaultaddress))) {
                     $vaultfailed =   Reset-VaultFile -Server $server -compInfo $compInfo -session $session
@@ -1609,8 +1434,6 @@ function Reset-Component{
         }
     }
 }
-
-
 function Get-ComponentInfo{
     param (
         [Parameter(Mandatory=$true)]
@@ -1619,7 +1442,6 @@ function Get-ComponentInfo{
         [string]$ComponentType,
         [Parameter(Mandatory=$false)]
         [System.Management.Automation.Runspaces.PSSession]$Session
-
     )
     $newSession = $false
     try {
@@ -1628,7 +1450,7 @@ function Get-ComponentInfo{
             $newSession = $true
             $Session = New-PSLogon $server
         }
-        $ComponentsFound = Invoke-Command -Session $Session -ScriptBlock {Find-Components $args[0]} -ArgumentList $ComponentType
+        $ComponentsFound = Invoke-Command -Session $Session -ScriptBlock {Find-WinComponents $args[0]} -ArgumentList $ComponentType
         return $ComponentsFound
 
     } catch {
@@ -1640,7 +1462,6 @@ function Get-ComponentInfo{
     }
 
 }
-
 Function Get-ComponentStatus{
 
     try {
@@ -1677,7 +1498,6 @@ Function Get-ComponentDetails{
         Return $null
     }
 }
-
 Function Test-TargetWinRM {
     param (
         [Parameter()]
@@ -1694,7 +1514,6 @@ Function Test-TargetWinRM {
         Return $false
     }
 }
-
 function New-PSLogon {
     param (
         [Parameter()]

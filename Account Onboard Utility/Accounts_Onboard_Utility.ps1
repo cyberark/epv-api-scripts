@@ -1453,6 +1453,15 @@ ForEach ($account in $accountsCSV) {
 										$_bodyOp.value = $objAccount.platformAccountProperties.$($sProp.Name)
 										$s_AccountBody += $_bodyOp
 									}
+								} else {
+									If(($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $sProp.Value)) {
+										Write-LogMessage -Type Verbose -MSG "Updating Account Property $($sProp.Name) value from: '$($sProp.Value)' to: '$($objAccount.$($sProp.Name))'"
+										$_bodyOp = "" | Select-Object "op", "path", "value"
+										$_bodyOp.op = "replace"
+										$_bodyOp.path = "/"+$sProp.Name
+										$_bodyOp.value = $objAccount.$($sProp.Name)
+										$s_AccountBody += $_bodyOp
+									}
 								}
 							}
 								
