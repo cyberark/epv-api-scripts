@@ -1363,6 +1363,9 @@ ForEach ($account in $accountsCSV) {
 							$s_AccountBody = @()
 							$s_ExcludeProperties = @("id", "secret", "lastModifiedTime", "createdTime", "categoryModificationTime")
 							# Check for existing properties needed update
+							Write-LogMessage -Type Verbose -MSG "Updating on $($objAccount.userName) "
+							Write-LogMessage -Type Verbose -MSG "$($objAccount|ConvertTo-Json -Depth 5)"
+							Write-LogMessage -Type Verbose -MSG ""
 							Write-LogMessage -Type Verbose -MSG "Working on $s_Account"
 							Write-LogMessage -Type Verbose -MSG "$($s_Account|ConvertTo-Json -Depth 5)"
 							Foreach($sProp in ($s_Account.PSObject.Properties | Where-Object { $_.Name -NotIn $s_ExcludeProperties })) {
@@ -1456,6 +1459,7 @@ ForEach ($account in $accountsCSV) {
 										$s_AccountBody += $_bodyOp
 									}
 								} else { 
+									Write-LogMessage -Type Verbose -MSG "Object name to inspect is $($objAccount.$($sProp.Name)) with a value of $($sProp.Value)"
 									If(($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $sProp.Value)) {
 										Write-LogMessage -Type Verbose -MSG "Updating Account Property $($sProp.Name) value from: '$($sProp.Value)' to: '$($objAccount.$($sProp.Name))'"
 										$_bodyOp = "" | Select-Object "op", "path", "value"
