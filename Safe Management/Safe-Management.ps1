@@ -262,6 +262,7 @@ Function Write-LogMessage {
                 $msgToWrite += "[ERROR]`t$Msg"
             }
             "Debug" { 
+
                 if ($InDebug -or $InVerbose) {
                     Write-Debug $MSG
                     $msgToWrite += "[DEBUG]`t$Msg"
@@ -616,8 +617,9 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
     }
 
     try {
+
         Write-LogMessage -Type Verbose -Msg "Adding the safe $safename to the Vault..."
-	Write-LogMessage -Type Verbose -Msg "Rest Body $($createSafeBody | ConvertTo-Json)"
+
         $safeAdd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
         # Reset cached Safes list
         #Set-Variable -Name g_SafesList -Value $null -Scope Global
@@ -677,7 +679,11 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
         $updateOLAC = $EnableOLAC
     }
     If (![string]::IsNullOrEmpty($managingCPM) -and $getSafe.ManagingCPM -ne $managingCPM) {
-        $updateManageCPM = $managingCPM
+        If ("NULL" -eq $managingCPM){
+            $updateManageCPM = ""
+        } else {
+            $updateManageCPM = $managingCPM
+        }
     }
     If ($null -ne $numVersionRetention -and $numVersionRetention -gt 0 -and $getSafe.NumberOfVersionsRetention -ne $numVersionRetention) {
         $updateRetVersions = $numVersionRetention
