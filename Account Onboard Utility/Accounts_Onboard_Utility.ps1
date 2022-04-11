@@ -1363,6 +1363,8 @@ ForEach ($account in $accountsCSV) {
 							$s_AccountBody = @()
 							$s_ExcludeProperties = @("id", "secret", "lastModifiedTime", "createdTime", "categoryModificationTime")
 							# Check for existing properties needed update
+							Write-LogMessage -Type Verbose -MSG "Working on $s_Account"
+							Write-LogMessage -Type Verbose -MSG "$($s_Account|ConvertTo-Json -Depth 5)"
 							Foreach($sProp in ($s_Account.PSObject.Properties | Where-Object { $_.Name -NotIn $s_ExcludeProperties })) {
 								Write-LogMessage -Type Verbose -MSG "Inspecting Account Property $($sProp.Name)"
 								$s_ExcludeProperties += $sProp.Name
