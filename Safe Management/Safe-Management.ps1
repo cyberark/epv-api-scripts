@@ -1,25 +1,25 @@
-###########################################################################
-#
-# NAME: Manage Safes using REST API
-#
-# AUTHOR: Jake DeSantis, Carl Anderson, Brian Bors
-#
-# COMMENT: 
-# This script will help in Safe Management tasks
-#
-# SUPPORTED VERSIONS:
-# CyberArk PVWA v12.1 and above
-# CyberArk Privilege Cloud
-#
-# VERSION HISTORY:
-# 1.0 16/12/2018   - Initial release
-# 1.1 06/02/2019   - Bug fix
-# 1.9 09/07/2021   - Added ability to create new members on updates. 
-#                    General Format cleanup according to standards
-# 2.0 15/11/2021   - Working only with 2nd Gen REST API of Safes. Supported version 12.1 and above
-# 2.0.1 02/03/2021 - Fix for v2
-#
-###########################################################################
+<###########################################################################
+
+ NAME: Manage Safes using REST API
+
+ AUTHOR: Jake DeSantis, Carl Anderson, Brian Bors
+
+ COMMENT: 
+ This script will help in Safe Management tasks
+
+ SUPPORTED VERSIONS:
+ CyberArk PVWA v12.1 and above
+ CyberArk Privilege Cloud
+
+ VERSION HISTORY:
+ 1.0 16/12/2018   - Initial release
+ 1.1 06/02/2019   - Bug fix
+ 1.9 09/07/2021   - Added ability to create new members on updates. 
+                    General Format cleanup according to standards
+ 2.0 15/11/2021   - Working only with 2nd Gen REST API of Safes. Supported version 12.1 and above
+ 2.0.1 02/03/2021 - Fix for v2
+ 2.1 12/04/2021     Added ability to create report of safes
+########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = "List")]
 param
 (
@@ -78,6 +78,11 @@ param
     [Alias("File")]
     [String]$FilePath,
 	
+    [Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "Enter a file path for report output. Must be CSV")]
+    [ValidatePattern( '\.csv$' )]
+    [Alias("Report")]
+    [String]$ReportPath,
+
     # Add / Update Safe options
     [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = "Enter the managing CPM name")]
     [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = "Enter the updated managing CPM name")]
@@ -108,10 +113,8 @@ param
     [Switch]$AddOnUpdate,
 	
     # Support for Threading (Logon Connection Number)
-    [Parameter(Mandatory = $false, HelpMessage = "Enter a thread connection number between 0-100. (Default: 0)")]
-    [Alias("Thread")]
-    [ValidateScript( { ($_ -ge 0) -and ($_ -lt 100) })]
-    [int]$ThreadNumber = 0,
+    [Parameter(Mandatory = $false, HelpMessage = "Enable conncurrent session")]
+    [switch]$concurrentSession=$false,
 	
     # Use this switch to Disable SSL verification (NOT RECOMMENDED)
     [Parameter(Mandatory = $false)]
@@ -125,7 +128,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "2.0.1"
+$ScriptVersion = "2.1"
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -262,7 +265,7 @@ Function Write-LogMessage {
                 $msgToWrite += "[ERROR]`t$Msg"
             }
             "Debug" { 
-                if ($InDebug) {
+                if ($InDebug -or $InVerbose) {
                     Write-Debug $MSG
                     $msgToWrite += "[DEBUG]`t$Msg"
                 } else {
@@ -333,8 +336,7 @@ Function Get-LogonHeader {
         [Parameter(Mandatory = $false)]
         [string]$RadiusOTP,
         [Parameter(Mandatory = $false)]
-        [ValidateScript( { ($_ -ge 0) -and ($_ -lt 100) })]
-        [int]$ConnectionNumber = 0
+        [boolean]$concurrentSession
     )
 	
     if ([string]::IsNullOrEmpty($g_LogonHeader)) {
@@ -345,10 +347,11 @@ Function Get-LogonHeader {
 		
         # Create the POST Body for the Logon
         # ----------------------------------
-        If ($ConnectionNumber -eq 0) {
-            $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password } | ConvertTo-Json
-        } elseif ($ConnectionNumber -gt 0) {
-            $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password; connectionNumber = $ConnectionNumber } | ConvertTo-Json
+        If ($concurrentSession) {
+            $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password;concurrentSession = $true } | ConvertTo-Json
+        } else {
+            $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password} | ConvertTo-Json
+
         }
         # Check if we need to add RADIUS OTP
         If (![string]::IsNullOrEmpty($RadiusOTP)) {
@@ -513,10 +516,24 @@ Get-Safe -safeName "x0-Win-S-Admins"
         [ValidateScript( { $_.Length -le 28 })]
         [String]$safeName
     )
-    $_safe = $null
+    $_safe = @()
     try {
         $accSafeURL = $URL_SpecificSafe -f $(ConvertTo-URL $safeName)
-        $_safe = $(Invoke-RestMethod -Uri $accSafeURL -Method "Get" -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue")
+        $_safe += $(Invoke-RestMethod -Uri $accSafeURL -Method "Get" -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue")
+        If (![string]::IsNullOrEmpty($_safe.nextLink)) {
+            $nextLink = $_safe.nextLink
+            While (![string]::IsNullOrEmpty($nextLink)){
+                $_safeNext = @()
+                $_safeNext += $(Invoke-RestMethod -Uri "$PVWAURL/$nextLink" -Method "Get" -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue")
+                $_safe +=  $_safeNext
+                If (![string]::IsNullOrEmpty($_safeNext.nextLink)) {
+                    $nextLink = $_safeNext.nextLink
+                } else {
+                    $nextLink =  $null
+                }
+            }
+        }
+
     } catch {
         Throw $(New-Object System.Exception ("Get-Safe: Error retrieving safe '$safename' details.", $_.Exception))
     }
@@ -972,7 +989,7 @@ If (Test-CommandExists Invoke-RestMethod) {
         $msg = "Enter your User name and Password"; 
         $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
         if ($null -ne $creds) {
-            Get-LogonHeader -Credentials $creds -ConnectionNumber $ThreadNumber
+            Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
         } else { 
             Write-LogMessage -Type Error -Msg "No Credentials were entered"
             return
@@ -987,13 +1004,25 @@ If (Test-CommandExists Invoke-RestMethod) {
         "List" {
             # List all Safes
             Write-LogMessage -Type Info -Msg "Retrieving Safes..."
-			
+            $safelist = @()
             try {
                 If (![string]::IsNullOrEmpty($SafeName)) {
-                    Get-Safe -SafeName $SafeName
+                    $safelist += Get-Safe -SafeName $SafeName
                 } else {
-                    Get-Safes
+                    $safelist += Get-Safe
                 }
+                if ([string]::IsNullOrEmpty($safelist.value)){
+                    $output = $safelist
+                } else {
+                    $output = $safelist.value
+                }
+                if ([string]::IsNullOrEmpty($ReportPath)) {
+                    $output 
+                } else {
+                    $output | Select-Object -Property safeName,description,managingCPM,numberOfVersionsRetention,numberOfDaysRetention,EnableOLAC | ConvertTo-Csv -NoTypeInformation | Out-File $ReportPath
+                }
+     
+
             } catch {
                 Write-LogMessage -Type Error -Msg "Error retrieving safes. Error: $(Join-ExceptionMessage $_.Exception)"
             }

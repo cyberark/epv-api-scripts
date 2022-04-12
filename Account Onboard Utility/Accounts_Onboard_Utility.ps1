@@ -1364,6 +1364,11 @@ ForEach ($account in $accountsCSV) {
 							$s_AccountBody = @()
 							$s_ExcludeProperties = @("id", "secret", "lastModifiedTime", "createdTime", "categoryModificationTime")
 							# Check for existing properties needed update
+							Write-LogMessage -Type Verbose -MSG "Updating on $($objAccount.userName) "
+							Write-LogMessage -Type Verbose -MSG "$($objAccount|ConvertTo-Json -Depth 5)"
+							Write-LogMessage -Type Verbose -MSG ""
+							Write-LogMessage -Type Verbose -MSG "Working on $s_Account"
+							Write-LogMessage -Type Verbose -MSG "$($s_Account|ConvertTo-Json -Depth 5)"
 							Foreach($sProp in ($s_Account.PSObject.Properties | Where-Object { $_.Name -NotIn $s_ExcludeProperties })) {
 								Write-LogMessage -Type Verbose -MSG "Inspecting Account Property $($sProp.Name)"
 								$s_ExcludeProperties += $sProp.Name
@@ -1417,6 +1422,7 @@ ForEach ($account in $accountsCSV) {
 							} # [End] Check for existing properties
 							# Check for new Account Properties
 							ForEach($sProp in ($objAccount.PSObject.Properties | Where-Object { $_.Name -NotIn $s_ExcludeProperties })) {
+								Write-LogMessage -Type Verbose -MSG "Inspecting for New Property $($sProp.Name)"
 								If($sProp.Name -eq "remoteMachinesAccess") {
 									if(Test-PlatformProperty -platformId $s_Account.platformId -platformProperty "remoteMachinesAccess") {
 										ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties) {
@@ -1453,9 +1459,11 @@ ForEach ($account in $accountsCSV) {
 										$_bodyOp.value = $objAccount.platformAccountProperties.$($sProp.Name)
 										$s_AccountBody += $_bodyOp
 									}
-								} else {
-									If(($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $sProp.Value)) {
-										Write-LogMessage -Type Verbose -MSG "Updating Account Property $($sProp.Name) value from: '$($sProp.Value)' to: '$($objAccount.$($sProp.Name))'"
+								} else { 
+									Write-LogMessage -Type Verbose -MSG "Object name to inspect is $($sProp.Name) with a value of $($sProp.Value)"
+									If(($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $s_Account.$($sProp.Name))) {
+										Write-LogMessage -Type Verbose -MSG "Updating Account Property '$($sProp.Name)' value from: '$($s_Account.$($sProp.Name))' to: '$($objAccount.$($sProp.Name))'"
+
 										$_bodyOp = "" | Select-Object "op", "path", "value"
 										$_bodyOp.op = "replace"
 										$_bodyOp.path = "/"+$sProp.Name
