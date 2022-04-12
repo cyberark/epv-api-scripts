@@ -1018,7 +1018,7 @@ If (Test-CommandExists Invoke-RestMethod) {
                 if ([string]::IsNullOrEmpty($ReportPath)) {
                     $output 
                 } else {
-                    $output | Select-Object -Property safeName,description,managingCPM,numberOfVersionsRetention,numberOfDaysRetention | ConvertTo-Csv -NoTypeInformation | Out-File $ReportPath
+                    $output | Select-Object -Property safeName,description,managingCPM,numberOfVersionsRetention,numberOfDaysRetention,EnableOLAC | ConvertTo-Csv -NoTypeInformation | Out-File $ReportPath
                 }
      
             } catch {
