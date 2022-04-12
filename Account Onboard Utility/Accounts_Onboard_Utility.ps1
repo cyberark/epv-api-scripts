@@ -272,7 +272,7 @@ Function New-AccountObject {
 		if($Create) {
 			# Check mandatory fields for account creation
 			If([string]::IsNullOrEmpty($AccountLine.userName)) { throw "Missing mandatory field: user Name" }
-			If([string]::IsNullOrEmpty($AccountLine.address)) { throw "Missing mandatory field: Address" }
+			#If([string]::IsNullOrEmpty($AccountLine.address)) { throw "Missing mandatory field: Address" }
 			If([string]::IsNullOrEmpty($AccountLine.platformId)) { throw "Missing mandatory field: Platform ID" }
 		}
 		
@@ -1460,11 +1460,8 @@ ForEach ($account in $accountsCSV) {
 									}
 								} else { 
 									Write-LogMessage -Type Verbose -MSG "Object name to inspect is $($sProp.Name) with a value of $($sProp.Value)"
-									Write-LogMessage -Type Verbose -MSG "If(($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $sProp.Value))"
-									Write-LogMessage -Type Verbose -MSG '$objAccount.$($sProp.Name)' + " = $($objAccount.$($sProp.Name))"
-									Write-LogMessage -Type Verbose -MSG '$sProp.Value' + " = $($sProp.Value)"
-									If(($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $sProp.Value)) {
-										Write-LogMessage -Type Verbose -MSG "Updating Account Property $($sProp.Name) value from: '$($sProp.Value)' to: '$($objAccount.$($sProp.Name))'"
+									If(($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $s_Account.$($sProp.Name))) {
+										Write-LogMessage -Type Verbose -MSG "Updating Account Property '$($sProp.Name)' value from: '$($s_Account.$($sProp.Name))' to: '$($objAccount.$($sProp.Name))'"
 										$_bodyOp = "" | Select-Object "op", "path", "value"
 										$_bodyOp.op = "replace"
 										$_bodyOp.path = "/"+$sProp.Name
