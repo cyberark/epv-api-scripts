@@ -272,7 +272,7 @@ Function New-AccountObject {
 		if($Create) {
 			# Check mandatory fields for account creation
 			If([string]::IsNullOrEmpty($AccountLine.userName)) { throw "Missing mandatory field: user Name" }
-			#If([string]::IsNullOrEmpty($AccountLine.address)) { throw "Missing mandatory field: Address" }
+			If([string]::IsNullOrEmpty($AccountLine.address)) { throw "Missing mandatory field: Address" }
 			If([string]::IsNullOrEmpty($AccountLine.platformId)) { throw "Missing mandatory field: Platform ID" }
 		}
 		
