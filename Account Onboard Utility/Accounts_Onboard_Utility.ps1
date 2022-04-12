@@ -1460,6 +1460,9 @@ ForEach ($account in $accountsCSV) {
 									}
 								} else { 
 									Write-LogMessage -Type Verbose -MSG "Object name to inspect is $($sProp.Name) with a value of $($sProp.Value)"
+									Write-LogMessage -Type Verbose -MSG "If(($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $sProp.Value))"
+									Write-LogMessage -Type Verbose -MSG '$objAccount.$($sProp.Name)' + " = $($objAccount.$($sProp.Name))"
+									Write-LogMessage -Type Verbose -MSG '$sProp.Value' + " = $($sProp.Value)"
 									If(($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $sProp.Value)) {
 										Write-LogMessage -Type Verbose -MSG "Updating Account Property $($sProp.Name) value from: '$($sProp.Value)' to: '$($objAccount.$($sProp.Name))'"
 										$_bodyOp = "" | Select-Object "op", "path", "value"
