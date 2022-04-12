@@ -63,7 +63,8 @@ $ALL_PERMISSIONS = @{ "UseAccounts"=$true;"RetrieveAccounts"=$true;"ListAccounts
 
 
 #region Helper Functions
-Function Invoke-Rest {
+Function Invoke-Rest
+{
 	param ($Command, $URI, $Header, $Body, $ErrorAction="Continue")
 	
 	$restResponse = ""
@@ -71,9 +72,12 @@ Function Invoke-Rest {
 		Write-Verbose "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body"
 		$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body
 	} catch {
-		If($null -ne $_.Exception.Response.StatusDescription) {
+		If($null -ne $_.Exception.Response.StatusDescription)
+		{
 			Write-Error $_.Exception.Response.StatusDescription -ErrorAction $ErrorAction
-		} else {
+		}
+		else
+		{
 			Write-Error "StatusCode: $_.Exception.Response.StatusCode.value__"
 		}
 		$restResponse = $null
@@ -82,103 +86,114 @@ Function Invoke-Rest {
 	return $restResponse
 }
 
-Function Get-LogonHeader {
+Function Get-LogonHeader
+{
 	param($Credentials)
 	# Create the POST Body for the Logon
-	# ----------------------------------
-	$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
-	Write-Verbose $logonBody
+    # ----------------------------------
+    $logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
+	write-Verbose $logonBody
 	try{
-		# Logon
-		$logonResult = Invoke-Rest -Command Post -Uri $URL_CyberArkLogon -Body $logonBody
+	    # Logon
+	    $logonResult = Invoke-Rest -Command Post -Uri $URL_CyberArkLogon -Body $logonBody
 		# Clear logon body
 		$logonBody = ""
-		# Save the Logon Result - The Logon Token
-		$logonToken = $logonResult.CyberArkLogonResult
+	    # Save the Logon Result - The Logon Token
+	    $logonToken = $logonResult.CyberArkLogonResult
 		#Write-Debug "Got logon token: $logonToken"
-	} catch {
+	}
+	catch
+	{
 		Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
 		$logonToken = ""
 	}
-	If ($logonToken -eq "") {
-		Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-		exit
-	}
+    If ($logonToken -eq "")
+    {
+        Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
+        exit
+    }
 	
-	# Create a Logon Token Header (This will be used through out all the script)
-	# ---------------------------
-	$logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-	$logonHeader.Add("Authorization", $logonToken)
+    # Create a Logon Token Header (This will be used through out all the script)
+    # ---------------------------
+    $logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+    $logonHeader.Add("Authorization", $logonToken)
 	
 	return $logonHeader
 }
 
-Function Generate-Password {
+Function Generate-Password
+{
 	param ( [int]$length = 10 )
 	$ascii=$NULL;
 	For ($a=33; $a -le 126;$a++) {$ascii+=,[char][byte]$a }
-	For ($loop=1; $loop -le $length; $loop++) {
-		$TempPassword+=($ascii | Get-Random)
+	For ($loop=1; $loop -le $length; $loop++) 
+	{
+		$TempPassword+=($ascii | GET-RANDOM)
 	}
 
 	return $TempPassword
 }
 
-Function Add-Owner {
+Function Add-Owner
+{
 	param ($safe_Name, $user, $permissions)
 	$urlOwnerAdd = $URL_SafeMembers -f $safe_Name
 	$userPermissions = New-Object "System.Collections.Generic.Dictionary[[String],[Object]]"
 	($permissions.GetEnumerator() | ForEach-Object { $userPermissions.Add($_.Key,$_.Value) })
 	# Create the Safe Owner body with member name and required permissions
 	$bodyMember = @{ MemberName=$user;Permissions=$userPermissions }
-	$restBody = @{ member =$bodyMember } | ConvertTo-Json -Depth 3
+	$restBody = @{ member=$bodyMember } | ConvertTo-Json -Depth 3
 	# Add the Safe Owner
 	try {
-		# Add the Safe Owner
+        # Add the Safe Owner
 		$restResponse = Invoke-Rest -Uri $urlOwnerAdd -Header $g_LogonHeader -Command "Post" -Body $restBody
-	} catch {
-		Write-Error $_.Exception.Response.StatusDescription
-	}
+    } catch {
+        Write-Error $_.Exception.Response.StatusDescription
+    }
 }
 #endregion
 
 #--------- SCRIPT BEGIN ------------
 #region [Validation]
 # Check Powershell version
-If($($PSVersionTable.PSVersion.Major) -le 2) {
-	Write-Error "This script requires Powershell version 3 or above"
-	exit
+If($($PSVersionTable.PSVersion.Major) -le 2)
+{
+   Write-Error "This script requires Powershell version 3 or above"
+   exit
 }
 #endregion
 
 #region [Logon]
-# Get Credentials to Login
-# ------------------------
-$caption = "Create a Managed local user"
-$msg = "Enter your User name and Password"; 
-$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-if ($null -ne $creds) {
-	$g_LogonHeader = $(Get-LogonHeader -Credentials $creds)
-} else { exit }
+	# Get Credentials to Login
+	# ------------------------
+	$caption = "Create a Managed local user"
+	$msg = "Enter your User name and Password"; 
+	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
+	if ($null -ne $creds)
+	{
+		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds)
+	}
+	else { exit }
 #endregion
 
 #region [Create the target User]
-$restBody = @{ UserName=$TargetUserName;InitialPassword=$DEFAULT_PASSWORD;Email=$null;FirstName=$null;LastName=$null;ChangePasswordOnTheNextLogon=$False;ExpiryDate=$null;UserTypeName=$USER_TYPE;Disabled=$False; } | ConvertTo-Json -Depth 3
-$restResult = $(Invoke-Rest -Uri $URL_Users -Header $g_LogonHeader -Command "Post" -Body $restBody)
+ 	$restBody = @{ UserName=$TargetUserName;InitialPassword=$DEFAULT_PASSWORD;Email=$null;FirstName=$null;LastName=$null;ChangePasswordOnTheNextLogon=$False;ExpiryDate=$null;UserTypeName=$USER_TYPE;Disabled=$False; } | ConvertTo-Json -Depth 3
+	$restResult = $(Invoke-Rest -Uri $URL_Users -Header $g_LogonHeader -Command "Post" -Body $restBody)
 #endregion
 
 #region [Add the user to the Safe]
-ForEach ($safeName in $TargetSafes) {
-	# Add the user to it's safe
-	$restResult = $(Add-Owner -Safe_Name $safeName -User $TargetUserName -Permissions $USER_PERMISSIONS)
-	# Add Vault Admins to the Safe
-	$restResult = $(Add-Owner -Safe_Name $safeName -User "Vault Admins" -Permissions $ALL_PERMISSIONS)
-}
+	ForEach ($safeName in $TargetSafes)
+	{
+		# Add the user to it's safe
+		$restResult = $(Add-Owner -Safe_Name $safeName -User $TargetUserName -Permissions $USER_PERMISSIONS)
+		# Add Vault Admins to the Safe
+		$restResult = $(Add-Owner -Safe_Name $safeName -User "Vault Admins" -Permissions $ALL_PERMISSIONS)
+	}
 #endregion
 
 #region [Logoff]
-# Logoff the session
-# ------------------
-Write-Host "Logoff Session..."
-Invoke-Rest -Uri $URL_CyberArkLogoff -Header $g_LogonHeader -Command "Post"
+	# Logoff the session
+    # ------------------
+    Write-Host "Logoff Session..."
+    Invoke-Rest -Uri $URL_CyberArkLogoff -Header $g_LogonHeader -Command "Post"
 #endregion

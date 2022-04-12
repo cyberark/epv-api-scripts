@@ -72,8 +72,9 @@ $URL_TerminateSession = $URL_LiveSessions+"/{0}/Terminate"
 # Parameters.....: LogFile, MSG, (Switch)Header, (Switch)SubHeader, (Switch)Footer, Type
 # Return Values..: None
 # =================================================================================================================================
-Function Write-LogMessage {
-	<# 
+Function Write-LogMessage
+{
+<# 
 .SYNOPSIS 
 	Method to log a message on screen and in a log file
 
@@ -111,14 +112,16 @@ Function Write-LogMessage {
 		[String]$LogFile = $LOG_FILE_PATH
 	)
 	Try{
-		If([string]::IsNullOrEmpty($LogFile)) {
+		If([string]::IsNullOrEmpty($LogFile))
+		{
 			# Create a temporary log file
 			$LogFile = "$ScriptLocation\tmp.log"
 		}
 		
 		If ($Header) {
 			"=======================================" | Out-File -Append -FilePath $LogFile 
-		} ElseIf($SubHeader) { 
+		}
+		ElseIf($SubHeader) { 
 			"------------------------------------" | Out-File -Append -FilePath $LogFile 
 		}
 		
@@ -127,12 +130,14 @@ Function Write-LogMessage {
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		
 		# Mask Passwords
-		if($Msg -match '((?>password|secret)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))') {
+		if($Msg -match '((?>password|secret)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=(\w+))')
+		{
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
 		$writeToFile = $true
 		# Check the message type
-		switch ($type) {
+		switch ($type)
+		{
 			"Info" { 
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
@@ -149,25 +154,30 @@ Function Write-LogMessage {
 				break
 			}
 			"Debug" { 
-				if($InDebug -or $InVerbose) {
+				if($InDebug -or $InVerbose)
+				{
 					Write-Debug $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
 					break
-				} else { $writeToFile = $False }
+				}
+				else { $writeToFile = $False }
 			}
 			"Verbose" { 
-				if($InVerbose) {
+				if($InVerbose)
+				{
 					Write-Verbose $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
 					break
-				} else { $writeToFile = $False }
+				}
+				else { $writeToFile = $False }
 			}
 		}
 		If($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LogFile }
 		If ($Footer) { 
 			"=======================================" | Out-File -Append -FilePath $LogFile 
 		}
-	} catch{
+	}
+	catch{
 		Throw $(New-Object System.Exception ("Cannot write message '$Msg' to file '$Logfile'",$_.Exception))
 	}
 }
@@ -178,8 +188,9 @@ Function Write-LogMessage {
 # Parameters.....: Exception
 # Return Values..: Formatted String of Exception messages
 # =================================================================================================================================
-Function Collect-ExceptionMessage {
-	<# 
+Function Collect-ExceptionMessage
+{
+<# 
 .SYNOPSIS 
 	Formats exception messages
 .DESCRIPTION
@@ -196,8 +207,8 @@ Function Collect-ExceptionMessage {
 	Process {
 		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		while ($e.InnerException) {
-			$e = $e.InnerException
-			$msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		  $e = $e.InnerException
+		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		}
 		return $msg
 	}
@@ -213,8 +224,9 @@ Function Collect-ExceptionMessage {
 # Parameters.....: Command
 # Return Values..: True / False
 # =================================================================================================================================
-Function Test-CommandExists {
-	<# 
+Function Test-CommandExists
+{
+<# 
 .SYNOPSIS 
 	Tests if a command exists
 .DESCRIPTION
@@ -223,12 +235,12 @@ Function Test-CommandExists {
 	The command to test
 #>
 
-	Param ($command)
-	$oldPreference = $ErrorActionPreference
-	$ErrorActionPreference = 'stop'
-	try { if(Get-Command $command){ return $true } }
-	Catch { return $false }
-	Finally {$ErrorActionPreference=$oldPreference}
+    Param ($command)
+    $oldPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'stop'
+    try { if(Get-Command $command){ return $true } }
+    Catch { return $false }
+    Finally {$ErrorActionPreference=$oldPreference}
 } 
 
 # @FUNCTION@ ======================================================================================================================
@@ -237,8 +249,9 @@ Function Test-CommandExists {
 # Parameters.....: Command method, URI, Header, Body
 # Return Values..: REST response
 # =================================================================================================================================
-Function Invoke-Rest {
-	<# 
+Function Invoke-Rest
+{
+<# 
 .SYNOPSIS 
 	Invoke REST Method
 .DESCRIPTION
@@ -269,15 +282,19 @@ Function Invoke-Rest {
 		[String]$ErrAction="Continue"
 	)
 	
-	If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
-		Throw "This script requires PowerShell version 3 or above"
+	If ((Test-CommandExists Invoke-RestMethod) -eq $false)
+	{
+	   Throw "This script requires PowerShell version 3 or above"
 	}
 	$restResponse = ""
 	try{
-		if([string]::IsNullOrEmpty($Body)) {
+		if([string]::IsNullOrEmpty($Body))
+		{
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700
-		} else {
+		}
+		else
+		{
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700
 		}
@@ -299,8 +316,9 @@ Function Invoke-Rest {
 # Parameters.....: Credentials
 # Return Values..: Logon Header
 # =================================================================================================================================
-Function Get-LogonHeader {
-	<# 
+Function Get-LogonHeader
+{
+<# 
 .SYNOPSIS 
 	Get-LogonHeader
 .DESCRIPTION
@@ -313,7 +331,8 @@ Function Get-LogonHeader {
 		[PSCredential]$Credentials
 	)
 	
-	if([string]::IsNullOrEmpty($g_LogonHeader)) {
+	if([string]::IsNullOrEmpty($g_LogonHeader))
+	{
 		# Disable SSL Verification to contact PVWA
 		# Create the POST Body for the Logon
 		# ----------------------------------
@@ -329,7 +348,8 @@ Function Get-LogonHeader {
 		}
 
 		$logonHeader = $null
-		If ([string]::IsNullOrEmpty($logonToken)) {
+		If ([string]::IsNullOrEmpty($logonToken))
+		{
 			Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
 		}
 		
@@ -349,8 +369,9 @@ Function Get-LogonHeader {
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Run-Logoff {
-	<# 
+Function Run-Logoff
+{
+<# 
 .SYNOPSIS 
 	Run-Logoff
 .DESCRIPTION
@@ -360,7 +381,7 @@ Function Run-Logoff {
 		# Logoff the session
 		# ------------------
 		Write-LogMessage -Type Info -Msg "Logoff Session..."
-		Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader | Out-Null
+		Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader | out-null
 		Set-Variable -Name g_LogonHeader -Value $null -Scope global
 	} catch {
 		Throw $(New-Object System.Exception ("Run-Logoff: Failed to logoff session",$_.Exception))
@@ -373,8 +394,9 @@ Function Run-Logoff {
 # Parameters.....: EPOCH date
 # Return Values..: Date time
 # =================================================================================================================================
-Function Convert-Date($epochdate) {
-	<# 
+Function Convert-Date($epochdate)
+{
+<# 
 .SYNOPSIS 
 	Convert-Date
 .DESCRIPTION
@@ -392,8 +414,9 @@ Function Convert-Date($epochdate) {
 # Parameters.....: Vault Credentials, PSM Server Name
 # Return Values..: List of PSM Server Live Sessions
 # =================================================================================================================================
-Function Get-PSMSessions {
-	<# 
+Function Get-PSMSessions
+{
+<# 
 .SYNOPSIS 
 	Get-PSMSessions
 .DESCRIPTION
@@ -414,8 +437,10 @@ Function Get-PSMSessions {
 		Write-LogMessage -Type Debug -Msg "Retrieving sessions for PSM Server $ServerName..."
 		$listSessionsResult = $(Invoke-Rest -Uri $URL_LiveSessions -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Command "GET") 
 		$output = @()
-		ForEach($item in $listSessionsResult.LiveSessions) {
-			If(($item.IsLive) -and ($item.RawProperties.ProviderID -like $ServerName.Insert(0,'*'))) {
+		ForEach($item in $listSessionsResult.LiveSessions)
+		{
+			If(($item.IsLive) -and ($item.RawProperties.ProviderID -like $ServerName.Insert(0,'*')))
+			{
 				$output += $item
 			}
 		}
@@ -434,81 +459,103 @@ if($InVerbose) { Write-LogMessage -Type Info -MSG "Running in Verbose Mode" -Log
 Write-LogMessage -Type Debug -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ", ")" -LogFile $LOG_FILE_PATH
 
 # Check if Powershell is running in Constrained Language Mode
-If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
+If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
+{
 	Write-LogMessage -Type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
 	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
 	Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
 	return
 }
-If (Test-CommandExists Invoke-RestMethod) {
+If (Test-CommandExists Invoke-RestMethod)
+{
 	# Check that the PVWA URL is OK
-	If ($PVWAURL -ne "") {
-		If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/") {
-			$PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
-		}
-	} else {
-		Write-Host -ForegroundColor Red "PVWA URL can not be empty"
-		return
-	}
+    If ($PVWAURL -ne "")
+    {
+        If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/")
+        {
+            $PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
+        }
+    }
+    else
+    {
+        Write-Host -ForegroundColor Red "PVWA URL can not be empty"
+        return
+    }
 	
-	# Get Credentials to Login
-	# ------------------------
-	$caption = "PSM Sessions Management"
-	$msg = "Enter your CyberArk User name and Password"; 
-	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
+    # Get Credentials to Login
+    # ------------------------
+    $caption = "PSM Sessions Management"
+    $msg = "Enter your CyberArk User name and Password"; 
+    $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 
 	try {
 		$sessionsList = Get-PSMSessions -VaultCredentials $creds -ServerName $PSMServerName
-	} catch {
+	}
+	catch {
 		Write-LogMessage -Type Error -MSG "There was an error Listing PSM sessions. Error: $(Collect-ExceptionMessage $_.Exception)"
 		Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
 		return
 	}
 
-	switch($PsCmdlet.ParameterSetName) {
-		"List" {
+	switch($PsCmdlet.ParameterSetName)
+	{
+		"List"
+		{
 			try {
 				# List all PSM server sessions
 				Write-LogMessage -Type Info -Msg "Retrieving sessions for PSM Server $PSMServerName..."
 				$output = @()
-				Foreach ($item in $sessionsList) {
+				Foreach ($item in $sessionsList)
+				{
 					$output += $item | Select-Object SessionID,User,FromIP,@{Name = 'SessionStart'; Expression = { Convert-Date $_.Start}},@{Name = 'SessionDuration'; Expression = { $_.Duration}},RemoteMachine,AccountUsername,AccountAddress,Protocol,Client
 				}
-				If([string]::IsNullOrEmpty($CSVPath)) {	
-					Write-LogMessage -Type Info -Msg $($output | Out-String).Trim()
-				} else {
+				If([string]::IsNullOrEmpty($CSVPath))
+				{	
+					Write-LogMessage -Type Info -Msg $($output | out-String).Trim()
+				}
+				else
+				{
 					Write-LogMessage -Type Info -Msg "Exporting the output to $CSVPath"
-					$output | Export-Csv -NoTypeInformation -UseCulture -Path $CSVPath -Force
+					$output | Export-Csv -NoTypeInformation -UseCulture -Path $CSVPath -force
 				}
 				Write-LogMessage -Type Info -Msg "Finished retrieving sessions for PSM Server $PSMServerName"
-			} catch {
+			}
+			catch {
 				Write-LogMessage -Type Error - MSG "There was an Error when listing all sessions from $PSMServerName. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 		}
-		"Terminate" {
+		"Terminate"
+		{
 			try {
-				ForEach ($item in $sessionsList) {
-					If($item.CanTerminate -eq $true) {
+				ForEach ($item in $sessionsList)
+				{
+					If($item.CanTerminate -eq $true)
+					{
 						$msg = "Terminating {0} Session to {1} (more details: {2})" -f $item.User, $item.RemoteMachine, $("From IP: $($item.FromIP); Account User: $($item.AccountUsername); Account Address: $($tem.AccountAddress)")
 						Write-LogMessage -Type Warning -Msg $msg
-						$TerminateSessionResponse = Invoke-Rest -Command "POST" -Header $(Get-LogonHeader -Credentials $creds) -Body $( @{liveSessionId =$item.SessionID} | ConvertTo-Json )
-					} else {
+						$TerminateSessionResponse = Invoke-Rest -Command "POST" -Header $(Get-LogonHeader -Credentials $creds) -Body $( @{liveSessionId=$item.SessionID} | ConvertTo-Json )
+					}
+					else
+					{
 						Write-LogMessage -Type Warning -Msg $("Session cannot be terminated. More details: User: {0}; Account: {1}@{2}" -f $item.User, $item.AccountUsername, $item.AccountAddress)
 					}
 				}
-			} catch {
+			}
+			catch {
 				Write-LogMessage -Type Error - MSG "There was an Error Terminating one or more of the sessions. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 		}
 	}
 
-	# Logoff the session
-	# ------------------
-	Write-Host "Logoff Session..."
-	Run-Logoff
+    # Logoff the session
+    # ------------------
+    Write-Host "Logoff Session..."
+    Run-Logoff
 	Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
 	return
-} else {
-	Write-Error "This script requires PowerShell version 3 or above"
+}
+else
+{
+    Write-Error "This script requires PowerShell version 3 or above"
 }

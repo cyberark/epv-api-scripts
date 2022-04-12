@@ -71,8 +71,9 @@ $URL_Platforms = $URL_PVWAAPI+"/Platforms/{0}"
 # Parameters.....: LogFile, MSG, (Switch)Header, (Switch)SubHeader, (Switch)Footer, Type
 # Return Values..: None
 # =================================================================================================================================
-Function Write-LogMessage {
-	<# 
+Function Write-LogMessage
+{
+<# 
 .SYNOPSIS 
 	Method to log a message on screen and in a log file
 
@@ -110,14 +111,16 @@ Function Write-LogMessage {
 		[String]$LogFile = $LOG_FILE_PATH
 	)
 	Try{
-		If([string]::IsNullOrEmpty($LogFile)) {
+		If([string]::IsNullOrEmpty($LogFile))
+		{
 			# Create a temporary log file
 			$LogFile = "$ScriptLocation\tmp.log"
 		}
 		
 		If ($Header) {
 			"=======================================" | Out-File -Append -FilePath $LogFile 
-		} ElseIf($SubHeader) { 
+		}
+		ElseIf($SubHeader) { 
 			"------------------------------------" | Out-File -Append -FilePath $LogFile 
 		}
 		
@@ -126,12 +129,14 @@ Function Write-LogMessage {
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 		
 		# Mask Passwords
-		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))') {
+		if($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))')
+		{
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
 		$writeToFile = $true
 		# Check the message type
-		switch ($type) {
+		switch ($type)
+		{
 			"Info" { 
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
@@ -148,25 +153,30 @@ Function Write-LogMessage {
 				break
 			}
 			"Debug" { 
-				if($InDebug -or $InVerbose) {
+				if($InDebug -or $InVerbose)
+				{
 					Write-Debug $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
 					break
-				} else { $writeToFile = $False }
+				}
+				else { $writeToFile = $False }
 			}
 			"Verbose" { 
-				if($InVerbose) {
+				if($InVerbose)
+				{
 					Write-Verbose $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
 					break
-				} else { $writeToFile = $False }
+				}
+				else { $writeToFile = $False }
 			}
 		}
 		If($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LogFile }
 		If ($Footer) { 
 			"=======================================" | Out-File -Append -FilePath $LogFile 
 		}
-	} catch{
+	}
+	catch{
 		Throw $(New-Object System.Exception ("Cannot write message '$Msg' to file '$Logfile'",$_.Exception))
 	}
 }
@@ -177,8 +187,9 @@ Function Write-LogMessage {
 # Parameters.....: Exception
 # Return Values..: Formatted String of Exception messages
 # =================================================================================================================================
-Function Collect-ExceptionMessage {
-	<# 
+Function Collect-ExceptionMessage
+{
+<# 
 .SYNOPSIS 
 	Formats exception messages
 .DESCRIPTION
@@ -195,8 +206,8 @@ Function Collect-ExceptionMessage {
 	Process {
 		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		while ($e.InnerException) {
-			$e = $e.InnerException
-			$msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		  $e = $e.InnerException
+		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		}
 		return $msg
 	}
@@ -212,8 +223,9 @@ Function Collect-ExceptionMessage {
 # Parameters.....: Command
 # Return Values..: True / False
 # =================================================================================================================================
-Function Test-CommandExists {
-	<# 
+Function Test-CommandExists
+{
+<# 
 .SYNOPSIS 
 	Tests if a command exists
 .DESCRIPTION
@@ -222,12 +234,12 @@ Function Test-CommandExists {
 	The command to test
 #>
 
-	Param ($command)
-	$oldPreference = $ErrorActionPreference
-	$ErrorActionPreference = 'stop'
-	try { if(Get-Command $command){ return $true } }
-	Catch { return $false }
-	Finally {$ErrorActionPreference=$oldPreference}
+    Param ($command)
+    $oldPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'stop'
+    try { if(Get-Command $command){ return $true } }
+    Catch { return $false }
+    Finally {$ErrorActionPreference=$oldPreference}
 } 
 
 # @FUNCTION@ ======================================================================================================================
@@ -236,15 +248,19 @@ Function Test-CommandExists {
 # Parameters.....: text to encode
 # Return Values..: Encoded text for URL
 # =================================================================================================================================
-Function Encode-URL($sText) {
-	try{ [System.Web.HttpUtility] -as [type] | Out-Null }
+Function Encode-URL($sText)
+{
+	try{ [System.Web.HttpUtility] -as [type] | out-null }
 	catch{
 		Add-Type -AssemblyName System.Web
 	}
-	if ($sText.Trim() -ne "") {
+	if ($sText.Trim() -ne "")
+	{
 		Write-LogMessage -Type Debug -Msg "Returning URL Encode of '$sText'"
 		return [System.Web.HttpUtility]::UrlEncode($sText)
-	} else {
+	}
+	else
+	{
 		return $sText
 	}
 }
@@ -255,8 +271,9 @@ Function Encode-URL($sText) {
 # Parameters.....: Command method, URI, Header, Body
 # Return Values..: REST response
 # =================================================================================================================================
-Function Invoke-Rest {
-	<# 
+Function Invoke-Rest
+{
+<# 
 .SYNOPSIS 
 	Invoke REST Method
 .DESCRIPTION
@@ -287,15 +304,19 @@ Function Invoke-Rest {
 		[String]$ErrAction="Continue"
 	)
 	
-	If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
-		Throw "This script requires PowerShell version 3 or above"
+	If ((Test-CommandExists Invoke-RestMethod) -eq $false)
+	{
+	   Throw "This script requires PowerShell version 3 or above"
 	}
 	$restResponse = ""
 	try{
-		if([string]::IsNullOrEmpty($Body)) {
+		if([string]::IsNullOrEmpty($Body))
+		{
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700
-		} else {
+		}
+		else
+		{
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700
 		}
@@ -317,8 +338,9 @@ Function Invoke-Rest {
 # Parameters.....: Credentials
 # Return Values..: Logon Header
 # =================================================================================================================================
-Function Get-LogonHeader {
-	<# 
+Function Get-LogonHeader
+{
+<# 
 .SYNOPSIS 
 	Get-LogonHeader
 .DESCRIPTION
@@ -331,7 +353,8 @@ Function Get-LogonHeader {
 		[PSCredential]$Credentials
 	)
 	
-	if([string]::IsNullOrEmpty($g_LogonHeader)) {
+	if([string]::IsNullOrEmpty($g_LogonHeader))
+	{
 		# Disable SSL Verification to contact PVWA
 		# Create the POST Body for the Logon
 		# ----------------------------------
@@ -347,7 +370,8 @@ Function Get-LogonHeader {
 		}
 
 		$logonHeader = $null
-		If ([string]::IsNullOrEmpty($logonToken)) {
+		If ([string]::IsNullOrEmpty($logonToken))
+		{
 			Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
 		}
 		
@@ -367,8 +391,9 @@ Function Get-LogonHeader {
 # Parameters.....: None
 # Return Values..: None
 # =================================================================================================================================
-Function Run-Logoff {
-	<# 
+Function Run-Logoff
+{
+<# 
 .SYNOPSIS 
 	Run-Logoff
 .DESCRIPTION
@@ -378,7 +403,7 @@ Function Run-Logoff {
 		# Logoff the session
 		# ------------------
 		Write-LogMessage -Type Info -Msg "Logoff Session..."
-		Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader | Out-Null
+		Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader | out-null
 		Set-Variable -Name g_LogonHeader -Value $null -Scope global
 	} catch {
 		Throw $(New-Object System.Exception ("Run-Logoff: Failed to logoff session",$_.Exception))
@@ -391,8 +416,9 @@ Function Run-Logoff {
 # Parameters.....: Vault Credentials, PlatformID
 # Return Values..: True/False
 # =================================================================================================================================
-Function Test-PlatformAdHocAccess {
-	<# 
+Function Test-PlatformAdHocAccess
+{
+<# 
 .SYNOPSIS 
 	Test-PlatformAdHocAccess
 .DESCRIPTION
@@ -412,9 +438,11 @@ Function Test-PlatformAdHocAccess {
 	try{
 		Write-LogMessage -Type Debug -Msg "Checking $PlatformID platform for AllowDomainUserAdHocAccess..."
 		$getPlatformDetails = $(Invoke-Rest -Command "GET" -Uri ($URL_Platforms -f $PlatformID) -Header $(Get-LogonHeader -Credentials $VaultCredentials)).Details
-		If(![string]::IsNullOrEmpty($getPlatformDetails.AllowDomainUserAdHocAccess)) {
+		If(![string]::IsNullOrEmpty($getPlatformDetails.AllowDomainUserAdHocAccess))
+		{
 			Write-LogMessage -Type Debug -Msg "$PlatformID platform has AllowDomainUserAdHocAccess set to $($getPlatformDetails.AllowDomainUserAdHocAccess)"
-			if($getPlatformDetails.AllowDomainUserAdHocAccess -eq "Yes") { 
+			if($getPlatformDetails.AllowDomainUserAdHocAccess -eq "Yes") 
+			{ 
 				$retTestAdHocAccess = $True 
 			}
 		}
@@ -430,8 +458,9 @@ Function Test-PlatformAdHocAccess {
 # Parameters.....: Vault Credentials, Remote Machine Name
 # Return Values..: Account ID
 # =================================================================================================================================
-Function Get-AccountByMachine {
-	<# 
+Function Get-AccountByMachine
+{
+<# 
 .SYNOPSIS 
 	Get-AccountByMachine
 .DESCRIPTION
@@ -455,8 +484,10 @@ Function Get-AccountByMachine {
 		$GetAccountsResponse = $(Invoke-Rest -Uri $AccountsURLWithFilters -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Command "GET").value
 		$retRelevatAccounts = @()
 		# Filter only accounts with AllowDomainUserAdHocAccess in the Account Platform
-		ForEach ($account in $GetAccountsResponse) {
-			If(Test-PlatformAdHocAccess -VaultCredentials $VaultCredentials -PlatformID $account.platformId) {
+		ForEach ($account in $GetAccountsResponse)
+		{
+			If(Test-PlatformAdHocAccess -VaultCredentials $VaultCredentials -PlatformID $account.platformId)
+			{
 				$retRelevatAccounts += $account
 			}
 		}
@@ -473,8 +504,9 @@ Function Get-AccountByMachine {
 # Parameters.....: Vault Credentials, Account ID
 # Return Values..: True / False
 # =================================================================================================================================
-Function Get-AdminAccess {
-	<# 
+Function Get-AdminAccess
+{
+<# 
 .SYNOPSIS 
 	Get-AdminAccess
 .DESCRIPTION
@@ -493,7 +525,7 @@ Function Get-AdminAccess {
 	
 	try{
 		Write-LogMessage -Type Debug -Msg "Granting Administrative Access..."
-		$grantAccessBody = @{ accountId =$AccountID } | ConvertTo-Json
+		$grantAccessBody = @{ accountId=$AccountID } | ConvertTo-Json
 		$getAccessResult = $(Invoke-Rest -Uri ($URL_GrantAccess -f $AccountID) -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Command "POST" -Body $grantAccessBody)
 		return $true
 	} catch {
@@ -507,8 +539,9 @@ Function Get-AdminAccess {
 # Parameters.....: Vault Credentials, RemoteMachine
 # Return Values..: Connection Type (RDP / HTML5)
 # =================================================================================================================================
-Function Init-AdHocConnection {
-	<# 
+Function Init-AdHocConnection
+{
+<# 
 .SYNOPSIS 
 	Init-AdHocConnection
 .DESCRIPTION
@@ -534,29 +567,32 @@ Function Init-AdHocConnection {
 		$_userName = $VaultCredentials.GetNetworkCredential().username
 		
 		$adHocAccessBody = @{
-			secret                  =$VaultCredentials.GetNetworkCredential().password;
-			address                 =$RemoteMachine;
-			platformId              ="PSMSecureConnect";
-			userName                =$_userName
-			PSMConnectPrerequisites =@{
-				Reason              ="Get-AdHocAccess script";
-				ConnectionComponent ="PSM-RDP";
-				ConnectionType      ="RDPFile";
-			}
-			extraFields             =@{
-				Port                    =3389;
-				AllowMappingLocalDrives ="No";
-				AllowConnectToConsole   ="No";
-				LogonDomain             =$_domainName;
+			  secret=$VaultCredentials.GetNetworkCredential().password;
+			  address=$RemoteMachine;
+			  platformId="PSMSecureConnect";
+			  userName=$_userName
+			  PSMConnectPrerequisites=@{
+				Reason="Get-AdHocAccess script";
+				ConnectionComponent="PSM-RDP";
+				ConnectionType="RDPFile";
+			  }
+			  extraFields=@{
+				Port=3389;
+				AllowMappingLocalDrives="No";
+				AllowConnectToConsole="No";
+				LogonDomain=$_domainName;
 			}
 		} | ConvertTo-Json
 		$adHocAccessResult = $(Invoke-Rest -Uri $URL_PSMAdHocConnect -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Command "POST" -Body $adHocAccessBody)
-		If($adHocAccessResult -contains "PSMGWURL") {
+		If($adHocAccessResult -contains "PSMGWURL")
+		{
 			$retConnectionType = "HTML5"
-			$adHocAccessResult | Out-File $(Join-Path -Path $outFilePath -ChildPath "$RemoteMachine.txt")
-		} Else {
+			$adHocAccessResult | out-File $(Join-Path -Path $outFilePath -ChildPath "$RemoteMachine.txt")
+		}
+		Else
+		{
 			$retConnectionType = "RDP"
-			$adHocAccessResult | Out-File $(Join-Path -Path $outFilePath -ChildPath "$RemoteMachine.rdp")
+			$adHocAccessResult | out-File $(Join-Path -Path $outFilePath -ChildPath "$RemoteMachine.rdp")
 		}
 		
 		return $retConnectionType
@@ -574,63 +610,83 @@ if($InVerbose) { Write-LogMessage -Type Info -MSG "Running in Verbose Mode" -Log
 Write-LogMessage -Type Debug -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ", ")" -LogFile $LOG_FILE_PATH
 
 # Check if Powershell is running in Constrained Language Mode
-If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
+If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
+{
 	Write-LogMessage -Type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
 	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
 	Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
 	return
 }
-If (Test-CommandExists Invoke-RestMethod) {
+If (Test-CommandExists Invoke-RestMethod)
+{
 	# Check that the PVWA URL is OK
-	If ($PVWAURL -ne "") {
-		If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/") {
-			$PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
-		}
-	} else {
-		Write-LogMessage -Type Error -MSG "PVWA URL can not be empty"
-		return
-	}
+    If ($PVWAURL -ne "")
+    {
+        If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/")
+        {
+            $PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
+        }
+    }
+    else
+    {
+        Write-LogMessage -Type Error -MSG "PVWA URL can not be empty"
+        return
+    }
 	
 	$machinesList = @()
-	If([string]::IsNullOrEmpty($MachinesFilePath) -and [string]::IsNullOrEmpty($RemoteMachine)) { 
+	If([string]::IsNullOrEmpty($MachinesFilePath) -and [string]::IsNullOrEmpty($RemoteMachine)) 
+	{ 
 		Write-LogMessage -Type Error -MSG "You must choose either one remote machine or a list of machines from a file" 
 		return
 	}
 	
-	# Get Credentials to Login
-	# ------------------------
-	If([string]::IsNullOrEmpty($MachinesFilePath)) {
+    # Get Credentials to Login
+    # ------------------------
+	If([string]::IsNullOrEmpty($MachinesFilePath))
+	{
 		$caption = "Ad-Hoc Access to machine $RemoteMachine"
 		$machinesList += $RemoteMachine
-	} else {
+	}
+	else
+	{
 		$caption = "Ad-Hoc Access to list of machines"
 		$machinesList += (Get-Content $MachinesFilePath)
 	}
-	$msg = "Enter your LDAP User name and Password"; 
-	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
+    $msg = "Enter your LDAP User name and Password"; 
+    $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 	# Add a counter for succeeded connected machines
 	$cntMachines = 0
-	ForEach ($machine in $machinesList) {
+	ForEach ($machine in $machinesList)
+	{
 		try {
 			# Find the relevant Account
 			$accountsList = Get-AccountByMachine -VaultCredentials $creds -RemoteMachine $machine
-			if($accountsList.Count -gt 1) {
+			if($accountsList.Count -gt 1)
+			{
 				Write-LogMessage -Type Error -Msg "There are too many results for '$machine' ($($accountsList.Count) results)"
-			} else {
+			}
+			else
+			{
 				# Get Administrative Access for the Machine
-				If (Get-AdminAccess -AccountID $accountsList.id -VaultCredentials $creds) {
+				If (Get-AdminAccess -AccountID $accountsList.id -VaultCredentials $creds)
+				{
 					# Wait for 5 seconds
-					Start-Sleep -Seconds 5
+					Start-Sleep -seconds 5
 					# Initiate PSM AD-Hoc Connection to the machine
-					If((Init-AdHocConnection -VaultCredentials $creds -RemoteMachine $machine -outFilePath $ScriptLocation) -eq "RDP") {
+					If((Init-AdHocConnection -VaultCredentials $creds -RemoteMachine $machine -outFilePath $ScriptLocation) -eq "RDP")
+					{
 						# Run the RDP File
 						Mstsc $(Join-Path -Path $ScriptLocation -ChildPath "$machine.rdp")
 						$cntMachines++
-					} Else {
+					}
+					Else
+					{
 						Write-LogMessage -Type Error -Msg "The current PSM server is configured to work with HTML5 Gateway which is not supported by this script"
 					}
-				} Else {
+				}
+				Else
+				{
 					Write-LogMessage -Type Error -Msg "Could not get Administrative access for '$machine'"
 				}
 				
@@ -642,7 +698,7 @@ If (Test-CommandExists Invoke-RestMethod) {
 	
 	try{
 		# Wait before logging off
-		Start-Sleep -Seconds (5*$cntMachines)
+		Start-Sleep -seconds (5*$cntMachines)
 		# Logoff the session
 		# ------------------
 		Write-LogMessage -Type Info -MSG "Logoff Session..."
@@ -652,7 +708,9 @@ If (Test-CommandExists Invoke-RestMethod) {
 		Write-LogMessage -Type Error -MSG "There was an Error Logging off. Error: $(Collect-ExceptionMessage $_.Exception)"
 	}
 	return
-} else {
-	Write-LogMessage -Type Error -MSG "This script requires PowerShell version 3 or above"
+}
+else
+{
+    Write-LogMessage -Type Error -MSG "This script requires PowerShell version 3 or above"
 	return
 }

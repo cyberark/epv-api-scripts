@@ -72,9 +72,6 @@ param(
 	[Parameter(Mandatory=$false,HelpMessage="New Domain for FQDN")]
 	[String]$newDomain,
 
-	[Parameter(Mandatory=$false,HelpMessage="New vault address")]
-	[String]$vaultAddress,
-
 	[Parameter(Mandatory=$false,HelpMessage="PSSession Credentials")]
 	[PSCredential]$PSCredentials
 )
@@ -238,7 +235,7 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 	}
 	If ("Windows" -eq $target.os){
 		If (!(Test-TargetWinRM -server $fqdn )) {
-			"Error connecting to WinRM for Component User $($target.'Component User') on $($target.'IP Address') $fqdn"
+			"Error connectint to WinRM for Component User $($target.'Component User') on $($target.'IP Address') $fqdn"
 			continue
 		}
 	} elseif ("Linux" -eq  $target.os) {
@@ -248,7 +245,7 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 
 	if (!$jobs){
 		Try{
-			Reset-Credentials -ComponentType $target.'Component Type' -Server $fqdn -OS $target.os -vault $vaultAddress
+			Reset-Credentials -ComponentType $target.'Component Type' -Server $fqdn -OS $target.os
 		} Catch {
 			Write-LogMessage -type Error -MSG $_
 		}
@@ -257,7 +254,7 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 		$type =  $target.'Component Type'
 		$os = $target.os
 		Write-LogMessage -Type Info -MSG "Creating Job for $Type on $fqdn"
-		Start-Job -Name "$($type.Replace("AAM Credential Provider","CP")) on $fqdn" -ScriptBlock {$Script:PVWAURL = $using:PVWAURL;$Script:g_LogonHeader = $using:g_LogonHeader;Import-Module -Name $using:ScriptLocation\CyberArk-Common.psm1 -Force;Reset-Credentials -ComponentType $using:type -Server $using:fqdn -os $using:os -vault $using:vaultAddress} -InitializationScript {Set-Location $PSScriptRoot; } | Out-Null
+		Start-Job -Name "$($type.Replace("AAM Credential Provider","CP")) on $fqdn" -ScriptBlock {$Script:PVWAURL = $using:PVWAURL;$Script:g_LogonHeader = $using:g_LogonHeader;Import-Module -Name $using:ScriptLocation\CyberArk-Common.psm1 -Force;Reset-Credentials -ComponentType $using:type -Server $using:fqdn -os $using:os} -InitializationScript {Set-Location $PSScriptRoot; } | Out-Null
 		$jobsRunning=$true
 	}
 

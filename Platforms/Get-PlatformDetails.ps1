@@ -48,78 +48,94 @@ $rstusername = $rstpassword = ""
 $logonToken  = ""
 
 #region Functions
-Function Test-CommandExists {
-	Param ($command)
-	$oldPreference = $ErrorActionPreference
-	$ErrorActionPreference = 'stop'
-	try {if(Get-Command $command){RETURN $true}}
-	Catch {Write-Host "$command does not exist"; RETURN $false}
-	Finally {$ErrorActionPreference=$oldPreference}
+Function Test-CommandExists
+{
+    Param ($command)
+    $oldPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'stop'
+    try {if(Get-Command $command){RETURN $true}}
+    Catch {Write-Host "$command does not exist"; RETURN $false}
+    Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
-Function EncodeForURL($sText) {
-	if ($sText.Trim() -ne "") {
-		Write-Debug "Returning URL Encode of $sText"
+Function EncodeForURL($sText)
+{
+	if ($sText.Trim() -ne "")
+	{
+		write-debug "Returning URL Encode of $sText"
 		return [System.Web.HttpUtility]::UrlEncode($sText)
-	} else {
+	}
+	else
+	{
 		return ""
 	}
 }
 #endregion
 
-If (Test-CommandExists Invoke-RestMethod) {
+If (Test-CommandExists Invoke-RestMethod)
+{
 
-	# Check that the PVWA URL is OK
-	If ($PVWAURL -ne "") {
-		If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/") {
-			$PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
-		}
-	} else {
-		Write-Host -ForegroundColor Red "PVWA URL can not be empty"
-		exit
-	}
+# Check that the PVWA URL is OK
+    If ($PVWAURL -ne "")
+    {
+        If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/")
+        {
+            $PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
+        }
+    }
+    else
+    {
+        Write-Host -ForegroundColor Red "PVWA URL can not be empty"
+        exit
+    }
 
-	#region [Logon]
-	# Get Credentials to Login
-	# ------------------------
-	$caption = "Get accounts"
-	$msg = "Enter your User name and Password"; 
-	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($null -ne $creds) {
+#region [Logon]
+    # Get Credentials to Login
+    # ------------------------
+    $caption = "Get accounts"
+    $msg = "Enter your User name and Password"; 
+    $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
+	if ($null -ne $creds)
+	{
 		$rstusername = $creds.username.Replace('\','');    
 		$rstpassword = $creds.GetNetworkCredential().password
-	} else { exit }
+	}
+	else { exit }
 
-	# Create the POST Body for the Logon
-	# ----------------------------------
-	$logonBody = @{ username=$rstusername;password=$rstpassword }
-	$logonBody = $logonBody | ConvertTo-Json
+    # Create the POST Body for the Logon
+    # ----------------------------------
+    $logonBody = @{ username=$rstusername;password=$rstpassword }
+    $logonBody = $logonBody | ConvertTo-Json
 	try{
-		# Logon
-		$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json"
-	} catch {
+	    # Logon
+	    $logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json"
+	}
+	catch
+	{
 		Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
 		$logonToken = ""
 	}
-	If ($logonToken -eq "") {
-		Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-		exit
-	}
+    If ($logonToken -eq "")
+    {
+        Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
+        exit
+    }
 	
-	# Create a Logon Token Header (This will be used through out all the script)
-	# ---------------------------
-	$logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-	$logonHeader.Add("Authorization", $logonToken)
-	#endregion
+    # Create a Logon Token Header (This will be used through out all the script)
+    # ---------------------------
+    $logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+    $logonHeader.Add("Authorization", $logonToken)
+#endregion
 
-	#region Get Platform details
+#region Get Platform details
 	try{
 		Write-Host "Retrieving Platform details"
 		# Get the Platform Name
-		Write-Verbose "RestMethod -Method Get -Uri $($URL_PlatformDetails -f $PlatformID)"
+		Write-verbose "RestMethod -Method Get -Uri $($URL_PlatformDetails -f $PlatformID)"
 		$platformDetails = Invoke-RestMethod -Method Get -Uri $($URL_PlatformDetails -f $PlatformID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
-		If($platformDetails) {
-			Write-Verbose $platformDetails
+		If($platformDetails)
+		{
+			Write-verbose $platformDetails
 			Write-Host "$($platformDetails.Details.PolicyName) (ID: $($platformDetails.PlatformID)) is currently $(if($platformDetails.Active) { "Activated" } else { "Inactive" })"
 			Write-Host "Platform details:" 
 			$platformDetails.Details | Select-Object PolicyID, AllowedSafes, AllowManualChange, PerformPeriodicChange, @{Name = 'AllowManualVerification'; Expression = { $_.VFAllowManualVerification}}, @{Name = 'PerformPeriodicVerification'; Expression = { $_.VFPerformPeriodicVerification}}, @{Name = 'AllowManualReconciliation'; Expression = { $_.RCAllowManualReconciliation}}, @{Name = 'PerformAutoReconcileWhenUnsynced'; Expression = { $_.RCAutomaticReconcileWhenUnsynched}}, PasswordLength, MinUpperCase, MinLowerCase, MinDigit, MinSpecial 
@@ -128,11 +144,13 @@ If (Test-CommandExists Invoke-RestMethod) {
 		Write-Error $_.Exception.Response
 		Write-Error $_.Exception.Response.StatusDescription
 	}
-	#endregion
+#endregion
 	# Logoff the session
-	# ------------------
-	Write-Host "Logoff Session..."
-	Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $logonHeader -ContentType "application/json" | Out-Null
-} else {
-	Write-Error "This script requires PowerShell version 3 or above"
+    # ------------------
+    Write-Host "Logoff Session..."
+    Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $logonHeader -ContentType "application/json" | Out-Null
+}
+else
+{
+    Write-Error "This script requires PowerShell version 3 or above"
 }

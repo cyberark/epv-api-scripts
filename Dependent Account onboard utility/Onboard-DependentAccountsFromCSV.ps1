@@ -64,17 +64,19 @@ $URL_DiscoveredAccounts = $URL_PVWAAPI+"/DiscoveredAccounts"
 $g_LogonHeader = ""
 
 #region Functions
-Function Test-CommandExists {
-	Param ($command)
-	$oldPreference = $ErrorActionPreference
-	$ErrorActionPreference = 'stop'
-	try {if(Get-Command $command){RETURN $true}}
-	Catch {Write-Host "$command does not exist"; RETURN $false}
-	Finally {$ErrorActionPreference=$oldPreference}
+Function Test-CommandExists
+{
+    Param ($command)
+    $oldPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'stop'
+    try {if(Get-Command $command){RETURN $true}}
+    Catch {Write-Host "$command does not exist"; RETURN $false}
+    Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
-Function ConvertTo-URL($sText) {
-	<#
+Function ConvertTo-URL($sText)
+{
+<#
 .SYNOPSIS
 	HTTP Encode test in URL
 .DESCRIPTION
@@ -82,26 +84,32 @@ Function ConvertTo-URL($sText) {
 .PARAMETER sText
 	The text to encode
 #>
-	if (![string]::IsNullOrEmpty($sText)) {
+	if (![string]::IsNullOrEmpty($sText))
+	{
 		Write-Debug "Returning URL Encode of $sText"
 		return [URI]::EscapeDataString($sText)
-	} else {
+	}
+	else
+	{
 		return $sText
 	}
 }
 
-Function ConvertTo-Date($epochdate) {
+Function ConvertTo-Date($epochdate)
+{
 	if (($epochdate).length -gt 10 ) {return (Get-Date -Date "01/01/1970").AddMilliseconds($epochdate)}
 	else {return (Get-Date -Date "01/01/1970").AddSeconds($epochdate)}
 }
 
-Function ConvertTo-EPOCHDate($inputDate) {
+Function ConvertTo-EPOCHDate($inputDate)
+{
 	return (New-TimeSpan -Start (Get-Date "01/01/1970") -End ($inputDate)).TotalSeconds
 }
 
 
-Function Write-LogMessage {
-	<#
+Function Write-LogMessage
+{
+<#
 .SYNOPSIS
 	Method to log a message on screen and in a log file
 
@@ -142,7 +150,8 @@ Function Write-LogMessage {
 		If ($Header) {
 			"=======================================" | Out-File -Append -FilePath $LogFile
 			Write-Output "======================================="
-		} ElseIf($SubHeader) {
+		}
+		ElseIf($SubHeader) {
 			"------------------------------------" | Out-File -Append -FilePath $LogFile
 			Write-Output "------------------------------------"
 		}
@@ -153,11 +162,13 @@ Function Write-LogMessage {
 		if([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
 
 		# Mask Passwords
-		if($Msg -match '((?:"password":|password=|"secret":|"NewCredentials":|"credentials":)\s{0,}["]{0,})(?=([\w`~!@#$%^&*()-_\=\+\\\/|;:\.,\[\]{}]+))') {
+		if($Msg -match '((?:"password":|password=|"secret":|"NewCredentials":|"credentials":)\s{0,}["]{0,})(?=([\w`~!@#$%^&*()-_\=\+\\\/|;:\.,\[\]{}]+))')
+		{
 			$Msg = $Msg.Replace($Matches[2],"****")
 		}
 		# Check the message type
-		switch ($type) {
+		switch ($type)
+		{
 			"Info" {
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
@@ -171,16 +182,20 @@ Function Write-LogMessage {
 				$msgToWrite += "[ERROR]`t$Msg"
 			}
 			"Debug" {
-				if($InDebug -or $InVerbose) {
+				if($InDebug -or $InVerbose)
+				{
 					Write-Debug -Message $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
-				} else { $writeToFile = $False }
+				}
+				else { $writeToFile = $False }
 			}
 			"Verbose" {
-				if($InVerbose) {
+				if($InVerbose)
+				{
 					Write-Verbose -Message $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
-				} else { $writeToFile = $False }
+				}
+				else { $writeToFile = $False }
 			}
 		}
 
@@ -189,13 +204,15 @@ Function Write-LogMessage {
 			"=======================================" | Out-File -Append -FilePath $LogFile
 			Write-Output "======================================="
 		}
-	} catch{
+	}
+	catch{
 		Throw $(New-Object System.Exception ("Cannot write message"),$_.Exception)
 	}
 }
 
-Function Join-ExceptionMessage {
-	<#
+Function Join-ExceptionMessage
+{
+<#
 .SYNOPSIS
 	Formats exception messages
 .DESCRIPTION
@@ -212,8 +229,8 @@ Function Join-ExceptionMessage {
 	Process {
 		$msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		while ($e.InnerException) {
-			$e = $e.InnerException
-			$msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		  $e = $e.InnerException
+		  $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
 		}
 		return $msg
 	}
@@ -221,18 +238,20 @@ Function Join-ExceptionMessage {
 	}
 }
 
-Function Open-FileDialog($initialDirectory) {
-	[System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
+Function Open-FileDialog($initialDirectory)
+{
+    [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
 
-	$OpenFileDialog = New-Object System.Windows.Forms.OpenFileDialog
-	$OpenFileDialog.initialDirectory = $initialDirectory
-	$OpenFileDialog.filter = "CSV (*.csv)| *.csv"
-	$OpenFileDialog.ShowDialog() | Out-Null
-	$OpenFileDialog.filename
+    $OpenFileDialog = New-Object System.Windows.Forms.OpenFileDialog
+    $OpenFileDialog.initialDirectory = $initialDirectory
+    $OpenFileDialog.filter = "CSV (*.csv)| *.csv"
+    $OpenFileDialog.ShowDialog() | Out-Null
+    $OpenFileDialog.filename
 }
 
-Function Invoke-Rest {
-	<#
+Function Invoke-Rest
+{
+<#
 .SYNOPSIS
 	Invoke REST Method
 .DESCRIPTION
@@ -264,15 +283,19 @@ Function Invoke-Rest {
 		[String]$ErrAction="Continue"
 	)
 
-	If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
-		Throw "This script requires PowerShell version 3 or above"
+	If ((Test-CommandExists Invoke-RestMethod) -eq $false)
+	{
+	   Throw "This script requires PowerShell version 3 or above"
 	}
 	$restResponse = ""
 	try{
-		if([string]::IsNullOrEmpty($Body)) {
+		if([string]::IsNullOrEmpty($Body))
+		{
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700 -ErrorAction $ErrAction
-		} else {
+		}
+		else
+		{
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
 		}
@@ -291,21 +314,26 @@ Function Invoke-Rest {
 	return $restResponse
 }
 
-Function Add-SearchCriteria {
+Function Add-SearchCriteria
+{
 	param ([string]$sURL, [string]$sSearch, [string]$sSortParam, [string]$sSafeName, [int]$iLimitPage, [int]$iOffsetPage)
 	[string]$retURL = $sURL
 	$retURL += "?"
 
-	if($sSearch.Trim() -ne "") {
+	if($sSearch.Trim() -ne "")
+	{
 		$retURL += "search=$(ConvertTo-URL $sSearch)&"
 	}
-	if($sSafeName.Trim() -ne "") {
+	if($sSafeName.Trim() -ne "")
+	{
 		$retURL += "filter=safename eq $(ConvertTo-URL $sSafeName)&"
 	}
-	if($sSortParam.Trim() -ne "") {
+	if($sSortParam.Trim() -ne "")
+	{
 		$retURL += "sort=$(ConvertTo-URL $sSortParam)&"
 	}
-	if($iLimitPage -gt 0) {
+	if($iLimitPage -gt 0)
+	{
 		$retURL += "limit=$iLimitPage&"
 	}
 
@@ -314,7 +342,8 @@ Function Add-SearchCriteria {
 	return $retURL
 }
 
-Function Find-MasterAccount {
+Function Find-MasterAccount
+{
 	param ($accountName, $accountAddress, $safeName)
 	$result = $null
 	try{
@@ -323,13 +352,18 @@ Function Find-MasterAccount {
 		$AccountsURLWithFilters = $(Add-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSafeName $safeName)
 		Write-LogMessage -Type Debug -Msg "Accounts Filter: $AccountsURLWithFilters"
 		$GetMasterAccountsResponse = Invoke-Rest -Command Get -Uri $AccountsURLWithFilters -Header $g_LogonHeader
-		If (($null -eq $GetMasterAccountsResponse) -or ($GetMasterAccountsResponse.count -eq 0)) {
+		If (($null -eq $GetMasterAccountsResponse) -or ($GetMasterAccountsResponse.count -eq 0))
+		{
 			# No accounts found
 			Write-LogMessage -Type Debug -MSG "Account $accountName does not exist"
 			$result = $null
-		} else {
-			ForEach($item in $GetMasterAccountsResponse.Value) {
-				if($item.userName -eq $accountName -and $item.address -eq $accountAddress) {
+		}
+		else
+		{
+			ForEach($item in $GetMasterAccountsResponse.Value)
+			{
+				if($item.userName -eq $accountName -and $item.address -eq $accountAddress)
+				{
 					$result = $item.id
 					break
 				}
@@ -338,12 +372,15 @@ Function Find-MasterAccount {
 			Write-LogMessage -Type Info -MSG "Account $accountName exist"
 		}
 		return $result
-	} catch {
+	}
+	catch
+	{
 		Write-LogMessage -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
 	}
 }
 
-Function Get-LogonHeader {
+Function Get-LogonHeader
+{
 	param(
 		[Parameter(Mandatory=$true)]
 		[PSCredential]$Credentials,
@@ -352,14 +389,15 @@ Function Get-LogonHeader {
 	)
 
 	# Create the POST Body for the Logon
-	# ----------------------------------
-	$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
-	If(![string]::IsNullOrEmpty($RadiusOTP)) {
+    # ----------------------------------
+    $logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json
+	If(![string]::IsNullOrEmpty($RadiusOTP))
+	{
 		$logonBody.Password += ",$RadiusOTP"
 	}
 	try{
-		# Logon
-		$logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
+	    # Logon
+	    $logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
 		# Clear logon body
 		$logonBody = ""
 	} catch {
@@ -367,60 +405,71 @@ Function Get-LogonHeader {
 	}
 
 	$logonHeader = $null
-	If ([string]::IsNullOrEmpty($logonToken)) {
+	If ([string]::IsNullOrEmpty($logonToken))
+	{
 		Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
 	}
 
-	# Create a Logon Token Header (This will be used through out all the script)
-	# ---------------------------
-	$logonHeader = @{Authorization = $logonToken}
+    # Create a Logon Token Header (This will be used through out all the script)
+    # ---------------------------
+    $logonHeader = @{Authorization = $logonToken}
 
 	return $logonHeader
 }
 
-Function Add-AccountDependency {
+Function Add-AccountDependency
+{
 	param ($dependencyObject, $MasterID)
 	
 	try{
 		$retResult = $false
-		if($null -ne $MasterID) {
+		if($null -ne $MasterID)
+		{
 			$accountDetails = $(Invoke-Rest -Uri ($URL_AccountsDetails -f $MasterID) -Header $g_LogonHeader -Command "GET")
 		}
 		$addDiscoveredAccountBody = @{
-			"userName"          =$dependencyObject.userName; 
-			"address"           =$dependencyObject.address; 
-			"domain"            =$dependencyObject.domain;
-			"discoveryDateTime" =ConvertTo-EPOCHDate (Get-Date);
-			"accountEnabled"    =$true;
-			"platformType"      =$dependencyObject.platformType;
-			"privileged"        =$true;
-			"Dependencies"      =@(@{
-			  "name"       =$dependencyObject.dependencyName;
-			  "address"    =$dependencyObject.dependencyAddress;
-			  "type"       =$dependencyObject.dependencyType;
-			  "taskFolder" =$dependencyObject.taskFolder;
-				});
+			"userName"=$dependencyObject.userName; 
+			"address"=$dependencyObject.address; 
+			"domain"=$dependencyObject.domain;
+			"discoveryDateTime"=ConvertTo-EPOCHDate (Get-Date);
+		    "accountEnabled"=$true;
+		    "platformType"=$dependencyObject.platformType;
+		    "privileged"=$true;
+			"Dependencies"=@(@{
+			  "name"=$dependencyObject.dependencyName;
+			  "address"=$dependencyObject.dependencyAddress;
+			  "type"=$dependencyObject.dependencyType;
+			  "taskFolder"=$dependencyObject.taskFolder;
+			});
 		}
 
-		If($null -ne $accountDetails) {
+		If($null -ne $accountDetails)
+		{
 			# Verify details and complete missing ones
-			if($accountDetails.useName -ne $dependencyObject.userName) {
+			if($accountDetails.useName -ne $dependencyObject.userName)
+			{
 				$addDiscoveredAccountBody.userName = $accountDetails.useName
 			}
-			if($accountDetails.address -ne $dependencyObject.address) {
+			if($accountDetails.address -ne $dependencyObject.address)
+			{
 				$addDiscoveredAccountBody.address = $accountDetails.address
 			}
-			if($accountDetails.address -ne $dependencyObject.domain) {
+			if($accountDetails.address -ne $dependencyObject.domain)
+			{
 				$addDiscoveredAccountBody.domain = $accountDetails.address
 			}
 		}
 		$addDiscoveredAccountResult = $(Invoke-Rest -Uri $URL_DiscoveredAccounts -Header $g_LogonHeader -Command "POST" -Body $($addDiscoveredAccountBody | ConvertTo-Json))
-		If ($null -eq $addDiscoveredAccountResult) {
+		If ($null -eq $addDiscoveredAccountResult)
+		{
 			# No accounts onboarded
 			throw "There was an error onboarding dependency $($dependencyObject.dependencyName)."
-		} else {
+		}
+		else
+		{
 			# Check status
-			Switch($addDiscoveredAccountResult.status) {
+			Switch($addDiscoveredAccountResult.status)
+			{
 				"alreadyExists" {
 					Write-LogMessage -Type Info -MSG "Master Account ($($dependencyObject.userName)) or Account dependency ($($dependencyObject.dependencyName)) already exists and cannot be onboarded"
 					break
@@ -451,7 +500,9 @@ Function Add-AccountDependency {
 				}
 			}
 		}
-	} catch {
+	}
+	catch
+	{
 		Write-LogMessage -Type Error -MSG $_.Exception.Message -ErrorAction "SilentlyContinue"
 	}
 	return $retResult
@@ -460,7 +511,8 @@ Function Add-AccountDependency {
 #endregion
 
 # Check if Powershell is running in Constrained Language Mode
-If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
+If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
+{
 	Write-LogMessage -Type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
 	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
@@ -470,7 +522,8 @@ If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
 
 
 # Check if to disable SSL verification
-If($DisableSSLVerify) {
+If($DisableSSLVerify)
+{
 	try{
 		Write-Warning "It is not Recommended to disable SSL verification" -WarningAction Inquire
 		# Using Proxy Default credentials if the Server needs Proxy credentials
@@ -484,7 +537,9 @@ If($DisableSSLVerify) {
 		Write-LogMessage -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
 		return
 	}
-} Else {
+}
+Else
+{
 	try{
 		Write-LogMessage -Type Debug -MSG "Setting script to use TLS 1.2"
 		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
@@ -494,30 +549,37 @@ If($DisableSSLVerify) {
 	}
 }
 
-If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
-	Write-LogMessage -Type Error -MSG "This script requires PowerShell version 3 or above"
-	return
+If ((Test-CommandExists Invoke-RestMethod) -eq $false)
+{
+   Write-LogMessage -Type Error -MSG  "This script requires PowerShell version 3 or above"
+   return
 }
 
 # Check that the PVWA URL is OK
-If (![string]::IsNullOrEmpty($PVWAURL)) {
-	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/") {
+If (![string]::IsNullOrEmpty($PVWAURL))
+{
+	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/")
+	{
 		$PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
 	}
 
 	try{
 		# Validate PVWA URL is OK
-		Write-LogMessage -Type Debug -MSG "Trying to validate URL: $PVWAURL"
+		Write-LogMessage -Type Debug -MSG  "Trying to validate URL: $PVWAURL"
 		Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $PVWAURL -Method 'Head' -TimeoutSec 30 | Out-Null
 	} catch [System.Net.WebException] {
-		If(![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__)) {
+		If(![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__))
+		{
 			Write-LogMessage -Type Error -MSG $_.Exception.Response.StatusCode.Value__
 		}
-	} catch {
+	}
+	catch {
 		Write-LogMessage -Type Error -MSG "PVWA URL could not be validated"
 		Write-LogMessage -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
 	}
-} else {
+}
+else
+{
 	Write-LogMessage -Type Error -MSG "PVWA URL can not be empty"
 	return
 }
@@ -528,64 +590,72 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding D
 
 
 #region [Logon]
-# Get Credentials to Login
-# ------------------------
-$caption = "Accounts Onboard Utility"
-$msg = "Enter your User name and Password";
-$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-if ($null -ne $creds) {
-	if($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP)
-	} else {
-		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds)
+	# Get Credentials to Login
+	# ------------------------
+	$caption = "Accounts Onboard Utility"
+	$msg = "Enter your User name and Password";
+	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
+	if ($null -ne $creds)
+	{
+		if($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP))
+		{
+			$g_LogonHeader = $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP)
+		}
+		else
+		{
+			$g_LogonHeader = $(Get-LogonHeader -Credentials $creds)
+		}
 	}
-} else {
-	Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
-	exit
-}
+	else {
+		Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
+		exit
+	}
 #endregion
 
 #region [Read Accounts CSV file and Create Accounts]
-If([string]::IsNullOrEmpty($CsvPath)) {
-	$CsvPath = Open-FileDialog($g_CsvDefaultPath)
-}
-$delimiter = $((Get-Culture).TextInfo.ListSeparator)
-$accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
-$rowCount = $accountsCSV.Count
-$counter = 0
-Write-LogMessage -Type Info -MSG "Starting to Onboard $rowCount dependent accounts" -SubHeader
-# Read Account dependencies
-ForEach ($account in $accountsCSV) {
-	if (![string]::IsNullOrEmpty($account)) {
-		# username,address,platformType,domain,dependencyName,dependencyAddress,dependencyType,taskFolder
-		# Search for Master Account
-		$foundMasterAccount = $null
-		try {
-			$foundMasterAccount = (Find-MasterAccount -accountName $account.userName -accountAddress $account.address).id
-		} catch {
-			Write-LogMessage -Type Error -Msg "Error searching for Master Account. Error: $(Join-ExceptionMessage $_.Exception)"
-		}
-		# If($null -eq $foundMasterAccount)
-		# {
-		# Write-LogMessage -Type Warning -Msg "No Master Account found, onboarding to pending account"
-		if(Add-AccountDependency -dependencyObject $account -MasterID $foundMasterAccount) { $counter++ }
-		# }
-		# else
-		# {
-		# Write-LogMessage -Type Info -Msg "Master Account found, Checking if we can onboard"
-		# $MasterAccountDetails = Invoke-Rest -Command Get -Uri ($URL_AccountsDetails -f $foundMasterAccount) -Header $g_LogonHeader
-		# $MasterAccountDetails
-		# }
+	If([string]::IsNullOrEmpty($CsvPath))
+	{
+		$CsvPath = Open-FileDialog($g_CsvDefaultPath)
 	}
-}
+	$delimiter = $((Get-Culture).TextInfo.ListSeparator)
+	$accountsCSV = Import-CSV $csvPath -Delimiter $delimiter
+	$rowCount = $accountsCSV.Count
+	$counter = 0
+	Write-LogMessage -Type Info -MSG "Starting to Onboard $rowCount dependent accounts" -SubHeader
+	# Read Account dependencies
+	ForEach ($account in $accountsCSV)
+	{
+		if (![string]::IsNullOrEmpty($account))
+		{
+			# username,address,platformType,domain,dependencyName,dependencyAddress,dependencyType,taskFolder
+			# Search for Master Account
+			$foundMasterAccount = $null
+			try {
+				$foundMasterAccount = (Find-MasterAccount -accountName $account.userName -accountAddress $account.address).id
+			} catch {
+				Write-LogMessage -Type Error -Msg "Error searching for Master Account. Error: $(Join-ExceptionMessage $_.Exception)"
+			}
+			# If($null -eq $foundMasterAccount)
+			# {
+				# Write-LogMessage -Type Warning -Msg "No Master Account found, onboarding to pending account"
+				if(Add-AccountDependency -dependencyObject $account -MasterID $foundMasterAccount) { $counter++ }
+			# }
+			# else
+			# {
+				# Write-LogMessage -Type Info -Msg "Master Account found, Checking if we can onboard"
+				# $MasterAccountDetails = Invoke-Rest -Command Get -Uri ($URL_AccountsDetails -f $foundMasterAccount) -Header $g_LogonHeader
+				# $MasterAccountDetails
+			# }
+		}
+	}
 
 #endregion
 
 #region [Logoff]
-# Logoff the session
-# ------------------
-Write-Host "Logoff Session..."
-Invoke-Rest -Uri $URL_Logoff -Header $g_LogonHeader -Command "Post"
-# Footer
-Write-LogMessage -Type Info -MSG "Vaulted ${counter} out of ${rowCount} dependent accounts successfully." -Footer
+	# Logoff the session
+    # ------------------
+    Write-Host "Logoff Session..."
+    Invoke-Rest -Uri $URL_Logoff -Header $g_LogonHeader -Command "Post"
+	# Footer
+	Write-LogMessage -Type Info -MSG "Vaulted ${counter} out of ${rowCount} dependent accounts successfully." -Footer
 #endregion

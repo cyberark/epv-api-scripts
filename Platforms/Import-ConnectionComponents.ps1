@@ -53,8 +53,9 @@ $URL_ImportConnectionComponent = $URL_PVWAAPI+"/ConnectionComponents/Import"
 $rstusername = $rstpassword = ""
 $logonToken  = ""
 
-Function Disable-SSLVerification {
-	<# 
+Function Disable-SSLVerification
+{
+<# 
 .SYNOPSIS 
 	Bypass SSL certificate validations
 .DESCRIPTION
@@ -66,7 +67,7 @@ Function Disable-SSLVerification {
 	[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 	# Disable SSL Verification
 	if (-not("DisableCertValidationCallback" -as [type])) {
-		Add-Type -TypeDefinition @"
+    add-type -TypeDefinition @"
 using System;
 using System.Net;
 using System.Net.Security;
@@ -82,18 +83,19 @@ public static class DisableCertValidationCallback {
         return new RemoteCertificateValidationCallback(DisableCertValidationCallback.ReturnTrue);
     }
 }
-"@ 
- }
+"@ }
 
 	[System.Net.ServicePointManager]::ServerCertificateValidationCallback = [DisableCertValidationCallback]::GetDelegate()
 }
 
-Function Get-ZipContent {
+Function Get-ZipContent
+{
 	Param($zipPath)
 	
 	$zipContent = $null
 	try{
-		If(Test-Path $zipPath) {
+		If(Test-Path $zipPath)
+		{
 			Write-Debug "Reading ZIP file..."
 			$zipContent = [System.IO.File]::ReadAllBytes($(Resolve-Path $zipPath))
 			If([string]::IsNullOrEmpty($zipContent)) { throw "Zip file empty or error reading it" }
@@ -108,24 +110,30 @@ Function Get-ZipContent {
 	return $zipContent
 }
 
-If ($($PSVersionTable.PSVersion.Major) -lt 3) {
+If ($($PSVersionTable.PSVersion.Major) -lt 3)
+{
 	Write-Error "This script requires PowerShell version 3 or above"
 	return
 }
 
 # Check that the PVWA URL is OK
-If ($PVWAURL -ne "") {
-	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/") {
+If ($PVWAURL -ne "")
+{
+	If ($PVWAURL.Substring($PVWAURL.Length-1) -eq "/")
+	{
 		$PVWAURL = $PVWAURL.Substring(0,$PVWAURL.Length-1)
 	}
-} else {
+}
+else
+{
 	Write-Host -ForegroundColor Red "PVWA URL can not be empty"
 	return
 }
 
 Write-Host "Import Connection Component: Script Started" -ForegroundColor Cyan
 # Disable SSL Verification to contact PVWA
-If($DisableSSLVerify) {
+If($DisableSSLVerify)
+{
 	Disable-SSLVerification
 }
 
@@ -135,10 +143,12 @@ If($DisableSSLVerify) {
 $caption = "Import Connection Component"
 $msg = "Enter your User name and Password"; 
 $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-if ($null -ne $creds) {
+if ($null -ne $creds)
+{
 	$rstusername = $creds.username.Replace('\','');    
 	$rstpassword = $creds.GetNetworkCredential().password
-} else { return }
+}
+else { return }
 
 # Create the POST Body for the Logon
 # ----------------------------------
@@ -147,11 +157,14 @@ $logonBody = $logonBody | ConvertTo-Json
 try{
 	# Logon
 	$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json"
-} catch {
+}
+catch
+{
 	Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
 	$logonToken = ""
 }
-If ($logonToken -eq "") {
+If ($logonToken -eq "")
+{
 	Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
 	return
 }
@@ -163,28 +176,37 @@ $logonHeader.Add("Authorization", $logonToken)
 
 $arrConCompToImport = @()
 
-If (([string]::IsNullOrEmpty($ConnectionComponentZipPath)) -and (![string]::IsNullOrEmpty($ConnectionComponentFolderPath))) {
+If (([string]::IsNullOrEmpty($ConnectionComponentZipPath)) -and (![string]::IsNullOrEmpty($ConnectionComponentFolderPath)))
+{
 	# Get all Connection Components from a folder
 	$arrConCompToImport += (Get-ChildItem -Path $ConnectionComponentFolderPath -Filter "*.zip" | Select-Object -ExpandProperty FullName)
-} ElseIf ((![string]::IsNullOrEmpty($ConnectionComponentZipPath)) -and ([string]::IsNullOrEmpty($ConnectionComponentFolderPath))) {
+}
+ElseIf ((![string]::IsNullOrEmpty($ConnectionComponentZipPath)) -and ([string]::IsNullOrEmpty($ConnectionComponentFolderPath)))
+{
 	# Get the entered Connection Component ZIP
 	$arrConCompToImport = $ConnectionComponentZipPath
-} Else {
+}
+Else
+{
 	Write-Host -ForegroundColor Red "No Connection Component path was entered."
 	$arrConCompToImport = Read-Host "Please enter a Connection Component ZIP path"
 }
 
-ForEach($connCompItem in $arrConCompToImport) {
-	If (Test-Path $connCompItem) {
-		$importBody = @{ ImportFile =$(Get-ZipContent $connCompItem); } | ConvertTo-Json -Depth 3 -Compress
+ForEach($connCompItem in $arrConCompToImport)
+{
+	If (Test-Path $connCompItem)
+	{
+		$importBody = @{ ImportFile=$(Get-ZipContent $connCompItem); } | ConvertTo-Json -Depth 3 -Compress
 		try{
 			$ImportCCResponse = Invoke-RestMethod -Method POST -Uri $URL_ImportConnectionComponent -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700 -Body $importBody
 			$connectionComponentID = ($ImportCCResponse.ConnectionComponentID)
 			Write-Host "Connection Component ID imported: $connectionComponentID"
 		} catch {
-			if($_.Exception.Response.StatusDescription -like "*Conflict*") {
+			if($_.Exception.Response.StatusDescription -like "*Conflict*")
+			{
 				Write-Host "The requested connection component already exists" -ForegroundColor Yellow
-			} Else{
+			}
+			Else{
 				Write-Error "Error importing the connection ID, Error: $($_.Exception.Response.StatusDescription)"
 			}
 		}
@@ -193,7 +215,8 @@ ForEach($connCompItem in $arrConCompToImport) {
 
 # Logoff the session
 # ------------------
-if($null -ne $logonHeader) {
+if($null -ne $logonHeader)
+{
 	Write-Host "Logoff Session..."
 	Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $logonHeader -ContentType "application/json" | Out-Null
 }

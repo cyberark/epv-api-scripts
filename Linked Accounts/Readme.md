@@ -25,17 +25,17 @@ Examples:
 -----
 ### Link Accounts
 ```powershell
-Link-Accounts.ps1 -PVWAURL https://mydomain.com/PasswordVault -CSVPath ./LinkAccounts.csv 
+Update-Account.ps1 -PVWAURL https://mydomain.com/PasswordVault -CSVPath ./LinkAccounts.csv 
 ```
 
 ### Link Accounts while allowing concurrent sessions
 ```powershell
-Link-Accounts.ps1 -PVWAURL https://mydomain.com/PasswordVault -CSVPath ./LinkAccounts.csv -concurrentSession
+Update-Account.ps1 -PVWAURL https://mydomain.com/PasswordVault -CSVPath ./LinkAccounts.csv -concurrentSession
 ```
 
 ### Link Accounts when connecting to a PVWA with a untrusted certificate
 ```powershell
-Link-Accounts.ps1 -PVWAURL https://mydomain.com/PasswordVault -CSVPath ./LinkAccounts.csv -DisableSSLVerify
+Update-Account.ps1 -PVWAURL https://mydomain.com/PasswordVault -CSVPath ./LinkAccounts.csv -DisableSSLVerify
 ```
 
 
