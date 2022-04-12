@@ -1459,7 +1459,7 @@ ForEach ($account in $accountsCSV) {
 										$s_AccountBody += $_bodyOp
 									}
 								} else { 
-									Write-LogMessage -Type Verbose -MSG "Object name to inspect is $($objAccount.$($sProp.Name)) with a value of $($sProp.Value)"
+									Write-LogMessage -Type Verbose -MSG "Object name to inspect is $($sProp.Name) with a value of $($sProp.Value)"
 									If(($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $sProp.Value)) {
 										Write-LogMessage -Type Verbose -MSG "Updating Account Property $($sProp.Name) value from: '$($sProp.Value)' to: '$($objAccount.$($sProp.Name))'"
 										$_bodyOp = "" | Select-Object "op", "path", "value"
