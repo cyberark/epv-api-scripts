@@ -1,8 +1,8 @@
 [CmdletBinding()]
 
+#region Global Variables
 # Global URLS
 # -----------
-#region Global Variables
 $URL_PVWAAPI = $global:PVWAURL+"/api"
 $URL_PVWAAPIv1 = $global:PVWAURL+"/WebServices/PIMServices.svc"
 $URL_Authentication = $URL_PVWAAPI+"/auth"
@@ -50,23 +50,17 @@ $g_cpmuserCred = ".\CreateCredFile.exe user.ini Password /Username {0} /AppType 
 $g_aamuserCredv12 = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /EntropyFile /DPAPIMachineProtection /Password {1}"
 
 $g_aamuserCred = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /Password {1}"
-
-if($InVerbose){
-    $VerbosePreference = "continue"
-}
 #endregion
-
-# Initialize Script Variables
-# ---------------------------
-
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Write-LogMessage
-# Description....: Writes the message to log and screen
-# Parameters.....: LogFile, MSG, (Switch)Header, (Switch)SubHeader, (Switch)Footer, Type
-# Return Values..: None
-# =================================================================================================================================
-
+#region Helper Functions
 Function Write-LogMessage {
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Write-LogMessage
+    # Description....: Writes the message to log and screen
+    # Parameters.....: LogFile, MSG, (Switch)Header, (Switch)SubHeader, (Switch)Footer, Type
+    # Return Values..: None
+    # =================================================================================================================================
+
+   
     <# 
 .SYNOPSIS 
 	Method to log a message on screen and in a log file
@@ -183,14 +177,13 @@ Function Write-LogMessage {
         Throw $(New-Object System.Exception ("Cannot write message"),$_.Exception)
     }
 }
-
+Function Join-ExceptionMessage {
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Join-ExceptionMessage
 # Description....: Formats exception messages
 # Parameters.....: Exception
 # Return Values..: Formatted String of Exception messages
 # =================================================================================================================================
-Function Join-ExceptionMessage {
     <#
 .SYNOPSIS
 	Formats exception messages
@@ -216,16 +209,13 @@ Function Join-ExceptionMessage {
     End {
     }
 }
-#endregion
-
-#region Helper Functions
+Function Test-CommandExists {
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Test-CommandExists
 # Description....: Tests if a command exists
 # Parameters.....: Command
 # Return Values..: True / False
 # =================================================================================================================================
-Function Test-CommandExists {
     <# 
 .SYNOPSIS 
 	Tests if a command exists
@@ -240,16 +230,14 @@ Function Test-CommandExists {
     try {if(Get-Command $command){RETURN $true}}
     Catch {Write-Host "$command does not exist"; RETURN $false}
     Finally {$ErrorActionPreference=$oldPreference}
-} #end function test-CommandExists
-
-# @FUNCTION@ ======================================================================================================================
+}
+Function ConvertTo-URL($sText) {
+ # @FUNCTION@ ======================================================================================================================
 # Name...........: ConvertTo-URL
 # Description....: HTTP Encode test in URL
 # Parameters.....: Text to encode
 # Return Values..: Encoded HTML URL text
-# =================================================================================================================================
-Function ConvertTo-URL($sText) {
-    <#
+# =================================================================================================================================   <#
 .SYNOPSIS
 	HTTP Encode test in URL
 .DESCRIPTION
@@ -264,15 +252,14 @@ Function ConvertTo-URL($sText) {
         return $sText
     }
 }
-
-# @FUNCTION@ ======================================================================================================================
+Function Convert-ToBool {
+ # @FUNCTION@ ======================================================================================================================
 # Name...........: Convert-ToBool
 # Description....: Converts text to Bool
 # Parameters.....: Text
 # Return Values..: Boolean value of the text
 # =================================================================================================================================
-Function Convert-ToBool {
-    <#
+   <#
 .SYNOPSIS
 	Converts text to Bool
 .DESCRIPTION
@@ -291,14 +278,13 @@ Function Convert-ToBool {
     
     return $retBool
 }
-
+Function Get-TrimmedString($sText) {
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Get-TrimmedString
 # Description....: Returns the trimmed text from a string
 # Parameters.....: Text
 # Return Values..: Trimmed text
 # =================================================================================================================================
-Function Get-TrimmedString($sText) {
     <# 
 .SYNOPSIS 
 	Returns the trimmed text from a string
@@ -313,14 +299,13 @@ Function Get-TrimmedString($sText) {
     # Else
     return $sText
 }
-
+Function Invoke-Rest {
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Invoke-Rest
 # Description....: Invoke REST Method
 # Parameters.....: Command method, URI, Header, Body
 # Return Values..: REST response
 # =================================================================================================================================
-Function Invoke-Rest {
     <# 
 .SYNOPSIS 
 	Invoke REST Method
@@ -379,10 +364,7 @@ Function Invoke-Rest {
     Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $restResponse"
     return $restResponse
 }
-If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
-    Write-LogMessage -Type Error -MSG "This script requires PowerShell version 3 or above"
-    return
-}
+#endregion
 Function Set-PSSessionCred{
     param(
         [Parameter(Mandatory=$false)]
@@ -390,16 +372,6 @@ Function Set-PSSessionCred{
     )
     if ($null -eq $PSCredentials) {$PSCredentials = $Host.UI.PromptForCredential($caption,$msg,"","")}
 }
-Function Set-PSSessionCred{
-
-    param(
-        [Parameter(Mandatory=$false)]
-        [PSCredential]$PSCredentials
-
-    )
-    if ($null -eq $PSCredentials) {$PSCredentials = $Host.UI.PromptForCredential($caption,$msg,"","")}
-}
-
 Function Invoke-Logon{
     param(
         [Parameter(Mandatory=$false)]
@@ -425,13 +397,13 @@ Function Invoke-Logon{
         return
     }
 }
+Function Get-LogonHeader {
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Get-LogonHeader
 # Description....: Invoke REST Method
 # Parameters.....: Credentials
 # Return Values..: Logon Header
 # =================================================================================================================================
-Function Get-LogonHeader {
     <# 
 .SYNOPSIS 
 	Get-LogonHeader
@@ -470,14 +442,13 @@ Function Get-LogonHeader {
     $logonHeader = @{Authorization = $logonToken}
     return $logonHeader
 }
-
+Function Set-DisableSSLVerify {
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Set-SSLVerify
 # Description....: Controls if SSL should be verified REST Method
 # Parameters.....: Command method, URI, Header, Body
 # Return Values..: REST response
 # =================================================================================================================================
-Function Set-DisableSSLVerify {
     <# 
 .SYNOPSIS 
 	Invoke REST Method
@@ -516,14 +487,14 @@ Function Set-DisableSSLVerify {
         }
     }
 }
-#endregion
-# @FUNCTION@ ======================================================================================================================
+Function Get-LogonTimeUnixTime {
+ # @FUNCTION@ ======================================================================================================================
 # Name...........: Get-LogonTimeUnixTime
 # Description....: Translates Unix time to readable time
 # Parameters.....: Unixtime stamp
 # Return Values..: Data/Time object
 # =================================================================================================================================
-Function Get-LogonTimeUnixTime {
+
     param (
         [Parameter()]
         [string]$unixTime
@@ -531,14 +502,13 @@ Function Get-LogonTimeUnixTime {
     [datetime]$origin = '1970-01-01 00:00:00'
     return $origin.AddSeconds($unixTime).ToLocalTime()
 }
-
-# @FUNCTION@ ======================================================================================================================
+Function Get-FileVersion {
+ # @FUNCTION@ ======================================================================================================================
 # Name...........: Get-FileVersion
 # Description....: Method to return a file version
 # Parameters.....: File Path
 # Return Values..: File version
 # =================================================================================================================================
-Function Get-FileVersion {
     <#
 .SYNOPSIS
 	Method to return a file version
@@ -604,22 +574,18 @@ $exports;
     $script = [ScriptBlock]::Create($moduleString);
     Invoke-Command -Session $session -ScriptBlock $script;
 }
-
 Function Invoke-Logoff {
     $null = Invoke-Rest -Uri $URL_Logoff -Header $g_LogonHeader -Command "Post"
 }
 
-
-# @FUNCTION@ ======================================================================================================================
+Function Get-ServiceInstallPath {
+  # @FUNCTION@ ======================================================================================================================
 # Name...........: Get-ServiceInstallPath
 # Description....: Get the installation path of a service
 # Parameters.....: Service Name
 # Return Values..: $true
 #                  $false
 # =================================================================================================================================
-# Save the Services List
-$m_ServiceList = $null
-Function Get-ServiceInstallPath {
     <#
   .SYNOPSIS
   Get the installation path of a service
@@ -655,20 +621,16 @@ Function Get-ServiceInstallPath {
 
     }
 }
-
-# Function for colorized Write-Output
 function Use-Color ($fc) {
     process { Write-Host $_ -ForegroundColor $fc }
 }
-
-
+Function Find-Components {
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Find-Components
 # Description....: Detects all CyberArk Components installed on the local server
 # Parameters.....: None
 # Return Values..: Array of detected components on the local server
 # =================================================================================================================================
-Function Find-Components {
     <#
 .SYNOPSIS
 	Method to query a local server for CyberArk components
@@ -820,7 +782,6 @@ Function Find-Components {
     End {
     }
 }
-
 function Start-ComponentService {
     param (
         [Parameter(Mandatory=$true)]
@@ -941,14 +902,14 @@ Function Set-UserPassword {
         } 
     }
 }
-
-# @FUNCTION@ ======================================================================================================================
-# Name...........: New-RandomPassword
-# Description....: Creates a new random password
-# Parameters.....: Length, (Switch)Lowercase, (Switch)Uppercase, (Switch)Numbers, (Switch)Symbols
-# Return Values..: A random password based on the requirements
-# =================================================================================================================================
 Function New-RandomPassword{
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: New-RandomPassword
+    # Description....: Creates a new random password
+    # Parameters.....: Length, (Switch)Lowercase, (Switch)Uppercase, (Switch)Numbers, (Switch)Symbols
+    # Return Values..: A random password based on the requirements
+    # =================================================================================================================================
+    
     [CmdletBinding()]
     [OutputType([string])]
     Param
@@ -1068,7 +1029,6 @@ Function New-RandomPassword{
         $output
     }
 }
-
 Function Convert-SecureString{
 
     [CmdletBinding()]
@@ -1085,7 +1045,6 @@ Function Convert-SecureString{
         return [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
     }
 }
-
 Function Stop-ServiceProcess{
     [CmdletBinding()]
     
@@ -1103,7 +1062,6 @@ Function Stop-ServiceProcess{
         }
     }
 }
-
 function Reset-PVWACredentials{
     param (
         [Parameter(Mandatory=$true)]
@@ -1260,7 +1218,6 @@ function Reset-PVWACredentials{
         }
     }
 }
-
 function Reset-PSMCredentials{
     param (
         [Parameter(Mandatory=$true)]
@@ -1272,19 +1229,6 @@ function Reset-PSMCredentials{
     While (!$complete -and !$failed) {
 
         try {
-
-            <#
-
-        $session = New-PSSession $server
-        Add the ability to use alt credentials
-
-        Do as function due to reuse in multiple places
-        $User = "administrator"
-        $PWord = ConvertTo-SecureString -String "Cyberark1!" -AsPlainText -Force
-        $Credentials = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, $PWord
-        
-#>
-
             Try {
                 $session = New-PSLogon $server
             } Catch {
@@ -1629,7 +1573,6 @@ function Reset-AAMCredentialsWindows{
         }
     }
 }
-
 function Get-ComponentInfo{
     param (
         [Parameter(Mandatory=$true)]
@@ -1659,7 +1602,6 @@ function Get-ComponentInfo{
     }
 
 }
-
 Function Get-ComponentStatus{
 
     try {
@@ -1696,7 +1638,6 @@ Function Get-ComponentDetails{
         Return $null
     }
 }
-
 Function Test-TargetWinRM {
     param (
         [Parameter()]
@@ -1713,7 +1654,6 @@ Function Test-TargetWinRM {
         Return $false
     }
 }
-
 function New-PSLogon {
     param (
         [Parameter()]
@@ -1725,7 +1665,6 @@ function New-PSLogon {
         return New-PSSession $server
     }
 }
-
 Function Get-Application{
     param (
         [Parameter()]
@@ -1743,7 +1682,6 @@ Function Get-Application{
     Return $(Invoke-Rest -Uri $url -Header $g_LogonHeader -Command "Get")
     
 }
-
 Function New-Application{
     param (
         [Parameter()]
@@ -1755,7 +1693,6 @@ Function New-Application{
     $body = @{ application =$application} | ConvertTo-Json -Depth 3 -Compress
     Invoke-Rest -Uri $URL_Application -Header $g_LogonHeader -Command "POST" -Body $body
 }
-
 Function New-ApplicationAuth{
     param (
         [Parameter()]
@@ -1782,22 +1719,22 @@ Function New-ApplicationAuth{
 
     Switch($AuthType.ToLower()) {
         "path"{
-            $authentication += @{AuthValue=$AuthValue}
+            $authentication += @{AuthValue =$AuthValue}
             $authentication += @{IsFolder =$IsFolder.IsPresent}
             $authentication +=@{AllowInternalScripts =$AllowInternalScripts.IsPresent}
         }
         "hash"{
-            $authentication += @{AuthValue=$AuthValue}
+            $authentication += @{AuthValue =$AuthValue}
             IF (![string]::IsNullOrEmpty($Comment)) {$authentication += @{Comment =$Comment}}
         }    
         "osuser" { 
-            $authentication += @{AuthValue=$AuthValue}
+            $authentication += @{AuthValue =$AuthValue}
         }
         "machineaddress" { 
-            $authentication += @{AuthValue=$AuthValue}
+            $authentication += @{AuthValue =$AuthValue}
         }
         "certificateserialnumber"{
-            $authentication += @{AuthValue=$AuthValue}
+            $authentication += @{AuthValue =$AuthValue}
             IF (![string]::IsNullOrEmpty($Comment)) {$authentication += @{Comment =$Comment}}
         }
         "certificateattr"{
@@ -1812,7 +1749,6 @@ Function New-ApplicationAuth{
     Invoke-Rest -Uri $($URL_ApplicationAuth -f $AppID)-Header $g_LogonHeader -Command "POST" -Body $body
 
 }
-
 Function Get-ApplicationAuth{
 
     param (

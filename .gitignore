@@ -2,9 +2,9 @@
 .vscode/launch.json
 .creds
 *.log
+
+Reset Credential Files Remotely/Vault.ini
 .vscode/settings.json
-Reset Credential Files Remotely/plink.exe
 Safe Management/test.csv
-Account Onboard Utility/sample_accounts_1.csv
-Account Onboard Utility/sample_accounts_T.csv
+plink.exe
 

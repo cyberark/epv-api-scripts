@@ -265,7 +265,6 @@ Function Write-LogMessage {
                 $msgToWrite += "[ERROR]`t$Msg"
             }
             "Debug" { 
-
                 if ($InDebug -or $InVerbose) {
                     Write-Debug $MSG
                     $msgToWrite += "[DEBUG]`t$Msg"
@@ -352,6 +351,7 @@ Function Get-LogonHeader {
             $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password;concurrentSession = $true } | ConvertTo-Json
         } else {
             $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password} | ConvertTo-Json
+
         }
         # Check if we need to add RADIUS OTP
         If (![string]::IsNullOrEmpty($RadiusOTP)) {
@@ -533,6 +533,7 @@ Get-Safe -safeName "x0-Win-S-Admins"
                 }
             }
         }
+
     } catch {
         Throw $(New-Object System.Exception ("Get-Safe: Error retrieving safe '$safename' details.", $_.Exception))
     }
@@ -1021,6 +1022,7 @@ If (Test-CommandExists Invoke-RestMethod) {
                     $output | Select-Object -Property safeName,description,managingCPM,numberOfVersionsRetention,numberOfDaysRetention,EnableOLAC | ConvertTo-Csv -NoTypeInformation | Out-File $ReportPath
                 }
      
+
             } catch {
                 Write-LogMessage -Type Error -Msg "Error retrieving safes. Error: $(Join-ExceptionMessage $_.Exception)"
             }
