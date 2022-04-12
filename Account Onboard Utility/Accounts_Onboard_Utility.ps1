@@ -1046,7 +1046,8 @@ Function Get-LogonHeader {
 	# ----------------------------------
 	If ($concurrentSession){
 		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password;concurrentSession="true"} | ConvertTo-Json -Compress
-	} else {
+	}
+	else {
 		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
 	}
 	If(![string]::IsNullOrEmpty($RadiusOTP)) {
