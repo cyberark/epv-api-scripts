@@ -871,7 +871,7 @@ function Start-ComponentService {
                 $startResult.clear()
             } else {
                 $running = $true
-                Write-LogMessage -Type "Debug" -MSG "`"$service`" on $server Started"
+                Write-LogMessage -Type Debug -MSG "`"$service`" on $server Started"
                 Start-Sleep -Seconds $wait
             }
         }
@@ -903,7 +903,7 @@ function Stop-ComponentService {
                 $null = Invoke-Command -Session $session -ScriptBlock {Stop-ServiceProcess -name $args[0]} -ArgumentList $service
             }
         }
-        Write-LogMessage -Type "Debug" -MSG "`"$service`" on $server Started"
+        Write-LogMessage -Type Debug -MSG "`"$service`" on $server Started"
         $stopResult.clear()
     }
 }
@@ -1129,24 +1129,27 @@ function Reset-Credentials{
         [string]$OS,
 
         [Parameter(Mandatory=$false)]
-        [string]$vaultAddress
+        [string]$vaultAddress,
+
+        [Parameter(Mandatory=$false)]
+        [string]$apiAddress
     )
 
     $checkPVWA = $PVWAURL.replace("\","/").replace("https://","").Split("/").ToLower()
     If ($checkPVWA[0] -eq $server.ToLower()){
-        Write-LogMessage -type Error -MSG "Unable to reset credentials of PVWA being used by script"
+        Write-LogMessage -type Error -MSG "Unable to reset PVWA credentials on $server because it is being used by script" -Footer
         continue
     }
     IF ("Windows" -eq $os){
         switch ($ComponentType) {
             "CPM" { 
-                Reset-WinComponent -Server $server -component "CPM" -componentName $ComponentType -services $g_cpmservices -vaultaddress $vaultAddress;break 
+                Reset-WinComponent -Server $server -component "CPM" -componentName $ComponentType -services $g_cpmservices -vaultaddress $vaultAddress -apiAddress $apiAddress;break 
             }
             "PVWA" { 
                 Reset-WinComponent -Server $server -component "PVWA" -componentName $ComponentType -services $g_pvwaservices -vaultaddress $vaultAddress;break  
             }
             "PSM" { 
-                Reset-WinComponent -Server $server -component "PSM" -componentName $ComponentType -services $g_psmservices -vaultaddress $vaultAddress;break  
+                Reset-WinComponent -Server $server -component "PSM" -componentName $ComponentType -services $g_psmservices -vaultaddress $vaultAddress -apiAddress $apiAddress;break  
             }
             "AAM Credential Provider" { 
                 Reset-WinComponent -Server $server -component "AIM" -componentName $ComponentType -services $g_aamservices -vaultaddress $vaultAddress;break 
@@ -1255,7 +1258,7 @@ function Reset-WinCredFile{
         $dir = $comp.credFilesDir
         $createCredDir = "$installLocation\$($comp.createCredDir)"
 
-        Write-LogMessage -type Info -MSG "Updating $component $file credential file"
+        Write-LogMessage -type Verbose -MSG "Updating $component $file credential file"
         Invoke-Command -Session $session -ScriptBlock {Set-Location -Path ($args[0]);} -ArgumentList $createCredDir
         $userItem = Invoke-Command -Session $session -ScriptBlock {((Select-String -Path "$($args[1])\$($args[0])" -Pattern "username=").Line).split("=")[1]} -ArgumentList $file, $dir
         $tempPassword = New-RandomPassword -Length 14 -Lowercase -Uppercase -Numbers -Symbols | ConvertTo-SecureString -AsPlainText -Force 
@@ -1271,7 +1274,7 @@ function Reset-WinCredFile{
         Invoke-Command -Session $session -ScriptBlock {Invoke-Expression $args[0];} -ArgumentList $command -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
         Remove-Variable command
         If ($invokeResultApp[0].TargetObject -ne "Command ended successfully"){
-            Invoke-Command -Session $session -ScriptBlock {Rename-Item "$($args[2])\$($args[0]).$($args[1])" -NewName "$($args[0]).$($args[1])" -Force} -ArgumentList $file, $tag, $dir | Out-Null
+            Invoke-Command -Session $session -ScriptBlock {Rename-Item "$($args[2])\$($args[0]).$($args[1])" -NewName "$($args[0])" -Force} -ArgumentList $file, $tag, $dir | Out-Null
             Invoke-Command -Session $session -ScriptBlock {Rename-Item "$($args[2])\$($args[0]).entropy.$($args[1])" -NewName "$($args[0]).entropy" -Force -ErrorAction SilentlyContinue} -ArgumentList $file, $tag, $dir | Out-Null
 
             Write-LogMessage -type Error -MSG "Error resetting credential file on $server"
@@ -1281,11 +1284,14 @@ function Reset-WinCredFile{
             Invoke-Command -Session $session -ScriptBlock {Remove-Item "$($args[2])\$($args[0]).entropy.$($args[1])" -Force -ErrorAction SilentlyContinue} -ArgumentList $file, $tag, $dir
         }
     
-        Write-LogMessage -type Info -MSG "CreateCredFile on $componentName $file successful"
+        Write-LogMessage -type Verbose -MSG "CreateCredFile on $componentName $file successful"
         Write-LogMessage -type Verbose -MSG "Updating $componentName via RESTAPI"
         Set-UserPassword -username $userItem -Password $tempPassword
-        Write-LogMessage -type Info -MSG "Update of $componentName via RESTAPI Complete"
+        Write-LogMessage -type Verbose -MSG "Update of $componentName user via RESTAPI Complete"
+        Write-LogMessage -type Success -MSG "Update of user $useritem on $server completed successfully"
     }
+
+    
 }
 function Reset-VaultFile{
 
@@ -1295,7 +1301,12 @@ function Reset-VaultFile{
         [Parameter(Mandatory=$true)]
         $compInfo,
         [Parameter(Mandatory=$true)]
-        [System.Management.Automation.Runspaces.PSSession]$session
+        [System.Management.Automation.Runspaces.PSSession]$session,
+        [Parameter(Mandatory=$false)]
+        $vaultAddress,
+        [Parameter(Mandatory=$false)]
+        $apiAddress
+        
     )
     $installLocation = $compInfo.path
     $component = $compInfo.name
@@ -1349,7 +1360,7 @@ function Reset-VaultFile{
         $vaultDir = "$installLocation\$($comp.vaultdir)"
         $vaultFile = "$vaultdir\vault.ini"
 
-        Write-LogMessage -type Info -MSG "Updating $component vault.ini files"
+        Write-LogMessage -type Verbose -MSG "Updating $component vault.ini files"
         Invoke-Command -Session $session -ScriptBlock {Set-Location -Path "$($args[0])";} -ArgumentList $vaultDir
 
         $tag = [DateTimeOffset]::Now.ToUnixTimeSeconds()
@@ -1368,7 +1379,26 @@ function Reset-VaultFile{
             $failed = $true
             Throw "Error updating $component vault.ini file"
         }
-        Write-LogMessage -type Info -MSG "Vault.ini on $componentName updated successful"
+        Write-LogMessage -type Success -MSG "Update of vault address in vault.ini on $componentName completed successful"
+
+        IF(![string]::IsNullOrEmpty($apiAddress)){
+            Invoke-Command -Session $session -ScriptBlock {Copy-Item $($args[0]) -Destination "$($args[0]).$($args[1])" -Force} -ArgumentList $vaultFile, $tag
+            Write-LogMessage -type Verbose -MSG "Backed up existing $component vault.ini file"
+        try{
+            $regex = '(^Addresses=.*)'
+            Invoke-Command -Session $session -ScriptBlock {$file = $args[0];$regex = $args[1]} -ArgumentList $vaultFile, $regex
+            Invoke-Command -Session $session -ScriptBlock {(Get-Content $file) -replace $regex, "Addresses=$($args[0])" | Set-Content $file} -ArgumentList $apiAddress
+            Write-LogMessage -type Verbose -MSG "$component vault.ini updated successfully"
+            Invoke-Command -Session $session -ScriptBlock {Remove-Item "$($args[0]).$($args[1])" -Force} -ArgumentList $vaultFile, $tag
+        } catch {
+            Invoke-Command -Session $session -ScriptBlock {Rename-Item "$($args[0]).$($args[1])" -NewName "$($args[0])" -Force} -ArgumentList $vaultFile, $tag
+            Write-LogMessage -type Error -MSG "Error updating $component  vault.ini file on $server"
+            $failed = $true
+            Throw "Error updating $component vault.ini file"
+        }
+        Write-LogMessage -type Success -MSG "Update of vault API in vault.ini on $componentName completed successfully"
+    }
+       
     }
 }
 function Reset-WinComponent{
@@ -1382,7 +1412,9 @@ function Reset-WinComponent{
         [Parameter(Mandatory=$true)]
         $services,
         [Parameter(Mandatory=$false)]
-        [string]$vaultaddress
+        [string]$vaultaddress,
+        [Parameter(Mandatory=$false)]
+        [string]$apiAddress
 
     )
     $complete = $failed = $false
@@ -1396,11 +1428,12 @@ function Reset-WinComponent{
             While (!$complete){
                 Try {
                     $session = New-PSLogon $server
+                    Write-LogMessage -type Verbose -MSG "Connected to host: $(Invoke-Command -Session $session -ScriptBlock{[System.Net.Dns]::GetHostName()})"
+                    Write-LogMessage -type Verbose -MSG "Connected as user: $(Invoke-Command -Session $session -ScriptBlock{whoami.exe})"
                 } Catch {
                     Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a Windows server and winRM has been enabled."             
                     break
                 }
-                Write-LogMessage -type info -MSG "Connected to $Server"
                 Write-LogMessage -type Verbose -MSG "Connected to $Server. Importing required modules"
                 
                 Import-ModuleRemotely -moduleName CyberArk-Common -session $Session
@@ -1421,7 +1454,7 @@ function Reset-WinComponent{
                 $credfailed = Reset-WinCredFile -Server $server -compInfo $compInfo -session $session
 
                 IF (!($credfailed) -and (![string]::IsNullOrEmpty($vaultaddress))) {
-                    $vaultfailed =   Reset-VaultFile -Server $server -compInfo $compInfo -session $session
+                    $vaultfailed =   Reset-VaultFile -Server $server -compInfo $compInfo -session $session -vaultAddres $vaultaddress -apiAddress $apiAddress
                 }
                 $complete = Start-ComponentService -services $services -session $session -server $server
 
@@ -1436,18 +1469,18 @@ function Reset-WinComponent{
                 Write-LogMessage -type Verbose -MSG "$componentName Started"
 
                 if ($complete) {
-                    Write-LogMessage -type Info -MSG "$componentName on $server update completed successful"
+                    Write-LogMessage -type Success -MSG "$componentName component on $server update completed successful" -Footer
                 } else {
-                    Write-LogMessage -type Info -MSG "$componentName on $server update failed, restarting"
+                    Write-LogMessage -type Warning -MSG "$componentName component on $server update failed, restarting" -Footer
                 }
             }
         } catch {
-            Write-LogMessage -type Error -MSG "Error during update of $componentName on $server"
+            Write-LogMessage -type Error -MSG "Error during update of $componentName on $server" -Footer
             Throw $_
         } Finally {
             Write-LogMessage -type Verbose -MSG "Disconnecting from $server"  
             Remove-PSSession $session
-            Write-LogMessage -type info -MSG "Disconnected from $server"
+            Write-LogMessage -type Verbose -MSG "Disconnected from $server"
         }
     }
 }
@@ -1507,8 +1540,6 @@ Function Get-ComponentDetails{
         $restResponse = $(Invoke-Rest -Uri $URLHealthDetails -Header $g_LogonHeader -Command "Get")
 
         $selection = $restResponse.ComponentsDetails | Select-Object @{Name="Component Type"; Expression = {$component} },@{Name="Component Version"; Expression = {$_.ComponentVersion} },@{Name="IP Address"; Expression = {$_.'ComponentIP'} },@{Name="Component User"; Expression = {$_.'ComponentUserName'} },@{Name="Connected"; Expression = {$_.'IsLoggedOn'}},@{Name="Last Connection"; Expression = {Get-LogonTimeUnixTime $_.'LastLogonDate'}} | Sort-Object -Property "IP Address" 
-		
-        #$selection = $restResponse.ComponentsDetails | Select-Object @{Name="Component Type"; Expression = {$component} },@{Name="IP Address"; Expression = {$_.'ComponentIP'} },@{Name="Component User"; Expression = {$_.'ComponentUserName'} },@{Name="Connected"; Expression = {$_.'IsLoggedOn'}},@{Name="Last Connection"; Expression = {Get-LogonTimeUnixTime $_.'LastLogonDate'}} | Sort-Object -Property "IP Address" | Out-GridView -OutputMode Multiple -Title "Select Server(s)"
 		
         Return $selection
     } Catch{

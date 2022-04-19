@@ -56,6 +56,9 @@ param(
 	[Parameter(Mandatory=$false)]
 	[Switch]$DisconnectedOnly,
 
+	[Parameter(Mandatory=$false)]
+	[Switch]$OnlineOnly,
+
 	[Parameter(Mandatory=$false,HelpMessage="Target Server")]
 	[String]$targetServer,
 
@@ -75,6 +78,9 @@ param(
 	[Parameter(Mandatory=$false,HelpMessage="New vault address")]
 	[String]$vaultAddress,
 
+	[Parameter(Mandatory=$false,HelpMessage="New vault address")]
+	[String]$apiAddress,
+
 	[Parameter(Mandatory=$false,HelpMessage="PSSession Credentials")]
 	[PSCredential]$PSCredentials
 )
@@ -86,8 +92,13 @@ $oldverbose = $VerbosePreference
 if($InVerbose){
 	$VerbosePreference = "continue"
 }
-If ($null -ne $PSCredentials) {New-Variable -Scope Global -Name G_PSCredentials -Value $PSCredentials}
 
+
+If ($null -ne $PSCredentials) { 
+	New-Variable -Scope Global -Name G_PSCredentials -Value $PSCredentials -Force
+} else {
+	New-Variable -Scope Global -Name G_PSCredentials -Value $null -Force
+}
 # Get Script Location 
 $ScriptFullPath = $MyInvocation.MyCommand.Path
 $ScriptLocation = Split-Path -Parent $ScriptFullPath
@@ -158,11 +169,11 @@ If (![string]::IsNullOrEmpty($PVWAURL)) {
 }
 
 Import-Module -Name ".\CyberArk-Common.psm1" -Force
-Write-LogMessage -Type Info -MSG "Getting Logon Token"
+Write-LogMessage -Type Verbose -MSG "Getting Logon Token"
 
 Invoke-Logon -Credentials $PVWACredentials
 
-Write-LogMessage -Type Info -MSG "Getting Server List"
+Write-LogMessage -Type Verbose -MSG "Getting Server List"
 $components = Get-ComponentStatus | Sort-Object $_.'Component Type'
 If($allComponents) {$selectedComponents = $components}
 else {
@@ -172,7 +183,7 @@ If (![string]::IsNullOrEmpty($mapfile)){
 	$map = Import-Csv $mapfile
 }
 
-Write-LogMessage -Type Info -MSG "Getting Component List"
+Write-LogMessage -Type Verbose -MSG "Getting Component List"
 $targetComponents = @()
 $availableServers = @()
 ForEach ($comp in $selectedComponents) {
@@ -219,15 +230,18 @@ ForEach ($comp in $selectedComponents) {
 	}
 }
 
-If   ($DisconnectedOnly) {
+If($DisconnectedOnly) {
 	$targetComponents = $availableServers | Where-Object Connected -EQ $false
+} elseif ($OnlineOnly){
+	$targetComponents = $availableServers | Where-Object Connected -EQ $true
 } elseif ($allServers){
 	$targetComponents = $availableServers
 } else {
 	$targetComponents = $availableServers | Sort-Object -Property 'Component Type',"IP Address" | Out-GridView -OutputMode Multiple -Title "Select Server(s)"
 }
 
-Write-LogMessage -Type Info -MSG "Processing Lists"
+Write-LogMessage -Type Verbose -MSG "Processing Lists"
+Write-LogMessage -Type info -MSG "$($targetComponents.count) components selected for processing" -Footer
 
 Get-Job | Remove-Job -Force
 foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
@@ -238,26 +252,26 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 	}
 	If ("Windows" -eq $target.os){
 		If (!(Test-TargetWinRM -server $fqdn )) {
-			"Error connecting to WinRM for Component User $($target.'Component User') on $($target.'IP Address') $fqdn"
+			Write-LogMessage -Type Error -MSG "Error connecting to WinRM for Component User $($target.'Component User') on $($target.'IP Address') $fqdn" -Footer
 			continue
 		}
 	} elseif ("Linux" -eq  $target.os) {
-		Write-LogMessage -type Error -msg "Unable to reset credentials on linux based servers at this time. Manual reset required for Component User $($target.'Component User') on $($target.'IP Address') $fqdn"
+		Write-LogMessage -type Error -msg "Unable to reset credentials on linux based servers at this time. Manual reset required for Component User $($target.'Component User') on $($target.'IP Address') $fqdn" -Footer
 		break
 	}
 
 	if (!$jobs){
 		Try{
-			Reset-Credentials -ComponentType $target.'Component Type' -Server $fqdn -OS $target.os -vault $vaultAddress
+			Reset-Credentials -ComponentType $target.'Component Type' -Server $fqdn -OS $target.os -vault $vaultAddress -apiAddress $apiAddress
 		} Catch {
-			Write-LogMessage -type Error -MSG $_
+			""
 		}
 
 	} else {
 		$type =  $target.'Component Type'
 		$os = $target.os
 		Write-LogMessage -Type Info -MSG "Creating Job for $Type on $fqdn"
-		Start-Job -Name "$($type.Replace("AAM Credential Provider","CP")) on $fqdn" -ScriptBlock {$Script:PVWAURL = $using:PVWAURL;$Script:g_LogonHeader = $using:g_LogonHeader;Import-Module -Name $using:ScriptLocation\CyberArk-Common.psm1 -Force;Reset-Credentials -ComponentType $using:type -Server $using:fqdn -os $using:os -vault $using:vaultAddress} -InitializationScript {Set-Location $PSScriptRoot; } | Out-Null
+		Start-Job -Name "$($type.Replace("AAM Credential Provider","CP")) on $fqdn" -ScriptBlock {$Script:PVWAURL = $using:PVWAURL;$Script:g_LogonHeader = $using:g_LogonHeader;$script:G_PSCredentials = $using:G_PSCredentials;Import-Module -Name $using:ScriptLocation\CyberArk-Common.psm1 -Force;Reset-Credentials -ComponentType $using:type -Server $using:fqdn -os $using:os -vault $using:vaultAddress -apiAddress $using:apiAddress} -InitializationScript {Set-Location $PSScriptRoot; } | Out-Null
 		$jobsRunning=$true
 	}
 
