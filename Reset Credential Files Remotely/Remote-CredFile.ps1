@@ -63,8 +63,11 @@ param(
 	[String]$targetServer,
 
 	[Parameter(Mandatory=$false,HelpMessage="Target Component")]
-	[ValidateSet("CPM","PSM","PVWA","CP")]
+	[ValidateSet("CPM","PSM","PVWA","CP","AAM Credential Provider","PSM/PSMP")]
 	[String]$Component,
+
+	[Parameter(Mandatory=$false,HelpMessage="Target Component Users")]
+	[String]$ComponentUsers,
 
 	[Parameter(Mandatory=$false,HelpMessage="Mapping File")]
 	[String]$MapFile,
@@ -176,7 +179,14 @@ Invoke-Logon -Credentials $PVWACredentials
 Write-LogMessage -Type Verbose -MSG "Getting Server List"
 $components = Get-ComponentStatus | Sort-Object $_.'Component Type'
 If($allComponents) {$selectedComponents = $components}
-else {
+elseif (![string]::IsNullOrEmpty($Component)) {
+	$cpSearch = ("CP").ToLower()
+	$Component = ($Component.ToLower()) -Replace "\b$cpSearch\b", "AAM Credential Provider"
+	$PSMSearch = ("PSM").ToLower()
+	$Component = $Component.ToLower() -replace "\b$PSMSearch\b", "PSM/PSMP"
+
+	$selectedComponents = $components | Where-Object 'Component Type' -EQ $Component
+} else {
 	$selectedComponents = $components | Sort-Object $_.'Component Type' | Out-GridView -OutputMode Multiple -Title "Select Component(s)"
 }
 If (![string]::IsNullOrEmpty($mapfile)){
@@ -236,6 +246,12 @@ If($DisconnectedOnly) {
 	$targetComponents = $availableServers | Where-Object Connected -EQ $true
 } elseif ($allServers){
 	$targetComponents = $availableServers
+} elseif (![string]::IsNullOrEmpty($ComponentUsers)){
+	$ComponentUsersArr = $ComponentUsers.Split(",")
+	ForEach ($user in $ComponentUsersArr) {
+		$targetComponents += $availableServers | Where-Object 'Component User' -EQ $user
+	}
+
 } else {
 	$targetComponents = $availableServers | Sort-Object -Property 'Component Type',"IP Address" | Out-GridView -OutputMode Multiple -Title "Select Server(s)"
 }

@@ -39,6 +39,12 @@
     - Submits actions to reset credentials as PowerShell Jobs to allow for parallel processing
 - AllComponents
     - Automatically selects all component types
+- Component
+    - Automatically selects specified component type
+        - Acceptably values are "CPM","PSM","PVWA","CP","AAM Credential Provider","PSM/PSMP"
+- ComponentUser
+    - Automatically selects specified component users. Enclose the users in quotes and seperated by comma ","
+        - "PSMApp_b4e7e2d,PSMApp_fg453fdsf"
 - AllServers
     - Automatically selects all servers of selected component types
 - DisconnectedOnly
@@ -54,3 +60,5 @@
     - Allows for use of alternate credentials to make connections to WinRM
 - VaultAddress
     - Resets the vault address within the vault.ini file. What ever is provided will be set in the file. The new address(es) must be surrounded by double quotes ex: -vaultaddress "192.168.8.1,192.168.8.2" or -vaultaddress "vault.lab.local"
+- ApiAddress
+    - Resets the API Address within the vault.ini file. What ever is provided will be set in the file. The new address(es) must be surrounded by double quotes ex: -apiAddress "https://pvwa.lab.local/passwordvault" or -apiAddress "https://pvwa.lab.local/passwordvault,https://pvwa2.lab.local/passwordvault"

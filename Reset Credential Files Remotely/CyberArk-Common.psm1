@@ -1201,7 +1201,7 @@ function Reset-WinCredFile{
                     credFilesDir      = ".\"
                     credFiles         = ".\user.ini"
                     componentName     = "CPM User"
-                    CreateCredCommand = $(if ($version -ge [version]'12.0') {$g_cpmuserCredv12} else {$g_cpmuserCred})
+                    CreateCredCommand = $(if ($version -ge [version]'12.1') {$g_cpmuserCredv12} else {$g_cpmuserCred})
                 }
             )
         }
@@ -1213,7 +1213,7 @@ function Reset-WinCredFile{
                     credFilesDir      = ".\"
                     credFiles         = "psmapp.cred"
                     componentName     = "PSM Application User"
-                    CreateCredCommand = $(if ($version -ge [version]'12.0') {$g_psmappuserCredv12} else {$g_psmappuserCred})
+                    CreateCredCommand = $(if ($version -ge [version]'12.1') {$g_psmappuserCredv12} else {$g_psmappuserCred})
                 }
             )
             $CompFiles += @(
@@ -1223,7 +1223,7 @@ function Reset-WinCredFile{
                     credFilesDir      = ".\"
                     credFiles         = "psmgw.cred"
                     componentName     = "PSM Gateway User"
-                    CreateCredCommand = $(if ($version -ge [version]'12.0') {$g_psmgwuserCredv12} else {$g_psmgwuserCred})
+                    CreateCredCommand = $(if ($version -ge [version]'12.1') {$g_psmgwuserCredv12} else {$g_psmgwuserCred})
                 }
             )
         }
@@ -1236,7 +1236,7 @@ function Reset-WinCredFile{
                     credFilesDir      = "..\CredFiles\"
                     credFiles         = "appuser.ini"
                     componentName     = "PVWA Application User"
-                    CreateCredCommand = $(if ($version -ge [version]'12.0') {$g_pvwaappuserCredv12} else {$g_pvwaappuserCred})
+                    CreateCredCommand = $(if ($version -ge [version]'12.1') {$g_pvwaappuserCredv12} else {$g_pvwaappuserCred})
                 }
             )
             $CompFiles += @( 
@@ -1246,7 +1246,7 @@ function Reset-WinCredFile{
                     credFilesDir      = "..\CredFiles\"
                     credFiles         = "gwuser.ini"
                     componentName     ="PVWA Gateway User"
-                    CreateCredCommand = $(if ($version -ge [version]'12.0') {$g_pvwagwuserCredv12} else {$g_pvwagwuserCred})
+                    CreateCredCommand = $(if ($version -ge [version]'12.1') {$g_pvwagwuserCredv12} else {$g_pvwagwuserCred})
                 }
             )
         }
