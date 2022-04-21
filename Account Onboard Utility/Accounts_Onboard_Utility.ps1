@@ -15,6 +15,7 @@ Change Notes
 2021-07-29	- 	Added CreateOnUpdate and applied formatting via VSCode	
 2021-09-27	- 	Added BypassAccountSearch and BypassSafeSearch
 			Added concurrentLogon switch
+2022-04-21	-	Fixed Account update and added more logging
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -95,7 +96,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.11"
+$ScriptVersion = "2.12"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
