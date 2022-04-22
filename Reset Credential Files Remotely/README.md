@@ -51,14 +51,12 @@
     - Automatically selects component users based on search filter using "-like" filter.
         - "PasswordManager", "Pass*", "*Manager"
 
-
 - AllServers
     - Automatically selects all servers of selected component types
 - DisconnectedOnly
     - Automatically selects only servers that are currently disconnected
 - ConnectedOnly
     - Automatically selects only servers that are currently connected
-
 
 - MapFile
     - Used to override paramaters received from the PVWA System Health page
@@ -68,15 +66,15 @@
     - This file must be used with Privileged Cloud environments
     - If IP Address 
 
-
 - VaultAddress
     - Resets the vault address within the vault.ini file. What ever is provided will be set in the file. The new address(es) must be surrounded by double quotes ex: -vaultaddress "192.168.8.1,192.168.8.2" or -vaultaddress "vault.lab.local"
 - ApiAddress
     - Resets the API Address within the vault.ini file. What ever is provided will be set in the file. The new address(es) must be surrounded by double quotes ex: -apiAddress "https://pvwa.lab.local/passwordvault" or -apiAddress "https://pvwa.lab.local/passwordvault,https://pvwa2.lab.local/passwordvault"
 
-
 - DisableSSLVerify
 	**(NOT RECOMMENDED)**
 	- In cases when you want to test the script on a PVWA environment that does not include a valid SSL certificate, you can use this parameter
+
+    
 - Jobs
     - Submits actions to reset credentials as PowerShell Jobs to allow for parallel processing
