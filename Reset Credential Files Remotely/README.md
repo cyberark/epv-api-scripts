@@ -18,7 +18,7 @@
 
 ## Parameters:
 ```powershell
-.\Remote-CredFile.ps1 -PVWAURL <string> [[-DisableSSLVerify] [-AuthType] [-OTP] [-PVWACredentials] [-Jobs] [-AllComponents] [-AllServers] [-DisconnectedOnly] [-MapFile] [-PSCredentials] [-VaultAddress]
+.\Remote-CredFile.ps1 -PVWAURL <string> [[-DisableSSLVerify] [-AuthType] [-OTP] [-PVWACredentials] [-Jobs] [-ConnectedOnly] [-DisconnectedOnly] [-AllComponents] [-Component] [-ComponentUser] [-ComponentFilter] [-AllServers]  [-MapFile] [-PSCredentials] [-VaultAddress] [-APIAddress]
 ```
 - PVWAURL
 	- The URL of the PVWA that you are working with. 
@@ -34,7 +34,8 @@
 - OTP
 	- In cases where RADIUS authentication is used and one-time-password is needed, use this parameter to enter the OTP value
 - PVWACredentials
-    - Used to pass credentials to be used with the PVWA
+    - Used to pass credentials to be used with the PVWA via variable
+        - Set credentials using ```powershell $cred =  Get-Credential ```
 - Jobs
     - Submits actions to reset credentials as PowerShell Jobs to allow for parallel processing
 - AllComponents
@@ -45,9 +46,14 @@
 - ComponentUser
     - Automatically selects specified component users. Enclose the users in quotes and seperated by comma ","
         - "PSMApp_b4e7e2d,PSMApp_fg453fdsf"
+- ComponentFilter
+    - Automatically selects component users based on search filter using "-like" filter.
+        - "PasswordManager", "Pass*", "*Manager"
 - AllServers
     - Automatically selects all servers of selected component types
 - DisconnectedOnly
+    - Automatically selects only servers that are currently disconnected
+- ConnectedOnly
     - Automatically selects only servers that are currently disconnected
 - MapFile
     - Used to override paramaters received from the PVWA System Health page

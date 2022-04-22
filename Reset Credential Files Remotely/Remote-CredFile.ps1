@@ -57,7 +57,7 @@ param(
 	[Switch]$DisconnectedOnly,
 
 	[Parameter(Mandatory=$false)]
-	[Switch]$OnlineOnly,
+	[Switch]$ConnectedOnly,
 
 	[Parameter(Mandatory=$false,HelpMessage="Target Server")]
 	[String]$targetServer,
@@ -68,6 +68,9 @@ param(
 
 	[Parameter(Mandatory=$false,HelpMessage="Target Component Users")]
 	[String]$ComponentUsers,
+	
+	[Parameter(Mandatory=$false,HelpMessage="Target Component Users via filter")]
+	[String]$ComponentFilter,
 
 	[Parameter(Mandatory=$false,HelpMessage="Mapping File")]
 	[String]$MapFile,
@@ -241,19 +244,20 @@ ForEach ($comp in $selectedComponents) {
 }
 
 If($DisconnectedOnly) {
-	$targetComponents = $availableServers | Where-Object Connected -EQ $false
-} elseif ($OnlineOnly){
-	$targetComponents = $availableServers | Where-Object Connected -EQ $true
+	$targetComponents += $availableServers | Where-Object Connected -EQ $false
+} elseif ($ConnectedOnly){
+	$targetComponents += $availableServers | Where-Object Connected -EQ $true
 } elseif ($allServers){
-	$targetComponents = $availableServers
+	$targetComponents += $availableServers
 } elseif (![string]::IsNullOrEmpty($ComponentUsers)){
-	$ComponentUsersArr = $ComponentUsers.Split(",")
+	$ComponentUsersArr += $ComponentUsers.Split(",")
 	ForEach ($user in $ComponentUsersArr) {
 		$targetComponents += $availableServers | Where-Object 'Component User' -EQ $user
 	}
-
+} elseif (![string]::IsNullOrEmpty($ComponentFilter)){
+	$targetComponents += $availableServers | Where-Object 'Component User' -Like $ComponentFilter
 } else {
-	$targetComponents = $availableServers | Sort-Object -Property 'Component Type',"IP Address" | Out-GridView -OutputMode Multiple -Title "Select Server(s)"
+	$targetComponents += $availableServers | Sort-Object -Property 'Component Type',"IP Address" | Out-GridView -OutputMode Multiple -Title "Select Server(s)"
 }
 
 Write-LogMessage -Type Verbose -MSG "Processing Lists"

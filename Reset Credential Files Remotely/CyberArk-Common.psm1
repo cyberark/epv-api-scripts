@@ -1573,7 +1573,7 @@ function New-PSLogon {
     If ($null -ne $G_PSCredentials) {
         $psSession = New-PSSession $server -Credential $G_PSCredentials -Authentication Negotiate -SessionOption $psoptions
     } else {   
-        $psSession = New-PSSession $server -SessionOption $psoptions
+        $psSession = New-PSSession $server -SessionOption $psoptions -Authentication Negotiate
     }
     Write-LogMessage -type Verbose -MSG "Retrived Session"
     IF(![string]::IsNullOrEmpty($g_prePSSession)) {
@@ -1582,8 +1582,4 @@ function New-PSLogon {
         Write-LogMessage -type Verbose -MSG "Completed g_prePSSession"
     }
     return $psSession
-
-    
-
-    
 }
