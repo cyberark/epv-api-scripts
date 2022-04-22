@@ -67,7 +67,7 @@ $g_cpmvault = ".\vault.ini"
 $g_psmvault = ".\vault.ini"
 $g_pvwavault= ".\vault.ini"
 
-
+$g_prePSSession =  {Get-Process | Out-File -FilePath C:\temp\Process.txt -Force}
 
 if($InVerbose){
     $VerbosePreference = "continue"
@@ -1384,20 +1384,20 @@ function Reset-VaultFile{
         IF(![string]::IsNullOrEmpty($apiAddress)){
             Invoke-Command -Session $session -ScriptBlock {Copy-Item $($args[0]) -Destination "$($args[0]).$($args[1])" -Force} -ArgumentList $vaultFile, $tag
             Write-LogMessage -type Verbose -MSG "Backed up existing $component vault.ini file"
-        try{
-            $regex = '(^Addresses=.*)'
-            Invoke-Command -Session $session -ScriptBlock {$file = $args[0];$regex = $args[1]} -ArgumentList $vaultFile, $regex
-            Invoke-Command -Session $session -ScriptBlock {(Get-Content $file) -replace $regex, "Addresses=$($args[0])" | Set-Content $file} -ArgumentList $apiAddress
-            Write-LogMessage -type Verbose -MSG "$component vault.ini updated successfully"
-            Invoke-Command -Session $session -ScriptBlock {Remove-Item "$($args[0]).$($args[1])" -Force} -ArgumentList $vaultFile, $tag
-        } catch {
-            Invoke-Command -Session $session -ScriptBlock {Rename-Item "$($args[0]).$($args[1])" -NewName "$($args[0])" -Force} -ArgumentList $vaultFile, $tag
-            Write-LogMessage -type Error -MSG "Error updating $component  vault.ini file on $server"
-            $failed = $true
-            Throw "Error updating $component vault.ini file"
+            try{
+                $regex = '(^Addresses=.*)'
+                Invoke-Command -Session $session -ScriptBlock {$file = $args[0];$regex = $args[1]} -ArgumentList $vaultFile, $regex
+                Invoke-Command -Session $session -ScriptBlock {(Get-Content $file) -replace $regex, "Addresses=$($args[0])" | Set-Content $file} -ArgumentList $apiAddress
+                Write-LogMessage -type Verbose -MSG "$component vault.ini updated successfully"
+                Invoke-Command -Session $session -ScriptBlock {Remove-Item "$($args[0]).$($args[1])" -Force} -ArgumentList $vaultFile, $tag
+            } catch {
+                Invoke-Command -Session $session -ScriptBlock {Rename-Item "$($args[0]).$($args[1])" -NewName "$($args[0])" -Force} -ArgumentList $vaultFile, $tag
+                Write-LogMessage -type Error -MSG "Error updating $component  vault.ini file on $server"
+                $failed = $true
+                Throw "Error updating $component vault.ini file"
+            }
+            Write-LogMessage -type Success -MSG "Update of vault API in vault.ini on $componentName completed successfully"
         }
-        Write-LogMessage -type Success -MSG "Update of vault API in vault.ini on $componentName completed successfully"
-    }
        
     }
 }
@@ -1568,8 +1568,16 @@ function New-PSLogon {
         [string]$server
     )
     If ($null -ne $G_PSCredentials) {
-        Return New-PSSession $server -Credential $G_PSCredentials -Authentication Negotiate 
+        $psSession = New-PSSession $server -Credential $G_PSCredentials -Authentication Negotiate 
     } else {   
-        return New-PSSession $server
+        $psSession = New-PSSession $server
     }
+    IF(![string]::IsNullOrEmpty($g_prePSSession)) {
+        Invoke-Command -Session $psSession -ScriptBlock $g_prePSSession -ErrorAction SilentlyContinue
+    }
+    return $psSession
+
+    
+
+    
 }
