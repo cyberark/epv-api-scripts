@@ -18,7 +18,7 @@
 
 ## Parameters:
 ```powershell
-.\Remote-CredFile.ps1 -PVWAURL <string> [[-AuthType <string>] [-OTP <string>] [-PVWACredentials <PSCredential>] [-PSCredentials <PSCredential>] [-AllComponentTypes] [-ComponentType <string>] [-ComponentUser <string>] [-ComponentFilter <string>] [-AllServers] [-ConnectedOnly] [-DisconnectedOnly] [-MapFile <string>] [-VaultAddress <string>] [-APIAddress <string>] [-DisableSSLVerify] [-Jobs]]
+.\Remote-CredFile.ps1 -PVWAURL <string> [[-AuthType <string>] [-OTP <string>] [-PVWACredentials <PSCredential>] [-PSCredentials <PSCredential>] [-AllComponentTypes] [-ComponentType <string>] [-ComponentUser <string>] [-ComponentUserFilter <string>] [-AllServers] [-ConnectedOnly] [-DisconnectedOnly] [-MapFile <string>] [-VaultAddress <string>] [-APIAddress <string>] [-DisableSSLVerify] [-Jobs]]
 ```
 - PVWAURL
 	- The URL of the PVWA that you are working with. 

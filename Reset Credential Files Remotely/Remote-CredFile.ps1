@@ -70,7 +70,7 @@ param(
 	[String]$ComponentUsers,
 	
 	[Parameter(Mandatory=$false,HelpMessage="Target Component Users via filter")]
-	[String]$ComponentFilter,
+	[String]$ComponentUserFilter,
 
 	[Parameter(Mandatory=$false,HelpMessage="Mapping File")]
 	[String]$MapFile,
@@ -254,8 +254,8 @@ If($DisconnectedOnly) {
 	ForEach ($user in $ComponentUsersArr) {
 		$targetComponents += $availableServers | Where-Object 'Component User' -EQ $user
 	}
-} elseif (![string]::IsNullOrEmpty($ComponentFilter)){
-	$targetComponents += $availableServers | Where-Object 'Component User' -Like $ComponentFilter
+} elseif (![string]::IsNullOrEmpty($ComponentUserFilter)){
+	$targetComponents += $availableServers | Where-Object 'Component User' -Like $ComponentUserFilter
 } else {
 	$targetComponents += $availableServers | Sort-Object -Property 'Component Type',"IP Address" | Out-GridView -OutputMode Multiple -Title "Select Server(s)"
 }
