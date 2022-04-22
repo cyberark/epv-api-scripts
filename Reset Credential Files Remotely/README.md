@@ -54,7 +54,7 @@
 - DisconnectedOnly
     - Automatically selects only servers that are currently disconnected
 - ConnectedOnly
-    - Automatically selects only servers that are currently disconnected
+    - Automatically selects only servers that are currently connected
 - MapFile
     - Used to override paramaters received from the PVWA System Health page
         - To use the file enter the "Component User" to match the Component User found on the System Health Page.
