@@ -1419,7 +1419,7 @@ function Reset-WinComponent{
     )
     $complete = $failed = $false
     $attempts = 0
-
+    Write-LogMessage -type Verbose -MSG "Entering Reset-WinComponent"
     While (!$complete -and !$failed) {
         try {
             $complete = $failed = $false
@@ -1431,8 +1431,10 @@ function Reset-WinComponent{
                     Write-LogMessage -type Verbose -MSG "Connected to host: $(Invoke-Command -Session $session -ScriptBlock{[System.Net.Dns]::GetHostName()})"
                     Write-LogMessage -type Verbose -MSG "Connected as user: $(Invoke-Command -Session $session -ScriptBlock{whoami.exe})"
                 } Catch {
+                    Write-LogMessage -type Verbose -MSG "Error Message is $($error)"     
+                    Write-LogMessage -type Verbose -MSG "Error Message is $_" 
                     Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a Windows server and winRM has been enabled."             
-                    Write-LogMessage -type Verbose -MSG "Error Message is $_"         
+                            
                     break
                 }
                 Write-LogMessage -type Verbose -MSG "Connected to $Server. Importing required modules"
@@ -1568,11 +1570,10 @@ function New-PSLogon {
         [Parameter()]
         [string]$server
     )
-$psoptions = New-PSSessionOption -IncludePortInSPN
+    $psoptions = New-PSSessionOption -IncludePortInSPN
 
     Write-LogMessage -type Verbose -MSG "In New-PSLogon"
     If ($null -ne $G_PSCredentials) {
-$psoptions = New-PSSessionOption -IncludePortInSPN
         $psSession = New-PSSession $server -Credential $G_PSCredentials -Authentication Negotiate -SessionOption $psoptions
     } else {   
         $psSession = New-PSSession $server -SessionOption $psoptions
