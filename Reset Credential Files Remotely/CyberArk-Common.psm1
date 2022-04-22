@@ -1568,11 +1568,14 @@ function New-PSLogon {
         [Parameter()]
         [string]$server
     )
+$psoptions = New-PSSessionOption -IncludePortInSPN
+
     Write-LogMessage -type Verbose -MSG "In New-PSLogon"
     If ($null -ne $G_PSCredentials) {
-        $psSession = New-PSSession $server -Credential $G_PSCredentials -Authentication Negotiate 
+$psoptions = New-PSSessionOption -IncludePortInSPN
+        $psSession = New-PSSession $server -Credential $G_PSCredentials -Authentication Negotiate -SessionOption $psoptions
     } else {   
-        $psSession = New-PSSession $server
+        $psSession = New-PSSession $server -SessionOption $psoptions
     }
     Write-LogMessage -type Verbose -MSG "Retrived Session"
     IF(![string]::IsNullOrEmpty($g_prePSSession)) {
