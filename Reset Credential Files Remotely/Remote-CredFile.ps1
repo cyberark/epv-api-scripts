@@ -48,7 +48,7 @@ param(
 	[Switch]$Jobs,
 
 	[Parameter(Mandatory=$false)]
-	[Switch]$AllComponents,
+	[Switch]$AllComponentTypes,
 
 	[Parameter(Mandatory=$false)]
 	[Switch]$AllServers,
@@ -64,7 +64,7 @@ param(
 
 	[Parameter(Mandatory=$false,HelpMessage="Target Component")]
 	[ValidateSet("CPM","PSM","PVWA","CP","AAM Credential Provider","PSM/PSMP")]
-	[String]$Component,
+	[String]$ComponentType,
 
 	[Parameter(Mandatory=$false,HelpMessage="Target Component Users")]
 	[String]$ComponentUsers,
@@ -180,17 +180,17 @@ Write-LogMessage -Type Verbose -MSG "Getting Logon Token"
 Invoke-Logon -Credentials $PVWACredentials
 
 Write-LogMessage -Type Verbose -MSG "Getting Server List"
-$components = Get-ComponentStatus | Sort-Object $_.'Component Type'
-If($allComponents) {$selectedComponents = $components}
-elseif (![string]::IsNullOrEmpty($Component)) {
+$componentList = Get-ComponentStatus | Sort-Object $_.'Component Type'
+If($AllComponentTypes) {$selectedComponents = $componentList}
+elseif (![string]::IsNullOrEmpty($ComponentType)) {
 	$cpSearch = ("CP").ToLower()
-	$Component = ($Component.ToLower()) -Replace "\b$cpSearch\b", "AAM Credential Provider"
+	$ComponentType = ($ComponentType.ToLower()) -Replace "\b$cpSearch\b", "AAM Credential Provider"
 	$PSMSearch = ("PSM").ToLower()
-	$Component = $Component.ToLower() -replace "\b$PSMSearch\b", "PSM/PSMP"
+	$ComponentType = $ComponentType.ToLower() -replace "\b$PSMSearch\b", "PSM/PSMP"
 
-	$selectedComponents = $components | Where-Object 'Component Type' -EQ $Component
+	$selectedComponents = $componentList | Where-Object 'Component Type' -EQ $ComponentType
 } else {
-	$selectedComponents = $components | Sort-Object $_.'Component Type' | Out-GridView -OutputMode Multiple -Title "Select Component(s)"
+	$selectedComponents = $componentList | Sort-Object $_.'Component Type' | Out-GridView -OutputMode Multiple -Title "Select Component(s)"
 }
 If (![string]::IsNullOrEmpty($mapfile)){
 	$map = Import-Csv $mapfile
