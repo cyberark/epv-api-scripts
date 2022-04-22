@@ -35,7 +35,7 @@
 	- In cases where RADIUS authentication is used and one-time-password is needed, use this parameter to enter the OTP value
 - PVWACredentials
     - Used to pass credentials to be used with the PVWA via variable
-        - Set credentials using ```powershell $cred =  Get-Credential ```
+        - Set credentials using ```$cred =  Get-Credential ```
 - Jobs
     - Submits actions to reset credentials as PowerShell Jobs to allow for parallel processing
 - AllComponents
