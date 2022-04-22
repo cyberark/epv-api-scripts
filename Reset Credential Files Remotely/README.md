@@ -47,7 +47,7 @@
 - ComponentUser
     - Automatically selects specified component users. Enclose the users in quotes and seperated by comma ","
         - "PSMApp_b4e7e2d,PSMApp_fg453fdsf"
-- ComponentFilter
+- ComponentUserFilter
     - Automatically selects component users based on search filter using "-like" filter.
         - "PasswordManager", "Pass*", "*Manager"
 
