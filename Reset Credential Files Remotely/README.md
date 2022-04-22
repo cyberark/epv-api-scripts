@@ -75,6 +75,5 @@
 	**(NOT RECOMMENDED)**
 	- In cases when you want to test the script on a PVWA environment that does not include a valid SSL certificate, you can use this parameter
 
-    
 - Jobs
     - Submits actions to reset credentials as PowerShell Jobs to allow for parallel processing
