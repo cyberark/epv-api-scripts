@@ -1428,6 +1428,7 @@ function Reset-WinComponent{
             While (!$complete){
                 Try {
                     $session = New-PSLogon $server
+                    Write-LogMessage -type Verbose -MSG "Got Session"
                     Write-LogMessage -type Verbose -MSG "Connected to host: $(Invoke-Command -Session $session -ScriptBlock{[System.Net.Dns]::GetHostName()})"
                     Write-LogMessage -type Verbose -MSG "Connected as user: $(Invoke-Command -Session $session -ScriptBlock{whoami.exe})"
                 } Catch {
