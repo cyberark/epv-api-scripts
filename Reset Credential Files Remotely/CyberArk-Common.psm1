@@ -67,7 +67,7 @@ $g_cpmvault = ".\vault.ini"
 $g_psmvault = ".\vault.ini"
 $g_pvwavault= ".\vault.ini"
 
-$g_prePSSession =  {Get-Process | Out-File -FilePath C:\temp\Process.txt -Force}
+$g_prePSSession =  {$env:PSModulePath="C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules;"}
 
 if($InVerbose){
     $VerbosePreference = "continue"
@@ -1432,6 +1432,7 @@ function Reset-WinComponent{
                     Write-LogMessage -type Verbose -MSG "Connected as user: $(Invoke-Command -Session $session -ScriptBlock{whoami.exe})"
                 } Catch {
                     Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a Windows server and winRM has been enabled."             
+                    Write-LogMessage -type Verbose -MSG "Error Message is $_"         
                     break
                 }
                 Write-LogMessage -type Verbose -MSG "Connected to $Server. Importing required modules"
@@ -1567,13 +1568,17 @@ function New-PSLogon {
         [Parameter()]
         [string]$server
     )
+    Write-LogMessage -type Verbose -MSG "In New-PSLogon"
     If ($null -ne $G_PSCredentials) {
         $psSession = New-PSSession $server -Credential $G_PSCredentials -Authentication Negotiate 
     } else {   
         $psSession = New-PSSession $server
     }
+    Write-LogMessage -type Verbose -MSG "Retrived Session"
     IF(![string]::IsNullOrEmpty($g_prePSSession)) {
+        Write-LogMessage -type Verbose -MSG "Inside g_prePSSession"
         Invoke-Command -Session $psSession -ScriptBlock $g_prePSSession -ErrorAction SilentlyContinue
+        Write-LogMessage -type Verbose -MSG "Completed g_prePSSession"
     }
     return $psSession
 
