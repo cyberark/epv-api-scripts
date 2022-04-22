@@ -1556,11 +1556,7 @@ Function Test-TargetWinRM {
         [string]$server
     )
     try {
-        If ($null -ne $G_PSCredentials) {
-            Invoke-Command -ComputerName $server -ScriptBlock {$null} -ErrorAction Stop -ErrorVariable $null -Credential $G_PSCredentials | Out-Null
-        } else {
-            Invoke-Command -ComputerName $server -ScriptBlock {$null} -ErrorAction Stop -ErrorVariable $null | Out-Null
-        }   
+        New-PSLogon -server $server
         Return $true
     } catch {
         Return $false
