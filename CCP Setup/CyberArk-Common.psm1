@@ -178,12 +178,12 @@ Function Write-LogMessage {
     }
 }
 Function Join-ExceptionMessage {
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Join-ExceptionMessage
-# Description....: Formats exception messages
-# Parameters.....: Exception
-# Return Values..: Formatted String of Exception messages
-# =================================================================================================================================
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Join-ExceptionMessage
+    # Description....: Formats exception messages
+    # Parameters.....: Exception
+    # Return Values..: Formatted String of Exception messages
+    # =================================================================================================================================
     <#
 .SYNOPSIS
 	Formats exception messages
@@ -210,12 +210,12 @@ Function Join-ExceptionMessage {
     }
 }
 Function Test-CommandExists {
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Test-CommandExists
-# Description....: Tests if a command exists
-# Parameters.....: Command
-# Return Values..: True / False
-# =================================================================================================================================
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Test-CommandExists
+    # Description....: Tests if a command exists
+    # Parameters.....: Command
+    # Return Values..: True / False
+    # =================================================================================================================================
     <# 
 .SYNOPSIS 
 	Tests if a command exists
@@ -232,19 +232,19 @@ Function Test-CommandExists {
     Finally {$ErrorActionPreference=$oldPreference}
 }
 Function ConvertTo-URL($sText) {
- # @FUNCTION@ ======================================================================================================================
-# Name...........: ConvertTo-URL
-# Description....: HTTP Encode test in URL
-# Parameters.....: Text to encode
-# Return Values..: Encoded HTML URL text
-# =================================================================================================================================   <#
-.SYNOPSIS
-	HTTP Encode test in URL
-.DESCRIPTION
-	HTTP Encode test in URL
-.PARAMETER sText
-	The text to encode
-#>
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: ConvertTo-URL
+    # Description....: HTTP Encode test in URL
+    # Parameters.....: Text to encode
+    # Return Values..: Encoded HTML URL text
+    # =================================================================================================================================   <#
+    .SYNOPSIS
+    HTTP Encode test in URL
+    .DESCRIPTION
+    HTTP Encode test in URL
+    .PARAMETER sText
+    The text to encode
+    #>
     if ($sText.Trim() -ne "") {
         Write-LogMessage -type Verbose -Msg "Returning URL Encode of $sText"
         return [URI]::EscapeDataString($sText)
@@ -253,13 +253,13 @@ Function ConvertTo-URL($sText) {
     }
 }
 Function Convert-ToBool {
- # @FUNCTION@ ======================================================================================================================
-# Name...........: Convert-ToBool
-# Description....: Converts text to Bool
-# Parameters.....: Text
-# Return Values..: Boolean value of the text
-# =================================================================================================================================
-   <#
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Convert-ToBool
+    # Description....: Converts text to Bool
+    # Parameters.....: Text
+    # Return Values..: Boolean value of the text
+    # =================================================================================================================================
+    <#
 .SYNOPSIS
 	Converts text to Bool
 .DESCRIPTION
@@ -279,12 +279,12 @@ Function Convert-ToBool {
     return $retBool
 }
 Function Get-TrimmedString($sText) {
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Get-TrimmedString
-# Description....: Returns the trimmed text from a string
-# Parameters.....: Text
-# Return Values..: Trimmed text
-# =================================================================================================================================
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Get-TrimmedString
+    # Description....: Returns the trimmed text from a string
+    # Parameters.....: Text
+    # Return Values..: Trimmed text
+    # =================================================================================================================================
     <# 
 .SYNOPSIS 
 	Returns the trimmed text from a string
@@ -300,12 +300,12 @@ Function Get-TrimmedString($sText) {
     return $sText
 }
 Function Invoke-Rest {
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Invoke-Rest
-# Description....: Invoke REST Method
-# Parameters.....: Command method, URI, Header, Body
-# Return Values..: REST response
-# =================================================================================================================================
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Invoke-Rest
+    # Description....: Invoke REST Method
+    # Parameters.....: Command method, URI, Header, Body
+    # Return Values..: REST response
+    # =================================================================================================================================
     <# 
 .SYNOPSIS 
 	Invoke REST Method
@@ -398,12 +398,12 @@ Function Invoke-Logon{
     }
 }
 Function Get-LogonHeader {
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Get-LogonHeader
-# Description....: Invoke REST Method
-# Parameters.....: Credentials
-# Return Values..: Logon Header
-# =================================================================================================================================
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Get-LogonHeader
+    # Description....: Invoke REST Method
+    # Parameters.....: Credentials
+    # Return Values..: Logon Header
+    # =================================================================================================================================
     <# 
 .SYNOPSIS 
 	Get-LogonHeader
@@ -443,12 +443,12 @@ Function Get-LogonHeader {
     return $logonHeader
 }
 Function Set-DisableSSLVerify {
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Set-SSLVerify
-# Description....: Controls if SSL should be verified REST Method
-# Parameters.....: Command method, URI, Header, Body
-# Return Values..: REST response
-# =================================================================================================================================
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Set-SSLVerify
+    # Description....: Controls if SSL should be verified REST Method
+    # Parameters.....: Command method, URI, Header, Body
+    # Return Values..: REST response
+    # =================================================================================================================================
     <# 
 .SYNOPSIS 
 	Invoke REST Method
@@ -488,12 +488,12 @@ Function Set-DisableSSLVerify {
     }
 }
 Function Get-LogonTimeUnixTime {
- # @FUNCTION@ ======================================================================================================================
-# Name...........: Get-LogonTimeUnixTime
-# Description....: Translates Unix time to readable time
-# Parameters.....: Unixtime stamp
-# Return Values..: Data/Time object
-# =================================================================================================================================
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Get-LogonTimeUnixTime
+    # Description....: Translates Unix time to readable time
+    # Parameters.....: Unixtime stamp
+    # Return Values..: Data/Time object
+    # =================================================================================================================================
 
     param (
         [Parameter()]
@@ -503,12 +503,12 @@ Function Get-LogonTimeUnixTime {
     return $origin.AddSeconds($unixTime).ToLocalTime()
 }
 Function Get-FileVersion {
- # @FUNCTION@ ======================================================================================================================
-# Name...........: Get-FileVersion
-# Description....: Method to return a file version
-# Parameters.....: File Path
-# Return Values..: File version
-# =================================================================================================================================
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Get-FileVersion
+    # Description....: Method to return a file version
+    # Parameters.....: File Path
+    # Return Values..: File version
+    # =================================================================================================================================
     <#
 .SYNOPSIS
 	Method to return a file version
@@ -579,13 +579,13 @@ Function Invoke-Logoff {
 }
 
 Function Get-ServiceInstallPath {
-  # @FUNCTION@ ======================================================================================================================
-# Name...........: Get-ServiceInstallPath
-# Description....: Get the installation path of a service
-# Parameters.....: Service Name
-# Return Values..: $true
-#                  $false
-# =================================================================================================================================
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Get-ServiceInstallPath
+    # Description....: Get the installation path of a service
+    # Parameters.....: Service Name
+    # Return Values..: $true
+    #                  $false
+    # =================================================================================================================================
     <#
   .SYNOPSIS
   Get the installation path of a service
@@ -625,12 +625,12 @@ function Use-Color ($fc) {
     process { Write-Host $_ -ForegroundColor $fc }
 }
 Function Find-Components {
-# @FUNCTION@ ======================================================================================================================
-# Name...........: Find-Components
-# Description....: Detects all CyberArk Components installed on the local server
-# Parameters.....: None
-# Return Values..: Array of detected components on the local server
-# =================================================================================================================================
+    # @FUNCTION@ ======================================================================================================================
+    # Name...........: Find-Components
+    # Description....: Detects all CyberArk Components installed on the local server
+    # Parameters.....: None
+    # Return Values..: Array of detected components on the local server
+    # =================================================================================================================================
     <#
 .SYNOPSIS
 	Method to query a local server for CyberArk components
@@ -1644,11 +1644,7 @@ Function Test-TargetWinRM {
         [string]$server
     )
     try {
-        If ($null -ne $G_PSCredentials) {
-            Invoke-Command -ComputerName $server -ScriptBlock {$null} -ErrorAction Stop -ErrorVariable $null -Credential $G_PSCredentials | Out-Null
-        } else {
-            Invoke-Command -ComputerName $server -ScriptBlock {$null} -ErrorAction Stop -ErrorVariable $null | Out-Null
-        }   
+        New-PSLogon -server $server
         Return $true
     } catch {
         Return $false
