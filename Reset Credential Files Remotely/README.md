@@ -17,7 +17,7 @@
     * By default connections are made using the credentials of the user running the script
 
 ## Parameters:
-> ```powershell
+```powershell
 .\Remote-CredFile.ps1 -PVWAURL <string> [[-AuthType <string>] [-OTP <string>] [-PVWACredentials <PSCredential>] [-PSCredentials <PSCredential>] [-AllComponentTypes] [-ComponentType <string>] [-ComponentUser <string>] [-ComponentFilter <string>] [-AllServers] [-ConnectedOnly] [-DisconnectedOnly] [-MapFile <string>] [-VaultAddress <string>] [-APIAddress <string>] [-DisableSSLVerify] [-Jobs]]
 ```
 - PVWAURL
