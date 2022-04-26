@@ -15,6 +15,7 @@ Change Notes
 2021-07-29	- 	Added CreateOnUpdate and applied formatting via VSCode	
 2021-09-27	- 	Added BypassAccountSearch and BypassSafeSearch
 			Added concurrentLogon switch
+2022-04-21	-	Fixed Account update and added more logging
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -95,7 +96,8 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.11"
+
+$ScriptVersion = "2.12.1"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
@@ -1046,8 +1048,7 @@ Function Get-LogonHeader {
 	# ----------------------------------
 	If ($concurrentSession){
 		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password;concurrentSession="true"} | ConvertTo-Json -Compress
-	}
-	else {
+	} else {
 		$logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
 	}
 	If(![string]::IsNullOrEmpty($RadiusOTP)) {
@@ -1424,29 +1425,27 @@ ForEach ($account in $accountsCSV) {
 							ForEach($sProp in ($objAccount.PSObject.Properties | Where-Object { $_.Name -NotIn $s_ExcludeProperties })) {
 								Write-LogMessage -Type Verbose -MSG "Inspecting for New Property $($sProp.Name)"
 								If($sProp.Name -eq "remoteMachinesAccess") {
-									if(Test-PlatformProperty -platformId $s_Account.platformId -platformProperty "remoteMachinesAccess") {
-										ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties) {
-											Write-LogMessage -Type Verbose -MSG "Updating Account Remote Machine Access Properties $($sSubProp.Name) value to: '$($objAccount.remoteMachinesAccess.$($sSubProp.Name))'"
-											If($sSubProp.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines")) {
-												# Handle Remote Machine properties
-												$_bodyOp = "" | Select-Object "op", "path", "value"
-												if($sSubProp.Name -in("remotemachineaddresses", "remoteMachines")) {
-													$_bodyOp.path = "/remoteMachinesAccess/remoteMachines"
-												}
-												if($sSubProp.Name -in("restrictmachineaccesstolist", "accessRestrictedToRemoteMachines")) {
-													$_bodyOp.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
-												}
-												If([string]::IsNullOrEmpty($objAccount.remoteMachinesAccess.$($sSubProp.Name))) {
-													$_bodyOp.op = "remove"
-													#$_bodyOp.value = $null
-													# Remove the Value property
-													$_bodyOp = ($_bodyOp | Select-Object op, path)
-												} else {
-													$_bodyOp.op = "replace"
-													$_bodyOp.value = $objAccount.remoteMachinesAccess.$($sSubProp.Name) -join ';'
-												}
-												$s_AccountBody += $_bodyOp
+									ForEach($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties) {
+										Write-LogMessage -Type Verbose -MSG "Updating Account Remote Machine Access Properties $($sSubProp.Name) value to: '$($objAccount.remoteMachinesAccess.$($sSubProp.Name))'"
+										If($sSubProp.Name -in ("remotemachineaddresses","restrictmachineaccesstolist", "remoteMachines", "accessRestrictedToRemoteMachines")) {
+											# Handle Remote Machine properties
+											$_bodyOp = "" | Select-Object "op", "path", "value"
+											if($sSubProp.Name -in("remotemachineaddresses", "remoteMachines")) {
+												$_bodyOp.path = "/remoteMachinesAccess/remoteMachines"
 											}
+											if($sSubProp.Name -in("restrictmachineaccesstolist", "accessRestrictedToRemoteMachines")) {
+												$_bodyOp.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
+											}
+											If([string]::IsNullOrEmpty($objAccount.remoteMachinesAccess.$($sSubProp.Name))) {
+												$_bodyOp.op = "remove"
+												#$_bodyOp.value = $null
+												# Remove the Value property
+												$_bodyOp = ($_bodyOp | Select-Object op, path)
+											} else {
+												$_bodyOp.op = "replace"
+												$_bodyOp.value = $objAccount.remoteMachinesAccess.$($sSubProp.Name) -join ';'
+											}
+											$s_AccountBody += $_bodyOp
 										}
 									}
 								} ElseIf($sProp.Name -eq "platformAccountProperties") {
