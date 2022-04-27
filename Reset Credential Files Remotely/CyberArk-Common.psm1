@@ -1570,6 +1570,7 @@ function New-PSLogon {
     $psoptions = New-PSSessionOption -IncludePortInSPN
 
     Write-LogMessage -type Verbose -MSG "In New-PSLogon"
+    Try {
     If ($null -ne $G_PSCredentials) {
         $psSession = New-PSSession $server -Credential $G_PSCredentials -Authentication Negotiate -SessionOption $psoptions
     } else {   
@@ -1581,5 +1582,9 @@ function New-PSLogon {
         Invoke-Command -Session $psSession -ScriptBlock $g_prePSSession -ErrorAction SilentlyContinue
         Write-LogMessage -type Verbose -MSG "Completed g_prePSSession"
     }
-    return $psSession
+    return $psSession }
+    Catch{
+        Write-LogMessage -type Error -MSG "Catch in New-PSLogon"
+        Write-LogMessage -type Verbose -MSG "$_"
+    }
 }
