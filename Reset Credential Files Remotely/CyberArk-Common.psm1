@@ -1,7 +1,7 @@
 <# 
 ###########################################################################
 NAME: 
-    CyerArk-Common.psm1 
+    CyberArk-Common.psm1 
 AUTHOR:  
     Brian Bors <brian.bors@cyberark.com>
 COMMENT: 
