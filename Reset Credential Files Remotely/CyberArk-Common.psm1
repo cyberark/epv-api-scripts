@@ -1664,9 +1664,9 @@ Function Test-TargetWinRM {
         [Parameter()]
         [string]$server
     )
+    Write-LogMessage -type Verbose -MSG "Parameter in Test-TargetWinRM passed for `'server`' "$server
+    Write-LogMessage -type Verbose -MSG "In Test-TargetWinRM"
     try {
-        Write-LogMessage -type Verbose -MSG "Parameter in Test-TargetWinRM passed for `'server`' "$server
-        Write-LogMessage -type Verbose -MSG "In Test-TargetWinRM"
         New-PSLogon -server $server
         Write-LogMessage -type Verbose -MSG "Test-TargetWinRM Success"
         Return $true
