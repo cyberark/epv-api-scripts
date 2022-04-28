@@ -1664,7 +1664,7 @@ Function Test-TargetWinRM {
         [Parameter()]
         [string]$server
     )
-    Write-LogMessage -type Verbose -MSG "Parameter in Test-TargetWinRM passed for `'server`' "$server
+    Write-LogMessage -type Verbose -MSG "Parameter in Test-TargetWinRM passed for `'server`' $server"
     Write-LogMessage -type Verbose -MSG "In Test-TargetWinRM"
     try {
         New-PSLogon -server $server
@@ -1683,7 +1683,7 @@ function New-PSLogon {
     )
     $psoptions = New-PSSessionOption -IncludePortInSPN
 
-    Write-LogMessage -type Verbose -MSG "Parameter in New-PSLogon passed for `'server`' "$server
+    Write-LogMessage -type Verbose -MSG "Parameter in New-PSLogon passed for `'server`' $server"
     Write-LogMessage -type Verbose -MSG "In New-PSLogon"
     Try {
         If ($null -ne $G_PSCredentials) {
