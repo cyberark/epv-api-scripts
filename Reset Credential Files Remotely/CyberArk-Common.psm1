@@ -1661,7 +1661,7 @@ Function Get-ComponentDetails {
 }
 Function Test-TargetWinRM {
     param (
-        [Parameter()]
+        [Parameter(Mandatory=$true)]
         [string]$server
     )
     Write-LogMessage -type Verbose -MSG "Parameter in Test-TargetWinRM passed for `'server`' $server"
@@ -1678,7 +1678,7 @@ Function Test-TargetWinRM {
 }
 function New-PSLogon {
     param (
-        [Parameter()]
+        [Parameter(Mandatory=$true)]
         [string]$server
     )
     $psoptions = New-PSSessionOption -IncludePortInSPN
@@ -1687,7 +1687,7 @@ function New-PSLogon {
     Write-LogMessage -type Verbose -MSG "In New-PSLogon"
     Try {
         If ($null -ne $G_PSCredentials) {
-            Write-LogMessage -type Verbose -MSG "Parameter passed for `'G_PSCredentials`' "$G_PSCredentials
+            Write-LogMessage -type Verbose -MSG "Parameter passed for `'G_PSCredentials`' $G_PSCredentials"
             $psSession = New-PSSession $server -Credential $G_PSCredentials -Authentication Negotiate -SessionOption $psoptions
         }
         else {   
