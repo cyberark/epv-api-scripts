@@ -1,17 +1,17 @@
 <# 
-Fix Version 1.1
+Fix Version 1.3
 ###########################################################################
 NAME: 
-    CyberArk-Common.psm1 
+CyberArk-Common.psm1 
 AUTHOR:  
-    Brian Bors <brian.bors@cyberark.com>
+Brian Bors <brian.bors@cyberark.com>
 COMMENT: 
-    Module used by other CyberArk scripts
+Module used by other CyberArk scripts
 Version: 
-    0.1
+0.1
 Change Log:
-    2020-09-13 
-        Initial Version
+2020-09-13 
+Initial Version
 ########################################################################### 
 #>
 
@@ -74,7 +74,7 @@ if ($InVerbose) {
     $VerbosePreference = "continue"
 }
 
-Write-Verbose  "Version of CyberArk-Common.psm1 : Fix branch v1.0"
+Write-Verbose "Version of CyberArk-Common.psm1 : Fix branch v1.3"
 
 #endregion
 
@@ -92,22 +92,22 @@ Function Write-LogMessage {
 
     <# 
 .SYNOPSIS 
-	Method to log a message on screen and in a log file
+Method to log a message on screen and in a log file
 .DESCRIPTION
-	Logging The input Message to the Screen and the Log File. 
-	The Message Type is presented in colours on the screen based on the type
+Logging The input Message to the Screen and the Log File. 
+The Message Type is presented in colours on the screen based on the type
 .PARAMETER LogFile
-	The Log File to write to. By default using the LOG_FILE_PATH
+The Log File to write to. By default using the LOG_FILE_PATH
 .PARAMETER MSG
-	The message to log
+The message to log
 .PARAMETER Header
-	Adding a header line before the message
+Adding a header line before the message
 .PARAMETER SubHeader
-	Adding a Sub header line before the message
+Adding a Sub header line before the message
 .PARAMETER Footer
-	Adding a footer line after the message
+Adding a footer line after the message
 .PARAMETER Type
-	The type of the message to log (Info, Warning, Error, Debug)
+The type of the message to log (Info, Warning, Error, Debug)
 #>
     param(
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
@@ -145,13 +145,13 @@ Function Write-LogMessage {
             "------------------------------------" | Out-File -Append -FilePath $LogFile 
             Write-Host "------------------------------------" -ForegroundColor Magenta
         }
-		
+
         # Replace empty message with 'N/A'
         if ([string]::IsNullOrEmpty($Msg)) {
             $Msg = "N/A" 
         }
         $msgToWrite = ""
-		
+
         # Mask Passwords
         if ($Msg -match '((?:password|credentials|secret)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w`~!@#$%^&*()-_\=\+\\\/|;:\.,\[\]{}]+))') {
             $Msg = $Msg.Replace($Matches[2], "****")
@@ -226,11 +226,11 @@ Function Join-ExceptionMessage {
 
     <#
 .SYNOPSIS
-	Formats exception messages
+Formats exception messages
 .DESCRIPTION
-	Formats exception messages
+Formats exception messages
 .PARAMETER Exception
-	The Exception object to format
+The Exception object to format
 #>
     param(
         [Exception]$e
@@ -261,11 +261,11 @@ Function Test-CommandExists {
     # =================================================================================================================================
     <# 
 .SYNOPSIS 
-	Tests if a command exists
+Tests if a command exists
 .DESCRIPTION
-	Tests if a command exists
+Tests if a command exists
 .PARAMETER Command
-	The command to test
+The command to test
 #>
     Param ($command)
     $oldPreference = $ErrorActionPreference
@@ -293,11 +293,11 @@ Function ConvertTo-URL($sText) {
 
     <#
 .SYNOPSIS
-	HTTP Encode test in URL
+HTTP Encode test in URL
 .DESCRIPTION
-	HTTP Encode test in URL
+HTTP Encode test in URL
 .PARAMETER sText
-	The text to encode
+The text to encode
 #>
     if ($sText.Trim() -ne "") {
         Write-LogMessage -type Verbose -Msg "Returning URL Encode of $sText"
@@ -317,17 +317,17 @@ Function Convert-ToBool {
     # =================================================================================================================================
     <#
 .SYNOPSIS
-	Converts text to Bool
+Converts text to Bool
 .DESCRIPTION
-	Converts text to Bool
+Converts text to Bool
 .PARAMETER txt
-	The text to convert to bool (True / False)
+The text to convert to bool (True / False)
 #>
     param (
         [string]$txt
     )
     $retBool = $false
-	
+
     if ($txt -match "^y$|^yes$") {
         $retBool = $true 
     }
@@ -337,7 +337,7 @@ Function Convert-ToBool {
     else {
         [bool]::TryParse($txt, [ref]$retBool) | Out-Null 
     }
-    
+
     return $retBool
 }
 
@@ -350,11 +350,11 @@ Function Get-TrimmedString($sText) {
     # =================================================================================================================================
     <# 
 .SYNOPSIS 
-	Returns the trimmed text from a string
+Returns the trimmed text from a string
 .DESCRIPTION
-	Returns the trimmed text from a string
+Returns the trimmed text from a string
 .PARAMETER txt
-	The text to handle
+The text to handle
 #>
     if ($null -ne $sText) {
         return $sText.Trim()
@@ -373,19 +373,19 @@ Function Invoke-Rest {
 
     <# 
 .SYNOPSIS 
-	Invoke REST Method
+Invoke REST Method
 .DESCRIPTION
-	Invoke REST Method
+Invoke REST Method
 .PARAMETER Command
-	The REST Command method to run (GET, POST, PATCH, DELETE)
+The REST Command method to run (GET, POST, PATCH, DELETE)
 .PARAMETER URI
-	The URI to use as REST API
+The URI to use as REST API
 .PARAMETER Header
-	The Header as Dictionary object
+The Header as Dictionary object
 .PARAMETER Body
-	(Optional) The REST Body
+(Optional) The REST Body
 .PARAMETER ErrAction
-	(Optional) The Error Action to perform in case of error. By default "Continue"
+(Optional) The Error Action to perform in case of error. By default "Continue"
 #>
     param (
         [Parameter(Mandatory = $true)]
@@ -402,7 +402,7 @@ Function Invoke-Rest {
         [ValidateSet("Continue", "Ignore", "Inquire", "SilentlyContinue", "Stop", "Suspend")]
         [String]$ErrAction = "Continue"
     )
-	
+
     If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
         Throw "This script requires PowerShell version 3 or above"
     }
@@ -495,11 +495,11 @@ Function Get-LogonHeader {
     # =================================================================================================================================
     <# 
 .SYNOPSIS 
-	Get-LogonHeader
+Get-LogonHeader
 .DESCRIPTION
-	Get-LogonHeader
+Get-LogonHeader
 .PARAMETER Credentials
-	The REST API Credentials to authenticate
+The REST API Credentials to authenticate
 #>
     param(
         [Parameter(Mandatory = $true)]
@@ -526,7 +526,7 @@ Function Get-LogonHeader {
     If ([string]::IsNullOrEmpty($logonToken)) {
         Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
     }
-	
+
     # Create a Logon Token Header (This will be used through out all the script)
     # ---------------------------
     $logonHeader = @{Authorization = $logonToken }
@@ -543,13 +543,13 @@ Function Set-DisableSSLVerify {
 
     <# 
 .SYNOPSIS 
-	Invoke REST Method
+Invoke REST Method
 .DESCRIPTION
-	Controls if SSL should be verified REST Method
+Controls if SSL should be verified REST Method
 .PARAMETER DisableSSLVerify
-	Boolean to determine if SSL should be verified
+Boolean to determine if SSL should be verified
 .PARAMETER ErrAction
-	(Optional) The Error Action to perform in case of error. By default "Continue"
+(Optional) The Error Action to perform in case of error. By default "Continue"
 #>
 
     [Parameter(Mandatory = $true)]
@@ -609,12 +609,12 @@ Function Get-FileVersion {
 
     <#
 .SYNOPSIS
-	Method to return a file version
+Method to return a file version
 .DESCRIPTION
-	Returns the File version and Build number
-	Returns Null if not found
+Returns the File version and Build number
+Returns Null if not found
 .PARAMETER FilePath
-	The path to the file to query
+The path to the file to query
 #>
     param ($filePath)
     Begin {
@@ -665,7 +665,7 @@ function Import-ModuleRemotely([string] $moduleName, [System.Management.Automati
     $moduleString = @"
 if (get-module $moduleName)
 {
-    remove-module $moduleName;
+remove-module $moduleName;
 }
 New-Module -name $moduleName {
 $($localModule.Definition)
@@ -689,15 +689,15 @@ Function Get-ServiceInstallPath {
     # =================================================================================================================================
     # Save the Services List
     <#
-  .SYNOPSIS
-  Get the installation path of a service
-  .DESCRIPTION
-  The function receive the service name and return the path or returns NULL if not found
-  .EXAMPLE
-  (Get-ServiceInstallPath $<ServiceName>) -ne $NULL
-  .PARAMETER ServiceName
-  The service name to query. Just one.
- #>
+.SYNOPSIS
+Get the installation path of a service
+.DESCRIPTION
+The function receive the service name and return the path or returns NULL if not found
+.EXAMPLE
+(Get-ServiceInstallPath $<ServiceName>) -ne $NULL
+.PARAMETER ServiceName
+The service name to query. Just one.
+#>
     param ($ServiceName)
     Begin {
 
@@ -733,9 +733,9 @@ Function Find-WinComponents {
     # =================================================================================================================================
     <#
 .SYNOPSIS
-	Method to query a local server for CyberArk components
+Method to query a local server for CyberArk components
 .DESCRIPTION
-	Detects all CyberArk Components installed on the local server
+Detects all CyberArk Components installed on the local server
 #>
     param(
         [Parameter(Mandatory = $false)]
@@ -967,11 +967,11 @@ function Stop-ComponentService {
 Function Set-UserPassword {
     <# 
 .SYNOPSIS 
-	Get-LogonHeader
+Get-LogonHeader
 .DESCRIPTION
-	Get-LogonHeader
+Get-LogonHeader
 .PARAMETER Credentials
-	The REST API Credentials to authenticate
+The REST API Credentials to authenticate
 #>
     param(
         [Parameter(Mandatory = $true)]
@@ -992,7 +992,7 @@ Function Set-UserPassword {
                     try {       
                         $userFound = $true
                         $accountID = $account.id
-                        
+
                         $bodyActivate = @{id = $accountID } | ConvertTo-Json -Depth 3 -Compress
                         $urlActivate = $Script:URL_Activate -f $accountID
                         $null = Invoke-Rest -Uri $urlActivate -Header $g_LogonHeader -Command "Post" -Body $bodyActivate
@@ -1037,7 +1037,7 @@ Function New-RandomPassword {
         # Lowercase, Type switch, Use lowercase characters.
         [Parameter(Mandatory = $false)]
         [switch]$Lowercase = $false,
-        
+
         # Uppercase, Type switch, Use uppercase characters.
         [Parameter(Mandatory = $false)]
         [switch]$Uppercase = $false,
@@ -1068,7 +1068,7 @@ Function New-RandomPassword {
         $charsSymbol = 33, 35, 37, 42, 43, 44, 45, 46, 95 | ForEach-Object { [Char] $_ }
 
         Write-LogMessage -type Verbose -MSG "The following symbols may be selected $charSymbol"
-        
+
     }
     Process {
         # Contains the array of characters to use.
@@ -1092,13 +1092,13 @@ Function New-RandomPassword {
         }
 
         <#
-        .SYNOPSIS
-            Test string for existence specified character.
-        .DESCRIPTION
-            examine each character of a string to determine if it contains a specified characters
-        .EXAMPLE
-            Test-StringContents in string
-        #>
+.SYNOPSIS
+Test string for existence specified character.
+.DESCRIPTION
+examine each character of a string to determine if it contains a specified characters
+.EXAMPLE
+Test-StringContents in string
+#>
         function Test-StringContents([String] $test, [Char[]] $chars) {
             foreach ($char in $test.ToCharArray()) {
                 if ($chars -ccontains $char) {
@@ -1161,13 +1161,13 @@ Function Convert-SecureString {
 }
 Function Stop-ServiceProcess {
     [CmdletBinding()]
-    
+
     Param
     (
         [Parameter(Mandatory = $True, ValuefromPipeline = $True)]
         [string[]]$name
     )
-    
+
     Process {
         $name
         $id = Get-WmiObject -Class Win32_Service -Filter "Name LIKE '$name'" | Select-Object -ExpandProperty ProcessId
@@ -1196,7 +1196,7 @@ function Reset-Credentials {
 
     $checkPVWA = $PVWAURL.replace("\", "/").replace("https://", "").Split("/").ToLower()
     If ($checkPVWA[0] -eq $server.ToLower()) {
-        Write-LogMessage -type Error -MSG "Unable to reset PVWA credentials on $server because it is being used by script" -Footer
+        Write-LogMessage -type Warning -MSG "Unable to reset PVWA credentials on $server because it is being used by script" -Footer
         continue
     }
     IF ("Windows" -eq $os) {
@@ -1311,7 +1311,7 @@ function Reset-WinCredFile {
         "PVWA" {
             $CompFiles += @(
                 @{
-                
+
                     type              = "PVWA"
                     createCredDir     = "\Env"
                     credFilesDir      = "..\CredFiles\"
@@ -1359,7 +1359,7 @@ function Reset-WinCredFile {
         Invoke-Command -Session $session -ScriptBlock { Rename-Item "$($args[2])\$($args[0])" -NewName "$($args[0]).$($args[1])" -Force } -ArgumentList $file, $tag, $dir
         Invoke-Command -Session $session -ScriptBlock { Rename-Item "$($args[2])\$($args[0]).entropy" -NewName "$($args[0]).entropy.$($args[1])" -Force -ErrorAction SilentlyContinue } -ArgumentList $file, $tag, $dir
         Write-LogMessage -type Verbose -MSG "Backed up $component credential files"
-    
+
         $command = $comp.CreateCredCommand -f $userItem, $(Convert-SecureString($tempPassword))
 
         Invoke-Command -Session $session -ScriptBlock { Invoke-Expression $args[0]; } -ArgumentList $command -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
@@ -1375,7 +1375,7 @@ function Reset-WinCredFile {
             Invoke-Command -Session $session -ScriptBlock { Remove-Item "$($args[2])\$($args[0]).$($args[1])" -Force } -ArgumentList $file, $tag, $dir
             Invoke-Command -Session $session -ScriptBlock { Remove-Item "$($args[2])\$($args[0]).entropy.$($args[1])" -Force -ErrorAction SilentlyContinue } -ArgumentList $file, $tag, $dir
         }
-    
+
         Write-LogMessage -type Verbose -MSG "CreateCredFile on $componentName $file successful"
         Write-LogMessage -type Verbose -MSG "Updating $componentName via RESTAPI"
         Set-UserPassword -username $userItem -Password $tempPassword
@@ -1383,7 +1383,7 @@ function Reset-WinCredFile {
         Write-LogMessage -type Success -MSG "Update of user $useritem on $server completed successfully"
     }
 
-    
+
 }
 function Reset-VaultFile {
 
@@ -1398,7 +1398,7 @@ function Reset-VaultFile {
         $vaultAddress,
         [Parameter(Mandatory = $false)]
         $apiAddress
-        
+
     )
     $installLocation = $compInfo.path
     $component = $compInfo.name
@@ -1435,7 +1435,7 @@ function Reset-VaultFile {
         "PVWA" {
             $CompFiles += @(
                 @{
-                
+
                     type          = "PVWA"
                     vaultdir      = "VaultInfo"
                     componentName = "PVWA"
@@ -1492,7 +1492,7 @@ function Reset-VaultFile {
             }
             Write-LogMessage -type Success -MSG "Update of vault API in vault.ini on $componentName completed successfully"
         }
-       
+
     }
 }
 function Reset-WinComponent {
@@ -1530,16 +1530,16 @@ function Reset-WinComponent {
                     Write-LogMessage -type Verbose -MSG "Error Message is $($error)"     
                     Write-LogMessage -type Verbose -MSG "Error Message is $_" 
                     Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a Windows server and winRM has been enabled."             
-                            
+    
                     break
                 }
                 Write-LogMessage -type Verbose -MSG "Connected to $Server. Importing required modules"
-                
+
                 Import-ModuleRemotely -moduleName CyberArk-Common -session $Session
                 Write-LogMessage -type Verbose -MSG "Modules imported. Getting information about the installed components"
-                
+
                 $compInfo = Get-ComponentInfo -Server $Server -ComponentType $component -Session $Session          
-                
+
                 $installLocation = $compInfo.path
                 [version]$version = $compInfo.Version
                 Write-LogMessage -type Verbose -MSG "Retrived Component Information"
@@ -1558,7 +1558,7 @@ function Reset-WinComponent {
                 $complete = Start-ComponentService -services $services -session $session -server $server
 
                 $attempts += 1
-		
+
                 if ($attempts -gt 5) {
                     $failed = $true;
                     Write-LogMessage -type Error -MSG "Failed on $server" 
@@ -1577,7 +1577,6 @@ function Reset-WinComponent {
         }
         catch {
             Write-LogMessage -type Error -MSG "Error during update of $componentName on $server" -Footer
-            Throw $_
         }
         Finally {
             Write-LogMessage -type Verbose -MSG "Disconnecting from $server"  
@@ -1597,7 +1596,7 @@ function Get-ComponentInfo {
     )
     $newSession = $false
     try {
-		
+
         if ($Session.State -ne "Opened") {
             $newSession = $true
             $Session = New-PSLogon $server
@@ -1653,7 +1652,7 @@ Function Get-ComponentDetails {
         $restResponse = $(Invoke-Rest -Uri $URLHealthDetails -Header $g_LogonHeader -Command "Get")
 
         $selection = $restResponse.ComponentsDetails | Select-Object @{Name = "Component Type"; Expression = { $component } }, @{Name = "Component Version"; Expression = { $_.ComponentVersion } }, @{Name = "IP Address"; Expression = { $_.'ComponentIP' } }, @{Name = "Component User"; Expression = { $_.'ComponentUserName' } }, @{Name = "Connected"; Expression = { $_.'IsLoggedOn' } }, @{Name = "Last Connection"; Expression = { Get-LogonTimeUnixTime $_.'LastLogonDate' } } | Sort-Object -Property "IP Address" 
-		
+
         Return $selection
     }
     Catch {
@@ -1662,10 +1661,10 @@ Function Get-ComponentDetails {
 }
 Function Test-TargetWinRM {
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$server
     )
-    Write-LogMessage -type Verbose -MSG "Parameter in Test-TargetWinRM passed for `'server`' $server"
+    Write-LogMessage -type Verbose -MSG "Parameter in Test-TargetWinRM passed for `'server`' is : $server"
     Write-LogMessage -type Verbose -MSG "In Test-TargetWinRM"
     try {
         New-PSLogon -server $server
@@ -1679,21 +1678,25 @@ Function Test-TargetWinRM {
 }
 function New-PSLogon {
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$server
     )
-    $psoptions = New-PSSessionOption -IncludePortInSPN
+    $psoptions = New-PSSessionOption -IncludePortInSPN -MaxConnectionRetryCount 2 
 
-    Write-LogMessage -type Verbose -MSG "Parameter in New-PSLogon passed for `'server`' $server"
+    Write-LogMessage -type Verbose -MSG "Parameter in New-PSLogon passed for `'server`' is : $server"
     Write-LogMessage -type Verbose -MSG "In New-PSLogon"
     Try {
         If ($null -ne $G_PSCredentials) {
-            Write-LogMessage -type Verbose -MSG "Parameter passed for `'G_PSCredentials`' $G_PSCredentials"
-            $psSession = New-PSSession $server -Credential $G_PSCredentials -Authentication Negotiate -SessionOption $psoptions
+            Write-LogMessage -type Verbose -MSG "Parameter passed for `'G_PSCredentials`' $($G_PSCredentials.username)"
+            $psSession = New-PSSession $server -Credential $G_PSCredentials -Authentication Negotiate -SessionOption $psoptions -ErrorAction SilentlyContinue
         }
         else {   
             Write-LogMessage -type Verbose -MSG "Parameter passed for `'G_PSCredentials`' is null"
-            $psSession = New-PSSession $server -SessionOption $psoptions -Authentication Negotiate
+            $psSession = New-PSSession $server -SessionOption $psoptions -Authentication Negotiate -ErrorAction SilentlyContinue
+        }
+        if ([string]::IsNullOrEmpty($psSession)){
+            Write-LogMessage -type Error -MSG "Error creating PSSession to $server"
+            Throw "No PSSession"
         }
         Write-LogMessage -type Verbose -MSG "Retrived Session"
         IF (![string]::IsNullOrEmpty($g_prePSSession)) {
@@ -1704,7 +1707,8 @@ function New-PSLogon {
         return $psSession 
     }
     Catch {
-        Write-LogMessage -type Error -MSG "Catch in New-PSLogon"
+        Write-LogMessage -type Verbose -MSG "Catch in New-PSLogon"
         Write-LogMessage -type Verbose -MSG "$_"
+        Throw "No PSSession"
     }
 }

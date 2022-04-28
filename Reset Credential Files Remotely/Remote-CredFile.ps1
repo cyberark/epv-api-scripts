@@ -1,24 +1,24 @@
 <# 
 ###########################################################################
-Fix Version 1.0
+Fix Version 1.3
 NAME: 
-    Reset Remote Cred File 
+Reset Remote Cred File 
 
 AUTHOR:  
-    Brian Bors <brian.bors@cyberark.com>
-    Assaf Miron<assaf.miron@cyberark.com>
+Brian Bors <brian.bors@cyberark.com>
+Assaf Miron<assaf.miron@cyberark.com>
 
 COMMENT: 
-    Script will attempt to regenerate the remote Applicative Cred File and Sync it in the Vault.
+Script will attempt to regenerate the remote Applicative Cred File and Sync it in the Vault.
 
 Version: 
-    0.2
+0.2
 
 Change Log:
-    2020-09-13 
-        Initial Version    
-    2022-04-01
-        Updated to allow vault address reset
+2020-09-13 
+Initial Version    
+2022-04-01
+Updated to allow vault address reset
 ########################################################################### 
 #>
 
@@ -28,11 +28,11 @@ param(
 	#[ValidateScript({Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30})]
 	[Alias("url")]
 	[String]$PVWAURL,
-	
+
 	[Parameter(Mandatory = $false, HelpMessage = "Enter the Authentication type (Default:CyberArk)")]
 	[ValidateSet("cyberark", "ldap", "radius")]
 	[String]$AuthType = "cyberark",
-	
+
 	[Parameter(Mandatory = $false, HelpMessage = "Enter the RADIUS OTP")]
 	[ValidateScript({ $AuthType -eq "radius" })]
 	[String]$OTP,
@@ -68,7 +68,7 @@ param(
 
 	[Parameter(Mandatory = $false, HelpMessage = "Target Component Users")]
 	[String]$ComponentUsers,
-	
+
 	[Parameter(Mandatory = $false, HelpMessage = "Target Component Users via filter")]
 	[String]$ComponentUserFilter,
 
@@ -136,7 +136,7 @@ If ($DisableSSLVerify) {
 		# Disable SSL Verification
 		[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
 	}
- catch {
+	catch {
 		Write-LogMessage -Type Error -MSG "Could not change SSL validation"
 		Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 		return
@@ -147,7 +147,7 @@ Else {
 		Write-LogMessage -Type Debug -MSG "Setting script to use TLS 1.2"
 		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 	}
- catch {
+	catch {
 		Write-LogMessage -Type Error -MSG "Could not change SSL settings to use TLS 1.2"
 		Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 	}
@@ -163,18 +163,18 @@ If (![string]::IsNullOrEmpty($PVWAURL)) {
 		Write-LogMessage -Type Debug -MSG "Trying to validate URL: $PVWAURL"
 		Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $PVWAURL -Method 'Head' -TimeoutSec 30 | Out-Null
 	}
- catch [System.Net.WebException] {
+	catch [System.Net.WebException] {
 		If (![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__)) {
 			Write-LogMessage -Type Error -MSG "Received error $($_.Exception.Response.StatusCode.Value__) when trying to validate PVWA URL"
 			Write-LogMessage -Type Error -MSG "Check your connection to PVWA and the PVWA URL"
 			return
 		}
 	}
- catch {		
+	catch {		
 		Write-LogMessage -Type Error -MSG "PVWA URL could not be validated"
 		Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 	}
-	
+
 }
 else {
 	Write-LogMessage -Type Error -MSG "PVWA URL can not be empty"
@@ -213,7 +213,7 @@ ForEach ($comp in $selectedComponents) {
 	if ($comp.'Total Amount' -gt 0) {
 		If ($PVWAURL.Contains("privilegecloud.cyberark.com") -and ("PVWA" -eq $comp.'Component Type')) {
 			continue
-  }
+		}
 		$results = Get-ComponentDetails $comp.'Component Type'
 		ForEach ($result in $results) {
 			$user = ($result.'Component User')
@@ -249,11 +249,11 @@ ForEach ($comp in $selectedComponents) {
 			}
 			If ("255.255.255.255" -eq $result.'IP Address') {
 				continue
-   }
+			}
 			$availableServers += $result	
 		}
 	}
- else {
+	else {
 		Write-LogMessage -type Error -MSG "No $($comp.'Component Type') Components Found"
 	}
 }
@@ -281,82 +281,139 @@ else {
 }
 
 Write-LogMessage -Type Verbose -MSG "Processing Lists"
-Write-LogMessage -Type info -MSG "$($targetComponents.count) components selected for processing" -Footer
+Write-LogMessage -Type info -MSG "$($targetComponents.count) components selected for processing" -Footer -Header
 
 Get-Job | Remove-Job -Force
+$FailureList = @()
 foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 
-	$fqdn = (Resolve-DnsName $target.'IP Address' -ErrorAction SilentlyContinue).namehost
-	If ([string]::IsNullOrEmpty($fqdn)) {
-		$fqdn = $target.'IP Address'
-	}
-	if ((![string]::IsNullOrEmpty($oldDomain)) -and (![string]::IsNullOrEmpty($newDomain)) ) {
-		$fqdn = $fqdn.replace($oldDomain, $newDomain)
-	}
-	If ("Windows" -eq $target.os) {
-		If (!(Test-TargetWinRM -server $fqdn )) {
-			Write-LogMessage -Type Error -MSG "Error connecting to WinRM for Component User $($target.'Component User') on $($target.'IP Address') $fqdn" -Footer
-			continue
-		}
-	}
- elseif ("Linux" -eq $target.os) {
-		Write-LogMessage -type Error -msg "Unable to reset credentials on linux based servers at this time. Manual reset required for Component User $($target.'Component User') on $($target.'IP Address') $fqdn" -Footer
-		break
-	}
-
 	if (!$jobs) {
-		Try {
-			Reset-Credentials -ComponentType $target.'Component Type' -Server $fqdn -OS $target.os -vault $vaultAddress -apiAddress $apiAddress
+		$failed = $false
+		$fqdn = (Resolve-DnsName $target.'IP Address' -ErrorAction SilentlyContinue).namehost
+		If ([string]::IsNullOrEmpty($fqdn)) {
+			$fqdn = $target.'IP Address'
 		}
+		if ((![string]::IsNullOrEmpty($oldDomain)) -and (![string]::IsNullOrEmpty($newDomain)) ) {
+			$fqdn = $fqdn.replace($oldDomain, $newDomain)
+		}
+		Try {
+			If ("Windows" -eq $target.os) {
+				If (!(Test-TargetWinRM -server $fqdn )) {
+					Write-LogMessage -Type Error -MSG "Error connecting to WinRM for Component User $($target.'Component User') on $fqdn" -Footer
+					$failed = $true
+				}
+			}
+			elseif ("Linux" -eq $target.os) {
+				Write-LogMessage -type Error -msg "Unable to reset credentials on linux based servers at this time. Manual reset required for Component User $($target.'Component User') on $fqdn" -Footer
+				$failed = $true
+			}
+
+			if ($failed) {
+				$FailureList += $target
+			}
+			else {
+				Reset-Credentials -ComponentType $target.'Component Type' -Server $fqdn -OS $target.os -vault $vaultAddress -apiAddress $apiAddress
+			}
+  }
 		Catch {
 			""
 		}
-
 	}
- else {
+	else {
 		$type = $target.'Component Type'
 		$os = $target.os
-		Write-LogMessage -Type Info -MSG "Creating Job for $Type on $fqdn"
-		Start-Job -Name "$($type.Replace("AAM Credential Provider","CP")) on $fqdn" -ScriptBlock { $Script:PVWAURL = $using:PVWAURL; $Script:g_LogonHeader = $using:g_LogonHeader; $script:G_PSCredentials = $using:G_PSCredentials; Import-Module -Name $using:ScriptLocation\CyberArk-Common.psm1 -Force; Reset-Credentials -ComponentType $using:type -Server $using:fqdn -os $using:os -vault $using:vaultAddress -apiAddress $using:apiAddress } -InitializationScript { Set-Location $PSScriptRoot; } | Out-Null
+		$ipAddress = $target.'IP Address'
+		Write-LogMessage -Type Info -MSG "Creating Job for $Type on $ipAddress"
+		Start-Job -Name "$($type.Replace("AAM Credential Provider","CP")) on $ipAddress" -ScriptBlock { 
+			Try {
+				$Script:PVWAURL = $using:PVWAURL; 
+				$Script:g_LogonHeader = $using:g_LogonHeader; 
+				$script:G_PSCredentials = $using:G_PSCredentials; 
+				Import-Module -Name $using:ScriptLocation\CyberArk-Common.psm1 -Force;
+				$fqdn = (Resolve-DnsName $using:target.'IP Address' -ErrorAction SilentlyContinue).namehost
+				If ([string]::IsNullOrEmpty($fqdn)) {
+					$fqdn = $using:target.'IP Address'
+				}
+				if ((![string]::IsNullOrEmpty($using:oldDomain)) -and (![string]::IsNullOrEmpty($using:newDomain)) ) {
+					$fqdn = $fqdn.replace($using:oldDomain, $using:newDomain)
+				}
+				If ("Windows" -eq $using:target.os) {
+					If (!(Test-TargetWinRM -server $fqdn )) {
+						Write-LogMessage -Type Error -MSG "Error connecting to WinRM for Component User $($using:target.'Component User') on $fqdn" -Footer
+						Throw "the job has failed"
+					}
+				}
+				elseif ("Linux" -eq $using:target.os) {
+					Write-LogMessage -Type Error -msg "Unable to reset credentials on linux based servers at this time. Manual reset required for Component User $($using:target.'Component User') on $fqdn" -Footer
+					Throw "the job has failed"
+				}
+				Reset-Credentials -ComponentType $using:type -Server $fqdn -os $using:os -vault $using:vaultAddress -apiAddress $using:apiAddress 
+			}
+			Catch {
+				Write-LogMessage -Type Error -MSG "Error in job for $using:Type on $fqdn" -Footer
+				Throw  "Error in job for $using:Type on $fqdn"
+			}
+		} -InitializationScript { Set-Location $PSScriptRoot; } | Out-Null
 		$jobsRunning = $true
 	}
 
 }
+IF ($jobs) {
+	Write-LogMessage -Type info -MSG "$($targetComponents.count) jobs submitted for processing" -Footer -Header
+	Start-Sleep -Seconds 1
+	$stat = 0
+	While ($jobsRunning) {
+		$running = @(Get-Job | Where-Object { $_.State -eq 'Running' })
+		$failed = @(Get-Job | Where-Object { $_.State -eq 'Failed' })
+		if ($stat -ge 100) {
+			$stat = 0
+		}
+		Else {
+			$stat += 1
+		}
 
-Start-Sleep -Seconds 1
-$stat = 0
-While ($jobsRunning) {
-	$running = @(Get-Job | Where-Object { $_.State -eq 'Running' })
-	$failed = @(Get-Job | Where-Object { $_.State -eq 'Failed' })
-	if ($stat -ge 100) {
-		$stat = 0
- }
- Else {
-		$stat += 1
- }
+		if ($running.Count -eq 0) {
+			$jobsRunning = $false
+		}
+		elseif ($running.Count -eq 1 -and $failed.Count -eq 0) {
+			$Activity = "$($running.count) job is still running" 
+		}
+		elseif ($running.Count -gt 1 -and $failed.Count -eq 0) {	
+			$Activity = "$($running.count) jobs are still running" 
+		}
+		elseif ($failed.count -eq 1) {
+			$Activity = "$($failed.count) job is in a failed state and $($running.count) job(s) are still running. Review logs once completed"
+		}
+		elseif ($failed.count -gt 1) {
+			$Activity = "$($failed.count) jobs are in a failed state and $($running.count) job(s) are still running. Review logs once completed"
+		}
+		If ($jobsRunning) {
+			Write-Progress -Id 1 -Activity $Activity -CurrentOperation "$($running.Name)"  
+		}
 
-	if ($running.Count -eq 0) {
-		$jobsRunning = $false
 	}
- elseif ($running.Count -eq 1 -and $failed.Count -eq 0) {
-		Write-Progress -Id 1 -Activity "$($running.count) job is still running" -CurrentOperation "$($running.Name)"  
-	}
- elseif ($running.Count -gt 1 -and $failed.Count -eq 0) {	
-		Write-Progress -Id 1 -Activity "$($running.count) jobs are still running" -CurrentOperation "$($running.Name)"
-	}
- elseif ($failed.count -eq 1) {
-		Write-Progress -Id 1 -Activity "$($failed.count) job is in a failed state and $($running.count) job(s) are still running. Review logs once completed" -CurrentOperation "$($running.Name)"
-	}
- elseif ($failed.count -gt 1) {
-		Write-Progress -Id 1 -Activity "$($failed.count) jobs are in a failed state and $($running.count) job(s) are still running. Review logs once completed" -CurrentOperation "$($running.Name)"
-	}
-}
-		
-if ($jobs) {
-	Get-Job | Receive-Job -Keep
+	Write-Progress -Id 1 -Activity $Activity -CurrentOperation "$($running.Name)" -Completed
+
+	#Get-Job | Receive-Job -Keep
 	Remove-Job -State Completed
-	"All Jobs Completed"
-	Get-Job -State Failed | Receive-Job -Keep
+	Write-LogMessage -type Info -msg "All Jobs Completed" -Header -Footer
+	$errorJobs = Get-Job -State Failed
+	If (![string]::IsNullOrEmpty($errorJobs)) {
+		Foreach ($job in $errorJobs) {
+			Write-LogMessage -type Error "$($job.name) Log Start" -Header
+			$child = $job.childjobs.information
+			ForEach ($line in $child) {
+				Write-LogMessage -type Error $line
+			}
+			Write-LogMessage -type Error -msg "$($job.name) Log End" -Footer 
+		}
+	}	
+}
+Else {
+	If (![string]::IsNullOrEmpty($FailureList)) {
+		Write-Host "Error on the following $($FailureList.count) components" -ForegroundColor Red
+		$FailureList | Select-Object -Property 'IP Address', 'Component Type', 'Component User' | Sort-Object 'IP Address', 'Component Type', 'Component User' | Format-Table -AutoSize
+	}  
 }
 #region [Logoff]
 # Logoff the session
