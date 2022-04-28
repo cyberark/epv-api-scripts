@@ -1665,10 +1665,13 @@ Function Test-TargetWinRM {
         [string]$server
     )
     try {
+        Write-LogMessage -type Verbose -MSG "In Test-TargetWinRM"
         New-PSLogon -server $server
+        Write-LogMessage -type Verbose -MSG "Test-TargetWinRM Success"
         Return $true
     }
     catch {
+        Write-LogMessage -type Verbose -MSG "Test-TargetWinRM Failed"
         Return $false
     }
 }
