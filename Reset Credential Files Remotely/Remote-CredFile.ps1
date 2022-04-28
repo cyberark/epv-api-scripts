@@ -1,6 +1,6 @@
 <# 
 ###########################################################################
-
+Fix Version 1.0
 NAME: 
     Reset Remote Cred File 
 
@@ -287,7 +287,7 @@ Get-Job | Remove-Job -Force
 foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 
 	$fqdn = (Resolve-DnsName $target.'IP Address' -ErrorAction SilentlyContinue).namehost
-	If ([sting]::IsNullOrEmpty($fqdn)) {
+	If ([string]::IsNullOrEmpty($fqdn)) {
 		$fqdn = $target.'IP Address'
 	}
 	if ((![string]::IsNullOrEmpty($oldDomain)) -and (![string]::IsNullOrEmpty($newDomain)) ) {
