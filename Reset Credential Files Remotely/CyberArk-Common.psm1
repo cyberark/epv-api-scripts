@@ -72,6 +72,9 @@ $g_prePSSession = { $env:PSModulePath = "C:\Program Files\WindowsPowerShell\Modu
 if ($InVerbose) {
     $VerbosePreference = "continue"
 }
+
+Write-Verbose  "Version of CyberArk-Common.psm1 : Fix branch v1.0"
+
 #endregion
 
 # Initialize Script Variables
