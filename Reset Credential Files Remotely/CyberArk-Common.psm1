@@ -913,7 +913,13 @@ function Start-ComponentService {
         $attemptCount = 0
         While (!$running) {
             Write-LogMessage -Type "Debug" -MSG "Attempting to start `"$service`" on $server"
-            Invoke-Command -Session $session -ScriptBlock { $targetService = Get-Service -Name $args[0]; $targetService.start(); $targetService.WaitForStatus('Running', (New-TimeSpan -Seconds 20)) } -ArgumentList $service -ErrorAction SilentlyContinue -ErrorVariable startResult
+            Invoke-Command -Session $session -ScriptBlock { 
+                $targetService = Get-Service -Name $args[0];
+                If ($targetService.Status -ne "Running") { 
+                    $targetService.start(); 
+                    $targetService.WaitForStatus('Running', (New-TimeSpan -Seconds 20))
+                }
+            } -ArgumentList $service -ErrorAction SilentlyContinue -ErrorVariable startResult
 
             IF ($attemptCount -ge $attempts) {
                 return $false
@@ -1067,8 +1073,6 @@ Function New-RandomPassword {
         $charsNumber = 48..57 | ForEach-Object { [Char] $_ }
         $charsSymbol = 33, 35, 37, 42, 43, 44, 45, 46, 95 | ForEach-Object { [Char] $_ }
 
-        Write-LogMessage -type Verbose -MSG "The following symbols may be selected $charSymbol"
-
     }
     Process {
         # Contains the array of characters to use.
@@ -1191,41 +1195,51 @@ function Reset-Credentials {
         [string]$vaultAddress,
 
         [Parameter(Mandatory = $false)]
-        [string]$apiAddress
-    )
+        [string]$apiAddress,
+
+        [Parameter(Mandatory=$false)]
+        [int]$tries = 5
+            )
 
     $checkPVWA = $PVWAURL.replace("\", "/").replace("https://", "").Split("/").ToLower()
     If ($checkPVWA[0] -eq $server.ToLower()) {
         Write-LogMessage -type Warning -MSG "Unable to reset PVWA credentials on $server because it is being used by script" -Footer
         continue
     }
-    IF ("Windows" -eq $os) {
-        switch ($ComponentType) {
-            "CPM" { 
-                Reset-WinComponent -Server $server -component "CPM" -componentName $ComponentType -services $g_cpmservices -vaultaddress $vaultAddress -apiAddress $apiAddress; break 
-            }
-            "PVWA" { 
-                Reset-WinComponent -Server $server -component "PVWA" -componentName $ComponentType -services $g_pvwaservices -vaultaddress $vaultAddress; break  
-            }
-            "PSM" { 
-                Reset-WinComponent -Server $server -component "PSM" -componentName $ComponentType -services $g_psmservices -vaultaddress $vaultAddress -apiAddress $apiAddress; break  
-            }
-            "AAM Credential Provider" { 
-                Reset-WinComponent -Server $server -component "AIM" -componentName $ComponentType -services $g_aamservices -vaultaddress $vaultAddress; break 
-            }
-            "Secrets Manager Credential Providers" { 
-                Reset-WinComponent -Server $server -component "AIM" -componentName $ComponentType -services $g_aamservices -vaultaddress $vaultAddress; break 
-            }
-            default {
-                Write-LogMessage -type Error -MSG "No Component Type passed for $server"
+    Try {
+        IF ("Windows" -eq $os) {
+            switch ($ComponentType) {
+                "CPM" { 
+                    Reset-WinComponent -Server $server -component "CPM" -componentName $ComponentType -services $g_cpmservices -vaultaddress $vaultAddress  -tries $tries -apiAddress $apiAddress; break 
+                }
+                "PVWA" { 
+                    Reset-WinComponent -Server $server -component "PVWA" -componentName $ComponentType -services $g_pvwaservices -vaultaddress $vaultAddress -tries $tries; break  
+                }
+                "PSM" { 
+                    Reset-WinComponent -Server $server -component "PSM" -componentName $ComponentType -services $g_psmservices -vaultaddress $vaultAddress  -tries $tries -apiAddress $apiAddress; break  
+                }
+                "AAM Credential Provider" { 
+                    Reset-WinComponent -Server $server -component "AIM" -componentName $ComponentType -services $g_aamservices -vaultaddress $vaultAddress -tries $tries; break 
+                }
+                "Secrets Manager Credential Providers" { 
+                    Reset-WinComponent -Server $server -component "AIM" -componentName $ComponentType -services $g_aamservices -vaultaddress $vaultAddress -tries $tries; break 
+                }
+                default {
+                    Write-LogMessage -type Error -MSG "No Component Type passed for $server"
+                }
             }
         }
+        elseIf ("Linux" -eq $os) {
+            Write-LogMessage -type Error -msg "Unable to reset PSMP credentials at this time. Manual reset required for $server"
+            Throw
+        }
+        else {
+            Write-LogMessage -type Error -msg "Unable to determine OS type for $server"
+            Throw
+        }
     }
-    elseIf ("Linux" -eq $os) {
-        Write-LogMessage -type Error -msg "Unable to reset PSMP credentials at this time. Manual reset required for $server"
-    }
-    else {
-        Write-LogMessage -type Error -msg "Unable to determine OS type for $server"
+    Catch {
+        Throw 
     }
 }
 function Reset-WinCredFile {
@@ -1368,7 +1382,7 @@ function Reset-WinCredFile {
             Invoke-Command -Session $session -ScriptBlock { Rename-Item "$($args[2])\$($args[0]).$($args[1])" -NewName "$($args[0])" -Force } -ArgumentList $file, $tag, $dir | Out-Null
             Invoke-Command -Session $session -ScriptBlock { Rename-Item "$($args[2])\$($args[0]).entropy.$($args[1])" -NewName "$($args[0]).entropy" -Force -ErrorAction SilentlyContinue } -ArgumentList $file, $tag, $dir | Out-Null
 
-            Write-LogMessage -type Error -MSG "Error resetting credential file on $server"
+            Write-LogMessage -type Error -MSG "Error resetting credential file on `"$server`""
             Throw "Error resetting credential file on $server"
         }
         else {
@@ -1376,11 +1390,11 @@ function Reset-WinCredFile {
             Invoke-Command -Session $session -ScriptBlock { Remove-Item "$($args[2])\$($args[0]).entropy.$($args[1])" -Force -ErrorAction SilentlyContinue } -ArgumentList $file, $tag, $dir
         }
 
-        Write-LogMessage -type Verbose -MSG "CreateCredFile on $componentName $file successful"
-        Write-LogMessage -type Verbose -MSG "Updating $componentName via RESTAPI"
+        Write-LogMessage -type Verbose -MSG "CreateCredFile on `"$componentName`" `"$file`" successful"
+        Write-LogMessage -type Verbose -MSG "Updating `"$componentName`" via RESTAPI"
         Set-UserPassword -username $userItem -Password $tempPassword
-        Write-LogMessage -type Verbose -MSG "Update of $componentName user via RESTAPI Complete"
-        Write-LogMessage -type Success -MSG "Update of user $useritem on $server completed successfully"
+        Write-LogMessage -type Verbose -MSG "Update of `"$componentName`" user via RESTAPI Complete"
+        Write-LogMessage -type Success -MSG "Update of user `"$useritem`" on `"$server`" completed successfully"
     }
 
 
@@ -1468,11 +1482,11 @@ function Reset-VaultFile {
         }
         catch {
             Invoke-Command -Session $session -ScriptBlock { Rename-Item "$($args[0]).$($args[1])" -NewName "$($args[0])" -Force } -ArgumentList $vaultFile, $tag
-            Write-LogMessage -type Error -MSG "Error updating $component  vault.ini file on $server"
+            Write-LogMessage -type Error -MSG "Error updating $component vault.ini file on $server"
             $failed = $true
             Throw "Error updating $component vault.ini file"
         }
-        Write-LogMessage -type Success -MSG "Update of vault address in vault.ini on $componentName completed successful"
+        Write-LogMessage -type Success -MSG "Update of vault address in vault.ini on `"$server`" completed successfully"
 
         IF (![string]::IsNullOrEmpty($apiAddress)) {
             Invoke-Command -Session $session -ScriptBlock { Copy-Item $($args[0]) -Destination "$($args[0]).$($args[1])" -Force } -ArgumentList $vaultFile, $tag
@@ -1486,11 +1500,11 @@ function Reset-VaultFile {
             }
             catch {
                 Invoke-Command -Session $session -ScriptBlock { Rename-Item "$($args[0]).$($args[1])" -NewName "$($args[0])" -Force } -ArgumentList $vaultFile, $tag
-                Write-LogMessage -type Error -MSG "Error updating $component  vault.ini file on $server"
+                Write-LogMessage -type Error -MSG "Error updating `"$component`" vault.ini file on $server"
                 $failed = $true
                 Throw "Error updating $component vault.ini file"
             }
-            Write-LogMessage -type Success -MSG "Update of vault API in vault.ini on $componentName completed successfully"
+            Write-LogMessage -type Success -MSG "Update of vault API in vault.ini on `"$server`" completed successfully"
         }
 
     }
@@ -1503,6 +1517,8 @@ function Reset-WinComponent {
         [string]$component,
         [Parameter(Mandatory = $true)]
         [string]$componentName,
+        [Parameter(Mandatory = $false)]
+        [string]$tries = 5,
         [Parameter(Mandatory = $true)]
         $services,
         [Parameter(Mandatory = $false)]
@@ -1514,74 +1530,78 @@ function Reset-WinComponent {
     $complete = $failed = $false
     $attempts = 0
     Write-LogMessage -type Verbose -MSG "Entering Reset-WinComponent"
+    $complete = $failed = $updated = $false
     While (!$complete -and !$failed) {
         try {
-            $complete = $failed = $false
             $attempts = 0
 
             While (!$complete) {
                 Try {
-                    $session = New-PSLogon $server
-                    Write-LogMessage -type Verbose -MSG "Got Session"
-                    Write-LogMessage -type Verbose -MSG "Connected to host: $(Invoke-Command -Session $session -ScriptBlock{[System.Net.Dns]::GetHostName()})"
-                    Write-LogMessage -type Verbose -MSG "Connected as user: $(Invoke-Command -Session $session -ScriptBlock{whoami.exe})"
+                    If ([string]::IsNullOrEmpty($session)) {
+                        $session = New-PSLogon $server
+                        Write-LogMessage -type Verbose -MSG "Got Session"
+                        Write-LogMessage -type Verbose -MSG "Connected to host: $(Invoke-Command -Session $session -ScriptBlock{[System.Net.Dns]::GetHostName()})"
+                        Write-LogMessage -type Verbose -MSG "Connected as user: $(Invoke-Command -Session $session -ScriptBlock{whoami.exe})"
+                    }
                 }
-                Catch {
-                    Write-LogMessage -type Verbose -MSG "Error Message is $($error)"     
-                    Write-LogMessage -type Verbose -MSG "Error Message is $_" 
-                    Write-LogMessage -type Error -MSG "Unable to connect to winRM on $server. Verify this is a Windows server and winRM has been enabled."             
-    
+                Catch {        
                     break
                 }
-                Write-LogMessage -type Verbose -MSG "Connected to $Server. Importing required modules"
+                IF (!$Updated) {
+                    Write-LogMessage -type Verbose -MSG "Connected to $Server. Importing required modules"
 
-                Import-ModuleRemotely -moduleName CyberArk-Common -session $Session
-                Write-LogMessage -type Verbose -MSG "Modules imported. Getting information about the installed components"
+                    Import-ModuleRemotely -moduleName CyberArk-Common -session $Session
+                    Write-LogMessage -type Verbose -MSG "Modules imported. Getting information about the installed components"
 
-                $compInfo = Get-ComponentInfo -Server $Server -ComponentType $component -Session $Session          
+                    $compInfo = Get-ComponentInfo -Server $Server -ComponentType $component -Session $Session          
 
-                $installLocation = $compInfo.path
-                [version]$version = $compInfo.Version
-                Write-LogMessage -type Verbose -MSG "Retrived Component Information"
-                Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
-                Write-LogMessage -type Verbose -MSG "Version: $version"
+                    $installLocation = $compInfo.path
+                    [version]$version = $compInfo.Version
+                    Write-LogMessage -type Verbose -MSG "Retrived Component Information"
+                    Write-LogMessage -type Verbose -MSG "Installation path : $installLocation"
+                    Write-LogMessage -type Verbose -MSG "Version: $version"
 
-                Write-LogMessage -type Verbose -MSG "Attempting to stop $componentName Services" 
-                Stop-ComponentService -services $services -session $session -server $server
-                Write-LogMessage -type Verbose -MSG "Stopped $componentName Services"
+                    Write-LogMessage -type Verbose -MSG "Attempting to stop $componentName Services" 
+                    Stop-ComponentService -services $services -session $session -server $server
+                    Write-LogMessage -type Verbose -MSG "Stopped $componentName Services"
 
-                $credfailed = Reset-WinCredFile -Server $server -compInfo $compInfo -session $session
+                    $credfailed = Reset-WinCredFile -Server $server -compInfo $compInfo -session $session
 
-                IF (!($credfailed) -and (![string]::IsNullOrEmpty($vaultaddress))) {
-                    $vaultfailed = Reset-VaultFile -Server $server -compInfo $compInfo -session $session -vaultAddres $vaultaddress -apiAddress $apiAddress
+                    IF (!($credfailed) -and (![string]::IsNullOrEmpty($vaultaddress))) {
+                        Reset-VaultFile -Server $server -compInfo $compInfo -session $session -vaultAddres $vaultaddress -apiAddress $apiAddress | Out-Null
+                    }
+                    $Updated = $true
                 }
+                Write-LogMessage -type Verbose -MSG "Attempting to start $componentName services"
                 $complete = Start-ComponentService -services $services -session $session -server $server
 
                 $attempts += 1
 
-                if ($attempts -gt 5) {
+                if ($attempts -gt $tries) {
                     $failed = $true;
                     Write-LogMessage -type Error -MSG "Failed on $server" 
                     Throw "Failed on $componentName credentials on $server"
                 }
 
-                Write-LogMessage -type Verbose -MSG "$componentName Started"
-
-                if ($complete) {
-                    Write-LogMessage -type Success -MSG "$componentName component on $server update completed successful" -Footer
+                if ($updated -and $complete) {
+                    Write-LogMessage -type Success -MSG "Update of $componentName component on `"$server`" completed successfully"
+                }
+                elseif ($updated -and !$complete) {
+                    Write-LogMessage -type Warning -MSG "Update of $componentName component on `"$server`" completed successfully, however services did not start. Attempting to restart services"                        
                 }
                 else {
-                    Write-LogMessage -type Warning -MSG "$componentName component on $server update failed, restarting" -Footer
+                    Write-LogMessage -type Warning -MSG "Update of $componentName component on `"$server`" failed, attempting to restart"
                 }
             }
         }
         catch {
-            Write-LogMessage -type Error -MSG "Error during update of $componentName on $server" -Footer
+            Write-LogMessage -type Error -MSG "Error during update of $componentName on `"$server`""
+            Throw
         }
         Finally {
-            Write-LogMessage -type Verbose -MSG "Disconnecting from $server"  
+            Write-LogMessage -type Verbose -MSG "Disconnecting from `"$server`""  
             Remove-PSSession $session
-            Write-LogMessage -type Verbose -MSG "Disconnected from $server"
+            Write-LogMessage -type Verbose -MSG "Disconnected from $server" -Footer
         }
     }
 }
@@ -1664,16 +1684,20 @@ Function Test-TargetWinRM {
         [Parameter(Mandatory = $true)]
         [string]$server
     )
-    Write-LogMessage -type Verbose -MSG "Parameter in Test-TargetWinRM passed for `'server`' is : $server"
     Write-LogMessage -type Verbose -MSG "In Test-TargetWinRM"
+    Write-LogMessage -type Verbose -MSG "Parameter passed for `'server`' is `"$server`""
+
     try {
         New-PSLogon -server $server
-        Write-LogMessage -type Verbose -MSG "Test-TargetWinRM Success"
+        Write-LogMessage -type Verbose -MSG "Test-TargetWinRM completed Successfully"
         Return $true
     }
     catch {
-        Write-LogMessage -type Verbose -MSG "Test-TargetWinRM Failed"
+        Write-LogMessage -type Verbose -MSG "Test-TargetWinRM failed to connect"
         Return $false
+    }     
+    Finally {
+        Write-LogMessage -type Verbose -MSG "Existing Test-TargetWinRM"
     }
 }
 function New-PSLogon {
@@ -1683,22 +1707,23 @@ function New-PSLogon {
     )
     $psoptions = New-PSSessionOption -IncludePortInSPN -MaxConnectionRetryCount 2 
 
-    Write-LogMessage -type Verbose -MSG "Parameter in New-PSLogon passed for `'server`' is : $server"
     Write-LogMessage -type Verbose -MSG "In New-PSLogon"
+    Write-LogMessage -type Verbose -MSG "Parameter passed for `'server`' is `"$server`""
+
     Try {
         If ($null -ne $G_PSCredentials) {
-            Write-LogMessage -type Verbose -MSG "Parameter passed for `'G_PSCredentials`' $($G_PSCredentials.username)"
+            Write-LogMessage -type Verbose -MSG "Parameter passed for `'G_PSCredentials`' is $($G_PSCredentials.username)"
             $psSession = New-PSSession $server -Credential $G_PSCredentials -Authentication Negotiate -SessionOption $psoptions -ErrorAction SilentlyContinue
         }
         else {   
             Write-LogMessage -type Verbose -MSG "Parameter passed for `'G_PSCredentials`' is null"
             $psSession = New-PSSession $server -SessionOption $psoptions -Authentication Negotiate -ErrorAction SilentlyContinue
         }
-        if ([string]::IsNullOrEmpty($psSession)){
+        if ([string]::IsNullOrEmpty($psSession)) {
             Write-LogMessage -type Error -MSG "Error creating PSSession to $server"
             Throw "No PSSession"
         }
-        Write-LogMessage -type Verbose -MSG "Retrived Session"
+        Write-LogMessage -type Verbose -MSG "Created Session successfully"
         IF (![string]::IsNullOrEmpty($g_prePSSession)) {
             Write-LogMessage -type Verbose -MSG "Inside g_prePSSession"
             Invoke-Command -Session $psSession -ScriptBlock $g_prePSSession -ErrorAction SilentlyContinue
@@ -1710,5 +1735,8 @@ function New-PSLogon {
         Write-LogMessage -type Verbose -MSG "Catch in New-PSLogon"
         Write-LogMessage -type Verbose -MSG "$_"
         Throw "No PSSession"
+    }
+    Finally {
+        Write-LogMessage -type Verbose -MSG "Existing New-PSLogon"
     }
 }

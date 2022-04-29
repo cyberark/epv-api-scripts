@@ -88,7 +88,10 @@ param(
 	[String]$apiAddress,
 
 	[Parameter(Mandatory = $false, HelpMessage = "PSSession Credentials")]
-	[PSCredential]$PSCredentials
+	[PSCredential]$PSCredentials,
+
+	[Parameter(Mandatory = $false, HelpMessage = "Amount of attempts")]
+	[int]$tries = 5
 )
 
 #region Writer Functions
@@ -288,18 +291,25 @@ $FailureList = @()
 foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 
 	if (!$jobs) {
+		Write-LogMessage -type Info "Starting work on component user `"$($target.'Component User')`" with the component type of `"$($target.'Component Type')`" at the IP Address of`"$($target.'IP Address')`""
+
+		Write-LogMessage -type Verbose "Attempting to get FQDN of IP Address `"$($target.'IP Address')`""
 		$failed = $false
 		$fqdn = (Resolve-DnsName $target.'IP Address' -ErrorAction SilentlyContinue).namehost
 		If ([string]::IsNullOrEmpty($fqdn)) {
+			Write-LogMessage -type Warning "Unable to get FQDN of IP Address `"$($target.'IP Address')`". Using IP address for WinRM Connection."
 			$fqdn = $target.'IP Address'
+		} Else{
+			Write-LogMessage -type Info "Found FQDN of `"$fqdn`" for IP Address `"$($target.'IP Address')`". Using FQDN for WinRM Connection."
 		}
+
 		if ((![string]::IsNullOrEmpty($oldDomain)) -and (![string]::IsNullOrEmpty($newDomain)) ) {
 			$fqdn = $fqdn.replace($oldDomain, $newDomain)
 		}
 		Try {
 			If ("Windows" -eq $target.os) {
 				If (!(Test-TargetWinRM -server $fqdn )) {
-					Write-LogMessage -Type Error -MSG "Error connecting to WinRM for Component User $($target.'Component User') on $fqdn" -Footer
+					Write-LogMessage -Type Verbose -MSG "Error connecting to WinRM for component user `"$($target.'Component User')`" with the component type of `"$($target.'Component Type')`" on $fqdn"
 					$failed = $true
 				}
 			}
@@ -310,21 +320,24 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 
 			if ($failed) {
 				$FailureList += $target
+				Write-LogMessage -type Error -msg "Manual reset required for component user `"$($target.'Component User')`" with the component type of `"$($target.'Component Type')`" with address of `"$fqdn`"." -Footer
+				
 			}
 			else {
-				Reset-Credentials -ComponentType $target.'Component Type' -Server $fqdn -OS $target.os -vault $vaultAddress -apiAddress $apiAddress
+				Reset-Credentials -ComponentType $target.'Component Type' -Server $fqdn -OS $target.os -vault $vaultAddress -apiAddress $apiAddress -tries
 			}
   }
 		Catch {
-			""
+			$FailureList += $target
 		}
 	}
 	else {
+		$user = $target.'Component User'
 		$type = $target.'Component Type'
 		$os = $target.os
 		$ipAddress = $target.'IP Address'
-		Write-LogMessage -Type Info -MSG "Creating Job for $Type on $ipAddress"
-		Start-Job -Name "$($type.Replace("AAM Credential Provider","CP")) on $ipAddress" -ScriptBlock { 
+		Write-LogMessage -Type Info -MSG "Submitting job for component user `"$($target.'Component User')`" with the component type of `"$($target.'Component Type')`" at the IP Address of `"$($target.'IP Address')`""
+		Start-Job -Name "$($type.Replace("AAM Credential Provider","CP")) at $ipAddress" -ScriptBlock { 
 			Try {
 				$Script:PVWAURL = $using:PVWAURL; 
 				$Script:g_LogonHeader = $using:g_LogonHeader; 
@@ -347,7 +360,7 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 					Write-LogMessage -Type Error -msg "Unable to reset credentials on linux based servers at this time. Manual reset required for Component User $($using:target.'Component User') on $fqdn" -Footer
 					Throw "the job has failed"
 				}
-				Reset-Credentials -ComponentType $using:type -Server $fqdn -os $using:os -vault $using:vaultAddress -apiAddress $using:apiAddress 
+				Reset-Credentials -ComponentType $using:type -Server $fqdn -os $using:os -vault $using:vaultAddress -apiAddress $using:apiAddress -tries $using:tries
 			}
 			Catch {
 				Write-LogMessage -Type Error -MSG "Error in job for $using:Type on $fqdn" -Footer
@@ -394,18 +407,17 @@ IF ($jobs) {
 	}
 	Write-Progress -Id 1 -Activity $Activity -CurrentOperation "$($running.Name)" -Completed
 
-	#Get-Job | Receive-Job -Keep
-	Remove-Job -State Completed
+	#Remove-Job -State Completed
 	Write-LogMessage -type Info -msg "All Jobs Completed" -Header -Footer
 	$errorJobs = Get-Job -State Failed
 	If (![string]::IsNullOrEmpty($errorJobs)) {
 		Foreach ($job in $errorJobs) {
-			Write-LogMessage -type Error "$($job.name) Log Start" -Header
+			Write-LogMessage -type Error "Log started for $($job.name)" -Header
 			$child = $job.childjobs.information
 			ForEach ($line in $child) {
 				Write-LogMessage -type Error $line
 			}
-			Write-LogMessage -type Error -msg "$($job.name) Log End" -Footer 
+			Write-LogMessage -type Error -msg "Log ended for $($job.name)" -Footer 
 		}
 	}	
 }
