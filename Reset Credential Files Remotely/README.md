@@ -77,3 +77,6 @@
 
 - Jobs
     - Submits actions to reset credentials as PowerShell Jobs to allow for parallel processing
+
+- Tries
+    - Defaults to 5. Selects how many attempts are made to complete work before failing.
