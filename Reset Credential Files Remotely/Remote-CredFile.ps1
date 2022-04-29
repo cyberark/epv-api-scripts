@@ -1,6 +1,5 @@
 <# 
 ###########################################################################
-Fix Version 1.3
 NAME: 
 Reset Remote Cred File 
 
@@ -117,7 +116,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $Script:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "0.10"
+$ScriptVersion = "1.0"
 
 # Set Log file path
 New-Variable -Name LOG_FILE_PATH -Value "$ScriptLocation\Remote-CredFileReset.log" -Scope Global -Force
