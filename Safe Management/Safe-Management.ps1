@@ -12,13 +12,14 @@
  CyberArk Privilege Cloud
 
  VERSION HISTORY:
- 1.0 16/12/2018   - Initial release
- 1.1 06/02/2019   - Bug fix
- 1.9 09/07/2021   - Added ability to create new members on updates. 
-                    General Format cleanup according to standards
- 2.0 15/11/2021   - Working only with 2nd Gen REST API of Safes. Supported version 12.1 and above
- 2.0.1 02/03/2021 - Fix for v2
- 2.1 12/04/2021     Added ability to create report of safes
+ 1.0 	16/12/2018   	- Initial release
+ 1.1 	06/02/2019   	- Bug fix
+ 1.9 	09/07/2021   	- Added ability to create new members on updates. 
+                    	  General Format cleanup according to standards
+ 2.0 	15/11/2021   	- Working only with 2nd Gen REST API of Safes. Supported version 12.1 and above
+ 2.0.1 	02/03/2021 	- Fix for v2
+ 2.1 	12/04/2021     	- Added ability to create report of safes
+ 2.1.1 	05/02/2022	- Updated catch to capture 404 error and allow for attempting to add.
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = "List")]
 param
@@ -128,7 +129,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "2.1"
+$ScriptVersion = "2.1.1"
 
 # ------ SET global parameters ------
 # Set Log file path
