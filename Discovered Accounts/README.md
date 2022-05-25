@@ -78,7 +78,7 @@ Get-DiscoveredAccountsReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault
 
 > **General**
 > - This script Uses REST API and can support PCLoud and v12.1 of PVWA and up 
-> - The goal for these scripts is to demonstrate use of Discovered Accounts REST API
+> - The goal for these scripts is to delete all pending accounts
 
 
 ## Usage
