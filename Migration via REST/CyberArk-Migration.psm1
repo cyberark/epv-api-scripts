@@ -220,7 +220,7 @@ Function Test-CommandExists {
 # Parameters.....: Text to encode
 # Return Values..: Encoded HTML URL text
 # =================================================================================================================================
-Function ConvertTo-URL($sText) {
+Function Convert-ToURL($sText) {
     <#
 .SYNOPSIS
 	HTTP Encode test in URL
