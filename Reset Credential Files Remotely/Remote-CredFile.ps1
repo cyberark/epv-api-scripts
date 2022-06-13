@@ -282,9 +282,11 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 
 	if (!$jobs){
 		Try{
+			Write-LogMessage -type Trace -msg "Jobs not selected"
+			Write-LogMessage -type Trace -msg "Job paramaters : -ComponentType $($target.'Component Type') -Server $fqdn -OS $($target.os) -vault $vaultAddress -apiAddress $apiAddress"
 			Reset-Credentials -ComponentType $target.'Component Type' -Server $fqdn -OS $target.os -vault $vaultAddress -apiAddress $apiAddress
 		} Catch {
-			""
+			Write-LogMessage -type error "Error running Reset-Credentials"
 		}
 
 	} else {

@@ -38,28 +38,28 @@ $g_psmservices = @("Cyber-Ark Privileged Session Manager")
 $g_aamservices = @("CyberArk Application Password Provider")
 
 #Commands to reset PVWA credential files
-$g_pvwagwuserCredv12 = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
-$g_pvwaappuserCredv12 = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_pvwagwuserCredv12 = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Username {0} /Password {1}"
+$g_pvwaappuserCredv12 = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Username {0} /Password {1}"
 
-$g_pvwagwuserCred = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /Password {1}"
-$g_pvwaappuserCred = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /Password {1}"
+$g_pvwagwuserCred = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /Username {0} /Password {1}"
+$g_pvwaappuserCred = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /Username {0} /Password {1}"
 
 #commands to reset PSM credential files
-$g_psmappuserCredv12 = ".\CreateCredFile.exe psmapp.cred Password /Username {0} /AppType PSMApp  /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
-$g_psmgwuserCredv12 = ".\CreateCredFile.exe psmgw.cred Password /Username {0} /AppType PSMApp  /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
+$g_psmappuserCredv12 = ".\CreateCredFile.exe psmapp.cred Password /AppType PSMApp /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Username {0} /Password {1}"
+$g_psmgwuserCredv12 = ".\CreateCredFile.exe psmgw.cred Password /AppType PSMApp /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Username {0} /Password {1}"
 
-$g_psmappuserCred = ".\CreateCredFile.exe psmapp.cred Password /Username {0} /AppType PSMApp /IpAddress /Hostname /Password {1}"
-$g_psmgwuserCred = ".\CreateCredFile.exe psmgw.cred Password /Username {0} /AppType PSMApp /IpAddress /Hostname /Password {1}"
+$g_psmappuserCred = ".\CreateCredFile.exe psmapp.cred Password /AppType PSMApp /IpAddress /Hostname /Username {0} /Password {1}"
+$g_psmgwuserCred = ".\CreateCredFile.exe psmgw.cred Password /AppType PSMApp /IpAddress /Hostname /Username {0} /Password {1}"
 
 #commands to reset CPM credential files
-$g_cpmuserCredv12 = ".\CreateCredFile.exe user.ini Password /Username {0} /AppType CPM /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
+$g_cpmuserCredv12 = ".\CreateCredFile.exe user.ini Password /AppType CPM /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Username {0} /Password {1}"
 
-$g_cpmuserCred = ".\CreateCredFile.exe user.ini Password /Username {0} /AppType CPM /IpAddress /Hostname /Password {1}"
+$g_cpmuserCred = ".\CreateCredFile.exe user.ini Password /AppType CPM /IpAddress /Hostname /Username {0} /Password {1}"
 
 #commands to reset AAM credential files
-$g_aamuserwinCredv12 = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_aamuserwinCredv12 = ".\CreateCredFile.exe AppProviderUser.cred Password /AppType AppPrv /IpAddress /Hostname /EntropyFile /DPAPIMachineProtection /Username {0} /Password {1}"
 
-$g_aamuserwinCred = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /Password {1}"
+$g_aamuserwinCred = ".\CreateCredFile.exe AppProviderUser.cred Password /AppType AppPrv /IpAddress /Hostname /Username {0} /Password {1}"
 
 #vault.ini locations
 $g_aamvault = "\vault\vault.ini"
