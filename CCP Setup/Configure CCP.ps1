@@ -6,7 +6,6 @@ NAME:
 
 AUTHOR:  
     Brian Bors  <brian.bors@cyberark.com>
-    Assaf Miron <assaf.miron@cyberark.com>
 
 COMMENT: 
     Script used to setup and configure a CCP Post Install
