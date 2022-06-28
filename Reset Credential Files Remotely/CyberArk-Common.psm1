@@ -1006,7 +1006,7 @@ Function New-RandomPassword{
         $charsLower=97..122 | ForEach-Object{ [Char] $_ }
         $charsUpper=65..90 | ForEach-Object{ [Char] $_ }
         $charsNumber=48..57 | ForEach-Object{ [Char] $_ }
-        $charsSymbol=33,35,37,42,43,44,45,46,95 | ForEach-Object{ [Char] $_ }
+        $charsSymbol=33,37,42,43,45,46,95 | ForEach-Object{ [Char] $_ }
 
         Write-LogMessage -type Verbose -MSG "The following symbols may be selected $charSymbol"
         
@@ -1189,7 +1189,7 @@ function Reset-WinCredFile{
                     credFilesDir      = ".\"
                     credFiles         = "AppProviderUser.cred"
                     componentName     = "AAM Credential Provider"
-                    CreateCredCommand = $(if ($version -ge [version]'12.0') {$g_aamuserwinCredv12} else {$g_aamuserwinCred})
+                    CreateCredCommand = $(if ($version -ge [version]'12.1') {$g_aamuserwinCredv12} else {$g_aamuserwinCred})
                 }
             )
         }
@@ -1201,7 +1201,7 @@ function Reset-WinCredFile{
                     credFilesDir      = ".\"
                     credFiles         = ".\user.ini"
                     componentName     = "CPM User"
-                    CreateCredCommand = $(if ($version -ge [version]'12.1') {$g_cpmuserCredv12} else {$g_cpmuserCred})
+                    CreateCredCommand = $(if ($version -ge [version]'12.2') {$g_cpmuserCredv12} else {$g_cpmuserCred})
                 }
             )
         }
@@ -1213,7 +1213,7 @@ function Reset-WinCredFile{
                     credFilesDir      = ".\"
                     credFiles         = "psmapp.cred"
                     componentName     = "PSM Application User"
-                    CreateCredCommand = $(if ($version -ge [version]'12.1') {$g_psmappuserCredv12} else {$g_psmappuserCred})
+                    CreateCredCommand = $(if ($version -ge [version]'12.2') {$g_psmappuserCredv12} else {$g_psmappuserCred})
                 }
             )
             $CompFiles += @(
@@ -1223,7 +1223,7 @@ function Reset-WinCredFile{
                     credFilesDir      = ".\"
                     credFiles         = "psmgw.cred"
                     componentName     = "PSM Gateway User"
-                    CreateCredCommand = $(if ($version -ge [version]'12.1') {$g_psmgwuserCredv12} else {$g_psmgwuserCred})
+                    CreateCredCommand = $(if ($version -ge [version]'12.2') {$g_psmgwuserCredv12} else {$g_psmgwuserCred})
                 }
             )
         }
@@ -1236,7 +1236,7 @@ function Reset-WinCredFile{
                     credFilesDir      = "..\CredFiles\"
                     credFiles         = "appuser.ini"
                     componentName     = "PVWA Application User"
-                    CreateCredCommand = $(if ($version -ge [version]'12.1') {$g_pvwaappuserCredv12} else {$g_pvwaappuserCred})
+                    CreateCredCommand = $(if ($version -ge [version]'12.2') {$g_pvwaappuserCredv12} else {$g_pvwaappuserCred})
                 }
             )
             $CompFiles += @( 
@@ -1246,7 +1246,7 @@ function Reset-WinCredFile{
                     credFilesDir      = "..\CredFiles\"
                     credFiles         = "gwuser.ini"
                     componentName     ="PVWA Gateway User"
-                    CreateCredCommand = $(if ($version -ge [version]'12.1') {$g_pvwagwuserCredv12} else {$g_pvwagwuserCred})
+                    CreateCredCommand = $(if ($version -ge [version]'12.2') {$g_pvwagwuserCredv12} else {$g_pvwagwuserCred})
                 }
             )
         }
@@ -1277,7 +1277,7 @@ function Reset-WinCredFile{
             Invoke-Command -Session $session -ScriptBlock {Rename-Item "$($args[2])\$($args[0]).$($args[1])" -NewName "$($args[0])" -Force} -ArgumentList $file, $tag, $dir | Out-Null
             Invoke-Command -Session $session -ScriptBlock {Rename-Item "$($args[2])\$($args[0]).entropy.$($args[1])" -NewName "$($args[0]).entropy" -Force -ErrorAction SilentlyContinue} -ArgumentList $file, $tag, $dir | Out-Null
 
-            Write-LogMessage -type Error -MSG "Error resetting credential file on $server"
+            Write-LogMessage -type Error -MSG "Error resetting credential file on $server : $($invokeResultApp[0].TargetObject)"
             Throw "Error resetting credential file on $server"
         } else {
             Invoke-Command -Session $session -ScriptBlock {Remove-Item "$($args[2])\$($args[0]).$($args[1])" -Force} -ArgumentList $file, $tag, $dir

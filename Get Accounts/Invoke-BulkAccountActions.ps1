@@ -530,7 +530,7 @@ Function Get-FilteredAccounts {
 	try {
 		$AccountsURLWithFilters = ""
 		$Keywords = "$sPlatformID $sUserName $sAddress $sCustomKeywords"
-		$AccountsURLWithFilters = $(Get-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSafeName $SafeName)
+		$AccountsURLWithFilters = "$(Get-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSafeName $SafeName)&limit=500" 
 		Write-LogMessage -Type Debug -MSG "Filter accounts using: $AccountsURLWithFilters"
 	} catch {
 		throw $(New-Object System.Exception ("Get-FilteredAccounts: Error creating filtered URL",$_.Exception))
@@ -539,7 +539,7 @@ Function Get-FilteredAccounts {
 		# Get all Accounts
 		$GetAccountsResponse = Invoke-Rest -Command Get -Uri $AccountsURLWithFilters -Header (Get-LogonHeader $VaultCredentials)
 		$GetAccountsList += $GetAccountsResponse.value
-		Write-LogMessage -Type Debug -MSG "Found $($GetAccountsList.count) accounts so far..."
+		Write-LogMessage -Type Info -MSG "Found $($GetAccountsList.count) accounts so far..."
 		$nextLink = $GetAccountsResponse.nextLink
 		Write-LogMessage -Type Debug -MSG "Getting accounts next link: $nextLink"
 		
@@ -630,7 +630,7 @@ try {
 	ForEach ($account in $filteredAccounts) {
 		Write-LogMessage -Type Debug -MSG "Submitting account `"$($account.Name)`" in safe `"$($account.safeName)`""
 		try {
-			Invoke-Rest -Uri ($accountAction -f $account.id) -Command POST -Body "" -Header (Get-LogonHeader $creds)
+			$null = Invoke-Rest -Uri ($accountAction -f $account.id) -Command POST -Body "" -Header (Get-LogonHeader $creds)
 			Write-LogMessage -Type Debug -MSG "Submitted account `"$($account.Name)`" in safe `"$($account.safeName)`""
 		} Catch {
 			Write-LogMessage -Type Error -MSG "Error Submitting account `"$($account.Name)`" in safe `"$($account.safeName)`""
