@@ -302,6 +302,7 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 			Write-LogMessage -type Info "Found FQDN of `"$fqdn`" for IP Address `"$($target.'IP Address')`". Using FQDN for WinRM Connection."
 		}
 
+
 	if (!$jobs){
 		Try{
 			Write-LogMessage -type Verbose -msg "Jobs not selected"
