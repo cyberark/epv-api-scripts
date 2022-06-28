@@ -12,19 +12,19 @@
  CyberArk Privilege Cloud
 
  VERSION HISTORY:
- 1.0 16/12/2018   - Initial release
- 1.1 06/02/2019   - Bug fix
- 1.9 09/07/2021   - Added ability to create new members on updates. 
-                    General Format cleanup according to standards
- 2.0 15/11/2021   - Working only with 2nd Gen REST API of Safes. Supported version 12.1 and above
- 2.0.1 02/03/2021 - Fix for v2
- 2.1 12/04/2021     Added ability to create report of safes
+ 1.0 	16/12/2018   	- Initial release
+ 1.1 	06/02/2019   	- Bug fix
+ 1.9 	09/07/2021   	- Added ability to create new members on updates. 
+                    	  General Format cleanup according to standards
+ 2.0 	15/11/2021   	- Working only with 2nd Gen REST API of Safes. Supported version 12.1 and above
+ 2.0.1 	02/03/2021 	- Fix for v2
+ 2.1 	12/04/2021     	- Added ability to create report of safes
+ 2.1.1 	05/02/2022	- Updated catch to capture 404 error and allow for attempting to add.
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = "List")]
 param
 (
     [Parameter(Mandatory = $true, HelpMessage = "Please enter your PVWA address (For example: https://pvwa.mydomain.com/passwordvault)")]
-    [ValidateScript( { Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30 })]
     [Alias("url")]
     [String]$PVWAURL,
 
@@ -128,7 +128,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "2.1"
+$ScriptVersion = "2.1.1"
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -879,7 +879,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
         } catch {
             if ($rMethodErr.message -like "*User or Group is already a member*") {
                 Write-LogMessage -Type Warning -Msg "The user $safeMember is already a member. Use the update member method instead"
-            } elseif ($rMethodErr.message -like "*User or Group was not found.*") {   
+            } elseif ($rMethodErr.message -like "*User or Group was not found.*") -or ($rMethodErr.message -like "*404*")  {   
                 If ($AddOnUpdate) {
                     # Adding a member
                     Write-LogMessage -Type Warning -Msg "User or Group was not found. Attempting to adding $safeMember located in $memberSearchInLocation to $safeName in the vault..."
