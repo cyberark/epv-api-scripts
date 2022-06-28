@@ -38,28 +38,28 @@ $g_psmservices = @("Cyber-Ark Privileged Session Manager")
 $g_aamservices = @("CyberArk Application Password Provider")
 
 #Commands to reset PVWA credential files
-$g_pvwagwuserCredv12 = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
-$g_pvwaappuserCredv12 = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_pvwagwuserCredv12 = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Username {0} /Password {1}"
+$g_pvwaappuserCredv12 = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Username {0} /Password {1}"
 
-$g_pvwagwuserCred = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /Password {1}"
-$g_pvwaappuserCred = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /Username {0} /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /Password {1}"
+$g_pvwagwuserCred = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /Username {0} /Password {1}"
+$g_pvwaappuserCred = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /Username {0} /Password {1}"
 
 #commands to reset PSM credential files
-$g_psmappuserCredv12 = ".\CreateCredFile.exe psmapp.cred Password /Username {0} /AppType PSMApp  /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
-$g_psmgwuserCredv12 = ".\CreateCredFile.exe psmgw.cred Password /Username {0} /AppType PSMApp  /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
+$g_psmappuserCredv12 = ".\CreateCredFile.exe psmapp.cred Password /AppType PSMApp /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Username {0} /Password {1}"
+$g_psmgwuserCredv12 = ".\CreateCredFile.exe psmgw.cred Password /AppType PSMApp /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Username {0} /Password {1}"
 
-$g_psmappuserCred = ".\CreateCredFile.exe psmapp.cred Password /Username {0} /AppType PSMApp /IpAddress /Hostname /Password {1}"
-$g_psmgwuserCred = ".\CreateCredFile.exe psmgw.cred Password /Username {0} /AppType PSMApp /IpAddress /Hostname /Password {1}"
+$g_psmappuserCred = ".\CreateCredFile.exe psmapp.cred Password /AppType PSMApp /IpAddress /Hostname /Username {0} /Password {1}"
+$g_psmgwuserCred = ".\CreateCredFile.exe psmgw.cred Password /AppType PSMApp /IpAddress /Hostname /Username {0} /Password {1}"
 
 #commands to reset CPM credential files
-$g_cpmuserCredv12 = ".\CreateCredFile.exe user.ini Password /Username {0} /AppType CPM /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Password {1}"
+$g_cpmuserCredv12 = ".\CreateCredFile.exe user.ini Password /AppType CPM /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Username {0} /Password {1}"
 
-$g_cpmuserCred = ".\CreateCredFile.exe user.ini Password /Username {0} /AppType CPM /IpAddress /Hostname /Password {1}"
+$g_cpmuserCred = ".\CreateCredFile.exe user.ini Password /AppType CPM /IpAddress /Hostname /Username {0} /Password {1}"
 
 #commands to reset AAM credential files
-$g_aamuserwinCredv12 = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /EntropyFile /DPAPIMachineProtection /Password {1}"
+$g_aamuserwinCredv12 = ".\CreateCredFile.exe AppProviderUser.cred Password /AppType AppPrv /IpAddress /Hostname /EntropyFile /DPAPIMachineProtection /Username {0} /Password {1}"
 
-$g_aamuserwinCred = ".\CreateCredFile.exe AppProviderUser.cred Password /Username {0} /AppType AppPrv /IpAddress /Hostname /Password {1}"
+$g_aamuserwinCred = ".\CreateCredFile.exe AppProviderUser.cred Password /AppType AppPrv /IpAddress /Hostname /Username {0} /Password {1}"
 
 #vault.ini locations
 $g_aamvault = "\vault\vault.ini"
@@ -1067,10 +1067,10 @@ Function New-RandomPassword {
         $CHARSET_SYMBOL = 8
 
         # Creates character arrays for the different character classes, based on ASCII character values.
-        $charsLower = 97..122 | ForEach-Object { [Char] $_ }
-        $charsUpper = 65..90 | ForEach-Object { [Char] $_ }
-        $charsNumber = 48..57 | ForEach-Object { [Char] $_ }
-        $charsSymbol = 33, 35, 37, 42, 43, 44, 45, 46, 95 | ForEach-Object { [Char] $_ }
+        $charsLower=97..122 | ForEach-Object{ [Char] $_ }
+        $charsUpper=65..90 | ForEach-Object{ [Char] $_ }
+        $charsNumber=48..57 | ForEach-Object{ [Char] $_ }
+        $charsSymbol=33,37,42,43,45,46,95 | ForEach-Object{ [Char] $_ }
 
     }
     Process {
@@ -1263,6 +1263,7 @@ function Reset-WinCredFile {
                     credFilesDir      = ".\"
                     credFiles         = "AppProviderUser.cred"
                     componentName     = "AAM Credential Provider"
+
                     CreateCredCommand = $(if ($version -ge [version]'12.0') {
                             $g_aamuserwinCredv12
                         }
@@ -1286,6 +1287,7 @@ function Reset-WinCredFile {
                         else {
                             $g_cpmuserCred
                         })
+
                 }
             )
         }
@@ -1312,6 +1314,7 @@ function Reset-WinCredFile {
                     credFilesDir      = ".\"
                     credFiles         = "psmgw.cred"
                     componentName     = "PSM Gateway User"
+
                     CreateCredCommand = $(if ($version -ge [version]'12.1') {
                             $g_psmgwuserCredv12
                         }
@@ -1380,8 +1383,7 @@ function Reset-WinCredFile {
         If ($invokeResultApp[0].TargetObject -ne "Command ended successfully") {
             Invoke-Command -Session $session -ScriptBlock { Rename-Item "$($args[2])\$($args[0]).$($args[1])" -NewName "$($args[0])" -Force } -ArgumentList $file, $tag, $dir | Out-Null
             Invoke-Command -Session $session -ScriptBlock { Rename-Item "$($args[2])\$($args[0]).entropy.$($args[1])" -NewName "$($args[0]).entropy" -Force -ErrorAction SilentlyContinue } -ArgumentList $file, $tag, $dir | Out-Null
-
-            Write-LogMessage -type Error -MSG "Error resetting credential file on `"$server`""
+            Write-LogMessage -type Error -MSG "Error resetting credential file on $server : $($invokeResultApp[0].TargetObject)"
             Throw "Error resetting credential file on $server"
         }
         else {
