@@ -73,3 +73,26 @@ Reporting top 100 Enabled, Privileged Discovered Accounts sorted by User name to
 ```powershell
 Get-DiscoveredAccountsReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault -List -OnlyEnabledAccounts -OnlyPrivilegedAccounts -SortBy "UserName" -Limit 100 -CSVPath "C:\CyberArk\DiscoveredAccounts\Enabled_Privielged_August-2020.csv"
 ```
+
+# Delete Pending
+
+> **General**
+> - This script Uses REST API and can support PCLoud and v12.1 of PVWA and up 
+> - The goal for these scripts is to delete all pending accounts
+
+
+## Usage
+The script will clear all pending accounts to allow them to be discovered again
+
+```powershell
+DeletePending.ps1 [-PVWAURL] <string> [[-AuthType] <string>] -DisableSSLVerify [<CommonParameters>]
+```
+
+- PVWAURL
+	- The URL of the PVWA that you are working with. 
+	- Note that the URL needs to include 'PasswordVault', for example: "https://myPVWA.myDomain.com/PasswordVault"
+	- When working with PVWA behind a load balancer, note that the session must be defined as sticky session. Alternatively, work with a single node PVWA
+- AuthType
+	- Authentication types for logon. 
+	- Available values: _CyberArk, LDAP_
+	- Default value: _CyberArk_
