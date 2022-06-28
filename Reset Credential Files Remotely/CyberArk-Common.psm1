@@ -1071,7 +1071,6 @@ Function New-RandomPassword {
         $charsUpper=65..90 | ForEach-Object{ [Char] $_ }
         $charsNumber=48..57 | ForEach-Object{ [Char] $_ }
         $charsSymbol=33,37,42,43,45,46,95 | ForEach-Object{ [Char] $_ }
-
     }
     Process {
         # Contains the array of characters to use.
@@ -1263,7 +1262,6 @@ function Reset-WinCredFile {
                     credFilesDir      = ".\"
                     credFiles         = "AppProviderUser.cred"
                     componentName     = "AAM Credential Provider"
-
                     CreateCredCommand = $(if ($version -ge [version]'12.0') {
                             $g_aamuserwinCredv12
                         }
@@ -1287,7 +1285,6 @@ function Reset-WinCredFile {
                         else {
                             $g_cpmuserCred
                         })
-
                 }
             )
         }
@@ -1314,7 +1311,6 @@ function Reset-WinCredFile {
                     credFilesDir      = ".\"
                     credFiles         = "psmgw.cred"
                     componentName     = "PSM Gateway User"
-
                     CreateCredCommand = $(if ($version -ge [version]'12.1') {
                             $g_psmgwuserCredv12
                         }
