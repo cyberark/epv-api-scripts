@@ -190,7 +190,7 @@ if ($processFile){
         Write-Progress -Activity "Processing objects" -CurrentOperation "$counter of $($objects.count)" -PercentComplete (($counter / $objects.count)*100)
         }$srcAccount = Get-AccountDetail -url $SRCPVWAURL -logonHeader $srcToken -AccountID $object.id
         If ($($srcAccount.safename) -in $objectSafesToRemove){
-            Write-LogMessage -Type Debug -Msg "Safe $($srcMember.safename) is in the excluded safes list. Account with username of `"$($srcAccount.userName)`" with the address of `"$($srcAccount.address)`" will be skipped"
+            Write-LogMessage -Type Debug -Msg "Safe $($srcAccount.safename) is in the excluded safes list. Account with username of `"$($srcAccount.userName)`" with the address of `"$($srcAccount.address)`" will be skipped"
             continue
         }
 
@@ -246,7 +246,7 @@ if ($processFile){
                         Write-LogMessage -Type Debug -Msg "Safe Member $($srcMember.membername) is in the excluded owners list"
                     } Else{
                         if ($srcMember.membername -in $dstSafeMembers -or $("$($srcMember.memberName)@$dstUPN") -in $dstSafeMembers){
-                            $null = Update-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $($srcMember.safename) -safemember $srcMember -newLDAP $newLDAP 
+                            $null = Update-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $($srcAccount.safename) -safemember $srcMember -newLDAP $newLDAP 
                             Write-LogMessage -Type Debug -Msg "Safe Member `"$($srcMember.membername)`" updated on safe `"$($dstsafe.safename)`""
                         } else {
                             if ($srcMember.memberType -eq "User"){
@@ -255,12 +255,12 @@ if ($processFile){
                                 If (![string]::IsNullOrEmpty($dstUPN) -and ![string]::IsNullOrEmpty($userSource)){
                                     $srcMember.memberName = "$($srcMember.memberName)@$dstUPN"
                                 }
-                                $null = New-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $($srcMember.safename) -safemember $srcMember -newLDAP $newLDAP 
+                                $null = New-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $($srcAccount.safename) -safemember $srcMember -newLDAP $newLDAP 
                                 Write-LogMessage -Type Debug -Msg "Safe Member `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`""
                             } else {
                                 $groupSource = Get-GroupSource -url $SRCPVWAURL -logonHeader $srcToken -safemember $srcMember
                                 $srcMember | Add-Member NoteProperty searchIn $groupSource
-                                $null = New-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $($srcMember.safename) -safemember $srcMember -newLDAP $newLDAP 
+                                $null = New-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $($srcAccount.safename) -safemember $srcMember -newLDAP $newLDAP 
                             } 
                         }
                     }
