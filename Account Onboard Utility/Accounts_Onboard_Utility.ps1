@@ -20,12 +20,12 @@ param
 	[String]$PVWAURL,
 	
 	[Parameter(Mandatory=$false,HelpMessage="Enter the Authentication type (Default:CyberArk)")]
-	[ValidateSet("cyberark","ldap","radius")]
+	[ValidateSet("cyberark")]
 	[String]$AuthType="cyberark",
 	
-	[Parameter(Mandatory=$false,HelpMessage="Enter the RADIUS OTP")]
-	[ValidateScript({$AuthType -eq "radius"})]
-	[String]$OTP,
+#	[Parameter(Mandatory=$false,HelpMessage="Enter the RADIUS OTP")]
+#	[ValidateScript({$AuthType -eq "radius"})]
+#	[String]$OTP,
 	
 	[Parameter(ParameterSetName='Create',Mandatory=$false,HelpMessage="Please enter Safe Template Name")]
 	[Alias("safe")]
