@@ -31,6 +31,8 @@ param(
     [Parameter(Mandatory=$false,HelpMessage="Process File")]
     [switch]$processFile,
 
+    [Parameter(Mandatory=$false,HelpMessage="Update Allowed Remote Machines")]
+    [switch]$getRemoteMachines,
 
     [Parameter(Mandatory=$false,HelpMessage="Enter the Authentication type (Default:CyberArk)")]
     [ValidateSet("cyberark","ldap","radius")]
@@ -302,6 +304,9 @@ if ($processFile){
                 } 
             } Else {
                 Write-LogMessage -Type Debug -Msg "SkipCheckSecret set to true. No checks being done on source and destination secrets"
+            }
+            if ($getRemoteMachines){
+                Update-RemoteMachine -url $DSTPVWAURL -logonHeader $dstToken -dstaccount $dstAccount -srcaccount $srcAccount
             }
         } else {
             try {
