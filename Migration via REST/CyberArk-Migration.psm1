@@ -1597,13 +1597,11 @@ Function Update-RemoteMachine {
     }
     $d_AccountBody += $_bodyOpMachine
 
-
     $restBody = ConvertTo-Json $d_AccountBody -Depth 5 -Compress
     $urlUpdateAccount = $URL_AccountsDetails
     $UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $logonHeader -Body $restBody -Command "PATCH")
     if ($null -ne $UpdateAccountResult) {
         Write-LogMessage -Type Debug -MSG "Account with Username `"$($dstaccount.userName)`" at address of `"$($dstaccount.address)`" in safe `"$($dstaccount.safeName)`" properties updated successfully"
     }
-
 }
 
