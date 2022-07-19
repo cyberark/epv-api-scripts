@@ -1561,7 +1561,7 @@ Function Update-RemoteMachine {
     $_bodyOpRest = "" | Select-Object "op", "path","value"
 
     if (($($srcAccount.remoteMachinesAccess.remoteMachines) -eq $($dstAccount.remoteMachinesAccess.remoteMachines)) -and ($($srcAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines) -eq $($dstAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines)) ) {
-        Write-LogMessage -Type Debug -Msg "`"Limit Domain Access To`" and '`" Allow User Connections to Other Machines`"is equal, no update required"
+        Write-LogMessage -Type Debug -Msg "`"Limit Domain Access To`" and '`"Allow User Connections to Other Machines`"is equal, no update required"
         return
     }
     elseif ([string]::IsNullOrEmpty($($srcAccount.remoteMachinesAccess.remoteMachines))) {
@@ -1597,14 +1597,11 @@ Function Update-RemoteMachine {
     }
     $d_AccountBody += $_bodyOpMachine
 
-
-
     $restBody = ConvertTo-Json $d_AccountBody -Depth 5 -Compress
     $urlUpdateAccount = $URL_AccountsDetails
     $UpdateAccountResult = $(Invoke-Rest -Uri $urlUpdateAccount -Header $logonHeader -Body $restBody -Command "PATCH")
     if ($null -ne $UpdateAccountResult) {
-        Write-LogMessage -Type Info -MSG "Account properties Updated Successfully"
+        Write-LogMessage -Type Debug -MSG "Account with Username `"$($dstaccount.userName)`" at address of `"$($dstaccount.address)`" in safe `"$($dstaccount.safeName)`" properties updated successfully"
     }
-
 }
 
