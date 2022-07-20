@@ -1558,16 +1558,16 @@ Function Update-RemoteMachine {
 
     $URL_AccountsDetails = "$url/api/Accounts/$($dstAccount.id)"
 
-    $_bodyOpRest = "" | Select-Object "op", "path","value"
+    $_bodyOpRest = "" | Select-Object "op", "path", "value"
 
-    if (($($srcAccount.remoteMachinesAccess.remoteMachines) -eq $($dstAccount.remoteMachinesAccess.remoteMachines)) -and ($($srcAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines) -eq $($dstAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines)) ) {
-        Write-LogMessage -Type Debug -Msg "`"Limit Domain Access To`" and '`"Allow User Connections to Other Machines`"is equal, no update required"
-        return
-    }
-    elseif ([string]::IsNullOrEmpty($($srcAccount.remoteMachinesAccess.remoteMachines))) {
+    if ([string]::IsNullOrEmpty($($srcAccount.remoteMachinesAccess.remoteMachines))) {
         Write-LogMessage -Type Debug -Msg "Source account has no value set for `"Limit Domain Access To`", Removing destination values"
         $op = "Remove"
         $_bodyOpMachine = "" | Select-Object "op", "path"
+    }
+    elseif (($($srcAccount.remoteMachinesAccess.remoteMachines) -eq $($dstAccount.remoteMachinesAccess.remoteMachines)) -and ($($srcAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines) -eq $($dstAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines)) ) {
+        Write-LogMessage -Type Debug -Msg "`"Limit Domain Access To`" and '`"Allow User Connections to Other Machines`"is equal, no update required"
+        return
     }
     elseif ([string]::IsNullOrEmpty($($dstAccount.remoteMachinesAccess.remoteMachines))) {
         Write-LogMessage -Type Debug -Msg "Destination account has no value set for `"Limit Domain Access To`", setting operation to ADD"
@@ -1584,7 +1584,9 @@ Function Update-RemoteMachine {
     $_bodyOpRest.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
     if ($op -ne "Remove") {
         $_bodyOpRest.value = $srcAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines
+
     } Else {
+
         $_bodyOpRest.op = "Replace"
         $_bodyOpRest.value = "false"
     }
@@ -1596,6 +1598,7 @@ Function Update-RemoteMachine {
         $_bodyOpMachine.value = $srcAccount.remoteMachinesAccess.remoteMachines
     }
     $d_AccountBody += $_bodyOpMachine
+
 
     $restBody = ConvertTo-Json $d_AccountBody -Depth 5 -Compress
     $urlUpdateAccount = $URL_AccountsDetails
