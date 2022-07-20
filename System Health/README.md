@@ -8,7 +8,6 @@
 * Ensure that both System-Health.ps1 and CyberArk-Common.psm1 are in the same location
 * The tool allows for override of IP Address, Component Types, and Operating System
 
-
 ## Requirments
 * Requires that CyberArk-Common.psm1 be present or loaded.
 * Located at https://github.com/cyberark/epv-api-scripts/blob/main/CyberArk-Common/CyberArk-Common.psm1
