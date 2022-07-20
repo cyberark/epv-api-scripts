@@ -317,10 +317,13 @@ Function New-AccountObject {
 			if ($_Account.secretManagement.automaticManagementEnabled -eq $false)
 			{ $_Account.secretManagement.manualManagementReason = $AccountLine.manualMgmtReason }
 		}
-		$_Account.remoteMachinesAccess = "" | Select-Object "remoteMachines", "accessRestrictedToRemoteMachines"
-		If(![String]::IsNullOrEmpty($AccountLine.remoteMachineAddresses)) {
-			$_Account.remoteMachinesAccess.remoteMachines = $AccountLine.remoteMachineAddresses
-			$_Account.remoteMachinesAccess.accessRestrictedToRemoteMachines = Convert-ToBool $AccountLine.restrictMachineAccessToList
+		if($AccountLine.PSobject.Properties.Name -contains "remoteMachineAddresses") {
+			if($null -eq $_Account.remoteMachinesAccess) { $_Account.remoteMachinesAccess = New-Object PSObject }
+			$_Account.remoteMachinesAccess | Add-Member -MemberType NoteProperty -Name "remoteMachines" -Value $AccountLine.remoteMachineAddresses
+		}
+		if($AccountLine.PSobject.Properties.Name -contains "restrictMachineAccessToList") {
+			if($null -eq $_Account.remoteMachinesAccess) { $_Account.remoteMachinesAccess = New-Object PSObject }
+			$_Account.remoteMachinesAccess | Add-Member -MemberType NoteProperty -Name "accessRestrictedToRemoteMachines" -Value $AccountLine.restrictMachineAccessToList
 		}
 		#endregion [Account object mapping]
 				

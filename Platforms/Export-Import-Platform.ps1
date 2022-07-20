@@ -314,7 +314,7 @@ If (Test-CommandExists Invoke-RestMethod) {
 			} 
 	
 		}
-		("ExportActive" -or "ExportAll") {
+		{($_ -eq "ExportActive") -or ($_ -eq "ExportAll")} {
 			$platforms = Get-PlatformsList -GetAll:$(($PsCmdlet.ParameterSetName -eq "ExportAll"))
 			$null | Out-File -FilePath "$PlatformZipPath\_Exported.txt" -Force
 			foreach ($line in $platforms) {
