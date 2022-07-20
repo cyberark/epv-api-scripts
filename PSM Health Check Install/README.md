@@ -1,6 +1,7 @@
 > **General**
 > - The goal for this scripts is to allow easy installation of the PSM Health Check Service
-> - 
+> - To use download the latest version of the PSM Health Check from the CyberArk Market place
+> - Extract the zip file and place the script in that folder and run using the commands below
 ## Parameters:
 ```powershell
 Install-PSMHealthCheck.ps1  [-Location <string>] [-download] [-stage] [-hostingFile <string>] [-DisableSSLVerify] [<CommonParameters>]

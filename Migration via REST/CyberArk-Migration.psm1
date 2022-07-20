@@ -1584,8 +1584,9 @@ Function Update-RemoteMachine {
     $_bodyOpRest.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
     if ($op -ne "Remove") {
         $_bodyOpRest.value = $srcAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines
-    }
-    Else {
+
+    } Else {
+
         $_bodyOpRest.op = "Replace"
         $_bodyOpRest.value = "false"
     }
@@ -1605,6 +1606,5 @@ Function Update-RemoteMachine {
     if ($null -ne $UpdateAccountResult) {
         Write-LogMessage -Type Debug -MSG "Account with Username `"$($dstaccount.userName)`" at address of `"$($dstaccount.address)`" in safe `"$($dstaccount.safeName)`" properties updated successfully"
     }
-
 }
 
