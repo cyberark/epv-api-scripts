@@ -57,19 +57,21 @@ If ($DisableSSLVerify) {
         [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
     }
     catch {
-        Write-error "Could not change SSL validation"
-        Write-error  (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+        Write-LogMessage -Type Error -MSG "Could not change SSL validation"
+        Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+
         return
     }
 }
 Else {
     try {
-        Write-Debug "Setting script to use TLS 1.2"
+        Write-LogMessage -Type Debug -MSG "Setting script to use TLS 1.2"
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
     }
     catch {
-        Write-error "Could not change SSL settings to use TLS 1.2"
-        Write-error (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+        Write-LogMessage -Type Error -MSG "Could not change SSL settings to use TLS 1.2"
+        Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+
     }
 }
 
