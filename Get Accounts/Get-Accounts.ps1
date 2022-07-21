@@ -97,70 +97,73 @@ $rstusername = $rstpassword = ""
 $logonToken = ""
 
 #region Functions
-Function Test-CommandExists
-{
+Function Test-CommandExists {
 	Param ($command)
 	$oldPreference = $ErrorActionPreference
 	$ErrorActionPreference = 'stop'
-	try { if (Get-Command $command) { RETURN $true } }
-	Catch { Write-Host "$command does not exist"; RETURN $false }
-	Finally { $ErrorActionPreference = $oldPreference }
+	try {
+		if (Get-Command $command) {
+			RETURN $true 
+		} 
+ }
+	Catch {
+		Write-Host "$command does not exist"; RETURN $false 
+ }
+	Finally {
+		$ErrorActionPreference = $oldPreference 
+ }
 } #end function test-CommandExists
 
-Function Encode-URL($sText)
-{
-	if ($sText.Trim() -ne "")
-	{
+Function Encode-URL($sText) {
+	if ($sText.Trim() -ne "") {
 		Write-Debug "Returning URL Encode of $sText"
 		return [System.Web.HttpUtility]::UrlEncode($sText.Trim())
 	}
-	else
-	{
+	else {
 		return ""
 	}
 }
 
-Function Convert-Date($epochdate)
-{
-	if (($epochdate).length -gt 10 ) { return (Get-Date -Date "01/01/1970").AddMilliseconds($epochdate) }
-	else { return (Get-Date -Date "01/01/1970").AddSeconds($epochdate) }
+Function Convert-Date($epochdate) {
+	if (($epochdate).length -gt 10 ) {
+		return (Get-Date -Date "01/01/1970").AddMilliseconds($epochdate) 
+ }
+	else {
+		return (Get-Date -Date "01/01/1970").AddSeconds($epochdate) 
+ }
 }
 
-Function New-SearchCriteria
-{
+Function New-SearchCriteria {
 	param ([string]$sURL, [string]$sSearch, [string]$sSortParam, [string]$sSafeName, [int]$iLimitPage, [int]$iOffsetPage = 0)
 	[string]$retURL = $sURL
 	$retURL += "?"
 	
-	if (![string]::IsNullOrEmpty($sSearch))
-	{
+	if (![string]::IsNullOrEmpty($sSearch)) {
 		Write-Debug "Search: $sSearch"
 		$retURL += "search=$(Encode-URL $sSearch)&"
 	}
-	if (![string]::IsNullOrEmpty($sSafeName))
-	{
+	if (![string]::IsNullOrEmpty($sSafeName)) {
 		Write-Debug "Safe: $sSafeName"
 		$retURL += "filter=safename eq $(Encode-URL $sSafeName)&"
 	}
-	if (![string]::IsNullOrEmpty($sSortParam))
-	{
+	if (![string]::IsNullOrEmpty($sSortParam)) {
 		Write-Debug "Sort: $sSortParam"
 		$retURL += "sort=$(Encode-URL $sSortParam)&"
 	}
-	if ($iLimitPage -gt 0)
-	{
+	if ($iLimitPage -gt 0) {
 		Write-Debug "Limit: $iLimitPage"
 		$retURL += "limit=$iLimitPage&"
 	}
 		
-	if ($retURL[-1] -eq '&') { $retURL = $retURL.substring(0, $retURL.length - 1) }
+	if ($retURL[-1] -eq '&') {
+		$retURL = $retURL.substring(0, $retURL.length - 1) 
+ }
 	Write-Debug "URL: $retURL"
 	
 	return $retURL
 }
 
-Function Update-SearchCriteria
-{
+Function Update-SearchCriteria {
 	param (
 		[string]$nextLinkURL,
 		[int]$counter = 1,
@@ -170,14 +173,12 @@ Function Update-SearchCriteria
 	# In order to get all the results, we need to increase the Limit
 	$newNextLink = $nextLinkURL
 	# First find the limit in the next link URL
-	if($nextLinkURL -match "(?:limit=)(\d{1,})")
-	{
+	if ($nextLinkURL -match "(?:limit=)(\d{1,})") {
 		$limitText = $Matches[0]
 		$limitNumber = [int]$Matches[1]
 		# Verify that we have an increased the limit
-		if($limitNumber -ge $limit)
-		{
-			$newNextLink = $nextLinkURL.Replace($limitText,"limit={0}" -f ($limit * $counter))
+		if ($limitNumber -ge $limit) {
+			$newNextLink = $nextLinkURL.Replace($limitText, "limit={0}" -f ($limit * $counter))
 		}
 		else {
 			Write-Debug "Limits are not correct. Next Link limit: $limitNumber; current limit: $limit; Next limit should be: $($limit * $counter)"
@@ -190,19 +191,15 @@ Function Update-SearchCriteria
 
 #endregion
 
-If (Test-CommandExists Invoke-RestMethod)
-{
+If (Test-CommandExists Invoke-RestMethod) {
 
 	# Check that the PVWA URL is OK
-	If ($PVWAURL -ne "")
-	{
-		If ($PVWAURL.Substring($PVWAURL.Length - 1) -eq "/")
-		{
+	If ($PVWAURL -ne "") {
+		If ($PVWAURL.Substring($PVWAURL.Length - 1) -eq "/") {
 			$PVWAURL = $PVWAURL.Substring(0, $PVWAURL.Length - 1)
 		}
 	}
-	else
-	{
+	else {
 		Write-Host -ForegroundColor Red "PVWA URL can not be empty"
 		return
 	}
@@ -213,29 +210,27 @@ If (Test-CommandExists Invoke-RestMethod)
 	$caption = "Get accounts"
 	$msg = "Enter your User name and Password"; 
 	$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
-	if ($null -ne $creds)
-	{
+	if ($null -ne $creds) {
 		$rstusername = $creds.username.Replace('\', '');    
 		$rstpassword = $creds.GetNetworkCredential().password
 	}
-	else { return }
+	else {
+		return 
+ }
 
 	# Create the POST Body for the Logon
 	# ----------------------------------
 	$logonBody = @{ username = $rstusername; password = $rstpassword }
 	$logonBody = $logonBody | ConvertTo-Json
-	try
-	{
+	try {
 		# Logon
 		$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json"
 	}
-	catch
-	{
+	catch {
 		Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
 		$logonToken = ""
 	}
-	If ($logonToken -eq "")
-	{
+	If ($logonToken -eq "") {
 		Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
 		return
 	}
@@ -247,90 +242,79 @@ If (Test-CommandExists Invoke-RestMethod)
 	#endregion
 
 	$response = ""
-	switch ($PsCmdlet.ParameterSetName)
-	{
-		"List"
-		{
+	switch ($PsCmdlet.ParameterSetName) {
+		"List" {
 			# List all Accounts by filters
 			Write-Host "Retrieving accounts..."
 			
-			try
-   			{
+			try {
 				$AccountsURLWithFilters = ""
 				$AccountsURLWithFilters = $(New-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSortParam $SortBy -sSafeName $SafeName -iLimitPage $Limit)
 				Write-Debug $AccountsURLWithFilters
 			}
-			catch
-			{
+			catch {
 				Write-Error $_.Exception
 			}
-			try
-			{
+			try {
 				$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $AccountsURLWithFilters -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 			}
-			catch
-			{
+			catch {
 				Write-Error $_.Exception.Response.StatusDescription
 			}
 						
-			If ($AutoNextPage)
-			{
+			If ($AutoNextPage) {
 				$GetAccountsList = @()
 				$counter = 1
 				$GetAccountsList += $GetAccountsResponse.value
 				Write-Debug "Found $($GetAccountsList.count) accounts so far..."
 				$nextLink = Update-SearchCriteria -nextLinkURL $("$PVWAURL/$($GetAccountsResponse.nextLink))") -counter $counter -limit $Limit
 				Write-Debug "Getting accounts next link: $nextLink"
-				While (-not [string]::IsNullOrEmpty($nextLink))
-				{
+				While (-not [string]::IsNullOrEmpty($nextLink)) {
 					$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $nextLink -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700	
 					$GetAccountsList += $GetAccountsResponse.value
 					Write-Debug "Found $($GetAccountsList.count) accounts so far..."
 					# Increase the counter
 					$counter++
-					$nextLink = Update-SearchCriteria -nextLinkURL $("$PVWAURL/$($GetAccountsResponse.nextLink))") -counter $counter -limit $Limit
-					Write-Debug "Getting accounts next link: $nextLink"
+					IF (![string]::IsNullOrEmpty($GetAccountsResponse.nextLink)) {
+						$nextLink = $GetAccountsResponse.nextLink
+						Write-Debug "Getting accounts next link: $nextLink"
+					}
+					Else {
+						$nextLink = $null
+					}
 				}
 				
 				Write-Host "Showing $($GetAccountsList.count) accounts"
 				$response = $GetAccountsList
 			}
-			else 
-			{
+			else {
 				Write-Host "Showing up to $Limit accounts" 
 				$response = $GetAccountsResponse.value
 			}
 		}
-		"Details"
-		{
-			if ($AccountID -ne "")
-			{
+		"Details" {
+			if ($AccountID -ne "") {
 				$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 				$response = $GetAccountDetailsResponse
 			}
 		}
 	}
 	
-	If ($Report)
-	{
+	If ($Report) {
 		$output = @()
-		Foreach ($item in $response)
-		{
+		Foreach ($item in $response) {
 			# Get the Platform Name
 			$platformName = Invoke-RestMethod -Method Get -Uri $($URL_Platforms -f $item.platformId) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
 			$output += $item | Select-Object id, @{Name = 'UserName'; Expression = { $_.userName } }, @{Name = 'Address'; Expression = { $_.address } }, @{Name = 'SafeName'; Expression = { $_.safeName } }, @{Name = 'Platform'; Expression = { $platformName.Details.PolicyName } }, @{Name = 'CreateDate'; Expression = { Convert-Date $_.createdTime } }
 		}
-		If ([string]::IsNullOrEmpty($CSVPath))
-		{
+		If ([string]::IsNullOrEmpty($CSVPath)) {
 			$output | Format-Table -AutoSize
 		}
-		else
-		{
+		else {
 			$output | Export-Csv -NoTypeInformation -UseCulture -Path $CSVPath -Force
 		}
 	}
-	else
-	{
+	else {
 		$response
 	}
 	# Logoff the session
@@ -338,7 +322,6 @@ If (Test-CommandExists Invoke-RestMethod)
 	Write-Host "Logoff Session..."
 	Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $logonHeader -ContentType "application/json" | Out-Null
 }
-else
-{
+else {
 	Write-Error "This script requires PowerShell version 3 or above"
 }

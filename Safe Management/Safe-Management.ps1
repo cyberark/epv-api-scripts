@@ -811,6 +811,9 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
             HelpMessage = "Which vault-integrated LDAP directory name the vault should search for the account. Must match one of the directory names defined in the LDAP Integration page of the PVWA.",
             Position = 0)]
         $memberSearchInLocation = "Vault",
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [ValidateSetAttribute("User","Group","Role")]
+        [String]$memberType="User",
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [bool]$permUseAccounts = $false,
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
@@ -860,6 +863,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
             MemberName               = "$safeMember"
             SearchIn                 = "$memberSearchInLocation"
             MembershipExpirationDate = "$null"
+            MemberType               = "$memberType"
             Permissions              = @{
                 useAccounts                            = $permUseAccounts
                 retrieveAccounts                       = $permRetrieveAccounts
@@ -909,7 +913,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
             if ($rMethodErr.message -like "*User or Group is already a member*") {
                 Write-LogMessage -Type Warning -Msg "The user $safeMember is already a member. Use the update member method instead"
             }
-            elseif ($rMethodErr.message -like ("*User or Group was not found.*") -or ($rMethodErr.message -like "*404*")) {   
+            elseif (($rMethodErr.message -like "*User or Group was not found.*") -or ($rMethodErr.message -like "*404*")) {   
 
                 If ($AddOnUpdate) {
                     # Adding a member
@@ -1131,7 +1135,7 @@ If (Test-CommandExists Invoke-RestMethod) {
                             If ($Delete -eq $False) {
                                 If (![string]::IsNullOrEmpty($line.member)) {
                                     # Add permissions to the safe
-                                    Set-SafeMember -safename $line.safename -safeMember $line.member -updateMember:$UpdateMembers -deleteMember:$DeleteMembers -memberSearchInLocation $line.MemberLocation `
+                                    Set-SafeMember -safename $line.safename -safeMember $line.member -updateMember:$UpdateMembers -deleteMember:$DeleteMembers -memberSearchInLocation $line.MemberLocation -MemberType $line.MemberType`
                                         -permUseAccounts $(Convert-ToBool $line.UseAccounts) -permRetrieveAccounts $(Convert-ToBool $line.RetrieveAccounts) -permListAccounts $(Convert-ToBool $line.ListAccounts) `
                                         -permAddAccounts $(Convert-ToBool $line.AddAccounts) -permUpdateAccountContent $(Convert-ToBool $line.UpdateAccountContent) -permUpdateAccountProperties $(Convert-ToBool $line.UpdateAccountProperties) `
                                         -permInitiateCPMManagement $(Convert-ToBool $line.InitiateCPMAccountManagementOperations) -permSpecifyNextAccountContent $(Convert-ToBool $line.SpecifyNextAccountContent) `
