@@ -43,6 +43,8 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-A
 	- In cases where RADIUS authentication is used and one-time-password is needed, use this parameter to enter the OTP value
 - Create / Update / Delete
 	The supported actions for onboarding or offboarding of accounts
+- CPM_NAME
+	- Sets the name of the CPM to be used. Defaults to PasswordManager
 - CsvPath
 	- The CSV Path for the accounts to be onboarded
 - CsvDelimiter
@@ -73,7 +75,7 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-A
 
 ### Create Command:
 ```powershell
-Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Create [-AuthType <string>] [-OTP <string>] [-TemplateSafe <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [-NoSafeCreation] [<CommonParameters>]
+Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Create [-CPM_NAME <sting>] [-AuthType <string>] [-OTP <string>] [-TemplateSafe <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [-NoSafeCreation] [<CommonParameters>]
 ```
 
 If you just want to Create Accounts (including creating the Safes if they don’t exist):
@@ -103,7 +105,7 @@ If you want to Create Accounts and bypass account searches:
 
 ### Update Command:
 ```powershell
-Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Update [-AuthType <string>] [-OTP <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [-NoSafeCreation] [<CommonParameters>]
+Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Update [-CPM_NAME <sting>] [-AuthType <string>] [-OTP <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [-NoSafeCreation] [<CommonParameters>]
 ```
 
 > **Note:** In order to update specific accounts, make sure you include the account name in the CSV. The uniqueness of an account would be the Safe name and the Account name (object name)
