@@ -62,7 +62,11 @@ param
 
 	# Use this switch to Disable SSL verification (NOT RECOMMENDED)
 	[Parameter(Mandatory = $false)]
-	[Switch]$DisableSSLVerify
+	[Switch]$DisableSSLVerify,
+
+	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
+	[Parameter(Mandatory = $false)]
+	[String]$logonToken
 )
 
 # Global URLS
@@ -89,9 +93,17 @@ Function Test-CommandExists {
 	Param ($command)
 	$oldPreference = $ErrorActionPreference
 	$ErrorActionPreference = 'stop'
-	try { if (Get-Command $command) { RETURN $true } }
-	Catch { Write-Host "$command does not exist"; RETURN $false }
-	Finally { $ErrorActionPreference = $oldPreference }
+	try {
+		if (Get-Command $command) {
+			RETURN $true 
+		} 
+ }
+	Catch {
+		Write-Host "$command does not exist"; RETURN $false 
+ }
+	Finally {
+		$ErrorActionPreference = $oldPreference 
+ }
 } #end function test-CommandExists
 
 # @FUNCTION@ ======================================================================================================================
@@ -149,7 +161,8 @@ Function import-platform {
 				Write-Host "Platform details:" 
 				$platformDetails.Details | Select-Object PolicyID, AllowedSafes, AllowManualChange, PerformPeriodicChange, @{Name = 'AllowManualVerification'; Expression = { $_.VFAllowManualVerification } }, @{Name = 'PerformPeriodicVerification'; Expression = { $_.VFPerformPeriodicVerification } }, @{Name = 'AllowManualReconciliation'; Expression = { $_.RCAllowManualReconciliation } }, @{Name = 'PerformAutoReconcileWhenUnsynced'; Expression = { $_.RCAutomaticReconcileWhenUnsynched } }, PasswordLength, MinUpperCase, MinLowerCase, MinDigit, MinSpecial 
 			}		
-		} catch {
+		}
+		catch {
 			#Write-Error $_.Exception
 			#Write-Error $_.Exception.Response
 			#Write-Error $_.Exception.Response.StatusDescription
@@ -170,7 +183,8 @@ Function export-platform {
 	try {
 		$exportURL = $URL_ExportPlatforms -f $PlatformID
 		Invoke-RestMethod -Method POST -Uri $exportURL -Headers $logonHeader -ContentType "application/zip" -TimeoutSec 2700 -OutFile "$PlatformZipPath\$PlatformID.zip" -ErrorAction SilentlyContinue
-	} catch {
+	}
+ catch {
 		#Write-Error $_.Exception.Response
 		#Write-Error $_.Exception.Response.StatusDescription
 		
@@ -188,21 +202,23 @@ Function Get-PlatformsList {
 	$idList = @()
 	
 	try {
-		If ($GetAll){
+		If ($GetAll) {
 			$url = $URL_GetPlatforms + "?PlatformType=Regular"
-		} else {
+		}
+		else {
 			$url = $URL_GetPlatforms + "?Active=True&PlatformType=Regular"
 		}
 		
 		$result = Invoke-RestMethod -Method GET -Uri $url -Headers $logonHeader -ErrorAction SilentlyContinue
 
-		foreach ($platform in $result.Platforms){
+		foreach ($platform in $result.Platforms) {
 			$idList += $platform.general.id
 		}
 
 		return $idList
 
-	} catch {
+	}
+ catch {
 		#Write-Error $_.Exception.Response
 		#Write-Error $_.Exception.Response.StatusDescription
 		
@@ -224,16 +240,19 @@ If (Test-CommandExists Invoke-RestMethod) {
 			[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls11
 			# Disable SSL Verification
 			[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
-		} catch {
+		}
+		catch {
 			Write-Error "Could not change SSL validation"
 			Write-Error (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 			return
 		}
-	} Else {
+	}
+ Else {
 		try {
 			Write-Debug "Setting script to use TLS 1.2"
 			[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-		} catch {
+		}
+		catch {
 			Write-Error "Could not change SSL settings to use TLS 1.2"
 			Write-Error (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 		}
@@ -244,7 +263,8 @@ If (Test-CommandExists Invoke-RestMethod) {
 		If ($PVWAURL.Substring($PVWAURL.Length - 1) -eq "/") {
 			$PVWAURL = $PVWAURL.Substring(0, $PVWAURL.Length - 1)
 		}
-	} else {
+	}
+ else {
 		Write-Host -ForegroundColor Red "PVWA URL can not be empty"
 		return
 	}
@@ -255,36 +275,49 @@ If (Test-CommandExists Invoke-RestMethod) {
 	# Get Credentials to Login
 	# ------------------------
 	$caption = "Export / Import Platform"
-	$msg = "Enter your User name and Password"; 
-	if ($Null -eq $creds) {$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")}
-	if ($null -ne $creds) {
-		$rstusername = $creds.username.Replace('\', '');    
-		$rstpassword = $creds.GetNetworkCredential().password
 
-	} else { return }
+	If (![string]::IsNullOrEmpty($logonToken)) {
+		$logonHeader = @{Authorization = $logonToken }
+	}
+	else {
+		<# Action when all if and elseif conditions are false #>
 
-	# Create the POST Body for the Logon
-	# ----------------------------------
-	$logonBody = @{ username = $rstusername; password = $rstpassword; concurrentSession = 'true' }
-	$logonBody = $logonBody | ConvertTo-Json
-	try {
-		# Logon
-		$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json"
-	} catch {
-		Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
-		$logonToken = ""
-	}
-	If ($logonToken -eq "") {
-		Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-		return
-	}
+		$msg = "Enter your User name and Password"; 
+		if ($Null -eq $creds) {
+			$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
+		}
+		if ($null -ne $creds) {
+			$rstusername = $creds.username.Replace('\', '');    
+			$rstpassword = $creds.GetNetworkCredential().password
+
+		}
+		else {
+			return 
+		}
+
+		# Create the POST Body for the Logon
+		# ----------------------------------
+		$logonBody = @{ username = $rstusername; password = $rstpassword; concurrentSession = 'true' }
+		$logonBody = $logonBody | ConvertTo-Json
+		try {
+			# Logon
+			$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json"
+		}
+		catch {
+			Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
+			$logonToken = ""
+		}
+		If ($logonToken -eq "") {
+			Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
+			return
+		}
 	
-	# Create a Logon Token Header (This will be used through out all the script)
-	# ---------------------------
-	$logonHeader = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-	$logonHeader.Add("Authorization", $logonToken)
-	#endregion
-
+		# Create a Logon Token Header (This will be used through out all the script)
+		# ---------------------------
+		$logonHeader = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+		$logonHeader.Add("Authorization", $logonToken)
+		#endregion
+	}
 	switch ($PsCmdlet.ParameterSetName) {
 		"Import" {
 			import-platform $PlatformZipPath -error
@@ -293,12 +326,16 @@ If (Test-CommandExists Invoke-RestMethod) {
 		"ImportFile" {
 			foreach ($line in Get-Content $listFile) {
 				Write-Debug "Trying to import $line" 
-				if (![string]::IsNullOrEmpty($line)) { import-platform $line }
+				if (![string]::IsNullOrEmpty($line)) {
+					import-platform $line 
+    }
 			} 
 		}
 
 		"Export" {
-			if (![string]::IsNullOrEmpty($PlatformID)) { export-platform $PlatformID}
+			if (![string]::IsNullOrEmpty($PlatformID)) {
+				export-platform $PlatformID
+   }
 			
 		}
 
@@ -306,15 +343,14 @@ If (Test-CommandExists Invoke-RestMethod) {
 			$null | Out-File -FilePath "$PlatformZipPath\_Exported.txt" -Force
 			foreach ($line in Get-Content $listFile) {
 				Write-Debug "Trying to export $line" 
-				if (![string]::IsNullOrEmpty($line)) 
-				{ 
+				if (![string]::IsNullOrEmpty($line)) { 
 					export-platform $line
-					("$PlatformZipPath\$line.zip").Replace("\\","\").Replace("/","\") | Out-File -FilePath "$PlatformZipPath\_Exported.txt" -Append
+					("$PlatformZipPath\$line.zip").Replace("\\", "\").Replace("/", "\") | Out-File -FilePath "$PlatformZipPath\_Exported.txt" -Append
 				}
 			} 
 	
 		}
-		{($_ -eq "ExportActive") -or ($_ -eq "ExportAll")} {
+		{ ($_ -eq "ExportActive") -or ($_ -eq "ExportAll") } {
 			$platforms = Get-PlatformsList -GetAll:$(($PsCmdlet.ParameterSetName -eq "ExportAll"))
 			$null | Out-File -FilePath "$PlatformZipPath\_Exported.txt" -Force
 			foreach ($line in $platforms) {
@@ -322,7 +358,7 @@ If (Test-CommandExists Invoke-RestMethod) {
 				
 				if (![string]::IsNullOrEmpty($line)) { 
 					export-platform $line 
-					("$PlatformZipPath\$line.zip").Replace("\\","\").Replace("/","\") | Out-File -FilePath "$PlatformZipPath\_Exported.txt" -Append
+					("$PlatformZipPath\$line.zip").Replace("\\", "\").Replace("/", "\") | Out-File -FilePath "$PlatformZipPath\_Exported.txt" -Append
 				}		
 			} 
 
@@ -332,8 +368,15 @@ If (Test-CommandExists Invoke-RestMethod) {
 
 	# ------------------
 	Write-Host "Logoff Session..."
-	Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $logonHeader -ContentType "application/json" | Out-Null
-} else {
+	If ([string]::IsNullOrEmpty($logonToken)) {
+		Write-Host "LogonToken passed, session NOT logged off"
+	}
+	else {
+		Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $logonHeader -ContentType "application/json" | Out-Null
+	}
+	
+}
+else {
 	Write-Error "This script requires PowerShell version 3 or above"
 }
 
