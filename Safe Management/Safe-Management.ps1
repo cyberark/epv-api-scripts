@@ -122,7 +122,7 @@ param
 
     # Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
     [Parameter(Mandatory = $false)]
-	[String]$logonToken
+    $logonToken
 
 )
 
@@ -1031,8 +1031,13 @@ If (Test-CommandExists Invoke-RestMethod) {
         $caption = "Safe Management"
 
         If (![string]::IsNullOrEmpty($logonToken)) {
-            $logonHeader = @{Authorization = $logonToken }
-            Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global	
+            if ($logonToken.GetType().name -eq "String") {
+                $logonHeader = @{Authorization = $logonToken }
+                Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global	
+            }
+            else {
+                Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
+            }
         }
         elseif ($null -ne $creds) {
             $msg = "Enter your User name and Password"; 

@@ -66,7 +66,7 @@ param
 
 	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
 	[Parameter(Mandatory = $false)]
-	[String]$logonToken
+	$logonToken
 )
 
 # Global URLS
@@ -277,7 +277,12 @@ If (Test-CommandExists Invoke-RestMethod) {
 	$caption = "Export / Import Platform"
 
 	If (![string]::IsNullOrEmpty($logonToken)) {
-		$logonHeader = @{Authorization = $logonToken }
+		if ($logonToken.GetType().name -eq "String") {
+			$logonHeader = @{Authorization = $logonToken }
+		}
+		else {
+			$logonHeader = $logonToken
+  }
 	}
 	else {
 		<# Action when all if and elseif conditions are false #>

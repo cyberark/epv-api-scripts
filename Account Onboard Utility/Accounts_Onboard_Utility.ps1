@@ -89,7 +89,7 @@ param(
 
 	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
 	[Parameter(Mandatory = $false)]
-	[String]$logonToken
+	$logonToken
 )
 
 # Get Script Location 
@@ -1364,8 +1364,14 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 # ------------------------
 $caption = "Accounts Onboard Utility"
 If (![string]::IsNullOrEmpty($logonToken)) {
-	$logonHeader = @{Authorization = $logonToken }
-	Set-Variable -Scope Global -Name g_LogonHeader -Value $logonHeader
+	if ($logonToken.GetType().name -eq "String") {
+		$logonHeader = @{Authorization = $logonToken }
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $logonHeader
+	}
+ else {
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $logonToken
+ }
+	
 }
 elseif ($null -ne $creds) {
 	$msg = "Enter your $AuthType User name and Password"; 
