@@ -14,8 +14,9 @@ CyberArk Privilege Cloud
 Change Notes
 2021-07-29	- 	Added CreateOnUpdate and applied formatting via VSCode	
 2021-09-27	- 	Added BypassAccountSearch and BypassSafeSearch
-			Added concurrentLogon switch
+				Added concurrentLogon switch
 2022-04-21	-	Fixed Account update and added more logging
+2022-07-22	-	Made CPM_Name a varable able to be set at runtime
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -60,6 +61,10 @@ param(
 	[Parameter(ParameterSetName = 'Update', Mandatory = $true)]
 	[Parameter(ParameterSetName = 'Create', Mandatory = $false)]
 	[Switch]$Update,	
+
+	[Parameter(ParameterSetName='Create',Mandatory=$false)]
+	[Parameter(ParameterSetName='Update',Mandatory=$false)]
+	[String]$CPM_NAME = "PasswordManager",
 	
 	# Use this switch to Delete accounts
 	[Parameter(ParameterSetName = 'Delete', Mandatory = $true)]
@@ -101,7 +106,7 @@ $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -joi
 
 # Script Version
 
-$ScriptVersion = "2.12.1"
+$ScriptVersion = "2.14"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
@@ -133,7 +138,6 @@ $global:g_CsvDefaultPath = $Env:CSIDL_DEFAULT_DOWNLOADS
 
 # Safe Defaults
 # --------------
-$CPM_NAME = "PasswordManager"
 $NumberOfDaysRetention = 7
 #$NumberOfVersionsRetention = 0
 
