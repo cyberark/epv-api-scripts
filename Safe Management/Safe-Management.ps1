@@ -812,7 +812,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
             Position = 0)]
         $memberSearchInLocation = "Vault",
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [ValidateSetAttribute("User","Group","Role")]
+        [ValidateSet("User","Group","Role")]
         [String]$memberType="User",
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [bool]$permUseAccounts = $false,
