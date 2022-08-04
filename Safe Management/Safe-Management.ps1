@@ -118,7 +118,12 @@ param
 	
     # Use this switch to Disable SSL verification (NOT RECOMMENDED)
     [Parameter(Mandatory = $false)]
-    [Switch]$DisableSSLVerify
+    [Switch]$DisableSSLVerify,
+
+    # Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
+    [Parameter(Mandatory = $false)]
+    $logonToken
+
 )
 
 # Get Script Location 
@@ -1028,9 +1033,19 @@ If (Test-CommandExists Invoke-RestMethod) {
         # Get Credentials to Login
         # ------------------------
         $caption = "Safe Management"
-        $msg = "Enter your User name and Password"; 
-        $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
-        if ($null -ne $creds) {
+
+        If (![string]::IsNullOrEmpty($logonToken)) {
+            if ($logonToken.GetType().name -eq "String") {
+                $logonHeader = @{Authorization = $logonToken }
+                Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global	
+            }
+            else {
+                Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
+            }
+        }
+        elseif ($null -ne $creds) {
+            $msg = "Enter your User name and Password"; 
+            $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
             Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
         }
         else { 
@@ -1249,7 +1264,15 @@ If (Test-CommandExists Invoke-RestMethod) {
 	
     # Logoff the session
     # ------------------
-    Invoke-Logoff
+
+    If ([string]::IsNullOrEmpty($logonToken)) {
+        Write-Host "LogonToken passed, session NOT logged off"
+    }
+    else {
+        Invoke-Logoff
+    }
+
+    
 }
 else {
     Write-LogMessage -Type Error -Msg "This script requires PowerShell version 3 or above"
