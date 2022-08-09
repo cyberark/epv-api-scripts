@@ -4,8 +4,8 @@
 - The module allows you to run Get-IdentityHeader which creates a hash with authentication token with X-IDAP-NATIVE-CLIENT = True.
 
 - The scripts follows recommendation of authenticating into Identity Security Platform - Shared Services (ISPSS) that can be found here:
--- https://docs.cyberark.com/Product-Doc/OnlineHelp/PrivCloud-SS/Latest/en/Content/WebServices/ISP-Auth-APIs.htm
--- https://docs.cyberark.com/Product-Doc/OnlineHelp/Idaptive/Latest/en/Content/Developer-resources.htm
+** https://docs.cyberark.com/Product-Doc/OnlineHelp/PrivCloud-SS/Latest/en/Content/WebServices/ISP-Auth-APIs.htm
+** https://docs.cyberark.com/Product-Doc/OnlineHelp/Idaptive/Latest/en/Content/Developer-resources.htm
 
 The function will get the IdentityHeader with or without MFA. It currently supports Password/EmailPush/SMSPush/MobileAppPush options to authenticate.
 
