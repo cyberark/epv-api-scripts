@@ -22,5 +22,5 @@ $header = Get-IdentityHeader
 If you want to specify information prior to running the scripts you can run:
 ```powershell
 Import-Module IdentityAuth.psm1
-$header = Get-IdentityHeader -PlatformDomainName "SubDomain" -IdentityTenantURL "something.id.cyberark.cloud" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID"
+$header = Get-IdentityHeader -IdentityTenantURL "something.id.cyberark.cloud" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID"
 ```
