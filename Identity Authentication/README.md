@@ -1,6 +1,6 @@
 # Identity Authentication
 
-##Main capabilities
+## Main capabilities
 - The module allows you to run Get-IdentityHeader which creates a hash with authentication token with X-IDAP-NATIVE-CLIENT = True.
 
 -The scripts follows recommendation of authenticating into Identity Security Platform - Shared Services (ISPSS) that can be found here:
