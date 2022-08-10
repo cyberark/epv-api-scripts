@@ -7,10 +7,12 @@ Function Get-IdentityHeader {
     .DESCRIPTION
         This function starts by requesting authentication into identity APIs. Once the process starts there can be multiple challenges that need to be responded with multiple options. 
         Each option is then being decided by the user. Once authentication is complete we get a token for the user to use for APIs within the ISPSS platform. 
-    .PARAMETER PlatformDomainName
-        The Subdomain of the customer platform. For example: servicesum.cyberark.cloud we will need to give servicesum as the option here.
+    
     .PARAMETER IdentityTenantURL
-        The URL of the tenant. you can find it if you go to Identity Admin Portal > constimization > Tenant URL. This is without the https:// at the start.
+        The URL of the tenant. you can find it if you go to Identity Admin Portal > constimization > Tenant URL.
+    
+    .Parameter IdentityUserName
+        The Username that will log into the system. It just needs the username, we will ask for PW, Push etc when doing the authentication.
     
     #>
         [CmdletBinding()]
