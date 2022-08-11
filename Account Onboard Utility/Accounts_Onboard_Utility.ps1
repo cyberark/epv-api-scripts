@@ -1377,7 +1377,7 @@ If (![string]::IsNullOrEmpty($logonToken)) {
  }
 	
 }
-elseif ($null -ne $creds) {
+elseif ($null -eq $creds) {
 	$msg = "Enter your $AuthType User name and Password"; 
 	$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
 	if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
