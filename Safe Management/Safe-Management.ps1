@@ -1043,7 +1043,7 @@ If (Test-CommandExists Invoke-RestMethod) {
                 Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
             }
         }
-        elseif ($null -ne $creds) {
+        elseif ($null -eq $creds) {
             $msg = "Enter your User name and Password"; 
             $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
             Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
