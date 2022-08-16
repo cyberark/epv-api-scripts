@@ -20,6 +20,7 @@
  2.0.1 	02/03/2021 	- Fix for v2
  2.1 	12/04/2021     	- Added ability to create report of safes
  2.1.1 	05/02/2022	- Updated catch to capture 404 error and allow for attempting to add.
+ 2.1.2  16/08/2022	- Temp Bug fix for MemberType
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = "List")]
 param
@@ -133,7 +134,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "2.1.1"
+$ScriptVersion = "2.1.2"
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -817,7 +818,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
             Position = 0)]
         $memberSearchInLocation = "Vault",
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [ValidateSet("User","Group","Role")]
+        #[ValidateSet("User","Group","Role")] # Removed due to causing errors
         [String]$memberType="User",
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [bool]$permUseAccounts = $false,
