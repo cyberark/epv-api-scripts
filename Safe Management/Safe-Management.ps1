@@ -20,6 +20,7 @@
  2.0.1 	02/03/2021 	- Fix for v2
  2.1 	12/04/2021     	- Added ability to create report of safes
  2.1.1 	05/02/2022	- Updated catch to capture 404 error and allow for attempting to add.
+ 2.1.2  16/08/2022	- Temp Bug fix for MemberType
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = "List")]
 param
@@ -118,7 +119,12 @@ param
 	
     # Use this switch to Disable SSL verification (NOT RECOMMENDED)
     [Parameter(Mandatory = $false)]
-    [Switch]$DisableSSLVerify
+    [Switch]$DisableSSLVerify,
+
+    # Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
+    [Parameter(Mandatory = $false)]
+    $logonToken
+
 )
 
 # Get Script Location 
@@ -128,7 +134,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "2.1.1"
+$ScriptVersion = "2.1.2"
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -811,6 +817,9 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
             HelpMessage = "Which vault-integrated LDAP directory name the vault should search for the account. Must match one of the directory names defined in the LDAP Integration page of the PVWA.",
             Position = 0)]
         $memberSearchInLocation = "Vault",
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        #[ValidateSet("User","Group","Role")] # Removed due to causing errors
+        [String]$memberType="User",
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [bool]$permUseAccounts = $false,
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
@@ -860,6 +869,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
             MemberName               = "$safeMember"
             SearchIn                 = "$memberSearchInLocation"
             MembershipExpirationDate = "$null"
+            MemberType               = "$memberType"
             Permissions              = @{
                 useAccounts                            = $permUseAccounts
                 retrieveAccounts                       = $permRetrieveAccounts
@@ -909,7 +919,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
             if ($rMethodErr.message -like "*User or Group is already a member*") {
                 Write-LogMessage -Type Warning -Msg "The user $safeMember is already a member. Use the update member method instead"
             }
-            elseif ($rMethodErr.message -like ("*User or Group was not found.*") -or ($rMethodErr.message -like "*404*")) {   
+            elseif (($rMethodErr.message -like "*User or Group was not found.*") -or ($rMethodErr.message -like "*404*")) {   
 
                 If ($AddOnUpdate) {
                     # Adding a member
@@ -1024,9 +1034,19 @@ If (Test-CommandExists Invoke-RestMethod) {
         # Get Credentials to Login
         # ------------------------
         $caption = "Safe Management"
-        $msg = "Enter your User name and Password"; 
-        $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
-        if ($null -ne $creds) {
+
+        If (![string]::IsNullOrEmpty($logonToken)) {
+            if ($logonToken.GetType().name -eq "String") {
+                $logonHeader = @{Authorization = $logonToken }
+                Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global	
+            }
+            else {
+                Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
+            }
+        }
+        elseif ($null -eq $creds) {
+            $msg = "Enter your User name and Password"; 
+            $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
             Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
         }
         else { 
@@ -1131,7 +1151,7 @@ If (Test-CommandExists Invoke-RestMethod) {
                             If ($Delete -eq $False) {
                                 If (![string]::IsNullOrEmpty($line.member)) {
                                     # Add permissions to the safe
-                                    Set-SafeMember -safename $line.safename -safeMember $line.member -updateMember:$UpdateMembers -deleteMember:$DeleteMembers -memberSearchInLocation $line.MemberLocation `
+                                    Set-SafeMember -safename $line.safename -safeMember $line.member -updateMember:$UpdateMembers -deleteMember:$DeleteMembers -memberSearchInLocation $line.MemberLocation -MemberType $line.MemberType`
                                         -permUseAccounts $(Convert-ToBool $line.UseAccounts) -permRetrieveAccounts $(Convert-ToBool $line.RetrieveAccounts) -permListAccounts $(Convert-ToBool $line.ListAccounts) `
                                         -permAddAccounts $(Convert-ToBool $line.AddAccounts) -permUpdateAccountContent $(Convert-ToBool $line.UpdateAccountContent) -permUpdateAccountProperties $(Convert-ToBool $line.UpdateAccountProperties) `
                                         -permInitiateCPMManagement $(Convert-ToBool $line.InitiateCPMAccountManagementOperations) -permSpecifyNextAccountContent $(Convert-ToBool $line.SpecifyNextAccountContent) `
@@ -1245,7 +1265,15 @@ If (Test-CommandExists Invoke-RestMethod) {
 	
     # Logoff the session
     # ------------------
-    Invoke-Logoff
+
+    If ([string]::IsNullOrEmpty($logonToken)) {
+        Write-Host "LogonToken passed, session NOT logged off"
+    }
+    else {
+        Invoke-Logoff
+    }
+
+    
 }
 else {
     Write-LogMessage -Type Error -Msg "This script requires PowerShell version 3 or above"
