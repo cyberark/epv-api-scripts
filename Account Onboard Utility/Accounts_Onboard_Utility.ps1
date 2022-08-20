@@ -12,11 +12,13 @@ CyberArk PVWA v10.4 and above
 CyberArk Privilege Cloud
 
 Change Notes
-2021-07-29	- 	Added CreateOnUpdate and applied formatting via VSCode	
-2021-09-27	- 	Added BypassAccountSearch and BypassSafeSearch
-				Added concurrentLogon switch
-2022-04-21	-	Fixed Account update and added more logging
-2022-07-22	-	Made CPM_Name a varable able to be set at runtime
+2021-07-29	- 		Added CreateOnUpdate and applied formatting via VSCode	
+2021-09-27	- 		Added BypassAccountSearch and BypassSafeSearch
+					Added concurrentLogon switch
+2022-04-21	-		Fixed Account update and added more logging
+2022-07-22	-		Made CPM_Name a varable able to be set at runtime
+2022-08-19  -   	Fixed accounts not adding new platform properties
+					Fixed updating automatic management of password
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -62,8 +64,8 @@ param(
 	[Parameter(ParameterSetName = 'Create', Mandatory = $false)]
 	[Switch]$Update,	
 
-	[Parameter(ParameterSetName='Create',Mandatory=$false)]
-	[Parameter(ParameterSetName='Update',Mandatory=$false)]
+	[Parameter(ParameterSetName = 'Create', Mandatory = $false)]
+	[Parameter(ParameterSetName = 'Update', Mandatory = $false)]
 	[String]$CPM_NAME = "PasswordManager",
 	
 	# Use this switch to Delete accounts
@@ -92,9 +94,12 @@ param(
 	[Parameter(ParameterSetName = 'Create', Mandatory = $false)]
 	[Switch]$BypassAccountSearch,
 
+	[Parameter(Mandatory = $false, HelpMessage = "Vault Stored Credentials")]
+	[PSCredential]$PVWACredentials,
+	
 	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
 	[Parameter(Mandatory = $false)]
-	$logonToken
+	$PVWAlogonToken
 )
 
 # Get Script Location 
@@ -106,7 +111,7 @@ $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -joi
 
 # Script Version
 
-$ScriptVersion = "2.14"
+$ScriptVersion = "2.2"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
@@ -124,7 +129,7 @@ $URL_Logoff = $URL_Authentication + "/Logoff"
 
 # URL Methods
 # -----------
-$URL_Safes = $URL_PVWABaseAPI + "/Safes"
+$URL_Safes = $URL_PVWAAPI + "/Safes"
 $URL_SafeDetails = $URL_Safes + "/{0}"
 $URL_SafeMembers = $URL_SafeDetails + "/Members"
 $URL_Accounts = $URL_PVWAAPI + "/Accounts"
@@ -317,7 +322,6 @@ Function New-AccountObject {
 		# Convert Account from CSV to Account Object (properties mapping)
 		$_Account = "" | Select-Object "name", "address", "userName", "platformId", "safeName", "secretType", "secret", "platformAccountProperties", "secretManagement", "remoteMachinesAccess"
 		$_Account.platformAccountProperties = $null
-		$_Account.secretManagement = "" | Select-Object "automaticManagementEnabled", "manualManagementReason"
 		$_Account.name = (Get-TrimmedString $AccountLine.name)
 		$_Account.address = (Get-TrimmedString $AccountLine.address)
 		$_Account.userName = (Get-TrimmedString $AccountLine.userName)
@@ -349,6 +353,7 @@ Function New-AccountObject {
 			}
 		}
 		If (![String]::IsNullOrEmpty($AccountLine.enableAutoMgmt)) {
+			$_Account.secretManagement = "" | Select-Object "automaticManagementEnabled", "manualManagementReason"
 			$_Account.secretManagement.automaticManagementEnabled = Convert-ToBool $AccountLine.enableAutoMgmt
 			if ($_Account.secretManagement.automaticManagementEnabled -eq $false) {
 				$_Account.secretManagement.manualManagementReason = $AccountLine.manualMgmtReason 
@@ -657,7 +662,7 @@ Function Get-Safe {
 		Write-LogMessage -Type Error -MSG "Error getting Safe '$safeName' details. Error: $($_.Exception.Response.StatusDescription)"
 	}
 	
-	return $_safe.GetSafeResult
+	return $_safe
 }
 
 # @FUNCTION@ ======================================================================================================================
@@ -1367,19 +1372,24 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 # Get Credentials to Login
 # ------------------------
 $caption = "Accounts Onboard Utility"
-If (![string]::IsNullOrEmpty($logonToken)) {
-	if ($logonToken.GetType().name -eq "String") {
-		$logonHeader = @{Authorization = $logonToken }
+If (![string]::IsNullOrEmpty($PVWAlogonToken)) {
+	if ($PVWAlogonToken.GetType().name -eq "String") {
+		$logonHeader = @{Authorization = $PVWAlogonToken }
 		Set-Variable -Scope Global -Name g_LogonHeader -Value $logonHeader
 	}
  else {
-		Set-Variable -Scope Global -Name g_LogonHeader -Value $logonToken
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $PVWAlogonToken
  }
 	
 }
 elseif ($null -eq $creds) {
-	$msg = "Enter your $AuthType User name and Password"; 
-	$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
+	If (![string]::IsNullOrEmpty($PVWACredentials)) {
+		$creds = $PVWACredentials
+	}
+ else {
+		$msg = "Enter your $AuthType User name and Password"; 
+		$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
+	}
 	if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
 		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession -RadiusOTP $OTP )
 	}
@@ -1513,23 +1523,25 @@ ForEach ($account in $accountsCSV) {
 					If ($accExists) {
 						Write-LogMessage -Type Verbose -MSG "Account '$g_LogAccountName' exists"
 						# Get Existing Account Details
+						Write-LogMessage -Type Verbose -MSG "Retrived $($objAccount.userName) from the CSV"
+						Write-LogMessage -Type Verbose -MSG "Output of  $($objAccount.userName) from the CSV in JSON: $($objAccount|ConvertTo-Json -Depth 5)"
 						$s_Account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address -accountObjectName $objAccount.name)
 						If ($s_Account.Count -gt 1) {
 							Throw "Too many accounts for '$g_LogAccountName' in safe $($objAccount.safeName)"
 						}
+						Write-LogMessage -Type Verbose -MSG "Retrived $($objAccount.userName) from Safe $($objAccount.safeName)"
+						Write-LogMessage -Type Verbose -MSG "RAW format: $s_Account"
+						Write-LogMessage -Type Verbose -MSG "Converted to JSON: $($s_Account|ConvertTo-Json -Depth 5)"
 						If ($Update) {
 							$updateChange = $false
 							$s_AccountBody = @()
 							$s_ExcludeProperties = @("id", "secret", "lastModifiedTime", "createdTime", "categoryModificationTime")
 							# Check for existing properties needed update
-							Write-LogMessage -Type Verbose -MSG "Updating on $($objAccount.userName) "
-							Write-LogMessage -Type Verbose -MSG "$($objAccount|ConvertTo-Json -Depth 5)"
-							Write-LogMessage -Type Verbose -MSG ""
-							Write-LogMessage -Type Verbose -MSG "Working on $s_Account"
-							Write-LogMessage -Type Verbose -MSG "$($s_Account|ConvertTo-Json -Depth 5)"
 							Foreach ($sProp in ($s_Account.PSObject.Properties | Where-Object { $_.Name -NotIn $s_ExcludeProperties })) {
 								Write-LogMessage -Type Verbose -MSG "Inspecting Account Property $($sProp.Name)"
-								$s_ExcludeProperties += $sProp.Name
+								if (![string]::IsNullOrEmpty($sprop.value)) {
+									$s_ExcludeProperties += $sProp.Name
+								}
 								If ($sProp.TypeNameOfValue -eq "System.Management.Automation.PSCustomObject") {
 									# A Nested object
 									ForEach ($subProp in $s_Account.($sProp.Name).PSObject.Properties) { 
@@ -1541,18 +1553,12 @@ ForEach ($account in $accountsCSV) {
 											$_bodyOp.op = "replace"
 											$_bodyOp.path = "/" + $sProp.Name + "/" + $subProp.Name
 											$_bodyOp.value = $objAccount.$($sProp.Name).$($subProp.Name)
+											If ($_bodyOp.value -eq $true){$_bodyOp.value = "true"}
+											elseif ($_bodyOp.value -eq $false){$_bodyOp.value = "false"}
 											$s_AccountBody += $_bodyOp
 											# Adding a specific case for "/secretManagement/automaticManagementEnabled"
 											If ("/secretManagement/automaticManagementEnabled" -eq ("/" + $sProp.Name + "/" + $subProp.Name)) {
-												If ($objAccount.secretManagement.automaticManagementEnabled -eq $true) {
-													# Need to remove the manualManagementReason
-													Write-LogMessage -Type Verbose -MSG "Since Account Automatic management is on, removing the Manual management reason"
-													$_bodyOp = "" | Select-Object "op", "path"
-													$_bodyOp.op = "remove"
-													$_bodyOp.path = "/secretManagement/manualManagementReason"
-													$s_AccountBody += $_bodyOp
-												}
-												else {
+												If ($objAccount.secretManagement.automaticManagementEnabled -eq $false) {
 													# Need to add the manualManagementReason
 													Write-LogMessage -Type Verbose -MSG "Since Account Automatic management is off, adding the Manual management reason"
 													$_bodyOp = "" | Select-Object "op", "path", "value"
@@ -1583,6 +1589,7 @@ ForEach ($account in $accountsCSV) {
 							} # [End] Check for existing properties
 							# Check for new Account Properties
 							ForEach ($sProp in ($objAccount.PSObject.Properties | Where-Object { $_.Name -NotIn $s_ExcludeProperties })) {
+								$s_ExcludeProperties += $sProp.Name
 								Write-LogMessage -Type Verbose -MSG "Inspecting for New Property $($sProp.Name)"
 								If ($sProp.Name -eq "remoteMachinesAccess") {
 									ForEach ($sSubProp in $objAccount.remoteMachinesAccess.PSObject.Properties) {
@@ -1615,9 +1622,9 @@ ForEach ($account in $accountsCSV) {
 										Write-LogMessage -Type Verbose -MSG "Updating Platform Account Properties $($sSubProp.Name) value to: '$($objAccount.platformAccountProperties.$($sSubProp.Name))'"
 										# Handle new Account Platform properties
 										$_bodyOp = "" | Select-Object "op", "path", "value"
-										$_bodyOp.op = "replace"
-										$_bodyOp.path = "/platformAccountProperties/" + $sProp.Name
-										$_bodyOp.value = $objAccount.platformAccountProperties.$($sProp.Name)
+										$_bodyOp.op = "add"
+										$_bodyOp.path = "/platformAccountProperties/" + $sSubProp.Name
+										$_bodyOp.value = $objAccount.platformAccountProperties.$($sSubProp.Name)
 										$s_AccountBody += $_bodyOp
 									}
 								}
@@ -1748,7 +1755,7 @@ ForEach ($account in $accountsCSV) {
 #region [Logoff]
 # Logoff the session
 # ------------------
-If ([string]::IsNullOrEmpty($logonToken)) {
+If (![string]::IsNullOrEmpty($PVWAlogonToken)) {
 	Write-Host "LogonToken passed, session NOT logged off"
 }
 else {
