@@ -14,11 +14,11 @@ CyberArk Privilege Cloud
 Change Notes
 2021-07-29	- 		Added CreateOnUpdate and applied formatting via VSCode	
 2021-09-27	- 		Added BypassAccountSearch and BypassSafeSearch
-					Added concurrentLogon switch
+				Added concurrentLogon switch
 2022-04-21	-		Fixed Account update and added more logging
 2022-07-22	-		Made CPM_Name a varable able to be set at runtime
-2022-08-19  -   	Fixed accounts not adding new platform properties
-					Fixed updating automatic management of password
+2022-08-19  	-	   	Fixed accounts not adding new platform properties
+				Fixed updating automatic management of password
 
 ########################################################################### #>
 [CmdletBinding()]
