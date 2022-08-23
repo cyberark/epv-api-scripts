@@ -19,6 +19,7 @@ Change Notes
 2022-07-22 -	Made CPM_Name a varable able to be set at runtime
 2022-08-19 -	Fixed accounts not adding new platform properties
 		Fixed updating automatic management of password
+2022-08-23 -	Verification latest version published
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -111,7 +112,7 @@ $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -joi
 
 # Script Version
 
-$ScriptVersion = "2.2"
+$ScriptVersion = "2.2.1"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
