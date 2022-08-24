@@ -919,7 +919,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
             if ($rMethodErr.message -like "*User or Group is already a member*") {
                 Write-LogMessage -Type Warning -Msg "The user $safeMember is already a member. Use the update member method instead"
             }
-            elseif (($rMethodErr.message -like "*User or Group was not found.*") -or ($rMethodErr.message -like "*404*")) {   
+            elseif (($rMethodErr.message -like "*User or Group was not found.*") -or ($rMethodErr.message -like "*404*") -or ($rMethodErr.message -like "*hasn't been defined*")) {   
 
                 If ($AddOnUpdate) {
                     # Adding a member
