@@ -19,6 +19,7 @@ Change Notes
 2022-07-22 -	Made CPM_Name a varable able to be set at runtime
 2022-08-19 -	Fixed accounts not adding new platform properties
 		Fixed updating automatic management of password
+2022-08-23 -	Verification latest version published
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -111,7 +112,7 @@ $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -joi
 
 # Script Version
 
-$ScriptVersion = "2.2"
+$ScriptVersion = "2.2.2"
 
 # Set Log file path
 $LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
@@ -179,11 +180,9 @@ Function Test-CommandExists {
 		if (Get-Command $command) {
 			RETURN $true
 		}
- }
-	Catch {
+ } Catch {
 		Write-Host "$command does not exist"; RETURN $false
- }
-	Finally {
+ } Finally {
 		$ErrorActionPreference = $oldPreference
  }
 } #end function test-CommandExists
@@ -206,8 +205,7 @@ Function ConvertTo-URL($sText) {
 	if ($sText.Trim() -ne "") {
 		Write-LogMessage -Type Debug -Msg "Returning URL Encode of $sText"
 		return [URI]::EscapeDataString($sText)
-	}
- else {
+	} else {
 		return $sText
 	}
 }
@@ -234,11 +232,9 @@ Function Convert-ToBool {
 	
 	if ($txt -match "^y$|^yes$") {
 		$retBool = $true 
- }
-	elseif ($txt -match "^n$|^no$") {
+ } elseif ($txt -match "^n$|^no$") {
 		$retBool = $false 
- }
-	else {
+ } else {
 		[bool]::TryParse($txt, [ref]$retBool) | Out-Null 
  }
     
@@ -292,8 +288,7 @@ Function New-AccountObject {
 		$logFormat = ""
 		If (([string]::IsNullOrEmpty($AccountLine.userName) -or [string]::IsNullOrEmpty($AccountLine.Address)) -and (![string]::IsNullOrEmpty($AccountLine.name))) {
 			$logFormat = (Get-TrimmedString $AccountLine.name)
-		}
-		Else {
+		} Else {
 			$logFormat = ("{0}@{1}" -f $(Get-TrimmedString $AccountLine.userName), $(Get-TrimmedString $AccountLine.address))
 		}
 		Set-Variable -Scope Global -Name g_LogAccountName -Value $logFormat
@@ -330,12 +325,10 @@ Function New-AccountObject {
 		if ((![string]::IsNullOrEmpty($AccountLine.password)) -and ([string]::IsNullOrEmpty($AccountLine.SSHKey))) { 
 			$_Account.secretType = "password"
 			$_Account.secret = $AccountLine.password
-		}
-		elseif (![string]::IsNullOrEmpty($AccountLine.SSHKey)) { 
+		} elseif (![string]::IsNullOrEmpty($AccountLine.SSHKey)) { 
 			$_Account.secretType = "key" 
 			$_Account.secret = $AccountLine.SSHKey
-		}
-		else {
+		} else {
 			# Empty password
 			$_Account.secretType = "password"
 			$_Account.secret = $AccountLine.password
@@ -374,8 +367,7 @@ Function New-AccountObject {
 		#endregion [Account object mapping]
 				
 		return $_Account
-	}
- catch {
+	} catch {
 		Throw $(New-Object System.Exception ("New-AccountObject: There was an error creating a new account object.", $_.Exception))
 	}
 }
@@ -458,8 +450,7 @@ Function Write-LogMessage {
 		If ($Header) {
 			"=======================================" | Out-File -Append -FilePath $LOG_FILE_PATH 
 			Write-Host "======================================="
-		}
-		ElseIf ($SubHeader) { 
+		} ElseIf ($SubHeader) { 
 			"------------------------------------" | Out-File -Append -FilePath $LOG_FILE_PATH 
 			Write-Host "------------------------------------"
 		}
@@ -495,8 +486,7 @@ Function Write-LogMessage {
 				if ($InDebug) {
 					Write-Debug $MSG
 					$msgToWrite += "[DEBUG]`t$Msg"
-				}
-				else {
+				} else {
 					$writeToFile = $False 
 				}
 				break
@@ -505,8 +495,7 @@ Function Write-LogMessage {
 				if ($InVerbose) {
 					Write-Verbose $MSG
 					$msgToWrite += "[VERBOSE]`t$Msg"
-				}
-				else {
+				} else {
 					$writeToFile = $False 
 				}
 				break
@@ -520,8 +509,7 @@ Function Write-LogMessage {
 			"=======================================" | Out-File -Append -FilePath $LOG_FILE_PATH 
 			Write-Host "======================================="
 		}
-	}
- catch {
+	} catch {
 		Write-Error "Error in writing log: $($_.Exception.Message)" 
  }
 }
@@ -608,13 +596,11 @@ Function Invoke-Rest {
 		if ([string]::IsNullOrEmpty($Body)) {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700 -ErrorAction $ErrAction
-		}
-		else {
+		} else {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
 		}
-	}
- catch [System.Net.WebException] {
+	} catch [System.Net.WebException] {
 		if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
 			Write-LogMessage -Type Error -Msg "Error Message: $_"
 			Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
@@ -622,8 +608,7 @@ Function Invoke-Rest {
 			Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
 		}
 		$restResponse = $null
-	}
- catch { 
+	} catch { 
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
 	}
 	Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $restResponse"
@@ -657,8 +642,7 @@ Function Get-Safe {
 	try {
 		$accSafeURL = $URL_SafeDetails -f $(ConvertTo-URL $safeName)
 		$_safe = $(Invoke-Rest -Uri $accSafeURL -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
-	}
- catch {
+	} catch {
 		Write-LogMessage -Type Error -MSG "Error getting Safe '$safeName' details. Error: $($_.Exception.Response.StatusDescription)"
 	}
 	
@@ -798,8 +782,7 @@ Function Get-SafeMembers {
 			$item | Add-Member -NotePropertyName "MembershipExpirationDate" -NotePropertyValue $null
 			$_retSafeOwners += $item
 		}
-	}
- catch {
+	} catch {
 		Write-LogMessage -Type Error -MSG "Error getting Safe '$safeName' members. Error: $(Join-ExceptionMessage $_.Exception)"
 	}
 	
@@ -832,14 +815,12 @@ Function Test-Safe {
 			# Safe does not exist
 			Write-LogMessage -Type Warning -MSG "Safe $safeName does not exist"
 			return $false
-		}
-		else {
+		} else {
 			# Safe exists
 			Write-LogMessage -Type Info -MSG "Safe $safeName exists"
 			return $true
 		}
-	}
- catch {
+	} catch {
 		Write-LogMessage -Type Error -MSG "Error testing safe '$safeName' existence. Error: $(Join-ExceptionMessage $_.Exception)" -ErrorAction "SilentlyContinue"
 	}
 }
@@ -880,8 +861,7 @@ Function New-Safe {
 		# Update the safe name in the Safe Template Object
 		$templateSafeObject.SafeName = $safeName
 		$restBody = @{ safe = $templateSafeObject } | ConvertTo-Json -Depth 3 -Compress
-	}
- else {
+	} else {
 		# Create the Target Safe
 		Write-LogMessage -Type Info -MSG "Creating Safe $safeName"
 		$bodySafe = @{ SafeName = $safeName; Description = "$safeName - Created using Accounts Onboard Utility"; OLACEnabled = $false; ManagingCPM = $CPM_NAME; NumberOfDaysRetention = $NumberOfDaysRetention }
@@ -892,14 +872,12 @@ Function New-Safe {
 		if ($createSafeResult) {
 			Write-LogMessage -Type Debug -MSG "Safe $safeName created"
 			return $false
-		}
-		else { 
+		} else { 
 			# Safe creation failed
 			Write-LogMessage -Type Error -MSG "Safe Creation failed - Should Skip Account Creation"
 			return $true 
 		}
-	}
- catch {
+	} catch {
 		Write-LogMessage -Type Error -MSG "Failed to create safe $safeName with error: $($_.Exception.Response.StatusDescription)"
 	}
 }
@@ -940,8 +918,7 @@ Function Add-Owner {
 			if ($null -ne $restResponse) {
 				Write-LogMessage -Type Verbose -MSG "Owner '$($bodyMember.MemberName)' was successfully added to safe '$safeName'"
 			}
-		}
-		catch {
+		} catch {
 			Write-LogMessage -Type Error -MSG "Failed to add Owner to safe $safeName with error: $($_.Exception.Response.StatusDescription)"
 		}
 	}
@@ -1026,8 +1003,7 @@ Function Get-Account {
 				$GetAccountsList += $GetAccountsResponse.value
 				Write-LogMessage -Type Debug -MSG "Found $($GetAccountsList.count) accounts so far..."
 			}
-		}
-		catch [System.Net.WebException] {
+		} catch [System.Net.WebException] {
 			Throw $(New-Object System.Exception ("Get-Account: Error getting Account. Error: $($_.Exception.Response.StatusDescription)", $_.Exception))
 		}
 		Write-LogMessage -Type Debug -MSG "Found $($GetAccountsList.count) accounts, filtering accounts..."
@@ -1041,8 +1017,7 @@ Function Get-Account {
 			$_retAccount = $null
 			throw "Found $($_retAccount.count) accounts in search - fix duplications" 
 		}
-	}
- catch {
+	} catch {
 		Throw $(New-Object System.Exception ("Get-Account: Error getting Account.", $_.Exception))
 	}
 	
@@ -1087,14 +1062,12 @@ Function Test-Account {
 			# No accounts found
 			Write-LogMessage -Type Debug -MSG "Account $g_LogAccountName does not exist"
 			return $false
-		}
-		else {
+		} else {
 			# Account Exists
 			Write-LogMessage -Type Info -MSG "Account $g_LogAccountName exist"
 			return $true
 		}
-	}
- catch {
+	} catch {
 		Write-LogMessage -Type Error -MSG "Error testing Account '$g_LogAccountName' existence. Error: $(Join-ExceptionMessage $_.Exception)" -ErrorAction "SilentlyContinue"
 	}
 }
@@ -1134,12 +1107,10 @@ Function Test-PlatformProperty {
 		If ($GetPlatformDetails) {
 			Write-LogMessage -Type Verbose -MSG "Found Platform id $platformId, checking if platform contains '$platformProperty'..."
 			$_retResult = [bool]($GetPlatformDetails.Details.PSObject.Properties.name -match $platformProperty)
-		}
-		Else {
+		} Else {
 			Throw "Platform does not exist or we had an issue"
 		}
-	}
- catch {
+	} catch {
 		Write-LogMessage -Type Error -MSG "Error checking platform properties. Error: $(Join-ExceptionMessage $_.Exception)"
 	}
 	
@@ -1173,8 +1144,7 @@ Function Get-LogonHeader {
 	# ----------------------------------
 	If ($concurrentSession) {
 		$logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password; concurrentSession = "true" } | ConvertTo-Json -Compress
-	}
- else {
+	} else {
 		$logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
 	}
 	If (![string]::IsNullOrEmpty($RadiusOTP)) {
@@ -1186,8 +1156,7 @@ Function Get-LogonHeader {
 		$logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
 		# Clear logon body
 		$logonBody = ""
-	}
- catch {
+	} catch {
 		Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
 	}
     
@@ -1228,13 +1197,12 @@ Function Test-LatestVersion {
 	[System.Net.ServicePointManager]::ServerCertificateValidationCallback = $null
 	try {
 		$getScriptContent = (Invoke-WebRequest -UseBasicParsing -Uri $scriptURL).Content
-	}
- catch {
+	} catch {
 		Throw $(New-Object System.Exception ("Test-LatestVersion: Couldn't download and check for latest version", $_.Exception))
 	}
 	If ($($getScriptContent -match "ScriptVersion\s{0,1}=\s{0,1}\""([\d\.]{1,5})\""")) {
 		$gitHubScriptVersion = $Matches[1]
-		If ([double]$gitHubScriptVersion -gt [double]$ScriptVersion) {
+		If ([version]$gitHubScriptVersion -gt [version]$ScriptVersion) {
 			$retLatestVersion = $false
 			Write-LogMessage -Type Info -MSG "Found new version: $gitHubScriptVersion - Updating..."
 			$getScriptContent | Out-File "$ScriptFullPath.NEW"
@@ -1242,14 +1210,12 @@ Function Test-LatestVersion {
 				Rename-Item -Path $ScriptFullPath -NewName "$ScriptFullPath.OLD"
 				Rename-Item -Path "$ScriptFullPath.NEW" -NewName $ScriptFullPath
 				Remove-Item -Path "$ScriptFullPath.OLD"	
-			}
-			Else {
+			} Else {
 				Write-LogMessage -Type Error -MSG "Can't find the new script at location '$ScriptFullPath.NEW'."
 				# Revert to current version in case of error
 				$retLatestVersion = $true
 			}
-		}
-		Else {
+		} Else {
 			Write-LogMessage -Type Info -MSG "Current version ($ScriptVersion) is the latest!"
 		}
 	}
@@ -1287,8 +1253,7 @@ If (!$DisableAutoUpdate) {
 			# Exit the current script
 			return
 		}
-	}
- catch {
+	} catch {
 		Write-LogMessage -Type Error -MSG "Error checking for latest version. Error: $(Join-ExceptionMessage $_.Exception)"
 	}
 }
@@ -1303,19 +1268,16 @@ If ($DisableSSLVerify) {
 		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls11
 		# Disable SSL Verification
 		[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
-	}
- catch {
+	} catch {
 		Write-LogMessage -Type Error -MSG "Could not change SSL validation"
 		Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 		return
 	}
-}
-Else {
+} Else {
 	try {
 		Write-LogMessage -Type Debug -MSG "Setting script to use TLS 1.2"
 		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-	}
- catch {
+	} catch {
 		Write-LogMessage -Type Error -MSG "Could not change SSL settings to use TLS 1.2"
 		Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 	}
@@ -1346,21 +1308,18 @@ If (![string]::IsNullOrEmpty($PVWAURL)) {
 		# Validate PVWA URL is OK
 		Write-LogMessage -Type Debug -MSG "Trying to validate URL: $PVWAURL"
 		Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $PVWAURL -Method 'Head' -TimeoutSec 30 | Out-Null
-	}
- catch [System.Net.WebException] {
+	} catch [System.Net.WebException] {
 		If (![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__)) {
 			Write-LogMessage -Type Error -MSG "Received error $($_.Exception.Response.StatusCode.Value__) when trying to validate PVWA URL"
 			Write-LogMessage -Type Error -MSG "Check your connection to PVWA and the PVWA URL"
 			return
 		}
-	}
- catch {		
+	} catch {		
 		Write-LogMessage -Type Error -MSG "PVWA URL could not be validated"
 		Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
 	}
 	
-}
-else {
+} else {
 	Write-LogMessage -Type Error -MSG "PVWA URL can not be empty"
 	return
 }
@@ -1376,32 +1335,27 @@ If (![string]::IsNullOrEmpty($PVWAlogonToken)) {
 	if ($PVWAlogonToken.GetType().name -eq "String") {
 		$logonHeader = @{Authorization = $PVWAlogonToken }
 		Set-Variable -Scope Global -Name g_LogonHeader -Value $logonHeader
-	}
- else {
+	} else {
 		Set-Variable -Scope Global -Name g_LogonHeader -Value $PVWAlogonToken
  }
 	
-}
-elseif ($null -eq $creds) {
+} elseif ($null -eq $creds) {
 	If (![string]::IsNullOrEmpty($PVWACredentials)) {
 		$creds = $PVWACredentials
-	}
- else {
+	} else {
 		$msg = "Enter your $AuthType User name and Password"; 
 		$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
 	}
 	if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
 		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession -RadiusOTP $OTP )
-	}
-	else {
+	} else {
 		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession)
 	}
 	# Verify that we successfully logged on
 	If ($null -eq $g_LogonHeader) { 
 		return # No logon header, end script 
 	}
-}
-else { 
+} else { 
 	Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
 	return
 }
@@ -1423,8 +1377,7 @@ If (![string]::IsNullOrEmpty($TemplateSafe) -and !$NoSafeCreation) {
 			$_updatedMembers = $TemplateSafeMembers | Where-Object { $_.MemberName -ne $creds.UserName }
 			$TemplateSafeMembers = $_updatedMembers
 		}
-	}
- else {
+	} else {
 		Write-LogMessage -Type Error -Msg "Template Safe does not exist" -Footer
 		return			
 	}
@@ -1445,8 +1398,7 @@ If ([string]::IsNullOrEmpty($CsvPath)) {
 }
 $delimiter = $(If ($CsvDelimiter -eq "Comma") {
 		"," 
-	}
- else {
+	} else {
 		"`t" 
  } )
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
@@ -1472,8 +1424,7 @@ ForEach ($account in $accountsCSV) {
 			If (!$BypassSafeSearch) {
 				# Check if the Safe Exists
 				$safeExists = $(Test-Safe -safeName $objAccount.safeName)
-			}
-			else {
+			} else {
 				#Bypass set to true, assuming safe does exist
 				Write-LogMessage -Type Warning -MSG "Safe Search Bypassed"
 				Write-LogMessage -Type Warning -MSG "Assuming safe `"$($objAccount.safeName)`" already exists"
@@ -1490,18 +1441,15 @@ ForEach ($account in $accountsCSV) {
 							$addOwnerResult = Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
 							if ($null -eq $addOwnerResult) {
 								throw 
-       }
-							else {
+       } else {
 								Write-LogMessage -Type Debug -MSG "Template Safe members were added successfully to safe $($account.Safe)"
 							}
 						}
 					}
-				}
-				catch {
+				} catch {
 					Write-LogMessage -Type Debug -MSG "There was an error creating Safe $($account.Safe)"
 				}
-			}
-			elseif (($NoSafeCreation -eq $True) -and ($safeExists -eq $false)) {
+			} elseif (($NoSafeCreation -eq $True) -and ($safeExists -eq $false)) {
 				# The target safe does not exist
 				# The user chose not to create safes during this process
 				Write-LogMessage -Type Info -MSG "Target Safe does not exist, No Safe creation requested - Will Skip account Creation"
@@ -1512,8 +1460,7 @@ ForEach ($account in $accountsCSV) {
 				if (!$BypassAccountSearch) {
 					# Check if the Account exists
 					$accExists = $(Test-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address -accountObjectName $objAccount.name)
-				}
-				else {
+				} else {
 					#Bypass set to true, assuming account does not exist
 					Write-LogMessage -Type Warning -MSG "Account Search Bypassed"
 					Write-LogMessage -Type Warning -MSG "Assuming Account with username `"$($objAccount.userName)`" at address `"$($objAccount.address)`" does not exists"
@@ -1539,7 +1486,7 @@ ForEach ($account in $accountsCSV) {
 							# Check for existing properties needed update
 							Foreach ($sProp in ($s_Account.PSObject.Properties | Where-Object { $_.Name -NotIn $s_ExcludeProperties })) {
 								Write-LogMessage -Type Verbose -MSG "Inspecting Account Property $($sProp.Name)"
-								if (![string]::IsNullOrEmpty($sprop.value)) {
+								if ((![string]::IsNullOrEmpty($sprop.value)) -and ($sprop.Name -ne "platformAccountProperties") ) {
 									$s_ExcludeProperties += $sProp.Name
 								}
 								If ($sProp.TypeNameOfValue -eq "System.Management.Automation.PSCustomObject") {
@@ -1566,8 +1513,7 @@ ForEach ($account in $accountsCSV) {
 													$_bodyOp.path = "/secretManagement/manualManagementReason"
 													if ([string]::IsNullOrEmpty($objAccount.secretManagement.manualManagementReason)) {
 														$_bodyOp.value = "[No Reason]"
-													}
-													else {
+													} else {
 														$_bodyOp.value = $objAccount.secretManagement.manualManagementReason
 													}
 													$s_AccountBody += $_bodyOp
@@ -1575,8 +1521,7 @@ ForEach ($account in $accountsCSV) {
 											}
 										}
 									} 
-								}
-								else { 
+								} else { 
 									If (($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $sProp.Value)) {
 										Write-LogMessage -Type Verbose -MSG "Updating Account Property $($sProp.Name) value from: '$($sProp.Value)' to: '$($objAccount.$($sProp.Name))'"
 										$_bodyOp = "" | Select-Object "op", "path", "value"
@@ -1608,27 +1553,26 @@ ForEach ($account in $accountsCSV) {
 												#$_bodyOp.value = $null
 												# Remove the Value property
 												$_bodyOp = ($_bodyOp | Select-Object op, path)
-											}
-											else {
+											} else {
 												$_bodyOp.op = "replace"
 												$_bodyOp.value = $objAccount.remoteMachinesAccess.$($sSubProp.Name) -join ';'
 											}
 											$s_AccountBody += $_bodyOp
 										}
 									}
-								}
-								ElseIf ($sProp.Name -eq "platformAccountProperties") {
+								} ElseIf ($sProp.Name -eq "platformAccountProperties") {
 									ForEach ($sSubProp in $objAccount.platformAccountProperties.PSObject.Properties) {
-										Write-LogMessage -Type Verbose -MSG "Updating Platform Account Properties $($sSubProp.Name) value to: '$($objAccount.platformAccountProperties.$($sSubProp.Name))'"
-										# Handle new Account Platform properties
-										$_bodyOp = "" | Select-Object "op", "path", "value"
-										$_bodyOp.op = "add"
-										$_bodyOp.path = "/platformAccountProperties/" + $sSubProp.Name
-										$_bodyOp.value = $objAccount.platformAccountProperties.$($sSubProp.Name)
-										$s_AccountBody += $_bodyOp
-									}
-								}
-								else { 
+										If (($null -ne $objAccount.$($sProp.Name).$($sSubProp.Name)) -and ($s_Account.$($sProp.Name).$($sSubProp.Name) -ne $sSubProp.Value)) {
+											Write-LogMessage -Type Verbose -MSG "Adding Platform Account Properties $($sSubProp.Name) value to: '$($objAccount.platformAccountProperties.$($sSubProp.Name))'"
+											# Handle new Account Platform properties
+											$_bodyOp = "" | Select-Object "op", "path", "value"
+											$_bodyOp.op = "add"
+											$_bodyOp.path = "/platformAccountProperties/" + $sSubProp.Name
+											$_bodyOp.value = $objAccount.platformAccountProperties.$($sSubProp.Name)
+											$s_AccountBody += $_bodyOp
+										}
+         }
+								} else { 
 									Write-LogMessage -Type Verbose -MSG "Object name to inspect is $($sProp.Name) with a value of $($sProp.Value)"
 									If (($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $s_Account.$($sProp.Name))) {
 										Write-LogMessage -Type Verbose -MSG "Updating Account Property '$($sProp.Name)' value from: '$($s_Account.$($sProp.Name))' to: '$($objAccount.$($sProp.Name))'"
@@ -1644,8 +1588,7 @@ ForEach ($account in $accountsCSV) {
 								
 							If ($s_AccountBody.count -eq 0) {
 								Write-LogMessage -Type Info -MSG "No Account updates detected - Skipping"
-							}
-							else {
+							} else {
 								# Update the existing account
 								$restBody = ConvertTo-Json $s_AccountBody -Depth 5 -Compress
 								$urlUpdateAccount = $URL_AccountsDetails -f $s_Account.id
@@ -1673,8 +1616,7 @@ ForEach ($account in $accountsCSV) {
 										Write-LogMessage -Type Info -MSG "Account Secret Updated Successfully"
 										$updateChange = $true
 									}
-								}
-								else {
+								} else {
 									Write-LogMessage -Type Warning -MSG "Account Secret Type is not a password, no support for updating the secret - skipping"
 								}
 							}
@@ -1683,22 +1625,19 @@ ForEach ($account in $accountsCSV) {
 								$counter++
 								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))/$rowCount] Updated $g_LogAccountName (CSV line: $csvLine) successfully."
 							}
-						}
-						ElseIf ($Create) {
+						} ElseIf ($Create) {
 							try {
 								# Account Exists, Creating the same account again will cause duplications - Verify with user
 								Write-Warning "The Account Exists, Creating the same account twice will cause duplications" -WarningAction Inquire
 								# If the user clicked yes, the account will be created
 								Write-LogMessage -Type Warning -MSG "Account '$g_LogAccountName' exists, User chose to create the same account twice"
 								$createAccount = $true
-							}
-							catch {
+							} catch {
 								# User probably chose to Halt/Stop the action and not create a duplicate account
 								Write-LogMessage -Type Info -MSG "Skipping onboarding account '$g_LogAccountName' (CSV line: $csvLine) to avoid duplication."
 								$createAccount = $false
 							}
-						}
-						ElseIf ($Delete) {
+						} ElseIf ($Delete) {
 							# Single account found for deletion
 							$urlDeleteAccount = $URL_AccountsDetails -f $s_account.id
 							$DeleteAccountResult = $(Invoke-Rest -Uri $urlDeleteAccount -Header $g_LogonHeader -Command "DELETE")
@@ -1708,12 +1647,10 @@ ForEach ($account in $accountsCSV) {
 								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))] Deleted $g_LogAccountName successfully."
 							}
 						}
-					}
-					else { 
+					} else { 
 						If ($Create) {
 							$createAccount = $true
-						}
-						Else {
+						} Else {
 							Write-LogMessage -Type Error -Msg "You requested to Update/Delete an account that does not exist (Account: $g_LogAccountName, CSV line: $csvLine)"
 							$createAccount = $false
 						}
@@ -1731,21 +1668,17 @@ ForEach ($account in $accountsCSV) {
 								$counter++
 								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))] Added $g_LogAccountName successfully."  
 							}
-						}
-						catch {
+						} catch {
 							Throw $(New-Object System.Exception ("There was an error creating the account", $_.Exception))
 						}
 					}
-				}
-				catch {
+				} catch {
 					Write-LogMessage -Type Error -MSG "There was an error onboarding $g_LogAccountName (CSV line: $csvLine) into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
 				}
-			}
-			else {
+			} else {
 				Write-LogMessage -Type Info -MSG "Skipping onboarding account $g_LogAccountName (CSV line: $csvLine) into the Password Vault since safe does not exist and safe creation is disabled."
 			}
-		}
-		catch {
+		} catch {
 			Write-LogMessage -Type Info -MSG "Skipping onboarding account $g_LogAccountName (CSV line: $csvLine) into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
 		}
 	}
@@ -1757,8 +1690,7 @@ ForEach ($account in $accountsCSV) {
 # ------------------
 If (![string]::IsNullOrEmpty($PVWAlogonToken)) {
 	Write-Host "LogonToken passed, session NOT logged off"
-}
-else {
+} else {
 	Write-Host "Logoff Session..."
 	Invoke-Rest -Uri $URL_Logoff -Header $g_LogonHeader -Command "Post"
 }
