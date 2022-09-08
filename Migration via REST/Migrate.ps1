@@ -237,7 +237,7 @@ if ($processFile){
             Write-LogMessage -Type Debug -Msg "Safe `"$($dstsafe.safename)`" was previously created or updated. No further updates of safe memberships required" 
         } Else {
             If(($UpdateSafeMembers -or $createdDstSafe)){
-
+		$updatedSafes += $($dstsafe.safename)
                 $srcSafeMembers = (Get-SafeMembers -url $SRCPVWAURL -logonHeader $srcToken -safe $($srcAccount.safename)).value
                 Write-LogMessage -Type Debug -Msg "Retrived Source Safe Members from $($srcAccount.safename)."
                 $dstSafeMembers = (Get-SafeMembers -url $DSTPVWAURL -logonHeader $dstToken -safe $($srcAccount.safename)).value.membername
