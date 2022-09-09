@@ -236,7 +236,6 @@ if ($processSafes){
                 Write-LogMessage -Type Debug -Msg "Retrived Source Safe Members from `"$($safe.safeName)`"."
                 $dstSafeMembers = (Get-SafeMembers -url $DSTPVWAURL -logonHeader $dstToken -safe $safe.safeName).value.membername
                 Write-LogMessage -Type Debug -Msg "Retrived Destination Safe Members from `"$($dstsafe.safename)`"."
-
                 ForEach ($srcMember in $srcSafeMembers){
                     Write-LogMessage -Type Debug -Msg "Working with Safe Member `"$($srcMember.membername)`" in Safe `"$($safe.safeName)`""
                     IF ($srcMember.membername -in $ownersToRemove){
