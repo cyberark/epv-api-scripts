@@ -91,7 +91,7 @@ Function Test-CommandExists
     Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
-Function Encode-URL($sText)
+Function Format-URL($sText)
 {
 	if ($sText.Trim() -ne "")
 	{

@@ -114,7 +114,7 @@ Function Test-CommandExists {
  }
 } #end function test-CommandExists
 
-Function Encode-URL($sText) {
+Function Format-URL($sText) {
 	if ($sText.Trim() -ne "") {
 		Write-Debug "Returning URL Encode of $sText"
 		return [System.Web.HttpUtility]::UrlEncode($sText.Trim())
@@ -140,15 +140,15 @@ Function New-SearchCriteria {
 	
 	if (![string]::IsNullOrEmpty($sSearch)) {
 		Write-Debug "Search: $sSearch"
-		$retURL += "search=$(Encode-URL $sSearch)&"
+		$retURL += "search=$(Format-URL $sSearch)&"
 	}
 	if (![string]::IsNullOrEmpty($sSafeName)) {
 		Write-Debug "Safe: $sSafeName"
-		$retURL += "filter=safename eq $(Encode-URL $sSafeName)&"
+		$retURL += "filter=safename eq $(Format-URL $sSafeName)&"
 	}
 	if (![string]::IsNullOrEmpty($sSortParam)) {
 		Write-Debug "Sort: $sSortParam"
-		$retURL += "sort=$(Encode-URL $sSortParam)&"
+		$retURL += "sort=$(Format-URL $sSortParam)&"
 	}
 	if ($iLimitPage -gt 0) {
 		Write-Debug "Limit: $iLimitPage"

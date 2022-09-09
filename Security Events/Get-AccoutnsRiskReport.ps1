@@ -244,12 +244,12 @@ Function Test-CommandExists
 } 
 
 # @FUNCTION@ ======================================================================================================================
-# Name...........: Encode-URL
+# Name...........: Format-URL
 # Description....: Encodes a text for HTTP URL
 # Parameters.....: text to encode
 # Return Values..: Encoded text for URL
 # =================================================================================================================================
-Function Encode-URL($sText)
+Function Format-URL($sText)
 {
 	if ($sText.Trim() -ne "")
 	{
@@ -530,16 +530,16 @@ Function Get-AccountFromEvent
 				{
 					Write-LogMessage -Type Verbose -Msg "Found account data for $($item.Account.accountAsStr)"
 					[string]$AccountsURLWithFilters = $URL_Accounts
-					$targetUser = $(Encode-URL $item.Account.Account.mUser)
+					$targetUser = $(Format-URL $item.Account.Account.mUser)
 					if($null -ne $item.Account.Account.mTarget)
 					{
 						if($null -ne $item.Account.Account.mTarget.mOriginalAddress)
 						{
-							$targetMachine = $(Encode-URL $item.Account.Account.mTarget.mOriginalAddress)
+							$targetMachine = $(Format-URL $item.Account.Account.mTarget.mOriginalAddress)
 						}
 						else
 						{
-							$targetMachine = $(Encode-URL $item.Account.accountAsStr.Split('@')[1])
+							$targetMachine = $(Format-URL $item.Account.accountAsStr.Split('@')[1])
 						}
 					}
 					$AccountsURLWithFilters += "?search=$targetUser $targetMachine"			
