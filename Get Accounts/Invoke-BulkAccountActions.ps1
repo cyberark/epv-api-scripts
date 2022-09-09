@@ -443,15 +443,15 @@ Function Run-Logoff {
 }
 
 # @FUNCTION@ ======================================================================================================================
-# Name...........: Encode-URL
+# Name...........: Format-URL
 # Description....: Encodes a text for URL
 # Parameters.....: Text
 # Return Values..: Encoded Text
 # =================================================================================================================================
-Function Encode-URL($sText) {
+Function Format-URL($sText) {
 	<# 
 .SYNOPSIS 
-	Encode-URL
+	Format-URL
 .DESCRIPTION
 	Encodes a text for URL
 #>
@@ -482,11 +482,11 @@ Function Get-SearchCriteria {
 	
 	if($sSearch.Trim() -ne "") {
 		Write-LogMessage -Type Debug -Msg "Search: $sSearch"
-		$retURL += "search=$(Encode-URL $sSearch)&"
+		$retURL += "search=$(Format-URL $sSearch)&"
 	}
 	if($sSafeName.Trim() -ne "") {
 		Write-LogMessage -Type Debug -Msg "Safe: $sSafeName"
-		$retURL += "filter=safename eq $(Encode-URL $sSafeName)&"
+		$retURL += "filter=safename eq $(Format-URL $sSafeName)&"
 	}
 			
 	if($retURL[-1] -eq '&') { $retURL = $retURL.substring(0,$retURL.length-1) }

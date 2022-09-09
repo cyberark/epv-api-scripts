@@ -558,7 +558,7 @@ Function Get-FilterParameters
 	
 	if(![string]::IsNullOrEmpty($sSearch))
 	{
-		$retURL += "search=$(Encode-URL $sSearch)&"
+		$retURL += "search=$(Format-URL $sSearch)&"
 	}
 	if(![string]::IsNullOrEmpty($sSearchType))
 	{
@@ -566,7 +566,7 @@ Function Get-FilterParameters
 	}
 	if(![string]::IsNullOrEmpty($sPlatformType))
 	{
-		$filters += "platformType eq $(Encode-URL $sPlatformType)"
+		$filters += "platformType eq $(Format-URL $sPlatformType)"
 	}
 	if(!($bPrivileged -and $bNonPrivileged))
 	{
@@ -598,7 +598,7 @@ Function Get-FilterParameters
 	}
 	if(![string]::IsNullOrEmpty($sSortParam))
 	{
-		$retURL += "sort=$(Encode-URL $sSortParam)&"
+		$retURL += "sort=$(Format-URL $sSortParam)&"
 	}
 	if($iLimitPage -gt 0)
 	{

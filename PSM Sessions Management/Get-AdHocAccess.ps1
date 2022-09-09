@@ -243,12 +243,12 @@ Function Test-CommandExists
 } 
 
 # @FUNCTION@ ======================================================================================================================
-# Name...........: Encode-URL
+# Name...........: Format-URL
 # Description....: Encodes a text for HTTP URL
 # Parameters.....: text to encode
 # Return Values..: Encoded text for URL
 # =================================================================================================================================
-Function Encode-URL($sText)
+Function Format-URL($sText)
 {
 	try{ [System.Web.HttpUtility] -as [type] | out-null }
 	catch{
@@ -480,7 +480,7 @@ Function Get-AccountByMachine
 	try{
 		Write-LogMessage -Type Debug -Msg "Finding Account for '$RemoteMachine'..."
 		[string]$AccountsURLWithFilters = $URL_Accounts
-		$AccountsURLWithFilters += "?search=$(Encode-URL $RemoteMachine)"
+		$AccountsURLWithFilters += "?search=$(Format-URL $RemoteMachine)"
 		$GetAccountsResponse = $(Invoke-Rest -Uri $AccountsURLWithFilters -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Command "GET").value
 		$retRelevatAccounts = @()
 		# Filter only accounts with AllowDomainUserAdHocAccess in the Account Platform

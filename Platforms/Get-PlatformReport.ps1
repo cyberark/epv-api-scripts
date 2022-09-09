@@ -246,12 +246,12 @@ Function Test-CommandExists
 }
 
 # @FUNCTION@ ======================================================================================================================
-# Name...........: Encode-URL
+# Name...........: Format-URL
 # Description....: HTTP Encode test in URL
 # Parameters.....: Text to encode
 # Return Values..: Encoded HTML URL text
 # =================================================================================================================================
-Function Encode-URL($sText)
+Function Format-URL($sText)
 {
 <# 
 .SYNOPSIS 

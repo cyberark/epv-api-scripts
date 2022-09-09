@@ -294,12 +294,12 @@ public static class DisableCertValidationCallback {
 }
 
 # @FUNCTION@ ======================================================================================================================
-# Name...........: Encode-URL
+# Name...........: Format-URL
 # Description....: HTTP Encode test in URL
 # Parameters.....: Text to encode
 # Return Values..: Encoded HTML URL text
 # =================================================================================================================================
-Function Encode-URL($sText)
+Function Format-URL($sText)
 {
 <#
 .SYNOPSIS
@@ -727,7 +727,7 @@ Function Get-Account
 	$_retaccount = $null
 	$_accounts = $null
 	try{
-		$urlSearchAccount = $URL_Accounts+"?filter=safename eq "+$(Encode-URL $safeName)+"&search="+$(Encode-URL "$accountName $accountAddress")
+		$urlSearchAccount = $URL_Accounts+"?filter=safename eq "+$(Format-URL $safeName)+"&search="+$(Format-URL "$accountName $accountAddress")
 		# Search for created account
 		$_accounts = $(Invoke-Rest -Uri $urlSearchAccount -Header $(Get-LogonHeader -Credentials $VaultCredentials) -Command "Get" -ErrAction $ErrAction)
 		if($null -ne $_accounts)
