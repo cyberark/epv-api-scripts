@@ -103,7 +103,7 @@ Function Test-CommandExists
     Finally {$ErrorActionPreference=$oldPreference}
 } #end function test-CommandExists
 
-Function Encode-URL($sText)
+Function Format-URL($sText)
 {
 	if ($sText.Trim() -ne "")
 	{
@@ -370,7 +370,7 @@ Function Get-Account
 	$_account = $null
 	try{
 		# Search for created account
-		$urlSearchAccount = $URL_Accounts+"?Safe="+$(Encode-URL $safeName)+"&Keywords="+$(Encode-URL "$accountName $accountAddress")
+		$urlSearchAccount = $URL_Accounts+"?Safe="+$(Format-URL $safeName)+"&Keywords="+$(Format-URL "$accountName $accountAddress")
 		$_account = $(Invoke-Rest -Uri $urlSearchAccount -Header $g_LogonHeader -Command "Get")
 		if($null -ne $_account)
 		{

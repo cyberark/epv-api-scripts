@@ -82,8 +82,7 @@ Function Write-LogMessage {
         If ($Header -and $WriteLog) {
             "=======================================" | Out-File -Append -FilePath $LogFile 
             Write-Host "=======================================" -ForegroundColor Magenta
-        }
-        ElseIf ($SubHeader -and $WriteLog) { 
+        } ElseIf ($SubHeader -and $WriteLog) { 
             "------------------------------------" | Out-File -Append -FilePath $LogFile 
             Write-Host "------------------------------------" -ForegroundColor Magenta
         }
@@ -110,8 +109,7 @@ Function Write-LogMessage {
                 If ($_ -eq "Info") {
                     Write-Host $MSG.ToString() -ForegroundColor $(If ($Header -or $SubHeader) {
                             "Magenta" 
-                        }
-                        Else {
+                        } Else {
                             "Gray" 
                         })
                 }
@@ -158,8 +156,7 @@ Function Write-LogMessage {
             "=======================================" | Out-File -Append -FilePath $LogFile 
             Write-Host "=======================================" -ForegroundColor Magenta
         }
-    }
-    catch {
+    } catch {
         Throw $(New-Object System.Exception ("Cannot write message"), $_.Exception)
     }
 }
@@ -221,11 +218,9 @@ Function Test-CommandExists {
         if (Get-Command $command) {
             RETURN $true
         }
-    }
-    Catch {
+    } Catch {
         Write-Host "$command does not exist"; RETURN $false
-    }
-    Finally {
+    } Finally {
         $ErrorActionPreference = $oldPreference
     }
 } #end function test-CommandExists
@@ -248,8 +243,7 @@ Function Convert-ToURL($sText) {
     if ($sText.Trim() -ne "") {
         Write-LogMessage -type Verbose -Msg "Returning URL Encode of $sText"
         return [URI]::EscapeDataString($sText)
-    }
-    else {
+    } else {
         return $sText
     }
 }
@@ -276,11 +270,9 @@ Function Convert-ToBool {
 	
     if ($txt -match "^y$|^yes$") {
         $retBool = $true 
-    }
-    elseif ($txt -match "^n$|^no$") {
+    } elseif ($txt -match "^n$|^no$") {
         $retBool = $false 
-    }
-    else {
+    } else {
         [bool]::TryParse($txt, [ref]$retBool) | Out-Null 
     }
     
@@ -356,13 +348,11 @@ Function Invoke-Rest {
         if ([string]::IsNullOrEmpty($Body)) {
             Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
             $restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700 -ErrorAction $ErrAction
-        }
-        else {
+        } else {
             Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
             $restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
         }
-    }
-    catch [System.Net.WebException] {
+    } catch [System.Net.WebException] {
 
         if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
             IF (![string]::IsNullOrEmpty($(($_.ErrorDetails.Message | ConvertFrom-Json).ErrorCode))) {
@@ -371,8 +361,7 @@ Function Invoke-Rest {
                     Write-LogMessage -Type Error -Msg "Was able to connect to the PVWA successfully, but the account was locked" 
                     Write-LogMessage -Type Error -Msg "URI:  $URI"
                     Throw "Account Locked"
-                }
-                ElseIf (!($($_.ErrorDetails.Message | ConvertFrom-Json).ErrorCode -in $global:SkipErrorCode)) {
+                } ElseIf (!($($_.ErrorDetails.Message | ConvertFrom-Json).ErrorCode -in $global:SkipErrorCode)) {
                     Write-LogMessage -Type Error -Msg "Was able to connect to the PVWA successfully, but the command resulted in a error"
                     Write-LogMessage -Type Error -Msg "URI:  $URI"
                     Write-LogMessage -Type Error -Msg "Command:  $Command"
@@ -380,8 +369,7 @@ Function Invoke-Rest {
                     Write-LogMessage -Type Error -Msg "Returned ErrorCode: $(($_.ErrorDetails.Message|ConvertFrom-Json).ErrorCode)"
                     Write-LogMessage -Type Error -Msg "Returned ErrorMessage: $(($_.ErrorDetails.Message|ConvertFrom-Json).ErrorMessage)"
                 }
-            }
-            Else {
+            } Else {
                 Write-LogMessage -Type Error -Msg "Error Message: $_"
                 Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
                 Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
@@ -390,8 +378,7 @@ Function Invoke-Rest {
             }
         }
         $restResponse = $null
-    }
-    catch { 
+    } catch { 
         Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
     }
     Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $restResponse"
@@ -453,8 +440,7 @@ Function Update-SearchCriteria {
         if ($limitNumber -ge $limit) {
             $newNextLink = $nextLinkURL.Replace($limitText, "limit={0}" -f "1000")
 
-        }
-        else {
+        } else {
             Write-LogMessage -Type Debug -Msg "Limits are not correct. Next Link limit: $limitNumber; current limit: $limit; Next limit should be: $($limit * $counter)"
             # No change to the next link URL
         }
@@ -502,14 +488,12 @@ Function Get-Accounts {
         $AccountsURLWithFilters = ""
         $AccountsURLWithFilters = $(New-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSortParam $SortBy -sSafeName $SafeName -iLimitPage $Limit -startswith $startswith)
         Write-LogMessage -Type Debug -Msg $AccountsURLWithFilters
-    }
-    catch {
+    } catch {
         Write-LogMessage -Type Error -Msg $_.Exception
     }
     try {
         $GetAccountsResponse = Invoke-Rest -Command Get -Uri $AccountsURLWithFilters -Header $logonHeader
-    }
-    catch {
+    } catch {
         Write-LogMessage -Type Error -Msg $_.Exception.Response.StatusDescription
     }
 						
@@ -521,8 +505,7 @@ Function Get-Accounts {
     If (![string]::IsNullOrEmpty($GetAccountsResponse.nextLink)) {
         $nextLink = $("$URL/$($GetAccountsResponse.nextLink)")
         Write-LogMessage -Type Debug -Msg "Getting accounts next link: $nextLink"
-    }
-    else {
+    } else {
         $nextLink = $null
     }
     While (-not [string]::IsNullOrEmpty($nextLink)) {
@@ -534,8 +517,7 @@ Function Get-Accounts {
         If (![string]::IsNullOrEmpty($GetAccountsResponse.nextLink)) {
             $nextLink = $("$URL/$($GetAccountsResponse.nextLink)")
             Write-LogMessage -Type Debug -Msg "Getting accounts next link: $nextLink"
-        }
-        else {
+        } else {
             $nextLink = $null
         }
     }
@@ -559,19 +541,16 @@ Function Set-SSLVerify {
             [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls11
             # Disable SSL Verification
             [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
-        }
-        catch {
+        } catch {
             Write-LogMessage -Type Error -MSG "Could not change SSL validation"
             Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
             return
         }
-    }
-    Else {
+    } Else {
         try {
             Write-LogMessage -Type Debug -MSG "Setting script to use TLS 1.2"
             [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-        }
-        catch {
+        } catch {
             Write-LogMessage -Type Error -MSG "Could not change SSL settings to use TLS 1.2"
             Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
         }
@@ -591,21 +570,18 @@ Function Test-PVWA {
             # Validate PVWA URL is OK
             Write-LogMessage -Type Debug -MSG "Trying to validate URL: $PVWAURL"
             Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $PVWAURL -Method 'Head' -TimeoutSec 30 | Out-Null
-        }
-        catch [System.Net.WebException] {
+        } catch [System.Net.WebException] {
             If (![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__)) {
                 Write-LogMessage -Type Error -MSG "Received error $($_.Exception.Response.StatusCode.Value__) when trying to validate PVWA URL"
                 Write-LogMessage -Type Error -MSG "Check your connection to PVWA and the PVWA URL"
                 return
             }
-        }
-        catch {		
+        } catch {		
             Write-LogMessage -Type Error -MSG "PVWA URL could not be validated"
             Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
         }
         
-    }
-    else {
+    } else {
         Write-LogMessage -Type Error -MSG "PVWA URL can not be empty"
         return
     }
@@ -633,8 +609,7 @@ Function Invoke-Logon {
     if ($null -ne $Credentials) {
         if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
             Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $Credentials -AuthType $AuthType -RadiusOTP $OTP )
-        }
-        else {
+        } else {
             Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $Credentials -AuthType $AuthType)
 
         }
@@ -642,8 +617,7 @@ Function Invoke-Logon {
         If ($null -eq $g_LogonHeader) { 
             return # No logon header, end script 
         }
-    }
-    else { 
+    } else { 
         Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
         return
     }
@@ -671,12 +645,10 @@ Function Get-Logon {
     if ($null -ne $Credentials) {
         if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
             return $(Get-LogonHeader -Credentials $Credentials -RadiusOTP $OT -URL $URL_Logon)
-        }
-        else {
+        } else {
             return $(Get-LogonHeader -Credentials $Credentials -URL $URL_Logon)
         }
-    }
-    else { 
+    } else { 
         Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
         return
     }
@@ -729,8 +701,7 @@ Function Get-LogonHeader {
         $logonToken = Invoke-Rest -Command Post -Uri $URL -Body $logonBody
         # Clear logon body
         $logonBody = ""
-    }
-    catch {
+    } catch {
         Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
     }
     $logonHeader = $null
@@ -775,8 +746,7 @@ Function Set-LogonHeader {
         $logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
         # Clear logon body
         $logonBody = ""
-    }
-    catch {
+    } catch {
         Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
     }
     $logonHeader = $null
@@ -819,19 +789,16 @@ Function Set-DisableSSLVerify {
             [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls11
             # Disable SSL Verification
             [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
-        }
-        catch {
+        } catch {
             Write-LogMessage -Type Error -MSG "Could not change SSL validation"
             Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
             return
         }
-    }
-    Else {
+    } Else {
         try {
             Write-LogMessage -type Verbose -MSG "Setting script to use TLS 1.2"
             [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-        }
-        catch {
+        } catch {
             Write-LogMessage -Type Error -MSG "Could not change SSL settings to use TLS 1.2"
             Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
         }
@@ -879,17 +846,14 @@ Function Get-FileVersion {
             If (($null -ne $filePath) -and (Test-Path $filePath)) {
                 $path = Resolve-Path $filePath
                 $retFileVersion = ($path | Get-Item | Select-Object VersionInfo).VersionInfo.ProductVersion
-            }
-            else {
+            } else {
                 throw "File path is empty"
             }
 
             return $retFileVersion
-        }
-        catch {
+        } catch {
             Throw $(New-Object System.Exception ("Cannot get File ($filePath) version", $_.Exception))
-        }
-        finally {
+        } finally {
 
         }
     }
@@ -939,8 +903,7 @@ Function Set-UserPassword {
                         $bodyReset = @{ id = $accountID; newPassword = $(Convert-SecureString($Password)) } | ConvertTo-Json -Depth 3 -Compress
                         $urlReset = $Script:URL_UserResetPassword -f $accountID
                         $null = Invoke-Rest -Uri $urlReset -Header $g_LogonHeader -Command "Post" -Body $bodyReset
-                    }
-                    catch {
+                    } catch {
                         Throw $_   
                     }
                 }
@@ -948,8 +911,7 @@ Function Set-UserPassword {
             If (!$userFound) {
                 Write-LogMessage -type Verbose -MSG "Unable to locate component account for $Username"
             }
-        }
-        else {
+        } else {
             Write-LogMessage -type Verbose -MSG "Unable to locate component account for $Username"
         } 
     }
@@ -1083,219 +1045,12 @@ Function New-RandomPassword {
 }
 
 
-Function Process-Accounts {
 
-    Param
-    (
-
-        [Parameter(Mandatory = $true)]
-        $objects
-        
-    )
-
-    $objects | Add-Member -MemberType NoteProperty -Name "EnableAutoMgmt" -Value $null
-    $objects | Add-Member -MemberType NoteProperty -Name "PlatformID" -Value $null
-    $objects | Add-Member -MemberType NoteProperty -Name "ManualMgmtReason" -Value $null
-    $objects | Add-Member -MemberType NoteProperty -Name "GroupPlatformId" -Value $null
-    $objects | Add-Member -MemberType NoteProperty -Name "Name" -Value $null
-    $objects | Add-Member -MemberType NoteProperty -Name "Delete" -Value $null
-
-    $objectSafesToRemove = "System", "VaultInternal", "Notification Engine", "SharedAuth_Internal", "PVWAUserPrefs",
-    "PVWAConfig", "PVWAReports", "PVWATaskDefinitions", "PVWAPrivateUserPrefs", "PVWAPublicData", "PVWATicketingSystem", "PasswordManager",
-    "PasswordManagerTemp", "PasswordManager_Pending", "PasswordManager_workspace", "PasswordManager_ADInternal",
-    "PasswordManager_Info", "PasswordManagerShared", "AccountsFeed", "PSM", "xRay", "PIMSuRecordings", "xRay_Config",
-    "AccountsFeedADAccounts", "AccountsFeedDiscoveryLogs", "PSMSessions", "PSMLiveSessions", "PSMUniversalConnectors",
-    "PSMNotifications", "PSMUnmanagedSessionAccounts", "PSMRecordings", "PSMPADBridgeConf", "PSMPADBUserProfile", "PSMPADBridgeCustom",
-    "AppProviderConf"
-
-    $standardObjectProperties = "name", "username", "password", "address", "safe", "folder", "platformid", "enableautomgmt", "manualmgmtreason", "remotemachineaddress",
-    "restrictremotemachineaccesstolist", "sshkey", "database", "dsn", "port", "LogonDomain", "SSHCertificate", "ActiveDirectoryID", "UseSudoOnReconcile", "ReconcileIsWinAccount"
-
-    $BuiltInProperties = "Object Name", "Local Folder", "SequenceID", "LastSuccessChange", "LastSuccessVerification", "LastSuccessReconciliation",
-    "RetriesCount", "CPMStatus", "LastTask", "DeviceType", "PolicyID", "LastFailDate", "CPMErrorDetails", "CPMDisabled", "WebApplicationID", "CreationMethod",
-    "ResetImmediately", "_PSMLiveSessions_1", "_PSMLiveSessions_2", "_PSMLiveSessions_3", "_PSMLiveSessions_4", "_PSMLiveSessions_5", "ConnectionComponentID",
-    "EntityVersion", "ExpectedRecordingsList", "PSMClientApp", "PSMPasswordID", "PSMProtocol", "PSMRecordingEntity", "PSMRemoteMachine", "PSMSafeID", "PSMSourceAddress",
-    "PSMStartTime", "PSMStatus", "PSMVaultUserName", "ProviderID", "PSMEndTime", "ActualRecordings", "RiskScore", "IncidentDetails", "RecordingUploadError",
-    "MasterPassName", "MasterPassFolder", "ServiceName", "RestartService", "TaskName", "TaskFolder", "AppPoolName", "RegistryValueName", "RegistryPathName", "ConnectionType",
-    "INISection", "FilePath", "INIParameterName", "XMLElement", "SSHCertificate"
-
-    $pendingAccountProperties = "AccountEnabled", "DiscoveryPlatformType", "LastLogonDate", "UserDisplayName", "AccountExpirationDate", "AccountDiscoveryDate", "LastPasswordSetDate",
-    "OSVersion", "AccountCategory", "PasswordNeverExpires", "OU", "AccountOSGroups", "Domain", "MachineOSFamily", "AccountDescription", "SID", "Dependencies", "AccountSource"
-
-
-    $excludedProperties = $standardObjectProperties + $BuiltInProperties + $pendingAccountProperties + "Delete" + "groupPlatformID" + "GroupName", "LimitDomainAccess"
-
-    $customprops = @()
-
-    #define the counter for writing progress
-    $counter = 0
-    #for each entry in the objects variable, update the new properties/members
-    foreach ($object in $objects) {
-        $counter++
-        Write-Progress -Activity "Processing objects" -CurrentOperation "$counter of $($objects.count)" -PercentComplete (($counter / $objects.count) * 100)
-
-        if ($objectSafesToRemove -match $object.safe) {
-            Write-Log -message "Marking Object for removal: $($object.username); $($object.address); $($object.policyId)"
-            #set delete property to true
-            $object.Delete = $true
-            #skip this object since it's marked for removal
-            Write-Log -message "Skipping Object: $($object.username); $($object.address); $($object.policyId)"
-            continue
-
-        }
-        #Verbose Output
-        Write-Log -Message "Processing object: $($object | Format-List -Property "Object Name" | Out-String)"
-
-        #if CPMDisabled is not blank, update the EnableAutoMgmt property to be "No"
-        if ($object.CPMDisabled -notlike $null) {
-                    
-            #Verbose output
-            Write-Log -Message "CPMDisabled set to $($object.CPMDisabled). Setting EnableAutoMgmt to 'No' for $($object.username)"
-            $object.EnableAutoMgmt = "No"
-        }
-        else {
-            Write-Log -message "CPM is enabled for account. Setting EnableAutoMgmt to 'Yes' for $($object.username)"
-            $object.EnableAutoMgmt = "Yes"
-        }
-        $object.PlatformID = $object.PolicyID
-
-        #set the object name to be the same name as it was before
-        $object.name = $object."Object Name"
-        
-        #set the manual management reason
-        $object.ManualMgmtReason = $object.CPMDisabled
-        
-        #if the object has a group name set the group platform id as the group parent object's policy id
-        if ($object.groupname) {
-            $groupPlatformID = ($objects | Where-Object { ($_.safe -eq $object.safe) -and ($_.password -eq $object.password) -and ($_.Folder -eq 'Root\Groups') }).PolicyID
-            Write-Log -message "$($object.name) is a grouped account. Assigning $groupPlatformID as the Group Platform ID"
-            $object.groupPlatformID = $groupPlatformID
-        }
-        
-        #get the custom properties that are set for this object and add to customprops variable
-        $customProps += $($object.PSObject.Properties | Where-Object { ($_.name.ToLower() -notin $excludedProperties) -and ($_.value -notlike $null) })
-        
-        #Verbose Output
-        Write-Log -message "$($object | Format-List -Property name,username,address,safe,folder,platformid,enableautomgmt,manualmgmtreason,remotemachineaddress,restrictremotemachineaccesstolist,sshkey,groupname,groupplatformid,database,dsn,port | Out-String)
-                    ***Password intentionally excluded***"
-        
-    }
-                
-    #only select the unique custom properties
-    $customProps = $customProps.name | Select-Object -Unique | Where-Object { $_ -NotIn $linkObjectProperties }
-
-    #create list of all possible object properties
-    $objectProps = $standardObjectProperties + $customProps
-
-    #export the objects to the destination file
-    $objects | Where-Object { ($_.Delete -NE "true") -and (!$_.groupPlatformID) -and (!$_.MasterPassName) } | Select-Object -Property $objectProps -ExcludeProperty "Folder" | Export-Csv $destinationFile -NoTypeInformation
-
-    Write-Host "Objects file written to $destinationFile" -ForegroundColor Green
-
-    #Determine if there are any grouped objects
-    $groupObjects = $objects | Where-Object { ($_.Delete -NE "true") -and (($_.groupPlatformID) -or ($_.folder -eq "Root\Groups")) } | Select-Object -Property $groupObjectProperties
-        
-    #if there are group objects, write them to a separate file
-    if ($groupObjects) {
-        #export group objects to a new csv
-        $groupObjects | Export-Csv "$($destinationFile.replace(".csv","_GroupObjects.csv"))" -NoTypeInformation
-        Write-Host "Group Objects file written to $($destinationFile.replace(".csv","_GroupObjects.csv"))" -ForegroundColor Green
-    }
-
-    $linkObjects = $objects | Where-Object { ($_.Delete -NE "true") -and (($_.ExtraPass1Name) -or ($_.ExtraPass2Name) -or ($_.ExtraPass3Name)) } | Select-Object -Property $linkObjectProperties
-        
-    #if there are group objects, write them to a separate file
-    if ($linkObjects) {
-        #export group objects to a new csv
-        $linkObjects | Export-Csv "$($destinationFile.replace(".csv","_LinkObjects.csv"))" -NoTypeInformation
-        Write-Host "Link Objects file written to $($destinationFile.replace(".csv","_LinkObjects.csv"))" -ForegroundColor Green
-    }
-
-
-    #Determine if there are any usages/dependencies objects
-    $usages = $objects | Where-Object { ($_.Delete -NE "true") -and ($_.MasterPassName -notlike $null) } | Select-Object $usageObjectProperties
-
-    #if there are usages/dependencies, export them to a new CSV
-    if ($usages) {
-            
-        #add properties to usages object
-        $usages | Add-Member -MemberType NoteProperty -Name "platformType" -Value $null
-        $usages | Add-Member -MemberType NoteProperty -Name "domain" -Value $null
-        $usages | Add-Member -MemberType NoteProperty -Name "DependencyName" -Value $null
-        $usages | Add-Member -MemberType NoteProperty -Name "dependencyAddress" -Value $null
-        $usages | Add-Member -MemberType NoteProperty -Name "dependencyType" -Value $null
-
-        foreach ($usage in $usages) {
-            #if the usage has TaskName then the dependencyType is Windows Scheduled Task
-            if ($usage.TaskName) {
-                $usage.dependencyType = "Windows Scheduled Task"
-                $usage.name = $usage.TaskName
-            }
-
-            #if the usage has AppPoolName then the dependencyType is IIS Application Pool
-            if ($usage.AppPoolName) {
-                $usage.dependencyType = "IIS Application Pool"
-                $usage.name = $usage.AppPoolName
-            }
-                
-            #if the usage has ServiceName then the dependencyType is Windows Service
-            if ($usage.ServiceName) {
-                $usage.dependencyType = "Windows Service"
-                $usage.name = $usage.ServiceName
-            }
-
-            #if the usage has XMLElement then the dependencyType is XMLFile
-            #not yet supported by DependentAccountOnbordUtility :(
-            if ($usage.XMLElement) {
-                $usage.dependencyType = "XMLFile"
-                $usage.name = $usage.FilePath
-            }
-
-            #if the usage has INIParameterName then the dependencyType is INIFile
-            #not yet supported by DependentAccountOnbordUtility :(
-            if ($usage.INIParameterName) {
-                $usage.dependencyType = "INIFile"
-                $usage.name = $usage.FilePath
-            }
-
-            #if the usage has RegistryPathName then the dependencyType is Registry 
-            #not yet supported by DependentAccountOnbordUtility :(
-            if ($usage.RegistryPathName) {
-                $usage.dependencyType = "Registry"
-                $usage.name = $usage.RegistryPathName
-            }
-
-            $usage.dependencyName = $usage.name
-            $usage.dependencyAddress = $usage.Address
-
-            #set usage domain as the domain name of the master account if it's a domain account
-            $usage.domain = ($objects | Where-Object { $_.name -eq $usage.masterpassname }).address
-
-            #set the usage's username to the master account username
-            $usage.username = ($objects | Where-Object { $_.name -eq $usage.masterpassname }).username
-
-            #the usage's address must be set to the master account's address
-            $usage.address = ($objects | Where-Object { $_.name -eq $usage.masterpassname }).address
-
-            #there is nowhere to derive this informaiton
-            $usage.platformType = "<REPLACE>"
-            Write-Log -message "You must manually populate PlatformType for $($usage.name) with one of the following:
-                Windows Server Local, Windows Desktop Local, Windows Domain, Unix, Unix SSH Key, AWS, AWS Access Keys" -logLevel WARN
-        }
-
-        #export usage objects to a new csv
-        $usages | Export-Csv "$($destinationFile.replace(".csv","_Usages.csv"))" -NoTypeInformation
-        Write-Host "Usages/Dependancies file written to $($destinationFile.replace(".csv","_Usages.csv"))" -ForegroundColor Green
-        Write-Host "NOTE: Because Dependencies were identified, you must manually populate PlatformType for each object. See log for more information" -ForegroundColor Yellow
-    }
-}
-
-Function Encode-URL($sText) {
+Function Format-URL($sText) {
     if ($sText.Trim() -ne "") {
         Write-LogMessage -Type Debug -Msg "Returning URL Encode of $sText"
         return [System.Web.HttpUtility]::UrlEncode($sText.Trim())
-    }
-    else {
+    } else {
         return ""
     }
 }
@@ -1323,12 +1078,10 @@ Function Get-Secret {
             $secureSecret = ConvertTo-SecureString $secret -AsPlainText -Force
             Remove-Variable secret
             return $secureSecret
-        }
-        else {
+        } else {
             return $null
         }
-    }
-    catch [System.Management.Automation.RuntimeException] {
+    } catch [System.Management.Automation.RuntimeException] {
         If ("Account Locked" -eq $_.Exception.Message) {
             Throw "Account Locked"
         }
@@ -1439,8 +1192,7 @@ Function New-Safe {
 
     If ((![string]::IsNullOrEmpty($cpnNameOld)) -and (![string]::IsNullOrEmpty($cpnNameNew))) {
         return Invoke-Rest -Command Post -Uri $URL_NewSafe -header $logonHeader -Body $($safe | ConvertTo-Json -Compress).replace($cpnNameOld, $cpnNameNew)
-    }
-    else {
+    } else {
         return Invoke-Rest -Command Post -Uri $URL_NewSafe -header $logonHeader -Body $($safe | ConvertTo-Json -Compress)
     }
 }
@@ -1461,11 +1213,11 @@ Function New-SafeMember {
     )
     $URL_SafeMembers = "$url/api/Safes/$safe/Members"
     
+    if($safeMember.searchIn -eq "LDAP") {
+        $safeMember.searchIn = $newLDAP
+    }
 
     $safeMember = $safeMember | Select-Object -Property memberName, searchIn, membershipExpirationDate, permissions
-    if (![string]::IsNullOrEmpty($newLDAP)) {    
-        $safeMember.searchIn = $safeMember.searchIn.replace("LDAP", $newLDAP)
-    }
     
     return Invoke-Rest -Command Post -Uri $URL_SafeMembers -header $logonHeader -Body $($safeMember | ConvertTo-Json -Compress)
     
@@ -1483,10 +1235,14 @@ Function Get-UserSource {
 
     $URL_UserDetail = "$url/api/Users/$($safeMember.memberId)"
     Write-LogMessage -Type Debug -Msg "Getting member source: $URL_UserDetail"
-    Write-LogMessage c -Msg "Using Member: $safeMember"
+    Write-LogMessage -Type Debug -Msg "Using Member: $safeMember"
 
     $user = Invoke-Rest -Command GET -Uri $URL_UserDetail -header $logonHeader
-    return $user.source
+    if ($user.source -eq "Cyberark"){
+        return "vault"
+    } else {
+        return $user.source
+    }
     
 }
 
@@ -1509,7 +1265,11 @@ Function Get-GroupSource {
 
     foreach ($group in $groups.value) {
         if ($safeMember.memberName -eq $group.groupName) {
-            return $group.directory
+            if ([string]::IsNullOrEmpty($group.directory)){
+                return "vault"
+            } else{
+                return $group.directory
+            }
         }
     }
 }
@@ -1532,11 +1292,7 @@ Function Update-SafeMember {
     Write-LogMessage -Type Debug -Msg "Updating Safe Member: $safeMember"
 
     $safeMember = $safeMember | Select-Object -Property memberName, searchIn, membershipExpirationDate, permissions
-    
-    if (![string]::IsNullOrEmpty($newLDAP)) {    
-        $safeMember.searchIn = $safeMember.searchIn.replace("LDAP", $newLDAP)
-    }
-    
+
     return Invoke-Rest -Command PUT -Uri $URL_SafeMembers -header $logonHeader -Body $($safeMember | ConvertTo-Json -Compress)
 
     
@@ -1564,17 +1320,14 @@ Function Update-RemoteMachine {
         Write-LogMessage -Type Debug -Msg "Source account has no value set for `"Limit Domain Access To`", Removing destination values"
         $op = "Remove"
         $_bodyOpMachine = "" | Select-Object "op", "path"
-    }
-    elseif (($($srcAccount.remoteMachinesAccess.remoteMachines) -eq $($dstAccount.remoteMachinesAccess.remoteMachines)) -and ($($srcAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines) -eq $($dstAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines)) ) {
+    } elseif (($($srcAccount.remoteMachinesAccess.remoteMachines) -eq $($dstAccount.remoteMachinesAccess.remoteMachines)) -and ($($srcAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines) -eq $($dstAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines)) ) {
         Write-LogMessage -Type Debug -Msg "`"Limit Domain Access To`" and '`"Allow User Connections to Other Machines`"is equal, no update required"
         return
-    }
-    elseif ([string]::IsNullOrEmpty($($dstAccount.remoteMachinesAccess.remoteMachines))) {
+    } elseif ([string]::IsNullOrEmpty($($dstAccount.remoteMachinesAccess.remoteMachines))) {
         Write-LogMessage -Type Debug -Msg "Destination account has no value set for `"Limit Domain Access To`", setting operation to ADD"
         $op = "Add"
         $_bodyOpMachine = "" | Select-Object "op", "path", "value"
-    }
-    else {
+    } else {
         Write-LogMessage -Type Debug -Msg "Destination account has value set for `"Limit Domain Access To`", setting operation to REPLACE"
         $op = "Replace"
         $_bodyOpMachine = "" | Select-Object "op", "path", "value"
