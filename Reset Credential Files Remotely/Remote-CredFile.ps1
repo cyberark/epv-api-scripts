@@ -288,10 +288,8 @@ Write-LogMessage -Type info -MSG "$($targetComponents.count) components selected
 Get-Job | Remove-Job -Force
 $FailureList = @()
 foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
-
-	if (!$jobs) {
-		Write-LogMessage -type Info "Starting work on component user `"$($target.'Component User')`" with the component type of `"$($target.'Component Type')`" at the IP Address of`"$($target.'IP Address')`""
-
+	if (!$jobs){
+				Write-LogMessage -type Info "Starting work on component user `"$($target.'Component User')`" with the component type of `"$($target.'Component Type')`" at the IP Address of`"$($target.'IP Address')`""
 		Write-LogMessage -type Verbose "Attempting to get FQDN of IP Address `"$($target.'IP Address')`""
 		$failed = $false
 		$fqdn = (Resolve-DnsName $target.'IP Address' -ErrorAction SilentlyContinue).namehost
@@ -301,13 +299,6 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 		} Else{
 			Write-LogMessage -type Info "Found FQDN of `"$fqdn`" for IP Address `"$($target.'IP Address')`". Using FQDN for WinRM Connection."
 		}
-	if (!$jobs){
-		Try{
-			Write-LogMessage -type Verbose -msg "Jobs not selected"
-			Write-LogMessage -type Verbose -msg "Job paramaters : -ComponentType $($target.'Component Type') -Server $fqdn -OS $($target.os) -vault $vaultAddress -apiAddress $apiAddress"
-			Reset-Credentials -ComponentType $target.'Component Type' -Server $fqdn -OS $target.os -vault $vaultAddress -apiAddress $apiAddress
-		} Catch {
-			Write-LogMessage -type error "Error running Reset-Credentials"
 		if ((![string]::IsNullOrEmpty($oldDomain)) -and (![string]::IsNullOrEmpty($newDomain)) ) {
 			$fqdn = $fqdn.replace($oldDomain, $newDomain)
 		}
@@ -329,7 +320,7 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 				
 			}
 			else {
-				Reset-Credentials -ComponentType $target.'Component Type' -Server $fqdn -OS $target.os -vault $vaultAddress -apiAddress $apiAddress -tries
+				Reset-Credentials -ComponentType $target.'Component Type' -Server $fqdn -OS $target.os -vault $vaultAddress -apiAddress $apiAddress -tries $tries
 			}
   }
 		Catch {
