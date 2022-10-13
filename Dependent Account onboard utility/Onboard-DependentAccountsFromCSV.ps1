@@ -30,6 +30,10 @@ param
 	[Parameter(Mandatory=$false,HelpMessage="Path to a CSV file to export data to")]
 	[Alias("path")]
 	[string]$CSVPath
+
+	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
+	[Parameter(Mandatory = $false)]
+	$PVWAlogonToken
 )
 
 # Get Script Location
@@ -590,26 +594,37 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding D
 
 
 #region [Logon]
-	# Get Credentials to Login
-	# ------------------------
-	$caption = "Accounts Onboard Utility"
-	$msg = "Enter your User name and Password";
-	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($null -ne $creds)
-	{
-		if($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP))
-		{
-			$g_LogonHeader = $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP)
-		}
-		else
-		{
-			$g_LogonHeader = $(Get-LogonHeader -Credentials $creds)
-		}
+# Get Credentials to Login
+# ------------------------
+$caption = "Accounts Onboard Utility"
+If (![string]::IsNullOrEmpty($PVWAlogonToken)) {
+	if ($PVWAlogonToken.GetType().name -eq "String") {
+		$logonHeader = @{Authorization = $PVWAlogonToken }
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $logonHeader
+	} else {
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $PVWAlogonToken
+ }
+	
+} elseif ($null -eq $creds) {
+	If (![string]::IsNullOrEmpty($PVWACredentials)) {
+		$creds = $PVWACredentials
+	} else {
+		$msg = "Enter your $AuthType User name and Password"; 
+		$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
 	}
-	else {
-		Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
-		exit
+	if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession -RadiusOTP $OTP )
+	} else {
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession)
 	}
+	# Verify that we successfully logged on
+	If ($null -eq $g_LogonHeader) { 
+		return # No logon header, end script 
+	}
+} else { 
+	Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
+	return
+}
 #endregion
 
 #region [Read Accounts CSV file and Create Accounts]
