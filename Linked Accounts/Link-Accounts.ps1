@@ -74,7 +74,7 @@ $URL_Server = $URL_PVWAAPI + "/Server"
 
 # Initialize Script Variables
 # ---------------------------
-$g_LogonHeader = ""
+$global:g_LogonHeader = ""
 
 #region Functions
 Function Test-CommandExists {

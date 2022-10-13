@@ -65,7 +65,7 @@ $URL_DiscoveredAccounts = $URL_PVWAAPI+"/DiscoveredAccounts"
 
 # Initialize Script Variables
 # ---------------------------
-$g_LogonHeader = ""
+$global:g_LogonHeader = ""
 
 #region Functions
 Function Test-CommandExists
