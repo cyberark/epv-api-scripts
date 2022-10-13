@@ -29,7 +29,7 @@ param
 
 	[Parameter(Mandatory=$false,HelpMessage="Path to a CSV file to export data to")]
 	[Alias("path")]
-	[string]$CSVPath
+	[string]$CSVPath,
 
 	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
 	[Parameter(Mandatory = $false)]

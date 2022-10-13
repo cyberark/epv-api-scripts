@@ -33,7 +33,7 @@ param
 	[string]$CSVPath,
 
 	[Parameter(Mandatory = $false)]
-	[switch]$concurrentSession
+	[switch]$concurrentSession,
 
 	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
 	[Parameter(Mandatory = $false)]
