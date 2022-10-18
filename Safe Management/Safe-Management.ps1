@@ -662,6 +662,7 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
 
     try {
         Write-LogMessage -Type Debug -Msg "Adding the safe $safename to the Vault..."
+	Write-LogMessage -Type Debug -Msg "Create Safe Body: `n$createSafeBody" 
         $safeAdd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
         # Reset cached Safes list
         #Set-Variable -Name g_SafesList -Value $null -Scope Global
