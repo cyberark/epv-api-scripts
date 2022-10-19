@@ -939,6 +939,8 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                 }
                 else {
                     Write-LogMessage -Type Warning -Msg "User or Group was not found. To automatically attempt to add use AddOnUpdate"
+		    Write-LogMessage -Type Debug -Msg "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:"
+                    Write-LogMessage -Type Debug -Msg ("{0} ({1})" -f $rMethodErr.message, $_.Exception.Response.StatusDescription)
                 }
             }
             else {
