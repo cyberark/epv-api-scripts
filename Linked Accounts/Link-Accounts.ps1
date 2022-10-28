@@ -33,7 +33,12 @@ param
 	[string]$CSVPath,
 
 	[Parameter(Mandatory = $false)]
-	[switch]$concurrentSession
+	[switch]$concurrentSession,
+
+    # Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
+	[Parameter(Mandatory = $false)]
+	$logonToken
+	
 )
 
 $concurrentSessionSwitch = if ($concurrentSession) {
@@ -411,40 +416,69 @@ Function Find-MasterAccount {
 }
 
 Function Get-LogonHeader {
-	param(
-		[Parameter(Mandatory = $true)]
-		[PSCredential]$Credentials,
-		[Parameter(Mandatory = $false)]
-		[string]$RadiusOTP,
-		[Parameter(Mandatory = $false)]
-		[string]$concurrentSession = "true"
-	)
+    <# 
+.SYNOPSIS 
+	Get-LogonHeader
+.DESCRIPTION
+	Get-LogonHeader
+.PARAMETER Credentials
+	The REST API Credentials to authenticate
+#>
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.CredentialAttribute()]$Credentials,
+        [Parameter(Mandatory = $false)]
+        [string]$RadiusOTP,
+        [Parameter(Mandatory = $false)]
+        [boolean]$concurrentSession
+    )
+	
+    if ([string]::IsNullOrEmpty($g_LogonHeader)) {
+        # Disable SSL Verification to contact PVWA
+        If ($DisableSSLVerify) {
+            Disable-SSLVerification
+        }
+		
+        # Create the POST Body for the Logon
+        # ----------------------------------
+        If ($concurrentSession) {
+            $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password; concurrentSession = $true } | ConvertTo-Json
+        }
+        else {
+            $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password } | ConvertTo-Json
 
-	# Create the POST Body for the Logon
-	# ----------------------------------
-	$logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password; concurrentSession = $concurrentSessionSwitch } | ConvertTo-Json
-	If (![string]::IsNullOrEmpty($RadiusOTP)) {
-		$logonBody.Password += ",$RadiusOTP"
-	}
-	try {
-		# Logon
-		$logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
-		# Clear logon body
-		$logonBody = ""
-	} catch {
-		Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
-	}
+        }
+        # Check if we need to add RADIUS OTP
+        If (![string]::IsNullOrEmpty($RadiusOTP)) {
+            $logonBody.Password += ",$RadiusOTP"
+        } 
+        try {
+            # Logon
+            $logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json" -TimeoutSec 2700
+			
+            # Clear logon body
+            $logonBody = ""
+        }
+        catch {
+            Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
+        }
 
-	$logonHeader = $null
-	If ([string]::IsNullOrEmpty($logonToken)) {
-		Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
-	}
+        $logonHeader = $null
+        If ([string]::IsNullOrEmpty($logonToken)) {
+            Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
+        }
+		
+        try {
+            # Create a Logon Token Header (This will be used through out all the script)
+            # ---------------------------
+            $logonHeader = @{Authorization = $logonToken }
 
-	# Create a Logon Token Header (This will be used through out all the script)
-	# ---------------------------
-	$logonHeader = @{Authorization = $logonToken }
-
-	return $logonHeader
+            Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
+        }
+        catch {
+            Throw $(New-Object System.Exception ("Get-LogonHeader: Could not create Logon Headers Dictionary", $_.Exception))
+        }
+    }
 }
 
 
@@ -557,6 +591,37 @@ if ($null -ne $creds) {
 }
 #endregion
 
+#region [Logon]
+try {
+	# Get Credentials to Login
+	# ------------------------
+	$caption = "Link Accounts"
+
+	If (![string]::IsNullOrEmpty($logonToken)) {
+		if ($logonToken.GetType().name -eq "String") {
+			$logonHeader = @{Authorization = $logonToken }
+			Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global	
+		}
+		else {
+			Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
+		}
+	}
+	elseif ($null -eq $creds) {
+		$msg = "Enter your User name and Password"; 
+		$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
+		Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
+	}
+	else { 
+		Write-LogMessage -Type Error -Msg "No Credentials were entered"
+		return
+	}
+}
+catch {
+	Write-LogMessage -Type Error -Msg "Error Logging on. Error: $(Join-ExceptionMessage $_.Exception)"
+	return
+}
+#endregion
+
 If (Test-RESTVersion -version "11.7") {$extraPass = "extraPasswordIndex"} else {$extraPass = "extraPasswordID"}
 
 #region [Read Accounts CSV file and link Accounts]
@@ -642,8 +707,14 @@ ForEach ($account in $accountsCSV) {
 #region [Logoff]
 # Logoff the session
 # ------------------
-Write-Host "Logoff Session..."
-Invoke-Rest -Uri $URL_Logoff -Header $g_LogonHeader -Command "Post"
+
+If ([string]::IsNullOrEmpty($logonToken)) {
+	Write-Host "LogonToken passed, session NOT logged off"
+}
+else {
+	Invoke-Logoff
+}
+
 # Footer
 Write-LogMessage -Type Info -MSG "A total of ${counterMaster} accounts out of ${masterCount} accounts had links processed" -Footer
 Write-LogMessage -Type Info -MSG "A total of ${counterLink} individual links out of ${linkCount} links where created successfully." -Footer
