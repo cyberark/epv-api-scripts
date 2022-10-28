@@ -572,25 +572,6 @@ If (![string]::IsNullOrEmpty($PVWAURL)) {
 Write-LogMessage -Type Info -MSG "Welcome to the Account Link Utility" -Header
 Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Linking accounts" -SubHeader
 
-
-#region [Logon]
-# Get Credentials to Login
-# ------------------------
-$caption = "Account Link Utility"
-$msg = "Enter your User name and Password";
-$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
-if ($null -ne $creds) {
-	if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP)
-	} else {
-		$g_LogonHeader = $(Get-LogonHeader -Credentials $creds )
-	}
-} else {
-	Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
-	exit
-}
-#endregion
-
 #region [Logon]
 try {
 	# Get Credentials to Login
