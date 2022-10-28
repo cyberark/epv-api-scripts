@@ -89,7 +89,7 @@ Function Get-IdentityHeader {
                 #Getting the mechanism
                 $Mechanism = $challenge.mechanisms[$Option-1] #This is an array so number-1 means the actual position
                 #Completing step of authentication
-                $AnswerToResponse = Run-AdvancedAuthBody -SessionId $SessionId -Mechanism $Mechanism -IdentityTenantId $IdentityTenantId
+                $AnswerToResponse = Invoke-AdvancedAuthBody -SessionId $SessionId -Mechanism $Mechanism -IdentityTenantId $IdentityTenantId
             } 
             #One mechanism
             Else {
@@ -97,7 +97,7 @@ Function Get-IdentityHeader {
                 $MechanismName = $Mechanism.Name
                 $MechanismPrmpt = $Mechanism.PromptMechChosen
                 Write-LogMessage -type "Info" -MSG  "$MechanismName - $MechanismPrmpt"
-                $AnswerToResponse = Run-AdvancedAuthBody -SessionId $SessionId -Mechanism $Mechanism -IdentityTenantId $IdentityTenantId
+                $AnswerToResponse = Invoke-AdvancedAuthBody -SessionId $SessionId -Mechanism $Mechanism -IdentityTenantId $IdentityTenantId
             }
             #Need Better logic here to make sure that we are done with all the challenges correctly and got next challenge.  
             $j=$j+1 #incrementing the challenge number
@@ -112,7 +112,7 @@ Function Get-IdentityHeader {
     
     
     #Runs an advanceAuth API. It will wait in the loop if needed
-    Function Run-AdvancedAuthBody {
+    Function Invoke-AdvancedAuthBody {
         [CmdletBinding()]
         Param (
             [Parameter(
