@@ -660,26 +660,34 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding D
 
 
 #region [Logon]
+try {
 	# Get Credentials to Login
 	# ------------------------
-	$caption = "Accounts Onboard Utility"
-	$msg = "Enter your User name and Password";
-	$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($null -ne $creds)
-	{
-		if($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP))
-		{
-			$g_LogonHeader = $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP)
+	$caption = "Dependent Account Onboarding"
+
+	If (![string]::IsNullOrEmpty($logonToken)) {
+		if ($logonToken.GetType().name -eq "String") {
+			$logonHeader = @{Authorization = $logonToken }
+			Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global	
 		}
-		else
-		{
-			$g_LogonHeader = $(Get-LogonHeader -Credentials $creds)
+		else {
+			Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
 		}
 	}
-	else {
-		Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
-		exit
+	elseif ($null -eq $creds) {
+		$msg = "Enter your User name and Password"; 
+		$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
+		Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
 	}
+	else { 
+		Write-LogMessage -Type Error -Msg "No Credentials were entered"
+		return
+	}
+}
+catch {
+	Write-LogMessage -Type Error -Msg "Error Logging on. Error: $(Join-ExceptionMessage $_.Exception)"
+	return
+}
 #endregion
 
 #region [Read Accounts CSV file and Create Accounts]
