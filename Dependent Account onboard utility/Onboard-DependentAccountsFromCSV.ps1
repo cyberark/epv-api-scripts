@@ -29,7 +29,11 @@ param
 
 	[Parameter(Mandatory=$false,HelpMessage="Path to a CSV file to export data to")]
 	[Alias("path")]
-	[string]$CSVPath
+	[string]$CSVPath,
+
+	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
+	[Parameter(Mandatory = $false)]
+	$logonToken
 )
 
 # Get Script Location
@@ -379,7 +383,7 @@ Function Find-MasterAccount
 	}
 }
 
-Function Get-LogonHeader
+Function Get-LogonHeaderBAD
 {
 	param(
 		[Parameter(Mandatory=$true)]
@@ -417,6 +421,72 @@ Function Get-LogonHeader
 	return $logonHeader
 }
 
+
+Function Get-LogonHeader {
+    <# 
+.SYNOPSIS 
+	Get-LogonHeader
+.DESCRIPTION
+	Get-LogonHeader
+.PARAMETER Credentials
+	The REST API Credentials to authenticate
+#>
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.CredentialAttribute()]$Credentials,
+        [Parameter(Mandatory = $false)]
+        [string]$RadiusOTP,
+        [Parameter(Mandatory = $false)]
+        [boolean]$concurrentSession
+    )
+	
+    if ([string]::IsNullOrEmpty($g_LogonHeader)) {
+        # Disable SSL Verification to contact PVWA
+        If ($DisableSSLVerify) {
+            Disable-SSLVerification
+        }
+		
+        # Create the POST Body for the Logon
+        # ----------------------------------
+        If ($concurrentSession) {
+            $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password; concurrentSession = $true } | ConvertTo-Json
+        }
+        else {
+            $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password } | ConvertTo-Json
+
+        }
+        # Check if we need to add RADIUS OTP
+        If (![string]::IsNullOrEmpty($RadiusOTP)) {
+            $logonBody.Password += ",$RadiusOTP"
+        } 
+        try {
+            # Logon
+            $logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json" -TimeoutSec 2700
+			
+            # Clear logon body
+            $logonBody = ""
+        }
+        catch {
+            Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
+        }
+
+        $logonHeader = $null
+        If ([string]::IsNullOrEmpty($logonToken)) {
+            Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
+        }
+		
+        try {
+            # Create a Logon Token Header (This will be used through out all the script)
+            # ---------------------------
+            $logonHeader = @{Authorization = $logonToken }
+
+            Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
+        }
+        catch {
+            Throw $(New-Object System.Exception ("Get-LogonHeader: Could not create Logon Headers Dictionary", $_.Exception))
+        }
+    }
+}
 Function Add-AccountDependency
 {
 	param ($dependencyObject, $MasterID)
@@ -655,7 +725,13 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding D
 	# Logoff the session
     # ------------------
     Write-Host "Logoff Session..."
-    Invoke-Rest -Uri $URL_Logoff -Header $g_LogonHeader -Command "Post"
+	If ([string]::IsNullOrEmpty($logonToken)) {
+		Write-Host "LogonToken passed, session NOT logged off"
+	}
+	else {
+		Invoke-Logoff
+	}
+	
 	# Footer
 	Write-LogMessage -Type Info -MSG "Vaulted ${counter} out of ${rowCount} dependent accounts successfully." -Footer
 #endregion
