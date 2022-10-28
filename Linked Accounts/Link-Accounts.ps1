@@ -394,7 +394,7 @@ Function Find-MasterAccount {
 		$Keywords = "$($accountName) $($accountAddress)"
 		$AccountsURLWithFilters = $(Add-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSafeName $safeName)
 		Write-LogMessage -Type Debug -Msg "Accounts Filter: $AccountsURLWithFilters"
-		$GetMasterAccountsResponse = Invoke-Rest -Command Get -Uri $AccountsURLWithFilters -Header $g_LogonHeader
+		$GetMasterAccountsResponse = Invoke-Rest -Command Get -Uri $AccountsURLWithFilters -Header $global:g_LogonHeader
 		If (($null -eq $GetMasterAccountsResponse) -or ($GetMasterAccountsResponse.count -eq 0)) {
 			# No accounts found
 			Write-LogMessage -Type Debug -MSG "Account $accountName does not exist"
@@ -481,14 +481,33 @@ Function Get-LogonHeader {
     }
 }
 
-
+Function Invoke-Logoff {
+    <# 
+.SYNOPSIS 
+	Invoke-Logoff
+.DESCRIPTION
+	Logoff a PVWA session
+#>
+    try {
+        # Logoff the session
+        # ------------------
+        If ($null -ne $g_LogonHeader) {
+            Write-LogMessage -Type Info -Msg "Logoff Session..."
+            Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 | Out-Null
+            Set-Variable -Name g_LogonHeader -Value $null -Scope global
+        }
+    }
+    catch {
+        Throw $(New-Object System.Exception ("Invoke-Logoff: Failed to logoff session", $_.Exception))
+    }
+}
 Function Add-AccountLink {
 	param ($linkBody, $MasterID)
 	
 	try {
 		$retResult = $false
 
-		$addLinkAccountBodyResult = $(Invoke-Rest -Uri ($URL_LinkAccounts -f $MasterID) -Header $g_LogonHeader -Command "POST" -Body $($linkBody | ConvertTo-Json))
+		$addLinkAccountBodyResult = $(Invoke-Rest -Uri ($URL_LinkAccounts -f $MasterID) -Header $global:g_LogonHeader -Command "POST" -Body $($linkBody | ConvertTo-Json))
 		If ($null -eq $addLinkAccountBodyResult) {
 			# No accounts onboarded
 			throw "There was an error linking account $($linkBody.name) to account ID $($MasterID)."
