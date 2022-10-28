@@ -355,7 +355,7 @@ Function Find-MasterAccount
 		$Keywords = "$($account.userName) $($account.address)"
 		$AccountsURLWithFilters = $(Add-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSafeName $safeName)
 		Write-LogMessage -Type Debug -Msg "Accounts Filter: $AccountsURLWithFilters"
-		$GetMasterAccountsResponse = Invoke-Rest -Command Get -Uri $AccountsURLWithFilters -Header $g_LogonHeader
+		$GetMasterAccountsResponse = Invoke-Rest -Command Get -Uri $AccountsURLWithFilters -Header $global:g_LogonHeader
 		If (($null -eq $GetMasterAccountsResponse) -or ($GetMasterAccountsResponse.count -eq 0))
 		{
 			# No accounts found
@@ -487,6 +487,28 @@ Function Get-LogonHeader {
         }
     }
 }
+
+Function Invoke-Logoff {
+    <# 
+.SYNOPSIS 
+	Invoke-Logoff
+.DESCRIPTION
+	Logoff a PVWA session
+#>
+    try {
+        # Logoff the session
+        # ------------------
+        If ($null -ne $g_LogonHeader) {
+            Write-LogMessage -Type Info -Msg "Logoff Session..."
+            Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 | Out-Null
+            Set-Variable -Name g_LogonHeader -Value $null -Scope global
+        }
+    }
+    catch {
+        Throw $(New-Object System.Exception ("Invoke-Logoff: Failed to logoff session", $_.Exception))
+    }
+}
+
 Function Add-AccountDependency
 {
 	param ($dependencyObject, $MasterID)
@@ -495,7 +517,7 @@ Function Add-AccountDependency
 		$retResult = $false
 		if($null -ne $MasterID)
 		{
-			$accountDetails = $(Invoke-Rest -Uri ($URL_AccountsDetails -f $MasterID) -Header $g_LogonHeader -Command "GET")
+			$accountDetails = $(Invoke-Rest -Uri ($URL_AccountsDetails -f $MasterID) -Header $global:g_LogonHeader-Command "GET")
 		}
 		$addDiscoveredAccountBody = @{
 			"userName"=$dependencyObject.userName; 
@@ -529,7 +551,7 @@ Function Add-AccountDependency
 				$addDiscoveredAccountBody.domain = $accountDetails.address
 			}
 		}
-		$addDiscoveredAccountResult = $(Invoke-Rest -Uri $URL_DiscoveredAccounts -Header $g_LogonHeader -Command "POST" -Body $($addDiscoveredAccountBody | ConvertTo-Json))
+		$addDiscoveredAccountResult = $(Invoke-Rest -Uri $URL_DiscoveredAccounts -Header $global:g_LogonHeader -Command "POST" -Body $($addDiscoveredAccountBody | ConvertTo-Json))
 		If ($null -eq $addDiscoveredAccountResult)
 		{
 			# No accounts onboarded
