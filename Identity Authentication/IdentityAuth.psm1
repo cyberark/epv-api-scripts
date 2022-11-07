@@ -32,11 +32,11 @@ Function Get-IdentityHeader {
             [Parameter(
                 Mandatory = $false,
                 HelpMessage = "Identity Tenant ID")]
-            [bool]$PSPas,
+            [switch]$PSPas,
             [Parameter(
                 Mandatory = $false,
-                HelpMessage = "PCloud Tenant ID")]
-            [string]$PCloudTenant
+                HelpMessage = "PCloud Tenant URL")]
+            [string]$PCloudTenantURL
             
         )
         #Platform Identity API
@@ -123,7 +123,7 @@ Function Get-IdentityHeader {
             $session.Headers = $header
             $IdentityHeaders = [PSCustomObject]@{
                 User            = $IdentityUserName
-                BaseURI         = $PCloudTenant
+                BaseURI         = $PCloudTenantURL
                 ExternalVersion = "12.7.0"
                 WebSession      = $session
             } | Add-ObjectDetail -typename psPAS.CyberArk.Vault.Session
