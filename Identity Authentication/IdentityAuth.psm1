@@ -117,9 +117,9 @@ Function Get-IdentityHeader {
         $IdentityHeaders = @{Authorization  = "Bearer $($AnswerToResponse.Result.Token)"}
         $IdentityHeaders.Add("X-IDAP-NATIVE-CLIENT","true")
         } else {
-            $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
             $header = New-Object System.Collections.Generic.Dictionary"[String,string]"
             $header.add("Authorization","Bearer $($AnswerToResponse.Result.Token)")
+            $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
             $session.Headers = $header
             $IdentityHeaders = [PSCustomObject]@{
                 User            = $IdentityUserName
