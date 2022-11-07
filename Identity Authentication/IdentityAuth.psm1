@@ -28,7 +28,16 @@ Function Get-IdentityHeader {
             [Parameter(
                 Mandatory = $false,
                 HelpMessage = "Identity Tenant ID")]
-            [string]$IdentityTenantId
+            [string]$IdentityTenantId,
+            [Parameter(
+                Mandatory = $false,
+                HelpMessage = "Identity Tenant ID")]
+            [bool]$PSPas,
+            [Parameter(
+                Mandatory = $false,
+                HelpMessage = "PCloud Tenant ID")]
+            [string]$PCloudTenant
+            
         )
         #Platform Identity API
     
@@ -104,9 +113,21 @@ Function Get-IdentityHeader {
         }
     
         #Creating Header
+        If (!$PSPas){
         $IdentityHeaders = @{Authorization  = "Bearer $($AnswerToResponse.Result.Token)"}
         $IdentityHeaders.Add("X-IDAP-NATIVE-CLIENT","true")
-    
+        } else {
+            $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+            $header = New-Object System.Collections.Generic.Dictionary"[String,string]"
+            $header.add("Authorization","Bearer $($AnswerToResponse.Result.Token)")
+            $session.Headers = $header
+            $IdentityHeaders = [PSCustomObject]@{
+                User            = $IdentityUserName
+                BaseURI         = $PCloudTenant
+                ExternalVersion = "12.7.0"
+                WebSession      = $session
+            } | Add-ObjectDetail -typename psPAS.CyberArk.Vault.Session
+        }
         return $identityHeaders
     }
     
