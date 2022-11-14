@@ -41,7 +41,6 @@ Function Get-IdentityHeader {
     )
     $ScriptFullPath = Get-Location
     $LOG_FILE_PATH = "$ScriptFullPath\IdentityAuth.log"
-    $LOG_FILE_PATH
 
     $InDebug = $PSBoundParameters.Debug.IsPresent
     $InVerbose = $PSBoundParameters.Verbose.IsPresent
