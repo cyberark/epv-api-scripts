@@ -18,7 +18,13 @@ The Tool supports three modes for managing safes Members: [*Members*](#members-c
 The script by default supports CyberArk authentication.
 In order to allow also LDAP authentication to the script, make sure the [*SmartLogonEnabled*](https://docs.cyberark.com/Product-Doc/Onlinehelp/PAS/latest/en/Content/PASIMP/General-PVWA-Configurations.htm) parameter in the PVWA configuration is set to *YES* and then simply run the script with your LDAP credentials (no changes required to the script).
 
+## CyberArk Privilege Cloud - Shared Services
+If working with CyberArk Privilege Cloud - Shared Services make sure that "memberLocation" is blank and that "Member" includes the full username and directory for the user and/or group 
 
+Example
+- "Administrators@lab.local" and not "Administrators"
+- "John.Doe@lab.local" and not "John.Doe"
+  
 ## Safe Management
 
 ### List Command:
