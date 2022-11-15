@@ -86,7 +86,6 @@ $URL_ImportPlatforms = $URL_PVWAAPI + "/Platforms/Import"
 # Initialize Script Variables
 # ---------------------------
 $rstusername = $rstpassword = ""
-$logonToken = ""
 
 #region Functions
 Function Test-CommandExists {
