@@ -32,6 +32,6 @@ To output in a format able to be consumed by PS PAS.
 Note that you must pass the PCloudTenantAPIURL
 ```powershell
 Import-Module IdentityAuth.psm1
-$header = Get-IdentityHeader -psPASFormat-IdentityTenantURL "something.id.cyberark.cloud" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID" -PCloudTenantAPIURL https://subdomain.privilegecloud.cyberark.cloud/passwordvault/
+$header = Get-IdentityHeader -psPASFormat -IdentityTenantURL "something.id.cyberark.cloud" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID" -PCloudTenantAPIURL https://subdomain.privilegecloud.cyberark.cloud/passwordvault/
 use-PASSession $header
 ```
