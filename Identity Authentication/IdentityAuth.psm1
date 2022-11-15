@@ -117,6 +117,7 @@ Function Get-IdentityHeader {
         $j=$j+1 #incrementing the challenge number
     }
     Write-LogMessage -type "Verbose" -MSG "AnswerToResponce - $($AnswerToResponse |ConvertTo-Json)"
+    If ($AnswerToResponse.success){
     #Creating Header
     If (!$PSPas){
         $IdentityHeaders = @{Authorization = "Bearer $($AnswerToResponse.Result.Token)"}
@@ -133,7 +134,11 @@ Function Get-IdentityHeader {
             WebSession      = $session
         } | Add-ObjectDetail -TypeName psPAS.CyberArk.Vault.Session
     }
-    return $identityHeaders
+    return $identityHeaders}
+    else {
+        Write-LogMessage -type Error -MSG "Error during logon : $($AnswerToResponse.Message)" 
+        exit
+    }
 }
     
     
