@@ -119,7 +119,7 @@ Function Get-IdentityHeader {
     Write-LogMessage -type "Verbose" -MSG "AnswerToResponce - $($AnswerToResponse |ConvertTo-Json)"
     If ($AnswerToResponse.success){
     #Creating Header
-    If (!$psPAS){
+    If (!$psPASFormat){
         $IdentityHeaders = @{Authorization = "Bearer $($AnswerToResponse.Result.Token)"}
         $IdentityHeaders.Add("X-IDAP-NATIVE-CLIENT","true")
     } else {
