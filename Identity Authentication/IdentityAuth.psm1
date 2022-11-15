@@ -31,12 +31,12 @@ Function Get-IdentityHeader {
         [string]$IdentityTenantId,
         [Parameter(
             Mandatory = $false,
-            HelpMessage = "Identity Tenant ID")]
-        [switch]$PSPas,
+            HelpMessage = "Output header in a format for use with psPAS")]
+        [switch]$psPASFormat,
         [Parameter(
             Mandatory = $false,
-            HelpMessage = "PCloud Tenant URL")]
-        [string]$PCloudTenantURL
+            HelpMessage = "PCloud Tenant API URL")]
+        [string]$PCloudTenantAPIURL
             
     )
     $ScriptFullPath = Get-Location
@@ -119,7 +119,7 @@ Function Get-IdentityHeader {
     Write-LogMessage -type "Verbose" -MSG "AnswerToResponce - $($AnswerToResponse |ConvertTo-Json)"
     If ($AnswerToResponse.success){
     #Creating Header
-    If (!$PSPas){
+    If (!$psPAS){
         $IdentityHeaders = @{Authorization = "Bearer $($AnswerToResponse.Result.Token)"}
         $IdentityHeaders.Add("X-IDAP-NATIVE-CLIENT","true")
     } else {
@@ -129,8 +129,8 @@ Function Get-IdentityHeader {
         $session.Headers = $header
         $IdentityHeaders = [PSCustomObject]@{
             User            = $IdentityUserName
-            BaseURI         = $PCloudTenantURL
-            ExternalVersion = "12.7.0"
+            BaseURI         = $PCloudTenantAPIURL
+            ExternalVersion = "12.6.0"
             WebSession      = $session
         } | Add-ObjectDetail -TypeName psPAS.CyberArk.Vault.Session
     }
