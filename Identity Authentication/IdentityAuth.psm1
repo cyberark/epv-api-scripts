@@ -53,6 +53,8 @@ Function Get-IdentityHeader {
         $IdaptiveBasePlatformURL = "https://$IdentityTenantURL"
     }
     
+    Write-LogMessage -type "Verbose" -MSG "URL used : $($IdaptiveBasePlatformURL|ConvertTo-Json)"
+    
     #Creating URLs
     
     $IdaptiveBasePlatformSecURL = "$IdaptiveBasePlatformURL/Security"
@@ -63,10 +65,15 @@ Function Get-IdentityHeader {
     #Creating the username/password variables
     
     $startPlatformAPIBody = @{TenantId = $IdentityTenantId; User = $IdentityUserName ; Version = "1.0"} | ConvertTo-Json -Compress
+    Write-LogMessage -type "Verbose" -MSG "URL body : $($startPlatformAPIBody|ConvertTo-Json)"
+    
     $IdaptiveResponse = Invoke-RestMethod -Uri $startPlatformAPIAuth -Method Post -ContentType "application/json" -Body $startPlatformAPIBody -TimeoutSec 30
+    Write-LogMessage -type "Verbose" -MSG "IdaptiveResponse : $($IdaptiveResponse|ConvertTo-Json)"
+    
     # We can use the following to give info to the customer $IdaptiveResponse.Result.Challenges.mechanisms
     $j = 1
     $SessionId = $($IdaptiveResponse.Result.SessionId)
+    Write-LogMessage -type "Verbose" -MSG "SessionId : $($SessionId |ConvertTo-Json)"
     ForEach ($challenge in $IdaptiveResponse.Result.Challenges) {
         #reseting variables
         $Mechanism = $null
@@ -103,7 +110,7 @@ Function Get-IdentityHeader {
             $Mechanism = $challenge.mechanisms[$Option-1] #This is an array so number-1 means the actual position
             #Completing step of authentication
             $AnswerToResponse = Invoke-AdvancedAuthBody -SessionId $SessionId -Mechanism $Mechanism -IdentityTenantId $IdentityTenantId
-                
+            Write-LogMessage -type "Verbose" -MSG "AnswerToResponce - $($AnswerToResponse |ConvertTo-Json)"
         } 
         #One mechanism
         Else {
@@ -112,32 +119,34 @@ Function Get-IdentityHeader {
             $MechanismPrmpt = $Mechanism.PromptMechChosen
             Write-LogMessage -type "Info" -MSG "$MechanismName - $MechanismPrmpt"
             $AnswerToResponse = Invoke-AdvancedAuthBody -SessionId $SessionId -Mechanism $Mechanism -IdentityTenantId $IdentityTenantId
+            Write-LogMessage -type "Verbose" -MSG "AnswerToResponce - $($AnswerToResponse |ConvertTo-Json)"
         }
         #Need Better logic here to make sure that we are done with all the challenges correctly and got next challenge.  
         $j=$j+1 #incrementing the challenge number
     }
-    Write-LogMessage -type "Verbose" -MSG "AnswerToResponce - $($AnswerToResponse |ConvertTo-Json)"
     If ($AnswerToResponse.success){
     #Creating Header
-    If (!$psPASFormat){
-        $IdentityHeaders = @{Authorization = "Bearer $($AnswerToResponse.Result.Token)"}
-        $IdentityHeaders.Add("X-IDAP-NATIVE-CLIENT","true")
-    } else {
-        $header = New-Object System.Collections.Generic.Dictionary"[String,string]"
-        $header.add("Authorization","Bearer $($AnswerToResponse.Result.Token)")
-        $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-        $session.Headers = $header
-        $IdentityHeaders = [PSCustomObject]@{
-            User            = $IdentityUserName
-            BaseURI         = $PCloudTenantAPIURL
-            ExternalVersion = "12.6.0"
-            WebSession      = $session
-        } | Add-ObjectDetail -TypeName psPAS.CyberArk.Vault.Session
+        If (!$psPASFormat){
+            $IdentityHeaders = @{Authorization = "Bearer $($AnswerToResponse.Result.Token)"}
+            $IdentityHeaders.Add("X-IDAP-NATIVE-CLIENT","true")
+        } else {
+            $header = New-Object System.Collections.Generic.Dictionary"[String,string]"
+            $header.add("Authorization","Bearer $($AnswerToResponse.Result.Token)")
+            $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+            $session.Headers = $header
+            $IdentityHeaders = [PSCustomObject]@{
+                User            = $IdentityUserName
+                BaseURI         = $PCloudTenantAPIURL
+                ExternalVersion = "12.6.0"
+                WebSession      = $session
+            } | Add-ObjectDetail -TypeName psPAS.CyberArk.Vault.Session
+        }
+        Write-LogMessage -type "Verbose" -MSG "IdentityHeaders - $($IdentityHeaders |ConvertTo-Json)"
+        return $identityHeaders
     }
-    return $identityHeaders}
     else {
+        Write-LogMessage -type "Verbose" -MSG "identityHeaders: $($AnswerToResponse|ConvertTo-Json)" 
         Write-LogMessage -type Error -MSG "Error during logon : $($AnswerToResponse.Message)" 
-        exit
     }
 }
     
@@ -165,23 +174,28 @@ Function Invoke-AdvancedAuthBody {
         #We got two options here 1 text and one Push notification. We will need to do the while statement in this option.
         $Action = "StartOOB"
         $startPlatformAPIAdvancedAuthBody = @{TenantID = $IdentityTenantId; SessionId = $SessionId; MechanismId = $MechanismId; Action = $Action; } | ConvertTo-Json -Compress
+        Write-LogMessage -type "Verbose" -MSG "startPlatformAPIAdvancedAuthBody: $($startPlatformAPIAdvancedAuthBody|ConvertTo-Json)" 
         Write-LogMessage -type "Info" -MSG "Waiting for Push to be pressed"
     } ElseIf ($Mechanism.AnswerType -eq "Text") {
         $Action = "Answer"
         $Answer = Read-Host "Please enter the answer from the challenge type" -AsSecureString
         $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Answer)
         $startPlatformAPIAdvancedAuthBody = @{TenantID = $IdentityTenantId; SessionId = $SessionId; MechanismId = $MechanismId; Action = $Action; Answer = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR))} | ConvertTo-Json -Compress
+        Write-LogMessage -type "Verbose" -MSG "startPlatformAPIAdvancedAuthBody: $($startPlatformAPIAdvancedAuthBody|ConvertTo-Json)" 
     }
     #Rest API
     Try {
         $AnswerToResponse = Invoke-RestMethod -Uri $startPlatformAPIAdvancedAuth -Method Post -ContentType "application/json" -Body $startPlatformAPIAdvancedAuthBody -TimeoutSec 30
+        Write-LogMessage -type "Verbose" -MSG "AnswerToResponse: $($AnswerToResponse|ConvertTo-Json)" 
     } Catch {
         Write-LogMessage -Type Error -MSG $_.ErrorDetails.Message  
     }
     while ($AnswerToResponse.Result.Summary -eq "OobPending") {
         Start-Sleep -Seconds 2
         $pollBody = @{TenantID = $IdentityTenantId; SessionId = $SessionId; MechanismId = $MechanismId; Action = "Poll"; } | ConvertTo-Json -Compress
+        Write-LogMessage -type "Verbose" -MSG "pollBody: $($pollBody|ConvertTo-Json)" 
         $AnswerToResponse = Invoke-RestMethod -Uri $startPlatformAPIAdvancedAuth -Method Post -ContentType "application/json" -Body $pollBody -TimeoutSec 30
+        Write-LogMessage -type "Verbose" -MSG "AnswerToResponse: $($AnswerToResponse|ConvertTo-Json)" 
         Write-LogMessage -type "Info" -MSG "$($AnswerToResponse.Result.Summary)"
     }
     $AnswerToResponse
