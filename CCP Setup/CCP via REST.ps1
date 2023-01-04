@@ -1,5 +1,6 @@
 $responseViaObject = $responseViaAddressAndUsername =  $null
 $CCPAddress = "http://ccp.lab.local"
+$location = "AIMWebService"
 $application = "app"
 $safe = "Safe"
 $object = ""
@@ -10,7 +11,7 @@ $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
 $headers.Add("Content-Type", "application/json")
 
 if (![string]::IsNullOrEmpty($object)) {
-    $responseViaObject = Invoke-RestMethod "$CCPAddress/AIMWebService/api/Accounts?AppID=$application&Safe=$safe&Object=$object" -Method 'GET' -Headers $headers
+    $responseViaObject = Invoke-RestMethod "$CCPAddress/$location/api/Accounts?AppID=$application&Safe=$safe&Object=$object" -Method 'GET' -Headers $headers
 
     Write-Host "Pulled using Object Name"
     write-host "Username: " $($responseViaObject.Username)
@@ -20,7 +21,7 @@ if (![string]::IsNullOrEmpty($object)) {
 }
 
 if (![string]::IsNullOrEmpty($address) -and ![string]::IsNullOrEmpty($username)) {
-    $responseViaAddressAndUsername = Invoke-RestMethod "$CCPAddress/AIMWebService/api/Accounts?AppID=$application&Safe=$safe&address=$address&username=$username" -Method 'GET' -Headers $headers
+    $responseViaAddressAndUsername = Invoke-RestMethod "$CCPAddress/$location/api/Accounts?AppID=$application&Safe=$safe&address=$address&username=$username" -Method 'GET' -Headers $headers
     $responseViaAddressAndUsername | ConvertTo-Json
 
     Write-Host "Pulled using Address and Username"
