@@ -78,7 +78,7 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-A
 Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Create [-CPM_NAME <sting>] [-AuthType <string>] [-OTP <string>] [-TemplateSafe <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [-NoSafeCreation] [<CommonParameters>]
 ```
 
-If you just want to Create Accounts (including creating the Safes if they don’t exist):
+If you just want to Create Accounts:
 ```powershell
 & .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault"  -CsvPath .\accounts.csv -Create
 ```
@@ -88,7 +88,7 @@ If you want to Create Accounts and Safes according to a Safe Template:
 & .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\accounts.csv -Create -TemplateSafe “MyTemplateSafe”
 ```
 
-If you want to Create Accounts but not create the safes (if they don’t exist):
+If you want to Create Accounts but not create the safes:
 ```powershell
 & .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\accounts.csv -Create -NoSafeCreation
 ```
