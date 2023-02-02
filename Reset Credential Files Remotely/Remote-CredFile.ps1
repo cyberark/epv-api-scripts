@@ -39,6 +39,9 @@ param(
 	[Parameter(Mandatory = $false, HelpMessage = "Vault Stored Credentials")]
 	[PSCredential]$PVWACredentials,
 
+	[Parameter(Mandatory = $false, HelpMessage = "PVWA Bearer Token")]
+	[String]$PVWALogonToken,
+
 	# Use this switch to Disable SSL verification (NOT RECOMMENDED)
 	[Parameter(Mandatory = $false)]
 	[Switch]$DisableSSLVerify,
@@ -186,7 +189,12 @@ else {
 Import-Module -Name ".\CyberArk-Common.psm1" -Force
 Write-LogMessage -Type Verbose -MSG "Getting Logon Token"
 
-Invoke-Logon -Credentials $PVWACredentials
+If ([string]::IsNullOrEmpty($PVWALogonToken)){
+	Invoke-Logon -Credentials $PVWACredentials
+} else {
+	$logonHeader = @{Authorization = $PVWALogonToken}
+	Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $logonHeader
+}
 
 Write-LogMessage -Type Verbose -MSG "Getting Server List"
 $componentList = Get-ComponentStatus | Sort-Object $_.'Component Type'
@@ -213,7 +221,7 @@ $targetComponents = @()
 $availableServers = @()
 ForEach ($comp in $selectedComponents) {
 	if ($comp.'Total Amount' -gt 0) {
-		If ($PVWAURL.Contains("privilegecloud.cyberark.com") -and ("PVWA" -eq $comp.'Component Type')) {
+		If ($PVWAURL.Contains("privilegecloud") -and ("PVWA" -eq $comp.'Component Type')) {
 			continue
 		}
 		$results = Get-ComponentDetails $comp.'Component Type'

@@ -883,6 +883,39 @@ Function New-Safe {
 }
 
 # @FUNCTION@ ======================================================================================================================
+# Name...........: New-Safe
+# Description....: Creates a new Safe
+# Parameters.....: Safe name, (optional) CPM name, (optional) Template Safe
+# Return Values..: Bool
+# =================================================================================================================================
+Function New-BadRecord {
+	<# 
+.SYNOPSIS 
+	Outputs the bad record to a CSV file for correction and processing
+.DESCRIPTION
+	Outputs the bad record to a CSV file for correction and processing
+.PARAMETER BadRecord
+	The bad record to output
+#>
+	param (
+		[Parameter(Mandatory = $true)]
+		[ValidateNotNullOrEmpty()] 
+		[String]$BadRecord
+	)
+	try {
+		$BadRecord | Out-File -Append  "$CsvPath.bad"
+		Write-LogMessage -Debug -MSG "Output bad record to CSV"
+		Write-LogMessage -Verbose -MSG "Bad Record: $BadRecord"
+	}
+	catch {
+		Write-LogMessage -Error -MSG "Unable to outout bad record to file: $CsvPath.bad"
+		Write-LogMessage -Error -MSG "Bad Record: $BadRecord"
+
+	}		
+}
+
+
+# @FUNCTION@ ======================================================================================================================
 # Name...........: Add-Owner
 # Description....: Add a new owner to an existing safe
 # Parameters.....: Safe name, Member to add
@@ -1447,6 +1480,7 @@ ForEach ($account in $accountsCSV) {
 						}
 					}
 				} catch {
+					New-BadRecord $account
 					Write-LogMessage -Type Debug -MSG "There was an error creating Safe $($account.Safe)"
 				}
 			} elseif (($NoSafeCreation -eq $True) -and ($safeExists -eq $false)) {
@@ -1617,6 +1651,7 @@ ForEach ($account in $accountsCSV) {
 										$updateChange = $true
 									}
 								} else {
+									New-BadRecord $account
 									Write-LogMessage -Type Warning -MSG "Account Secret Type is not a password, no support for updating the secret - skipping"
 								}
 							}
@@ -1634,6 +1669,7 @@ ForEach ($account in $accountsCSV) {
 								$createAccount = $true
 							} catch {
 								# User probably chose to Halt/Stop the action and not create a duplicate account
+								New-BadRecord $account
 								Write-LogMessage -Type Info -MSG "Skipping onboarding account '$g_LogAccountName' (CSV line: $csvLine) to avoid duplication."
 								$createAccount = $false
 							}
@@ -1651,6 +1687,7 @@ ForEach ($account in $accountsCSV) {
 						If ($Create) {
 							$createAccount = $true
 						} Else {
+							New-BadRecord $account
 							Write-LogMessage -Type Error -Msg "You requested to Update/Delete an account that does not exist (Account: $g_LogAccountName, CSV line: $csvLine)"
 							$createAccount = $false
 						}
@@ -1669,16 +1706,20 @@ ForEach ($account in $accountsCSV) {
 								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))] Added $g_LogAccountName successfully."  
 							}
 						} catch {
+							New-BadRecord $account
 							Throw $(New-Object System.Exception ("There was an error creating the account", $_.Exception))
 						}
 					}
 				} catch {
+					New-BadRecord $account
 					Write-LogMessage -Type Error -MSG "There was an error onboarding $g_LogAccountName (CSV line: $csvLine) into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
 				}
 			} else {
+				New-BadRecord $account
 				Write-LogMessage -Type Info -MSG "Skipping onboarding account $g_LogAccountName (CSV line: $csvLine) into the Password Vault since safe does not exist and safe creation is disabled."
 			}
 		} catch {
+			New-BadRecord $account
 			Write-LogMessage -Type Info -MSG "Skipping onboarding account $g_LogAccountName (CSV line: $csvLine) into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
 		}
 	}
