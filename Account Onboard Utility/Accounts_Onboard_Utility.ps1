@@ -100,7 +100,7 @@ param(
 	
 	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
 	[Parameter(Mandatory = $false)]
-	$PVWAlogonToken
+	$logonToken
 )
 
 # Get Script Location 
@@ -1364,12 +1364,12 @@ Write-LogMessage -Type Info -MSG "Getting PVWA Credentials to start Onboarding A
 # Get Credentials to Login
 # ------------------------
 $caption = "Accounts Onboard Utility"
-If (![string]::IsNullOrEmpty($PVWAlogonToken)) {
-	if ($PVWAlogonToken.GetType().name -eq "String") {
-		$logonHeader = @{Authorization = $PVWAlogonToken }
+If (![string]::IsNullOrEmpty($logonToken)) {
+	if ($logonToken.GetType().name -eq "String") {
+		$logonHeader = @{Authorization = $logonToken }
 		Set-Variable -Scope Global -Name g_LogonHeader -Value $logonHeader
 	} else {
-		Set-Variable -Scope Global -Name g_LogonHeader -Value $PVWAlogonToken
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $logonToken
  }
 	
 } elseif ($null -eq $creds) {
@@ -1729,7 +1729,7 @@ ForEach ($account in $accountsCSV) {
 #region [Logoff]
 # Logoff the session
 # ------------------
-If (![string]::IsNullOrEmpty($PVWAlogonToken)) {
+If (![string]::IsNullOrEmpty($logonToken)) {
 	Write-Host "LogonToken passed, session NOT logged off"
 } else {
 	Write-Host "Logoff Session..."

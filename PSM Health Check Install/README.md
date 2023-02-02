@@ -19,7 +19,7 @@ Install-PSMHealthCheck.ps1  [-Location <string>] [-download] [-stage] [-hostingF
     - If this switch is passed a self signed certificate will be created
 - hostingFile <String>
     - File name for the "Microsoft .NET Core Windows Server Hosting" executable. This will be the named used to save the file to with -download or -stage
-    - Uses the "Hosting Bundle" direct download link from "https://dotnet.microsoft.com/en-us/download/dotnet/3.1"
+    - Uses the "Hosting Bundle" direct download link from "https://dotnet.microsoft.com/en-us/download/dotnet/6.0"
 - DisableSSLVerify
 	**(NOT RECOMMENDED)**
 	- In case you experience issues making SSL connections during download(s)

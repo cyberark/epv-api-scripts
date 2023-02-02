@@ -54,5 +54,5 @@ Set-WebConfiguration -force -Location "Default Web Site/AIMWebService/SoapCert" 
 #Create new URL using SOAP with Windows OS Authentication
 #https://<your machine>/AIMWebService/SoapWindows/AIM.asmx
 Copy-Item "$location\v1.1" -Destination "$location\SoapWindows"
-Set-WebConfigurationProperty -force -PSPath "IIS:\" -Location "Default Web Site/AIMWebService/SoapWindows" -filter "/system.webServer/security/authentication/anonymousAuthentication" -name enabled -value false
-Set-WebConfigurationProperty -force -PSPath "IIS:\" -Location "Default Web Site/AIMWebService/SoapWindows" -filter "/system.webServer/security/authentication/windowsAuthentication" -name enabled -value true
+Set-WebConfigurationProperty -force -PSPath "IIS:\" -Location "Default Web Site/AIMWebService/SoapWin" -filter "/system.webServer/security/authentication/anonymousAuthentication" -name enabled -value false
+Set-WebConfigurationProperty -force -PSPath "IIS:\" -Location "Default Web Site/AIMWebService/SoapWin" -filter "/system.webServer/security/authentication/windowsAuthentication" -name enabled -value true
