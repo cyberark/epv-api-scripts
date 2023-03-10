@@ -37,7 +37,11 @@ param
 
     # Use this switch to Disable SSL verification (NOT RECOMMENDED)
     [Parameter(Mandatory = $false)]
-    [Switch]$DisableSSLVerify
+    [Switch]$DisableSSLVerify,
+    
+    # Use this switch to allow HTTP Connections (NOT RECOMMENDED)
+    [Parameter(Mandatory = $false)]
+    [Switch]$AllowHTTP,
 )
 
 $appsettings = "$location\healthcheck\appsettings.json"
@@ -108,5 +112,8 @@ if ($CreateSelfSignedCert) {
 
 ((Get-Content -Path $appsettings -Raw) -replace "Classic", "CodeBased") | Set-Content -Path $appsettings
 
+if ($AllowHTTP) {
+    Set-WebConfiguration -Location "Default Web Site/PSM" -Filter 'system.webserver/security/access' -Value 'None'
+}
 
 Invoke-Expression "iisreset"
