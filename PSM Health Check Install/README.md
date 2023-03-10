@@ -4,7 +4,7 @@
 > - Extract the zip file and place the script in that folder and run using the commands below
 ## Parameters:
 ```powershell
-Install-PSMHealthCheck.ps1  [-Location <string>] [-download] [-stage] [-hostingFile <string>] [-DisableSSLVerify] [<CommonParameters>]
+Install-PSMHealthCheck.ps1  [-Location <string>] [-download] [-stage] [-hostingFile <string>] [-DisableSSLVerify] [-AllowHTTP] [<CommonParameters>]
 
 ```
 - Location <string>
