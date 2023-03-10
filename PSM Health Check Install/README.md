@@ -23,3 +23,6 @@ Install-PSMHealthCheck.ps1  [-Location <string>] [-download] [-stage] [-hostingF
 - DisableSSLVerify
 	**(NOT RECOMMENDED)**
 	- In case you experience issues making SSL connections during download(s)
+- AllowHTTP
+	**(NOT RECOMMENDED)**
+	- Uncheck "Require SSL" on "Default Web Site/PSM" to allow for connecting with non-SSL connections
