@@ -57,7 +57,7 @@ param
     [Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "Enter a Safe Name to filter by")]
     [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = "Enter a Safe Name to create")]
     [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = "Enter a Safe Name to update")]
-    [Parameter(ParameterSetName = 'Delete', Mandatory = $true, HelpMessage = "Enter a Safe Name to delete")]
+    [Parameter(ParameterSetName = 'Delete', Mandatory = $false, HelpMessage = "Enter a Safe Name to delete")]
     [Parameter(ParameterSetName = 'Members', Mandatory = $true, HelpMessage = "Enter a Safe Name to add members to")]
     [ValidateScript( { $_.Length -le 28 })]
     [Alias("Safe")]
