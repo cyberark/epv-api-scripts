@@ -21,7 +21,8 @@
  2.1 	12/04/2021     	- Added ability to create report of safes
  2.1.1 	05/02/2022	- Updated catch to capture 404 error and allow for attempting to add.
  2.1.2  16/08/2022	- Temp Bug fix for MemberType
- 2.1.3  24/08/2022  - Bug fix for updating safe due to changes in APIs in version 12.5
+ 2.1.3  24/08/2022      - Bug fix for updating safe due to changes in APIs in version 12.5
+ 2.1.4  17/03/2023      - Fix for issue #317
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = "List")]
 param
