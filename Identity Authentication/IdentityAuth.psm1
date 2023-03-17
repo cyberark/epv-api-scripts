@@ -141,7 +141,8 @@ Function Get-IdentityHeader {
                 BaseURI         = $PCloudTenantAPIURL
                 ExternalVersion = $ExternalVersion
                 WebSession      = $session
-            } | Add-ObjectDetail -TypeName psPAS.CyberArk.Vault.Session
+            }
+            $IdentityHeaders.PSObject.TypeNames.Insert(0, 'psPAS.CyberArk.Vault.Session')
         }
         Write-LogMessage -type "Verbose" -MSG "IdentityHeaders - $($IdentityHeaders |ConvertTo-Json)"
         return $identityHeaders
