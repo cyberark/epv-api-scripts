@@ -34,7 +34,7 @@ $URL_HealthDetails = $URL_PVWAAPI + "/ComponentsMonitoringDetails/{0}"
 
 $g_cpmservices = @("CyberArk Password Manager", "CyberArk Central Policy Manager Scanner")
 $g_pvwaservices = @("CyberArk Scheduled Tasks", "W3SVC", "IISADMIN")
-$g_psmservices = @("Cyber-Ark Privileged Session Manager")
+$g_psmservices = @("* Privileged Session Manager")
 $g_aamservices = @("CyberArk Application Password Provider")
 
 #Commands to reset PVWA credential files
