@@ -1702,7 +1702,8 @@ function New-PSLogon {
         [Parameter(Mandatory = $true)]
         [string]$server
     )
-    $psoptions = New-PSSessionOption -IncludePortInSPN -MaxConnectionRetryCount 2 
+    #$psoptions = New-PSSessionOption -IncludePortInSPN -MaxConnectionRetryCount 2
+    $psoptions = New-PSSessionOption -MaxConnectionRetryCount 2 
 
     Write-LogMessage -type Verbose -MSG "In New-PSLogon"
     Write-LogMessage -type Verbose -MSG "Parameter passed for `'server`' is `"$server`""
@@ -1710,11 +1711,11 @@ function New-PSLogon {
     Try {
         If ($null -ne $G_PSCredentials) {
             Write-LogMessage -type Verbose -MSG "Parameter passed for `'G_PSCredentials`' is $($G_PSCredentials.username)"
-            $psSession = New-PSSession $server -Credential $G_PSCredentials -Authentication Negotiate -SessionOption $psoptions -ErrorAction SilentlyContinue
+            $psSession = New-PSSession $server -Credential $G_PSCredentials -SessionOption $psoptions -ErrorAction SilentlyContinue
         }
         else {   
             Write-LogMessage -type Verbose -MSG "Parameter passed for `'G_PSCredentials`' is null"
-            $psSession = New-PSSession $server -SessionOption $psoptions -Authentication Negotiate -ErrorAction SilentlyContinue
+            $psSession = New-PSSession $server -SessionOption $psoptions -ErrorAction SilentlyContinue
         }
         if ([string]::IsNullOrEmpty($psSession)) {
             Write-LogMessage -type Error -MSG "Error creating PSSession to $server"
