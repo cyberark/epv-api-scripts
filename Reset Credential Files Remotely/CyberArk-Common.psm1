@@ -34,7 +34,7 @@ $URL_HealthDetails = $URL_PVWAAPI + "/ComponentsMonitoringDetails/{0}"
 
 $g_cpmservices = @("CyberArk Password Manager", "CyberArk Central Policy Manager Scanner")
 $g_pvwaservices = @("CyberArk Scheduled Tasks", "W3SVC", "IISADMIN")
-$g_psmservices = @("Cyber-Ark Privileged Session Manager")
+$g_psmservices = @("*Privileged Session Manager")
 $g_aamservices = @("CyberArk Application Password Provider")
 
 #Commands to reset PVWA credential files
@@ -192,7 +192,7 @@ The type of the message to log (Info, Warning, Error, Debug)
                 break
             }
             "Verbose" { 
-                if ($InVerbose) {
+                if ($InVerbose ) {
                     Write-Verbose $MSG
                     $msgToWrite = "[VERBOSE]`t$Msg"
                 }
@@ -750,7 +750,8 @@ Detects all CyberArk Components installed on the local server
         $REGKEY_CPMSERVICE_NEW = "CyberArk Central Policy Manager Scanner"
         $REGKEY_CPMSERVICE_OLD = "CyberArk Password Manager"
         $REGKEY_PVWASERVICE = "CyberArk Scheduled Tasks"
-        $REGKEY_PSMSERVICE = "Cyber-Ark Privileged Session Manager"
+        $REGKEY_PSMSERVICEOLD = "Cyber-Ark Privileged Session Manager"
+        $REGKEY_PSMSERVICE = "CyberArk Privileged Session Manager"
         $REGKEY_AIMSERVICE = "CyberArk Application Password Provider"
         $REGKEY_EPMSERVICE = "VfBackgroundWorker"
         $REGKEY_SECURETUNNELSERVICE = "CyberArkPrivilegeCloudSecureTunnel"
@@ -811,7 +812,13 @@ Detects all CyberArk Components installed on the local server
                     try {
                         # Check if PSM is installed
                         Write-LogMessage -Type "Debug" -MSG "Searching for PSM..."
-                        if ($NULL -ne ($componentPath = $(Get-ServiceInstallPath $REGKEY_PSMSERVICE))) {
+                        If(![string]::IsNullOrEmpty($(Get-ServiceInstallPath $REGKEY_PSMSERVICE)))
+                        {
+                            $componentPath = $(Get-ServiceInstallPath $REGKEY_PSMSERVICE)
+                        } else {
+                            $componentPath = $(Get-ServiceInstallPath $REGKEY_PSMSERVICEOLD)
+                        }
+                        if ($NULL -ne $componentPath) {
                             Write-LogMessage -Type "Debug" -MSG "Found PSM installation"
                             $PSMPath = $componentPath.Replace("CAPSM.exe", "").Replace('"', "").Trim()
                             $fileVersion = Get-FileVersion "$PSMPath\CAPSM.exe"
