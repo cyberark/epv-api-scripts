@@ -103,7 +103,7 @@ If you want to Update the safe Managing CPM:
 
 If you want to Update the description and members of a list of safes from a file:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-sample.csv"
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Update -FilePath "C:\Temp\safes-sample.csv"
 ```
 > *Note*: This command will try to Add the members from the file to the safe. Any existing member will be skipped (will not update it's permissions)
 
