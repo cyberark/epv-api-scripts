@@ -40,7 +40,14 @@ param
 	[Parameter(ParameterSetName='Import',Mandatory=$true,HelpMessage="Enter the CSV path for import")]
 	[Parameter(ParameterSetName='Export',Mandatory=$true,HelpMessage="Enter the CSV path to export")]
 	[Alias("path")]
-	[string]$CSVPath
+	[string]$CSVPath,
+
+	[Parameter(Mandatory = $false, HelpMessage = "Vault Stored Credentials")]
+	[PSCredential]$PVWACredentials,
+	
+	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
+	[Parameter(Mandatory = $false)]
+	$logonToken
 )
 
 # Get Script Location 
@@ -491,17 +498,15 @@ Function Invoke-Rest
 	Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $restResponse"
 	return $restResponse
 }
-
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Get-LogonHeader
 # Description....: Invoke REST Method
 # Parameters.....: Credentials
 # Return Values..: Logon Header
 # =================================================================================================================================
-Function Get-LogonHeader
-{
-<#
-.SYNOPSIS
+Function Get-LogonHeader {
+	<# 
+.SYNOPSIS 
 	Get-LogonHeader
 .DESCRIPTION
 	Get-LogonHeader
@@ -509,61 +514,44 @@ Function Get-LogonHeader
 	The REST API Credentials to authenticate
 #>
 	param(
-		[Parameter(Mandatory=$true)]
+		[Parameter(Mandatory = $true)]
 		[PSCredential]$Credentials,
-		[Parameter(Mandatory=$false)]
-		[bool]$useRadius
+		[Parameter(Mandatory = $false)]
+		[bool]$concurrentSession,
+		[Parameter(Mandatory = $false)]
+		[string]$RadiusOTP
 	)
-
-    if([string]::IsNullOrEmpty($g_LogonHeader))
-	{
-		# Disable SSL Verification to contact PVWA
-		If($DisableSSLVerify)
-		{
-			Disable-SSLVerification
-		}
-		
-        # Create the POST Body for the Logon
-        # ----------------------------------
-        if($useRadius)
-        {
-            $logonBody = @{ username=$Credentials.username.Replace('\','');useRadiusAuthentication=$true;password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -compress
-        }
-        else
-        {
-            $logonBody = @{ username=$Credentials.username.Replace('\','');password=$Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
-        }
-            
-        try{
-            # Logon
-            $logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody 
-
-            # Clear logon body
-            $logonBody = ""
-        } catch {
-            Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)",$_.Exception))
-        }
-
-        $logonHeader = $null
-        If ([string]::IsNullOrEmpty($logonToken))
-        {
-            Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
-        }
-
-        # Create a Logon Token Header (This will be used through out all the script)
-        # ---------------------------
-        If($logonToken.PSObject.Properties.Name -contains "CyberArkLogonResult")
-        {
-            $logonHeader = @{Authorization = $($logonToken.CyberArkLogonResult)}
-        } else {
-            $logonHeader = @{Authorization = $logonToken}
-        }
-        Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope script		
-    }
+	# Create the POST Body for the Logon
+	# ----------------------------------
+	If ($concurrentSession) {
+		$logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password; concurrentSession = "true" } | ConvertTo-Json -Compress
+	} else {
+		$logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
+	}
+	If (![string]::IsNullOrEmpty($RadiusOTP)) {
+		$logonBody.Password += ",$RadiusOTP"
+	}
 	
-	return $g_LogonHeader
+	try {
+		# Logon
+		$logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
+		# Clear logon body
+		$logonBody = ""
+	} catch {
+		Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
+	}
+    
+	$logonHeader = $null
+	If ([string]::IsNullOrEmpty($logonToken)) {
+		Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
+	}
+	
+	# Create a Logon Token Header (This will be used through out all the script)
+	# ---------------------------
+	$logonHeader = @{Authorization = $logonToken }
+	
+	return $logonHeader
 }
-
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Invoke-Logoff
 # Description....: Logoff PVWA
@@ -630,8 +618,34 @@ If (![string]::IsNullOrEmpty($PVWAURL))
 # ------------------------
 $caption = "Export/Import Applications"
 $msg = "Enter your PAS User name and Password ($AuthType)"; 
-$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-$radius = ($AuthType -eq "radius")
+If (![string]::IsNullOrEmpty($logonToken)) {
+	if ($logonToken.GetType().name -eq "String") {
+		$logonHeader = @{Authorization = $logonToken }
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $logonHeader
+	} else {
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $logonToken
+ }
+	
+} elseif ($null -eq $creds) {
+	If (![string]::IsNullOrEmpty($PVWACredentials)) {
+		$creds = $PVWACredentials
+	} else {
+		$msg = "Enter your $AuthType User name and Password"; 
+		$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
+	}
+	if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession -RadiusOTP $OTP )
+	} else {
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession)
+	}
+	# Verify that we successfully logged on
+	If ($null -eq $g_LogonHeader) { 
+		return # No logon header, end script 
+	}
+} else { 
+	Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
+	return
+}
 
 switch($PsCmdlet.ParameterSetName)
 {
@@ -660,7 +674,7 @@ switch($PsCmdlet.ParameterSetName)
                                 "BusinessOwnerPhone"=(Get-TrimmedString $app.BusinessOwnerPhone);
                               }
                         }
-                        $newApp = (Invoke-Rest -Command POST -URI $URL_Applications -Body $($appBody | ConvertTo-Json) -Header $(Get-LogonHeader -Credentials $creds -useRadius $radius))
+                        $newApp = (Invoke-Rest -Command POST -URI $URL_Applications -Body $($appBody | ConvertTo-Json) -Header $g_LogonHeader)
                         if($null -ne $newApp)
                         {
                             # Add the Application Authentication methods
@@ -672,7 +686,7 @@ switch($PsCmdlet.ParameterSetName)
 										"authentication"=$(Convert-StringToObject -String $auth)
 									}
 									Write-LogMessage -Type Verbose -MSG "Adding '$($authBody.authentication.AuthType)' authentication method to '$($app.AppID)'"
-									$newAuth = (Invoke-Rest -Command POST -URI ($URL_ApplicationAuthMethod -f $app.AppID) -Body $($authBody | ConvertTo-Json) -Header $(Get-LogonHeader -Credentials $creds -useRadius $radius))
+									$newAuth = (Invoke-Rest -Command POST -URI ($URL_ApplicationAuthMethod -f $app.AppID) -Body $($authBody | ConvertTo-Json) -Header $g_LogonHeader)
 									If($null -eq $newAuth)
 									{
 										Write-LogMessage -Type Error -Msg "Error adding new authentication method to application'$($app.AppID)'"
@@ -710,10 +724,10 @@ switch($PsCmdlet.ParameterSetName)
             if([string]::IsNullOrEmpty($AppID))
             {
                 # Get all applications
-                $allApps = (Invoke-Rest -Command Get -URI $URL_Applications -Header $(Get-LogonHeader -Credentials $creds -useRadius $radius)).application
+                $allApps = (Invoke-Rest -Command Get -URI $URL_Applications -Header $g_LogonHeader).application
             }
             else {
-                $allApps = (Invoke-Rest -Command Get -URI ($URL_SpecificApplication -f $AppID) -Header $(Get-LogonHeader -Credentials $creds -useRadius $radius)).application
+                $allApps = (Invoke-Rest -Command Get -URI ($URL_SpecificApplication -f $AppID) -Header $g_LogonHeader).application
             }
             If($null -ne $allApps)
             {
@@ -726,7 +740,7 @@ switch($PsCmdlet.ParameterSetName)
                     try{
                         # Get the application authentication methods
                         Write-LogMessage -Type Verbose -MSG "Getting application '$($app.AppID)' authentication methods"
-                        $appAuthMethods = Invoke-Rest -Command Get -URI $($URL_ApplicationAuthMethod -f $(Convertto-URL $app.AppID)) -Header (Get-LogonHeader -Credentials $creds -useRadius $radius)
+                        $appAuthMethods = Invoke-Rest -Command Get -URI $($URL_ApplicationAuthMethod -f $(Convertto-URL $app.AppID)) -Header $g_LogonHeader
                     } catch {
                         Write-LogMessage -Type Error -Msg "Error getting application '$($app.AppID)' authentication methods. Error: $(Join-ExceptionMessage $_.Exception)"
                     }
