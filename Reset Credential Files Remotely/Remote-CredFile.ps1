@@ -86,7 +86,7 @@ param(
 	[Parameter(Mandatory = $false, HelpMessage = "New vault address")]
 	[String]$vaultAddress,
 
-	[Parameter(Mandatory = $false, HelpMessage = "New vault address")]
+	[Parameter(Mandatory = $false, HelpMessage = "New api address")]
 	[String]$apiAddress,
 
 	[Parameter(Mandatory = $false, HelpMessage = "PSSession Credentials")]

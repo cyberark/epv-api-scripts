@@ -45,9 +45,9 @@ param
 	[Parameter(Mandatory = $false, HelpMessage = "Vault Stored Credentials")]
 	[PSCredential]$PVWACredentials,
 
-	[Parameter(Mandatory = $false)]
+  [Parameter(Mandatory = $false)]
 	[Switch]$concurrentSession,
-	
+
 	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
 	[Parameter(Mandatory = $false)]
 	$logonToken
@@ -650,7 +650,9 @@ If (![string]::IsNullOrEmpty($logonToken)) {
 	Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
 	return
 }
+
 "Header = $g_LogonHeader"
+
 
 switch($PsCmdlet.ParameterSetName)
 {
