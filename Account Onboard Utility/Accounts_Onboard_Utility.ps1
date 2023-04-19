@@ -907,7 +907,7 @@ Function New-BadRecord {
 		[String]$BadRecord
 	)
 	try {
-		$BadRecord | Out-File -Append  "$CsvPath.bad"
+		$BadRecord | Export-CSV | Out-File -Append  "$CsvPath.bad"
 		Write-LogMessage -Debug -MSG "Output bad record to CSV"
 		Write-LogMessage -Verbose -MSG "Bad Record: $BadRecord"
 	}
