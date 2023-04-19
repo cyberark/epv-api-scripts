@@ -11,7 +11,7 @@
 # CyberArk PVWA v9.10 and above
 #
 ###########################################################################
-[CmdletBinding(DefaultParametersetName="Export")]
+[CmdletBinding(DefaultParameterSetName="Export")]
 param
 (
 	[Parameter(Mandatory=$true,HelpMessage="Please enter your PVWA address (For example: https://pvwa.mydomain.com/PasswordVault)")]
@@ -44,7 +44,10 @@ param
 
 	[Parameter(Mandatory = $false, HelpMessage = "Vault Stored Credentials")]
 	[PSCredential]$PVWACredentials,
-	
+
+  [Parameter(Mandatory = $false)]
+	[Switch]$concurrentSession,
+
 	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
 	[Parameter(Mandatory = $false)]
 	$logonToken
@@ -70,9 +73,10 @@ $InVerbose = $PSBoundParameters.Verbose.IsPresent
 # -----------
 $URL_PVWAWebServices = $PVWAURL+"/WebServices"
 $URL_PVWABaseAPI = $URL_PVWAWebServices+"/PIMServices.svc"
-$URL_CyberArkAuthentication = $URL_PVWAWebServices+"/auth/Cyberark/CyberArkAuthenticationService.svc"
-$URL_Logon = $URL_CyberArkAuthentication+"/Logon"
-$URL_Logoff = $URL_CyberArkAuthentication+"/Logoff"
+$URL_PVWAAPI = $PVWAURL + "/api"
+$URL_Authentication = $URL_PVWAAPI + "/auth"
+$URL_Logon = $URL_Authentication + "/$AuthType/Logon"
+$URL_Logoff = $URL_Authentication + "/Logoff"
 
 # URL Methods
 # -----------
@@ -82,7 +86,7 @@ $URL_ApplicationAuthMethod = $URL_SpecificApplication+"/Authentications"
 
 # Initialize Script Variables
 # ---------------------------
-$script:g_LogonHeader = $null
+$global:g_LogonHeader = $null
 
 #region Functions
 #region Writer Functions
@@ -646,6 +650,9 @@ If (![string]::IsNullOrEmpty($logonToken)) {
 	Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
 	return
 }
+
+"Header = $g_LogonHeader"
+
 
 switch($PsCmdlet.ParameterSetName)
 {

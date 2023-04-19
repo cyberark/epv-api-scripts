@@ -20,6 +20,7 @@ Change Notes
 2022-08-19 -	Fixed accounts not adding new platform properties
 		Fixed updating automatic management of password
 2022-08-23 -	Verification latest version published
+2023-04-19 -  Added Seperate log file for errors, added output of CSV files for bad and good files
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -112,10 +113,11 @@ $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -joi
 
 # Script Version
 
-$ScriptVersion = "2.2.2"
+$ScriptVersion = "2.3"
 
 # Set Log file path
-$LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
+$global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
+$global:LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility_$LOG_DATE.log"
 
 $InDebug = $PSBoundParameters.Debug.IsPresent
 $InVerbose = $PSBoundParameters.Verbose.IsPresent
@@ -480,6 +482,7 @@ Function Write-LogMessage {
 			"Error" {
 				Write-Host $MSG.ToString() -ForegroundColor Red
 				$msgToWrite += "[ERROR]`t$Msg"
+				$msgToWrite | Out-File -Append -FilePath "$LOG_FILE_PATH.Error"
 				break
 			}
 			"Debug" { 
@@ -503,7 +506,7 @@ Function Write-LogMessage {
 		}
 		
 		If ($writeToFile) {
-			$msgToWrite | Out-File -Append -FilePath $LOG_FILE_PATH 
+			$msgToWrite | Out-File -Append -FilePath $LOG_FILE_PATH
   }
 		If ($Footer) { 
 			"=======================================" | Out-File -Append -FilePath $LOG_FILE_PATH 
@@ -602,12 +605,14 @@ Function Invoke-Rest {
 		}
 	} catch [System.Net.WebException] {
 		if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
+			Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine" 
 			Write-LogMessage -Type Error -Msg "Error Message: $_"
 			Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
 			Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
 			Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
 		}
 		$restResponse = $null
+		Throw
 	} catch { 
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
 	}
@@ -883,9 +888,9 @@ Function New-Safe {
 }
 
 # @FUNCTION@ ======================================================================================================================
-# Name...........: New-Safe
-# Description....: Creates a new Safe
-# Parameters.....: Safe name, (optional) CPM name, (optional) Template Safe
+# Name...........: New-BadRecord
+# Description....: Records accounts that have errors
+# Parameters.....: None
 # Return Values..: Bool
 # =================================================================================================================================
 Function New-BadRecord {
@@ -894,22 +899,41 @@ Function New-BadRecord {
 	Outputs the bad record to a CSV file for correction and processing
 .DESCRIPTION
 	Outputs the bad record to a CSV file for correction and processing
-.PARAMETER BadRecord
-	The bad record to output
 #>
-	param (
-		[Parameter(Mandatory = $true)]
-		[ValidateNotNullOrEmpty()] 
-		[String]$BadRecord
-	)
 	try {
-		$BadRecord | Out-File -Append  "$CsvPath.bad"
-		Write-LogMessage -Debug -MSG "Output bad record to CSV"
-		Write-LogMessage -Verbose -MSG "Bad Record: $BadRecord"
-	}
-	catch {
-		Write-LogMessage -Error -MSG "Unable to outout bad record to file: $CsvPath.bad"
-		Write-LogMessage -Error -MSG "Bad Record: $BadRecord"
+		$global:workAccount | Export-Csv -Append -NoTypeInformation "$CsvPath.Bad"
+		Write-LogMessage -Type Debug -MSG "Output Bad record to CSV"
+		Write-LogMessage -Type Verbose -MSG "Bad Record: $global:workAccount"
+	} catch {
+		Write-LogMessage -Type Error -MSG "Unable to outout bad record to file: $CsvPath.Bad"
+		Write-LogMessage -Type Verbose -MSG "Bad Record: $global:workAccount"
+
+	}		
+}
+
+# @FUNCTION@ ======================================================================================================================
+# Name...........: New-GoodRecord
+# Description....: Records accounts that have errors
+# Parameters.....: Safe name, (optional) CPM name, (optional) Template Safe
+# Return Values..: Bool
+# =================================================================================================================================
+Function New-GoodRecord {
+	<# 
+.SYNOPSIS 
+	Outputs the Good record to a CSV file for correction and processing
+.DESCRIPTION
+	Outputs the Good record to a CSV file for correction and processing
+.PARAMETER BadRecord
+	The Good record to output
+#>
+
+	try {
+		$global:workAccount | Select-Object -ExcludeProperty password | Export-Csv -Append -NoTypeInformation "$CsvPath.Good"
+		Write-LogMessage -Type Debug -MSG "Output good record to CSV"
+		Write-LogMessage -Type Verbose -MSG "Good Record: $global:workAccount"
+	} catch {
+		Write-LogMessage -Type Error -MSG "Unable to outout good record to file: $CsvPath.Good"
+		Write-LogMessage -Type Verbose -MSG "Good Record: $global:workAccount"
 
 	}		
 }
@@ -1376,7 +1400,7 @@ If (![string]::IsNullOrEmpty($logonToken)) {
 	If (![string]::IsNullOrEmpty($PVWACredentials)) {
 		$creds = $PVWACredentials
 	} else {
-		$msg = "Enter your $AuthType User name and Password"; 
+		$msg = "Enter your $AuthType User name and Password" 
 		$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
 	}
 	if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
@@ -1434,16 +1458,23 @@ $delimiter = $(If ($CsvDelimiter -eq "Comma") {
 	} else {
 		"`t" 
  } )
+
+$csvPathGood = "$csvPath.good.csv"
+Remove-Item $csvPathGood
+$csvPathBad = "$csvPath.bad.csv"
+Remove-Item  $csvPathBad
+
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
-$rowCount = $($accountsCSV.Safe.Count)
+$rowCount = $($accountsCSV.Safe.Count) - 1
 $counter = 0
-$csvLine = 0 # First line is the headers line
+$global:workAccount =$null
+$global:csvLine = 0 # First line is the headers line
 Write-LogMessage -Type Info -MSG "Starting to Onboard $rowCount accounts" -SubHeader
 ForEach ($account in $accountsCSV) {
 	if ($null -ne $account) {
 		# Increment the CSV line
-		$csvLine++
-
+		$global:csvLine++
+		$global:workAccount = $account
 		try {
 			# Create some internal variables
 			$shouldSkip = $false
@@ -1474,13 +1505,13 @@ ForEach ($account in $accountsCSV) {
 							$addOwnerResult = Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
 							if ($null -eq $addOwnerResult) {
 								throw 
-       } else {
+							} else {
 								Write-LogMessage -Type Debug -MSG "Template Safe members were added successfully to safe $($account.Safe)"
 							}
 						}
 					}
 				} catch {
-					New-BadRecord $account
+					New-BadRecord $global:workAccount
 					Write-LogMessage -Type Debug -MSG "There was an error creating Safe $($account.Safe)"
 				}
 			} elseif (($NoSafeCreation -eq $True) -and ($safeExists -eq $false)) {
@@ -1534,8 +1565,11 @@ ForEach ($account in $accountsCSV) {
 											$_bodyOp.op = "replace"
 											$_bodyOp.path = "/" + $sProp.Name + "/" + $subProp.Name
 											$_bodyOp.value = $objAccount.$($sProp.Name).$($subProp.Name)
-											If ($_bodyOp.value -eq $true){$_bodyOp.value = "true"}
-											elseif ($_bodyOp.value -eq $false){$_bodyOp.value = "false"}
+											If ($_bodyOp.value -eq $true){
+												$_bodyOp.value = "true"
+           									} elseif ($_bodyOp.value -eq $false){
+												$_bodyOp.value = "false"
+           									}
 											$s_AccountBody += $_bodyOp
 											# Adding a specific case for "/secretManagement/automaticManagementEnabled"
 											If ("/secretManagement/automaticManagementEnabled" -eq ("/" + $sProp.Name + "/" + $subProp.Name)) {
@@ -1651,14 +1685,16 @@ ForEach ($account in $accountsCSV) {
 										$updateChange = $true
 									}
 								} else {
-									New-BadRecord $account
+
+									New-BadRecord $global:workAccount
 									Write-LogMessage -Type Warning -MSG "Account Secret Type is not a password, no support for updating the secret - skipping"
 								}
 							}
 							If ($updateChange) {
 								# Increment counter
 								$counter++
-								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))/$rowCount] Updated $g_LogAccountName (CSV line: $csvLine) successfully."
+								New-GoodRecord
+								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))/$rowCount] Updated $g_LogAccountName (CSV line: $global:csvLine) successfully."
 							}
 						} ElseIf ($Create) {
 							try {
@@ -1669,8 +1705,9 @@ ForEach ($account in $accountsCSV) {
 								$createAccount = $true
 							} catch {
 								# User probably chose to Halt/Stop the action and not create a duplicate account
-								New-BadRecord $account
-								Write-LogMessage -Type Info -MSG "Skipping onboarding account '$g_LogAccountName' (CSV line: $csvLine) to avoid duplication."
+
+								New-BadRecord $global:workAccount
+								Write-LogMessage -Type Info -MSG "Skipping onboarding account '$g_LogAccountName' (CSV line: $global:csvLine) to avoid duplication."
 								$createAccount = $false
 							}
 						} ElseIf ($Delete) {
@@ -1680,6 +1717,7 @@ ForEach ($account in $accountsCSV) {
 							if ($null -ne $DeleteAccountResult) {
 								# Increment counter
 								$counter++
+								New-GoodRecord
 								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))] Deleted $g_LogAccountName successfully."
 							}
 						}
@@ -1687,8 +1725,8 @@ ForEach ($account in $accountsCSV) {
 						If ($Create) {
 							$createAccount = $true
 						} Else {
-							New-BadRecord $account
-							Write-LogMessage -Type Error -Msg "You requested to Update/Delete an account that does not exist (Account: $g_LogAccountName, CSV line: $csvLine)"
+							New-BadRecord $global:workAccount
+							Write-LogMessage -Type Error -Msg "You requested to Update/Delete an account that does not exist (Account: $g_LogAccountName, CSV line: $global:csvLine)"
 							$createAccount = $false
 						}
 					}
@@ -1703,24 +1741,25 @@ ForEach ($account in $accountsCSV) {
 								Write-LogMessage -Type Info -MSG "Account Onboarded Successfully"
 								# Increment counter
 								$counter++
+								New-GoodRecord
 								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))] Added $g_LogAccountName successfully."  
 							}
 						} catch {
-							New-BadRecord $account
+							New-BadRecord $global:workAccount
 							Throw $(New-Object System.Exception ("There was an error creating the account", $_.Exception))
 						}
 					}
 				} catch {
-					New-BadRecord $account
-					Write-LogMessage -Type Error -MSG "There was an error onboarding $g_LogAccountName (CSV line: $csvLine) into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
+					New-BadRecord $global:workAccount
+					Write-LogMessage -Type Error -MSG "There was an error onboarding $g_LogAccountName (CSV line: $global:csvLine) into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
 				}
 			} else {
-				New-BadRecord $account
-				Write-LogMessage -Type Info -MSG "Skipping onboarding account $g_LogAccountName (CSV line: $csvLine) into the Password Vault since safe does not exist and safe creation is disabled."
+				New-BadRecord $global:workAccount
+				Write-LogMessage -Type Info -MSG "Skipping onboarding account $g_LogAccountName (CSV line: $global:csvLine) into the Password Vault since safe does not exist and safe creation is disabled."
 			}
 		} catch {
-			New-BadRecord $account
-			Write-LogMessage -Type Info -MSG "Skipping onboarding account $g_LogAccountName (CSV line: $csvLine) into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
+			New-BadRecord $global:workAccount
+			Write-LogMessage -Type Info -MSG "Skipping onboarding account $g_LogAccountName (CSV line: $global:csvLine) into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
 		}
 	}
 }	
