@@ -887,8 +887,8 @@ Function New-Safe {
 }
 
 # @FUNCTION@ ======================================================================================================================
-# Name...........: New-Safe
-# Description....: Creates a new Safe
+# Name...........: New-BadRecord
+# Description....: Records accounts that have errors
 # Parameters.....: Safe name, (optional) CPM name, (optional) Template Safe
 # Return Values..: Bool
 # =================================================================================================================================
@@ -901,19 +901,41 @@ Function New-BadRecord {
 .PARAMETER BadRecord
 	The bad record to output
 #>
-	param (
-		[Parameter(Mandatory = $true)]
-		[ValidateNotNullOrEmpty()] 
-		[String]$BadRecord
-	)
+
 	try {
-		$BadRecord | Export-CSV | Out-File -Append  "$CsvPath.bad"
-		Write-LogMessage -Type Debug -MSG "Output bad record to CSV"
-		Write-LogMessage -Type Verbose -MSG "Bad Record: $BadRecord"
-	}
-	catch {
-		Write-LogMessage -Type Error -MSG "Unable to outout bad record to file: $CsvPath.bad"
-		Write-LogMessage -Type Verbose -MSG "Bad Record: $BadRecord"
+		$global:workAccount | Export-Csv -Append -NoTypeInformation "$CsvPath.Bad"
+		Write-LogMessage -Type Debug -MSG "Output Bad record to CSV"
+		Write-LogMessage -Type Verbose -MSG "Bad Record: $global:workAccount"
+	} catch {
+		Write-LogMessage -Type Error -MSG "Unable to outout bad record to file: $CsvPath.Bad"
+		Write-LogMessage -Type Verbose -MSG "Bad Record: $global:workAccount"
+
+	}		
+}
+
+# @FUNCTION@ ======================================================================================================================
+# Name...........: New-GoodRecord
+# Description....: Records accounts that have errors
+# Parameters.....: Safe name, (optional) CPM name, (optional) Template Safe
+# Return Values..: Bool
+# =================================================================================================================================
+Function New-GoodRecord {
+	<# 
+.SYNOPSIS 
+	Outputs the Good record to a CSV file for correction and processing
+.DESCRIPTION
+	Outputs the Good record to a CSV file for correction and processing
+.PARAMETER BadRecord
+	The Good record to output
+#>
+
+	try {
+		$global:workAccount | Select-Object -ExcludeProperty password | Export-Csv -Append -NoTypeInformation "$CsvPath.Good"
+		Write-LogMessage -Type Debug -MSG "Output good record to CSV"
+		Write-LogMessage -Type Verbose -MSG "Good Record: $global:workAccount"
+	} catch {
+		Write-LogMessage -Type Error -MSG "Unable to outout good record to file: $CsvPath.Good"
+		Write-LogMessage -Type Verbose -MSG "Good Record: $global:workAccount"
 
 	}		
 }
@@ -1380,7 +1402,7 @@ If (![string]::IsNullOrEmpty($logonToken)) {
 	If (![string]::IsNullOrEmpty($PVWACredentials)) {
 		$creds = $PVWACredentials
 	} else {
-		$msg = "Enter your $AuthType User name and Password"; 
+		$msg = "Enter your $AuthType User name and Password" 
 		$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
 	}
 	if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
@@ -1438,6 +1460,9 @@ $delimiter = $(If ($CsvDelimiter -eq "Comma") {
 	} else {
 		"`t" 
  } )
+
+
+Remove-Item "$CsvPath.bad"
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
 $rowCount = $($accountsCSV.Safe.Count)
 $counter = 0
@@ -1479,7 +1504,7 @@ ForEach ($account in $accountsCSV) {
 							$addOwnerResult = Add-Owner -Safe $account.Safe -Members $TemplateSafeMembers
 							if ($null -eq $addOwnerResult) {
 								throw 
-       } else {
+							} else {
 								Write-LogMessage -Type Debug -MSG "Template Safe members were added successfully to safe $($account.Safe)"
 							}
 						}
@@ -1539,8 +1564,11 @@ ForEach ($account in $accountsCSV) {
 											$_bodyOp.op = "replace"
 											$_bodyOp.path = "/" + $sProp.Name + "/" + $subProp.Name
 											$_bodyOp.value = $objAccount.$($sProp.Name).$($subProp.Name)
-											If ($_bodyOp.value -eq $true){$_bodyOp.value = "true"}
-											elseif ($_bodyOp.value -eq $false){$_bodyOp.value = "false"}
+											If ($_bodyOp.value -eq $true){
+												$_bodyOp.value = "true"
+           									} elseif ($_bodyOp.value -eq $false){
+												$_bodyOp.value = "false"
+           									}
 											$s_AccountBody += $_bodyOp
 											# Adding a specific case for "/secretManagement/automaticManagementEnabled"
 											If ("/secretManagement/automaticManagementEnabled" -eq ("/" + $sProp.Name + "/" + $subProp.Name)) {
@@ -1663,6 +1691,7 @@ ForEach ($account in $accountsCSV) {
 							If ($updateChange) {
 								# Increment counter
 								$counter++
+								New-GoodRecord
 								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))/$rowCount] Updated $g_LogAccountName (CSV line: $global:csvLine) successfully."
 							}
 						} ElseIf ($Create) {
@@ -1685,6 +1714,7 @@ ForEach ($account in $accountsCSV) {
 							if ($null -ne $DeleteAccountResult) {
 								# Increment counter
 								$counter++
+								New-GoodRecord
 								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))] Deleted $g_LogAccountName successfully."
 							}
 						}
@@ -1708,6 +1738,7 @@ ForEach ($account in $accountsCSV) {
 								Write-LogMessage -Type Info -MSG "Account Onboarded Successfully"
 								# Increment counter
 								$counter++
+								New-GoodRecord
 								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))] Added $g_LogAccountName successfully."  
 							}
 						} catch {
