@@ -1441,13 +1441,14 @@ $delimiter = $(If ($CsvDelimiter -eq "Comma") {
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
 $rowCount = $($accountsCSV.Safe.Count)
 $counter = 0
+$global:workAccount =$null
 $global:csvLine = 0 # First line is the headers line
 Write-LogMessage -Type Info -MSG "Starting to Onboard $rowCount accounts" -SubHeader
 ForEach ($account in $accountsCSV) {
 	if ($null -ne $account) {
 		# Increment the CSV line
 		$global:csvLine++
-
+		$global:workAccount = $account
 		try {
 			# Create some internal variables
 			$shouldSkip = $false
@@ -1484,7 +1485,7 @@ ForEach ($account in $accountsCSV) {
 						}
 					}
 				} catch {
-					New-BadRecord $account
+					New-BadRecord $global:workAccount
 					Write-LogMessage -Type Debug -MSG "There was an error creating Safe $($account.Safe)"
 				}
 			} elseif (($NoSafeCreation -eq $True) -and ($safeExists -eq $false)) {
@@ -1655,7 +1656,7 @@ ForEach ($account in $accountsCSV) {
 										$updateChange = $true
 									}
 								} else {
-									New-BadRecord $account
+									New-BadRecord $global:workAccount
 									Write-LogMessage -Type Warning -MSG "Account Secret Type is not a password, no support for updating the secret - skipping"
 								}
 							}
@@ -1673,7 +1674,7 @@ ForEach ($account in $accountsCSV) {
 								$createAccount = $true
 							} catch {
 								# User probably chose to Halt/Stop the action and not create a duplicate account
-								New-BadRecord $account
+								New-BadRecord $global:workAccount
 								Write-LogMessage -Type Info -MSG "Skipping onboarding account '$g_LogAccountName' (CSV line: $global:csvLine) to avoid duplication."
 								$createAccount = $false
 							}
@@ -1691,7 +1692,7 @@ ForEach ($account in $accountsCSV) {
 						If ($Create) {
 							$createAccount = $true
 						} Else {
-							New-BadRecord $account
+							New-BadRecord $global:workAccount
 							Write-LogMessage -Type Error -Msg "You requested to Update/Delete an account that does not exist (Account: $g_LogAccountName, CSV line: $global:csvLine)"
 							$createAccount = $false
 						}
@@ -1710,20 +1711,20 @@ ForEach ($account in $accountsCSV) {
 								Write-LogMessage -Type Info -MSG "[$($accountsCSV.IndexOf($account))] Added $g_LogAccountName successfully."  
 							}
 						} catch {
-							New-BadRecord $account
+							New-BadRecord $global:workAccount
 							Throw $(New-Object System.Exception ("There was an error creating the account", $_.Exception))
 						}
 					}
 				} catch {
-					New-BadRecord $account
+					New-BadRecord $global:workAccount
 					Write-LogMessage -Type Error -MSG "There was an error onboarding $g_LogAccountName (CSV line: $global:csvLine) into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
 				}
 			} else {
-				New-BadRecord $account
+				New-BadRecord $global:workAccount
 				Write-LogMessage -Type Info -MSG "Skipping onboarding account $g_LogAccountName (CSV line: $global:csvLine) into the Password Vault since safe does not exist and safe creation is disabled."
 			}
 		} catch {
-			New-BadRecord $account
+			New-BadRecord $global:workAccount
 			Write-LogMessage -Type Info -MSG "Skipping onboarding account $g_LogAccountName (CSV line: $global:csvLine) into the Password Vault. Error: $(Join-ExceptionMessage $_.Exception)"
 		}
 	}
