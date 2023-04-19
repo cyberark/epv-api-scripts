@@ -908,12 +908,12 @@ Function New-BadRecord {
 	)
 	try {
 		$BadRecord | Export-CSV | Out-File -Append  "$CsvPath.bad"
-		Write-LogMessage -Debug -MSG "Output bad record to CSV"
-		Write-LogMessage -Debug -MSG "Bad Record: $BadRecord"
+		Write-LogMessage -Type Debug -MSG "Output bad record to CSV"
+		Write-LogMessage -Type Verbose -MSG "Bad Record: $BadRecord"
 	}
 	catch {
-		Write-LogMessage -Error -MSG "Unable to outout bad record to file: $CsvPath.bad"
-		Write-LogMessage -Error -MSG "Bad Record: $BadRecord"
+		Write-LogMessage -Type Error -MSG "Unable to outout bad record to file: $CsvPath.bad"
+		Write-LogMessage -Type Verbose -MSG "Bad Record: $BadRecord"
 
 	}		
 }
