@@ -602,12 +602,14 @@ Function Invoke-Rest {
 		}
 	} catch [System.Net.WebException] {
 		if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
+			Write-LogMessage -Type Error -Msg "CSV Line: $csvLine" 
 			Write-LogMessage -Type Error -Msg "Error Message: $_"
 			Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
 			Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
 			Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
 		}
 		$restResponse = $null
+		Throw
 	} catch { 
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
 	}
@@ -1437,7 +1439,7 @@ $delimiter = $(If ($CsvDelimiter -eq "Comma") {
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
 $rowCount = $($accountsCSV.Safe.Count)
 $counter = 0
-$csvLine = 0 # First line is the headers line
+$global:csvLine = 0 # First line is the headers line
 Write-LogMessage -Type Info -MSG "Starting to Onboard $rowCount accounts" -SubHeader
 ForEach ($account in $accountsCSV) {
 	if ($null -ne $account) {
