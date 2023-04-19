@@ -18,6 +18,10 @@ The Tool supports three modes for managing safes Members: [*Members*](#members-c
 The script by default supports CyberArk authentication.
 In order to allow also LDAP authentication to the script, make sure the [*SmartLogonEnabled*](https://docs.cyberark.com/Product-Doc/Onlinehelp/PAS/latest/en/Content/PASIMP/General-PVWA-Configurations.htm) parameter in the PVWA configuration is set to *YES* and then simply run the script with your LDAP credentials (no changes required to the script).
 
+- LogonToken
+	- The logon token when using Privlage Cloud Shared Services (ISPSS)
+	- To generate Token See https://github.com/cyberark/epv-api-scripts/tree/main/Identity%20Authentication 
+
 ## CyberArk Privilege Cloud - Shared Services
 If working with CyberArk Privilege Cloud - Shared Services make sure that "memberLocation" is blank and that "Member" includes the full username and directory for the user and/or group 
 
@@ -29,12 +33,12 @@ Example
 
 ### List Command:
 ```powershell
-Safe-Management.ps1 -PVWAURL <string> -List [-SafeName <string>] [<CommonParameters>]
+Safe-Management.ps1 -PVWAURL <string> -List [-logonToken $token] [-SafeName <string>] [<CommonParameters>]
 ```
 
 If you want to List all safes (Based on the running user permissions):
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -List
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -List 
 ```
 
 If you want to Filter a specific safe to see its details:
@@ -44,7 +48,7 @@ If you want to Filter a specific safe to see its details:
 
 ### Add Command:
 ```powershell
-Safe-Management.ps1 -PVWAURL <string> -Add [-SafeName <string>] [-Description <string>] [-ManagingCPM <string>] [-NumVersionRetention <int>] [-FilePath <string>] [<CommonParameters>]
+Safe-Management.ps1 -PVWAURL <string> -Add [-logonToken $token] [-SafeName <string>] [-Description <string>] [-ManagingCPM <string>] [-NumVersionRetention <int>] [-FilePath <string>] [<CommonParameters>]
 ```
 
 >*Note:* Using the add command depends on the CSV file format you use.
@@ -83,7 +87,7 @@ If you want to create a list of safes and add members to it from a file:
 
 ### Update Command:
 ```powershell
-Safe-Management.ps1 -PVWAURL <string> -Update [-SafeName <string>] [-Description <string>] [-ManagingCPM <string>] [-NumVersionRetention <int>] [-FilePath <string>] [<CommonParameters>]
+Safe-Management.ps1 -PVWAURL <string> -Update [-logonToken $token] [-SafeName <string>] [-Description <string>] [-ManagingCPM <string>] [-NumVersionRetention <int>] [-FilePath <string>] [<CommonParameters>]
 ```
 
 If you want to Update the safe called 'MySafe' with a new description:
@@ -99,14 +103,14 @@ If you want to Update the safe Managing CPM:
 
 If you want to Update the description and members of a list of safes from a file:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-sample.csv"
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Update -FilePath "C:\Temp\safes-sample.csv"
 ```
 > *Note*: This command will try to Add the members from the file to the safe. Any existing member will be skipped (will not update it's permissions)
 
 
 ### Delete Command:
 ```powershell
-Safe-Management.ps1 -PVWAURL <string> -Delete [-SafeName <string>] [-FilePath <string>] [<CommonParameters>]
+Safe-Management.ps1 -PVWAURL <string> -Delete [-logonToken $token] [-SafeName <string>] [-FilePath <string>] [<CommonParameters>]
 ```
 
 If you want to Delete a specific safe called 'MySafe':
@@ -123,7 +127,7 @@ If you want to Delete a list of safes from a file:
 
 ### Members Command:
 ```powershell
-Safe-Management.ps1 -PVWAURL <string> -Members -SafeName <string> [-UserName <string>] [-MemberRole <"Admin", "Auditor", "EndUser", "Owner", "Approver">] [-UserLocation <string>] [<CommonParameters>]
+Safe-Management.ps1 -PVWAURL <string> -Members -SafeName <string> [-logonToken $token] [-UserName <string>] [-MemberRole <"Admin", "Auditor", "EndUser", "Owner", "Approver">] [-UserLocation <string>] [<CommonParameters>]
 ```
 
 If you want to list all members of the safe 'MySafe':
@@ -143,7 +147,7 @@ If you want to add a new Auditor member from LDAP to the safe 'MySafe':
 
 ### Update Members Command:
 ```powershell
-Safe-Management.ps1 -PVWAURL <string> -UpdateMembers [-FilePath <string>] [<CommonParameters>]
+Safe-Management.ps1 -PVWAURL <string> -UpdateMembers [-logonToken $token] [-FilePath <string>] [<CommonParameters>]
 ```
 
 If you want to Update a list of members from a file:
@@ -158,7 +162,7 @@ If you want to Update a list of members from a file and if member is missing att
 
 ### Delete Members Command:
 ```powershell
-Safe-Management.ps1 -PVWAURL <string> -DeleteMembers [-FilePath <string>] [<CommonParameters>]
+Safe-Management.ps1 -PVWAURL <string> -DeleteMembers [-logonToken $token] [-FilePath <string>] [<CommonParameters>]
 ```
 
 If you want to Update a list of members from a file:

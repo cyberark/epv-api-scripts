@@ -32,6 +32,9 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-A
 	- The URL of the PVWA that you are working with. 
 	- Note that the URL needs to include 'PasswordVault', for example: "https://myPVWA.myDomain.com/PasswordVault"
 	- When working with PVWA behind a load balancer, note that the session must be defined as sticky session. Alternatively, work with a single node PVWA
+- LogonToken
+	- The logon token when using Privlage Cloud Shared Services (ISPSS)
+	- To generate Token See https://github.com/cyberark/epv-api-scripts/tree/main/Identity%20Authentication 
 - DisableSSLVerify
 	**(NOT RECOMMENDED)**
 	- In cases when you want to test the script on a PVWA environment that does not include a valid SSL certificate, you can use this parameter
@@ -75,7 +78,7 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-A
 
 ### Create Command:
 ```powershell
-Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Create [-CPM_NAME <sting>] [-AuthType <string>] [-OTP <string>] [-TemplateSafe <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [-NoSafeCreation] [<CommonParameters>]
+Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Create [-CPM_NAME <sting>] [-AuthType <string>] [-LogonToken $token] [-OTP <string>] [-TemplateSafe <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [-NoSafeCreation] [<CommonParameters>]
 ```
 
 If you just want to Create Accounts:
@@ -105,7 +108,7 @@ If you want to Create Accounts and bypass account searches:
 
 ### Update Command:
 ```powershell
-Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Update [-CPM_NAME <sting>] [-AuthType <string>] [-OTP <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [-NoSafeCreation] [<CommonParameters>]
+Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Update [-CPM_NAME <sting>] [-AuthType <string>] [-LogonToken $token] [-OTP <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [-NoSafeCreation] [<CommonParameters>]
 ```
 
 > **Note:** In order to update specific accounts, make sure you include the account name in the CSV. The uniqueness of an account would be the Safe name and the Account name (object name)
@@ -129,7 +132,7 @@ If you want to Update Accounts and bypass safes searches:
 
 ### Delete Command:
 ```powershell
-Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Delete [-AuthType <string>] [-OTP <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [<CommonParameters>]
+Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Delete [-AuthType <string>] [-LogonToken $token] [-OTP <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [<CommonParameters>]
 ```
 
 If you want to delete all accounts in the file using RADIUS authentication with one-time-password

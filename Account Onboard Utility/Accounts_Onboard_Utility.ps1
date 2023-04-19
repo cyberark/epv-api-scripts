@@ -20,6 +20,7 @@ Change Notes
 2022-08-19 -	Fixed accounts not adding new platform properties
 		Fixed updating automatic management of password
 2022-08-23 -	Verification latest version published
+2023-04-19 -  Added Seperate log file for errors, added output of CSV files for bad and good files
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -112,7 +113,7 @@ $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -joi
 
 # Script Version
 
-$ScriptVersion = "2.2.2"
+$ScriptVersion = "2.3"
 
 # Set Log file path
 $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
@@ -889,7 +890,7 @@ Function New-Safe {
 # @FUNCTION@ ======================================================================================================================
 # Name...........: New-BadRecord
 # Description....: Records accounts that have errors
-# Parameters.....: Safe name, (optional) CPM name, (optional) Template Safe
+# Parameters.....: None
 # Return Values..: Bool
 # =================================================================================================================================
 Function New-BadRecord {
@@ -898,10 +899,7 @@ Function New-BadRecord {
 	Outputs the bad record to a CSV file for correction and processing
 .DESCRIPTION
 	Outputs the bad record to a CSV file for correction and processing
-.PARAMETER BadRecord
-	The bad record to output
 #>
-
 	try {
 		$global:workAccount | Export-Csv -Append -NoTypeInformation "$CsvPath.Bad"
 		Write-LogMessage -Type Debug -MSG "Output Bad record to CSV"
@@ -1687,6 +1685,7 @@ ForEach ($account in $accountsCSV) {
 										$updateChange = $true
 									}
 								} else {
+
 									New-BadRecord $global:workAccount
 									Write-LogMessage -Type Warning -MSG "Account Secret Type is not a password, no support for updating the secret - skipping"
 								}
@@ -1706,6 +1705,7 @@ ForEach ($account in $accountsCSV) {
 								$createAccount = $true
 							} catch {
 								# User probably chose to Halt/Stop the action and not create a duplicate account
+
 								New-BadRecord $global:workAccount
 								Write-LogMessage -Type Info -MSG "Skipping onboarding account '$g_LogAccountName' (CSV line: $global:csvLine) to avoid duplication."
 								$createAccount = $false

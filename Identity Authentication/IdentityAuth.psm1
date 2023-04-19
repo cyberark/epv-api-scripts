@@ -130,6 +130,8 @@ Function Get-IdentityHeader {
             $IdentityHeaders = @{Authorization = "Bearer $($AnswerToResponse.Result.Token)"}
             $IdentityHeaders.Add("X-IDAP-NATIVE-CLIENT","true")
         } else {
+            $ExternalVersion = Get-PCloudExternalVersion -PCloudTenantAPIURL $PCloudTenantAPIURL -Token $AnswerToResponse.Result.Token
+
             $header = New-Object System.Collections.Generic.Dictionary"[String,string]"
             $header.add("Authorization","Bearer $($AnswerToResponse.Result.Token)")
             $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
@@ -137,9 +139,10 @@ Function Get-IdentityHeader {
             $IdentityHeaders = [PSCustomObject]@{
                 User            = $IdentityUserName
                 BaseURI         = $PCloudTenantAPIURL
-                ExternalVersion = "12.6.0"
+                ExternalVersion = $ExternalVersion
                 WebSession      = $session
-            } | Add-ObjectDetail -TypeName psPAS.CyberArk.Vault.Session
+            }
+            $IdentityHeaders.PSObject.TypeNames.Insert(0, 'psPAS.CyberArk.Vault.Session')
         }
         Write-LogMessage -type "Verbose" -MSG "IdentityHeaders - $($IdentityHeaders |ConvertTo-Json)"
         return $identityHeaders
@@ -199,6 +202,29 @@ Function Invoke-AdvancedAuthBody {
         Write-LogMessage -type "Info" -MSG "$($AnswerToResponse.Result.Summary)"
     }
     $AnswerToResponse
+}
+
+function Get-PCloudExternalVersion {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        $PCloudTenantApiUrl,
+        [Parameter(Mandatory = $true)]
+        $Token
+    )
+
+    $ExternalVersion = "12.6.0"
+    try {
+        $Headers = @{
+            Authorization = "Bearer $Token"
+        }
+        $Response = Invoke-RestMethod -Method GET -Uri "$PCloudTenantApiUrl/WebServices/PIMServices.svc/Server" -Headers $Headers -ContentType 'application/json'
+        $ExternalVersion = $Response.ExternalVersion
+    } catch {
+        Write-LogMessage -Type Error -MSG $_.ErrorDetails.Message
+    }
+
+    $ExternalVersion
 }
     
 Function Write-LogMessage {

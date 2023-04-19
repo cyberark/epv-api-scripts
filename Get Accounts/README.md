@@ -138,7 +138,7 @@ Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -SafeN
 Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -CPMDisabled -AccountsAction "Reconcile"
 ```
 
-### Reconcile all accounts marked as CPMDisabled OR failed accounts
+### Verify all accounts marked as CPMDisabled OR failed accounts
 This uses a "or" statement, not a "and" statement. Added to add backwards compatibility with older accounts.
 ```powershell
 Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -CPMDisabled -FailedOnly -AccountsAction "Verify"

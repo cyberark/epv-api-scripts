@@ -37,7 +37,11 @@ param
 
     # Use this switch to Disable SSL verification (NOT RECOMMENDED)
     [Parameter(Mandatory = $false)]
-    [Switch]$DisableSSLVerify
+    [Switch]$DisableSSLVerify,
+    
+    # Use this switch to allow HTTP Connections (NOT RECOMMENDED)
+    [Parameter(Mandatory = $false)]
+    [Switch]$AllowHTTP,
 )
 
 $appsettings = "$location\healthcheck\appsettings.json"
@@ -90,23 +94,44 @@ Import-Module WebAdministration
 
 $httpsCheck = Get-WebBinding -Protocol https
 if ($null -eq $httpsCheck) {
-    New-WebBinding -Name "Default Web Site" -IP "*" -Port 443 -Protocol https HostHeader "" -Force
+    New-WebBinding -Name "Default Web Site" -IP "*" -Port 443 -Protocol https -HostHeader "" -Force
 }
 Set-WebConfiguration -Location "Default Web Site" -Filter 'system.webserver/security/access' -Value 'None'
 
 if ($CreateSelfSignedCert) {
+    $certCheck = Get-ChildItem -path cert:\LocalMachine\My |Where {$_.Issuer -eq $_.Subject}
+    If ($certCheck.count -eq 0) {
     $loc = Get-Location
     Set-Location IIS:\SslBindings
     $fqdn = [System.Net.Dns]::GetHostByName($env:computerName)
     $c = New-SelfSignedCertificate -DnsName "$($fqdn.HostName)" -CertStoreLocation cert:\LocalMachine\My
     $c | New-Item 0.0.0.0!443 -Force
     Set-Location IIS:\
-    Set-Location $loc
+    Set-Location $loc}
+    ElseIf($certCheck.count -eq 1){
+        "Self-signed certificates already exist. Using existing self-signed certificate"
+        $certCheck[0] | New-Item 0.0.0.0!443 -Force
+    }
+    Else
+    {
+        "Multiple self-signed certificates already exist. Manual setup of SSL bindings required"
+    }
 }
 
 ./HealthCheck.ps1 -installPath $location -copyMode Override
 
 ((Get-Content -Path $appsettings -Raw) -replace "Classic", "CodeBased") | Set-Content -Path $appsettings
 
+if ($AllowHTTP) {
+    Set-WebConfiguration -Location "Default Web Site/PSM" -Filter 'system.webserver/security/access' -Value 'None'
+}
 
 Invoke-Expression "iisreset"
+
+"Running connection Test"
+
+$priorSSL=(get-WebConfiguration -Location "Default Web Site/PSM" -Filter 'system.webserver/security/access').sslFlags
+Set-WebConfiguration -Location "Default Web Site/PSM" -Filter 'system.webserver/security/access' -Value 'None'
+Start-Sleep 1
+Invoke-WebRequest http://localhost/psm/api/health 
+Set-WebConfiguration -Location "Default Web Site/PSM" -Filter 'system.webserver/security/access' -Value $priorSSL
