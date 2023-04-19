@@ -115,7 +115,8 @@ $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -joi
 $ScriptVersion = "2.2.2"
 
 # Set Log file path
-$LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility.log"
+$global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
+$global:LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility_$LOG_DATE.log"
 
 $InDebug = $PSBoundParameters.Debug.IsPresent
 $InVerbose = $PSBoundParameters.Verbose.IsPresent
@@ -480,6 +481,7 @@ Function Write-LogMessage {
 			"Error" {
 				Write-Host $MSG.ToString() -ForegroundColor Red
 				$msgToWrite += "[ERROR]`t$Msg"
+				$msgToWrite | Out-File -Append -FilePath "$LOG_FILE_PATH.Error"
 				break
 			}
 			"Debug" { 
@@ -503,7 +505,7 @@ Function Write-LogMessage {
 		}
 		
 		If ($writeToFile) {
-			$msgToWrite | Out-File -Append -FilePath $LOG_FILE_PATH 
+			$msgToWrite | Out-File -Append -FilePath $LOG_FILE_PATH
   }
 		If ($Footer) { 
 			"=======================================" | Out-File -Append -FilePath $LOG_FILE_PATH 
