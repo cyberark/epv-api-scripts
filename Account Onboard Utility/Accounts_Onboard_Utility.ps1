@@ -1461,10 +1461,13 @@ $delimiter = $(If ($CsvDelimiter -eq "Comma") {
 		"`t" 
  } )
 
+$csvPathGood = "$csvPath.good.csv"
+Remove-Item $csvPathGood
+$csvPathBad = "$csvPath.bad.csv"
+Remove-Item  $csvPathBad
 
-Remove-Item "$CsvPath.bad"
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
-$rowCount = $($accountsCSV.Safe.Count)
+$rowCount = $($accountsCSV.Safe.Count) - 1
 $counter = 0
 $global:workAccount =$null
 $global:csvLine = 0 # First line is the headers line
