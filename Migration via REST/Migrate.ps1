@@ -106,7 +106,15 @@ param(
     [String]$CPMNew,
 
     [Parameter(Mandatory=$false)]
-    [String]$dstUPN
+    [String]$dstUPN,
+	
+    # Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
+    [Parameter(Mandatory = $false)]
+    $srclogonToken,
+
+    # Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
+    [Parameter(Mandatory = $false)]
+    $dstlogonToken
 
 )
 
@@ -162,9 +170,38 @@ Set-SSLVerify($DisableSSLVerify)
 
 # Check that the PVWA URL is OK
 Test-PVWA -PVWAURL $SRCPVWAURL
-Write-LogMessage -Type Info -MSG "Getting Logon Tokens"
 
-$srcToken = Get-Logon -url $SRCPVWAURL -Credentials $SRCPVWACredentials -AuthType $SrcAuthType
+Write-LogMessage -Type Info -MSG "Getting Source Logon Tokens"
+If (![string]::IsNullOrEmpty($srclogonToken)) {
+    if ($srclogonToken.GetType().name -eq "String") {
+        $logonHeader = @{Authorization = $srclogonToken }
+        Set-Variable -Scope Global -Name srcToken -Value $logonHeader
+    } else {
+        Set-Variable -Scope Global -Name srcToken -Value $srclogonToken
+    }
+	
+} elseif ($null -eq $creds) {
+    If (![string]::IsNullOrEmpty($srcPVWACredentials)) {
+        $creds = $srcPVWACredentials
+    } else {
+        $msg = "Enter your source $srcAuthType User name and Password" 
+        $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
+    }
+    if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
+        Set-Variable -Scope Global -Name srcToken -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession -RadiusOTP $OTP )
+    } else {
+        Set-Variable -Scope Global -Name srcToken -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession)
+    }
+    # Verify that we successfully logged on
+    If ($null -eq $srcToken) { 
+        return # No logon header, end script 
+    }
+} else { 
+    Write-LogMessage -Type Error -MSG "No Source Credentials were entered" -Footer
+    return
+}
+
+
 
 if ($export) {
     Write-LogMessage -Type Info -Msg "Starting export of accounts"
@@ -177,16 +214,43 @@ if ($export) {
     Export-Csv -Path $exportCSV -NoTypeInformation
     Write-LogMessage -Type Info -Msg "Export of accounts completed. All other switches will be ignored"
     exit
+}
 
-} else {
+if ($processSafes -or $processAccounts) {
     Test-PVWA -PVWAURL $DSTPVWAURL
-    $dstToken = Get-Logon -url $DSTPVWAURL -Credentials $DSTPVWACredentials -AuthType $dstAuthType
+
+    Write-LogMessage -Type Info -MSG "Getting Source Logon Tokens"
+    If (![string]::IsNullOrEmpty($dstlogonToken)) {
+        if ($dstlogonToken.GetType().name -eq "String") {
+            $logonHeader = @{Authorization = $srclogonToken }
+            Set-Variable -Scope Global -Name dstToken -Value $logonHeader
+        } else {
+            Set-Variable -Scope Global -Name dstToken -Value $dstlogonToken
+        }
+        
+    } elseif ($null -eq $creds) {
+        If (![string]::IsNullOrEmpty($dstPVWACredentials)) {
+            $creds = $dstPVWACredentials
+        } else {
+            $msg = "Enter your source $dstAuthType User name and Password" 
+            $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
+        }
+        if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
+            Set-Variable -Scope Global -Name dstToken -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession -RadiusOTP $OTP )
+        } else {
+            Set-Variable -Scope Global -Name dstToken -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession)
+        }
+        # Verify that we successfully logged on
+        If ($null -eq $srcToken) { 
+            return # No logon header, end script 
+        }
+    } else { 
+        Write-LogMessage -Type Error -MSG "No Destination Credentials were entered" -Footer
+        return
+    }
 }
 
 if ($processSafes){
-
-    Test-PVWA -PVWAURL $DSTPVWAURL
-    $dstToken = Get-Logon -url $DSTPVWAURL -Credentials $DSTPVWACredentials -AuthType $dstAuthType
     
     #region Safe Work
 
@@ -294,7 +358,6 @@ if ($processAccounts){
         If (!$InVerbose){
             Write-Progress -Activity "Processing account objects" -CurrentOperation "$counter of $($accountobjects.count)" -PercentComplete (($counter / $accountobjects.count)*100)
         }
-
         
         $srcAccount = Get-AccountDetail -url $SRCPVWAURL -logonHeader $srcToken -AccountID $accountobject.id
         If ($($srcAccount.safename) -in $objectSafesToRemove){
@@ -377,12 +440,14 @@ if ($processAccounts){
 # Logoff the session
 # ------------------
 Write-Host "Logoff Session..."
-
-Invoke-Logoff -url $SRCPVWAURL -logonHeader $srcToken
-if (![string]::IsNullOrEmpty($dstToken)){ 
-    Invoke-Logoff -url $DSTPVWAURL -logonHeader $dstToken
+If (![sting]::IsNullOrEmpty($srclogonToken)){
+    Invoke-Logoff -url $SRCPVWAURL -logonHeader $srcToken
 }
-
+If (![sting]::IsNullOrEmpty($dstlogonToken)){
+    if (![string]::IsNullOrEmpty($dstToken)){ 
+        Invoke-Logoff -url $DSTPVWAURL -logonHeader $dstToken
+    }
+}
 
 Remove-Variable -Name LOG_FILE_PATH -Scope Global -Force
 Remove-Variable -Name AuthType -Scope Global -Force
