@@ -1413,8 +1413,7 @@ If (![string]::IsNullOrEmpty($logonToken)) {
 	} else {
 		Set-Variable -Scope Global -Name g_LogonHeader -Value $logonToken
  }
-	
-} elseif ($null -eq $creds) {
+} else {
 	If (![string]::IsNullOrEmpty($PVWACredentials)) {
 		$creds = $PVWACredentials
 	} else {
@@ -1430,9 +1429,6 @@ If (![string]::IsNullOrEmpty($logonToken)) {
 	If ($null -eq $g_LogonHeader) { 
 		return # No logon header, end script 
 	}
-} else { 
-	Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
-	return
 }
 #endregion
 
