@@ -1488,7 +1488,6 @@ ForEach ($account in $accountsCSV) {
 	if ($null -ne $account) {
 		# Increment the CSV line
 		$global:csvLine++
-		Clear-Variable $global:workAccount
 		$global:workAccount = $account
 		try {
 			# Create some internal variables
