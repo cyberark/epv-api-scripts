@@ -20,7 +20,9 @@ Change Notes
 2022-08-19 -	Fixed accounts not adding new platform properties
 		Fixed updating automatic management of password
 2022-08-23 -	Verification latest version published
-2023-04-19 -  Added Seperate log file for errors, added output of CSV files for bad and good files
+2023-04-19 -    Added Separate log file for errors, added output of CSV files for bad and good files
+2023-04-20 -    Suppressed error about unable to delete bad and good csv when they don't exist
+				Updated error output
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -113,7 +115,7 @@ $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -joi
 
 # Script Version
 
-$ScriptVersion = "2.3"
+$ScriptVersion = "2.3.1"
 
 # Set Log file path
 $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
@@ -302,13 +304,16 @@ Function New-AccountObject {
 		if ($Create) {
 			# Check mandatory fields for account creation
 			If ([string]::IsNullOrEmpty($AccountLine.userName)) {
-				throw "Missing mandatory field: user Name" 
+				Write-LogMessage -Type Error -MSG "Missing mandatory field: Username"
+				throw 
    }
 			If ([string]::IsNullOrEmpty($AccountLine.address)) {
-				throw "Missing mandatory field: Address" 
+				Write-LogMessage -Type Error -MSG "Missing mandatory field: Address"
+				throw 
    }
 			If ([string]::IsNullOrEmpty($AccountLine.platformId)) {
-				throw "Missing mandatory field: Platform ID" 
+				Write-LogMessage -Type Error -MSG "Missing mandatory field: PlatfromID"
+				throw
    }
 		}
 		
@@ -605,14 +610,22 @@ Function Invoke-Rest {
 		}
 	} catch [System.Net.WebException] {
 		if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
-			Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine" 
-			Write-LogMessage -Type Error -Msg "Error Message: $_"
-			Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
-			Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
-			Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
+			If ("409" -ne $_.Exception.Response.StatusCode.value__){
+				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine" 
+				Write-LogMessage -Type Error -Msg "Error Message: $_"
+				Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
+				Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
+				Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
+				$restResponse = $null
+				Throw
+			} else{
+				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine"
+				Write-LogMessage -Type Error -Msg "Duplicate Account Name. Assuming account already exists. If Update required run with -update"
+				$restResponse = $null
+			}
 		}
-		$restResponse = $null
-		Throw
+		
+		
 	} catch { 
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
 	}
@@ -1460,20 +1473,21 @@ $delimiter = $(If ($CsvDelimiter -eq "Comma") {
  } )
 
 $csvPathGood = "$csvPath.good.csv"
-Remove-Item $csvPathGood
+Remove-Item $csvPathGood -ErrorAction SilentlyContinue
 $csvPathBad = "$csvPath.bad.csv"
-Remove-Item  $csvPathBad
+Remove-Item $csvPathBad -ErrorAction SilentlyContinue
 
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
 $rowCount = $($accountsCSV.Safe.Count) - 1
 $counter = 0
-$global:workAccount =$null
-$global:csvLine = 0 # First line is the headers line
+Clear-Variable $global:workAccount
+$global:csvLine = 2 # First line is the headers line
 Write-LogMessage -Type Info -MSG "Starting to Onboard $rowCount accounts" -SubHeader
 ForEach ($account in $accountsCSV) {
 	if ($null -ne $account) {
 		# Increment the CSV line
 		$global:csvLine++
+		Clear-Variable $global:workAccount
 		$global:workAccount = $account
 		try {
 			# Create some internal variables
@@ -1567,9 +1581,9 @@ ForEach ($account in $accountsCSV) {
 											$_bodyOp.value = $objAccount.$($sProp.Name).$($subProp.Name)
 											If ($_bodyOp.value -eq $true){
 												$_bodyOp.value = "true"
-           									} elseif ($_bodyOp.value -eq $false){
+											} elseif ($_bodyOp.value -eq $false){
 												$_bodyOp.value = "false"
-           									}
+											}
 											$s_AccountBody += $_bodyOp
 											# Adding a specific case for "/secretManagement/automaticManagementEnabled"
 											If ("/secretManagement/automaticManagementEnabled" -eq ("/" + $sProp.Name + "/" + $subProp.Name)) {
@@ -1639,7 +1653,7 @@ ForEach ($account in $accountsCSV) {
 											$_bodyOp.value = $objAccount.platformAccountProperties.$($sSubProp.Name)
 											$s_AccountBody += $_bodyOp
 										}
-         }
+									}
 								} else { 
 									Write-LogMessage -Type Verbose -MSG "Object name to inspect is $($sProp.Name) with a value of $($sProp.Value)"
 									If (($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $s_Account.$($sProp.Name))) {

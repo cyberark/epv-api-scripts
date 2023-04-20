@@ -1121,6 +1121,25 @@ Function Set-Secret {
     Invoke-Rest -Command Post -Uri $URL_SetSecret -Body $(@{NewCredentials = $([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret))) } | ConvertTo-Json -Compress) -header $logonHeader
 }
 
+Function Set-NextPassword {
+
+    Param
+    (
+        [Parameter(Mandatory = $false)]
+        [string]$url = $global:PVWAURL,
+        [Parameter(Mandatory = $false)]
+        [String]$ID,
+        [Parameter(Mandatory = $false)]
+        [hashtable]$logonHeader = $g_LogonHeader,
+        [Parameter(Mandatory = $false)]
+        [SecureString]$secret
+    )
+    
+    $URL_SetSecret = "$url/api/Accounts/$id/SetNextPassword/" 
+    
+    Invoke-Rest -Command Post -Uri $URL_SetSecret -Body $(@{ChangeImmediately = "true";NewCredentials = $([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret))) } | ConvertTo-Json -Compress) -header $logonHeader
+}
+
 Function New-Account {
     Param
     (
