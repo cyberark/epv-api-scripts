@@ -299,16 +299,16 @@ Function New-AccountObject {
 
 		# Check mandatory fields
 		If ([string]::IsNullOrEmpty($AccountLine.safe)) {
-			throw "Missing mandatory field: Safe Name" 
+			throw "Missing mandatory field for REST: Safe Name" 
   }
 		if ($Create) {
 			# Check mandatory fields for account creation
 			If ([string]::IsNullOrEmpty($AccountLine.userName)) {
-				Write-LogMessage -Type Error -MSG "Missing mandatory field: Username"
+				Write-LogMessage -Type Error -MSG "Missing mandatory field for REST: Username"
 				throw 
    }
 			If ([string]::IsNullOrEmpty($AccountLine.address)) {
-				Write-LogMessage -Type Error -MSG "Missing mandatory field: Address"
+				Write-LogMessage -Type Error -MSG "Missing mandatory field for REST: Address"
 				throw 
    }
 			If ([string]::IsNullOrEmpty($AccountLine.platformId)) {
@@ -1480,14 +1480,13 @@ Remove-Item $csvPathBad -ErrorAction SilentlyContinue
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
 $rowCount = $($accountsCSV.Safe.Count) - 1
 $counter = 0
-Clear-Variable $global:workAccount
+$global:workAccount = $null
 $global:csvLine = 2 # First line is the headers line
 Write-LogMessage -Type Info -MSG "Starting to Onboard $rowCount accounts" -SubHeader
 ForEach ($account in $accountsCSV) {
 	if ($null -ne $account) {
 		# Increment the CSV line
 		$global:csvLine++
-		Clear-Variable $global:workAccount
 		$global:workAccount = $account
 		try {
 			# Create some internal variables
