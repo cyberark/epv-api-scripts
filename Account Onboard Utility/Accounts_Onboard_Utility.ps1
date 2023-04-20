@@ -115,7 +115,7 @@ $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -joi
 
 # Script Version
 
-$ScriptVersion = "2.3.1"
+$ScriptVersion = "2.3.2"
 
 # Set Log file path
 $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
