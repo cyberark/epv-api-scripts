@@ -312,7 +312,7 @@ Function New-AccountObject {
 				throw 
    }
 			If ([string]::IsNullOrEmpty($AccountLine.platformId)) {
-				Write-LogMessage -Type Error -MSG "Missing mandatory field: PlatfromID"
+				Write-LogMessage -Type Error -MSG "Missing mandatory field for REST: PlatfromID"
 				throw
    }
 		}
@@ -1480,6 +1480,7 @@ Remove-Item $csvPathBad -ErrorAction SilentlyContinue
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
 $rowCount = $($accountsCSV.Safe.Count) - 1
 $counter = 0
+
 $global:workAccount = $null
 $global:csvLine = 2 # First line is the headers line
 Write-LogMessage -Type Info -MSG "Starting to Onboard $rowCount accounts" -SubHeader
@@ -1487,6 +1488,7 @@ ForEach ($account in $accountsCSV) {
 	if ($null -ne $account) {
 		# Increment the CSV line
 		$global:csvLine++
+		Clear-Variable $global:workAccount
 		$global:workAccount = $account
 		try {
 			# Create some internal variables
