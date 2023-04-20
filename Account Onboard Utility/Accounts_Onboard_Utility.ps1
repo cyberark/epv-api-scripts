@@ -115,7 +115,7 @@ $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -joi
 
 # Script Version
 
-$ScriptVersion = "2.3.2"
+$ScriptVersion = "2.3.3"
 
 # Set Log file path
 $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
@@ -919,11 +919,11 @@ Function New-BadRecord {
 	Outputs the bad record to a CSV file for correction and processing
 #>
 	try {
-		$global:workAccount | Export-Csv -Append -NoTypeInformation "$CsvPath.Bad"
-		Write-LogMessage -Type Debug -MSG "Output Bad record to CSV"
+		$global:workAccount | Export-Csv -Append -NoTypeInformation $csvPathBad
+		Write-LogMessage -Type Debug -MSG "Outputted Bad record to CSV"
 		Write-LogMessage -Type Verbose -MSG "Bad Record: $global:workAccount"
 	} catch {
-		Write-LogMessage -Type Error -MSG "Unable to outout bad record to file: $CsvPath.Bad"
+		Write-LogMessage -Type Error -MSG "Unable to outout bad record to file: $csvPathBad"
 		Write-LogMessage -Type Verbose -MSG "Bad Record: $global:workAccount"
 
 	}		
@@ -946,11 +946,12 @@ Function New-GoodRecord {
 #>
 
 	try {
-		$global:workAccount | Select-Object -ExcludeProperty password | Export-Csv -Append -NoTypeInformation "$CsvPath.Good"
-		Write-LogMessage -Type Debug -MSG "Output good record to CSV"
+		$global:workAccount.Password = $null
+		$global:workAccount | Export-Csv -Append -NoTypeInformation $csvPathGood
+		Write-LogMessage -Type Debug -MSG "Outputted good record to CSV"
 		Write-LogMessage -Type Verbose -MSG "Good Record: $global:workAccount"
 	} catch {
-		Write-LogMessage -Type Error -MSG "Unable to outout good record to file: $CsvPath.Good"
+		Write-LogMessage -Type Error -MSG "Unable to outout good record to file: $csvPathGood"
 		Write-LogMessage -Type Verbose -MSG "Good Record: $global:workAccount"
 
 	}		
@@ -1474,12 +1475,12 @@ $delimiter = $(If ($CsvDelimiter -eq "Comma") {
  } )
 
 $csvPathGood = "$csvPath.good.csv"
-Remove-Item $csvPathGood -ErrorAction SilentlyContinue
+Remove-Item $csvPathGood -force -ErrorAction SilentlyContinue
 $csvPathBad = "$csvPath.bad.csv"
-Remove-Item $csvPathBad -ErrorAction SilentlyContinue
+Remove-Item $csvPathBad -force -ErrorAction SilentlyContinue
 
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
-$rowCount = $($accountsCSV.Safe.Count) - 1
+$rowCount = $($accountsCSV.Safe.Count)
 $counter = 0
 
 $global:workAccount = $null
