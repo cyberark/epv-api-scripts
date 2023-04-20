@@ -611,15 +611,21 @@ Function Invoke-Rest {
 	} catch [System.Net.WebException] {
 		if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
 			If ("409" -ne $_.Exception.Response.StatusCode.value__){
-			Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine" 
-			Write-LogMessage -Type Error -Msg "Error Message: $_"
-			Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
-			Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
-			Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
+				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine" 
+				Write-LogMessage -Type Error -Msg "Error Message: $_"
+				Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
+				Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
+				Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
+				$restResponse = $null
+				Throw
+			} else{
+				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine"
+				Write-LogMessage -Type Error -Msg "Duplicate Account Name. Assuming account already exists. If Update required run with -update"
+				$restResponse = $null
+			}
 		}
-		}
-		$restResponse = $null
-		Throw
+		
+		
 	} catch { 
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
 	}
@@ -1469,7 +1475,7 @@ $delimiter = $(If ($CsvDelimiter -eq "Comma") {
 $csvPathGood = "$csvPath.good.csv"
 Remove-Item $csvPathGood -ErrorAction SilentlyContinue
 $csvPathBad = "$csvPath.bad.csv"
-Remove-Item  $csvPathBad -ErrorAction SilentlyContinue
+Remove-Item $csvPathBad -ErrorAction SilentlyContinue
 
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
 $rowCount = $($accountsCSV.Safe.Count) - 1
@@ -1575,9 +1581,9 @@ ForEach ($account in $accountsCSV) {
 											$_bodyOp.value = $objAccount.$($sProp.Name).$($subProp.Name)
 											If ($_bodyOp.value -eq $true){
 												$_bodyOp.value = "true"
-           									} elseif ($_bodyOp.value -eq $false){
+											} elseif ($_bodyOp.value -eq $false){
 												$_bodyOp.value = "false"
-           									}
+											}
 											$s_AccountBody += $_bodyOp
 											# Adding a specific case for "/secretManagement/automaticManagementEnabled"
 											If ("/secretManagement/automaticManagementEnabled" -eq ("/" + $sProp.Name + "/" + $subProp.Name)) {
@@ -1647,7 +1653,7 @@ ForEach ($account in $accountsCSV) {
 											$_bodyOp.value = $objAccount.platformAccountProperties.$($sSubProp.Name)
 											$s_AccountBody += $_bodyOp
 										}
-         							}
+									}
 								} else { 
 									Write-LogMessage -Type Verbose -MSG "Object name to inspect is $($sProp.Name) with a value of $($sProp.Value)"
 									If (($null -ne $objAccount.$($sProp.Name)) -and ($objAccount.$($sProp.Name) -ne $s_Account.$($sProp.Name))) {
