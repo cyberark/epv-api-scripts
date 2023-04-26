@@ -647,7 +647,7 @@ ForEach ($account in $accountsCSV) {
 		# Search for Master Account
 		$foundMasterAccountID = $null
 		try {
-			$foundMasterAccountID = Find-MasterAccount -accountName $account.userName -accountAddress $account.address
+			$foundMasterAccountID = Find-MasterAccount -accountName $account.userName -accountAddress $account.address -safeName $account.safe
 			if ([string]::IsNullOrEmpty($foundMasterAccountID)) {Throw "No Master Account Found"}
 		} catch {
 			Write-LogMessage -Type Error -Msg "Error searching for Master Account. Error: $(Join-ExceptionMessage $_.Exception)"
@@ -697,7 +697,7 @@ ForEach ($account in $accountsCSV) {
 				}
 			}
 		} Catch {
-			Write-LogMessage -Type Error -Msg "Error linking Master Account. Error: $(Join-ExceptionMessage $_.Exception)"
+			Write-LogMessage -Type Error -Msg "Error linking Master Account - Username: $($account.userName) Address: $($account.address) Safe: $($account.safe). Error: $(Join-ExceptionMessage $_.Exception)"
 		}
 		$counterMaster++
 	}
