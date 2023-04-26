@@ -403,6 +403,7 @@ Function Find-MasterAccount {
 			ForEach ($item in $GetMasterAccountsResponse.Value) {
 				if ($item.userName -eq $accountName -and $item.address -eq $accountAddress) {
 					$result = $item.id
+					Write-LogMessage -Type Debug -MSG "Account $accountName with address of $accountAddress in safe $safeName has account ID of $result"
 					break
 				}
 			}
