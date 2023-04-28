@@ -46,7 +46,7 @@ param
 
 $appsettings = "$location\healthcheck\appsettings.json"
 
-$hosting = "https://download.visualstudio.microsoft.com/download/pr/cab723a6-dc1f-4b3a-8675-34dc84a21306/1ee69c32da9ba78d80d65f9c067c4f68/dotnet-hosting-6.0.12-win.exe"
+$hosting = "https://download.visualstudio.microsoft.com/download/pr/7ab0bc25-5b00-42c3-b7cc-bb8e08f05135/91528a790a28c1f0fe39845decf40e10/dotnet-hosting-6.0.16-win.exe"
 
 [System.Net.ServicePointManager]::ServerCertificateValidationCallback = $null
 
