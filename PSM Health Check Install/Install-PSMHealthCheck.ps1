@@ -99,7 +99,7 @@ if ($null -eq $httpsCheck) {
 Set-WebConfiguration -Location "Default Web Site" -Filter 'system.webserver/security/access' -Value 'None'
 
 if ($CreateSelfSignedCert) {
-    $certCheck = Get-ChildItem -path cert:\LocalMachine\My |Where {$_.Issuer -eq $_.Subject}
+    $certCheck = Get-ChildItem -path cert:\LocalMachine\My |Where {$_.Issuer -eq $_.Subject} |Where {$_.EnhancedKeyUsageList.FriendlyName -contains "Server Authentication"}
     If ($certCheck.count -eq 0) {
     $loc = Get-Location
     Set-Location IIS:\SslBindings
