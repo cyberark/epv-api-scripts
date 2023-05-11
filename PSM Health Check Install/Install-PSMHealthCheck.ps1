@@ -41,7 +41,7 @@ param
     
     # Use this switch to allow HTTP Connections (NOT RECOMMENDED)
     [Parameter(Mandatory = $false)]
-    [Switch]$AllowHTTP,
+    [Switch]$AllowHTTP
 )
 
 $appsettings = "$location\healthcheck\appsettings.json"
