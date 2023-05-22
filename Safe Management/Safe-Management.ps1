@@ -23,6 +23,7 @@
  2.1.2  16/08/2022	- Temp Bug fix for MemberType
  2.1.3  24/08/2022      - Bug fix for updating safe due to changes in APIs in version 12.5
  2.1.4  17/03/2023      - Fix for issue #317
+ 2.1.5  22/05/2023      - Added ability to prevent logoff
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = "List")]
 param
@@ -122,6 +123,11 @@ param
     # Use this switch to Disable SSL verification (NOT RECOMMENDED)
     [Parameter(Mandatory = $false)]
     [Switch]$DisableSSLVerify,
+    
+    # Use this switch to prevent Invoke-Logoff (NOT RECOMMENDED)
+    [Parameter(Mandatory = $false)]
+    [Switch]$DisableLogoff,
+
 
     # Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
     [Parameter(Mandatory = $false)]
@@ -136,7 +142,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "2.1.4"
+$ScriptVersion = "2.1.5"
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -1273,6 +1279,9 @@ If (Test-CommandExists Invoke-RestMethod) {
 
     If ([string]::IsNullOrEmpty($logonToken)) {
         Write-Host "LogonToken passed, session NOT logged off"
+    }
+    elseif ($DisableLogoff){
+    	Write-Host "Logoff has been disbaled, session NOT logged off"
     }
     else {
         Invoke-Logoff
