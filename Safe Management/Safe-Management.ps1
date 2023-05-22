@@ -1281,7 +1281,7 @@ If (Test-CommandExists Invoke-RestMethod) {
         Write-Host "LogonToken passed, session NOT logged off"
     }
     elseif ($DisableLogoff){
-    	Write-Host "Logoff has been disbaled, session NOT logged off"
+    	Write-Host "Logoff has been disabled, session NOT logged off"
     }
     else {
         Invoke-Logoff
