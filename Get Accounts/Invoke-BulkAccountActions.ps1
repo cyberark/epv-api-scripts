@@ -548,7 +548,7 @@ Function Get-FilteredAccounts {
 			$nextLink = $GetAccountsResponse.nextLink
 			Write-LogMessage -Type Debug -MSG "Getting accounts next link: $nextLink"
 			$GetAccountsList += $GetAccountsResponse.value
-			Write-LogMessage -Type Debug -MSG "Found $($GetAccountsList.count) accounts so far..."
+			Write-LogMessage -Type Info -MSG "Found $($GetAccountsList.count) accounts so far..."
 		}
 		
 		# Create a dynamic filter array
