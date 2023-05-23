@@ -158,7 +158,7 @@ $global:g_LogonHeader = ""
 $global:g_SafesList = $null
 # Set a global list of all Default sues to ignore
 $global:g_DefaultUsers = @("Master", "Batch", "Backup Users", "Auditors", "Operators", "DR Users", "Notification Engines", "PVWAGWAccounts", "PVWAGWUser", "PVWAAppUser", "PasswordManager")
-
+$global:g_includeDefaultUsers = $IncludeDefault
 # Global URLS
 # -----------
 $URL_PVWAAPI = $PVWAURL + "/api"
