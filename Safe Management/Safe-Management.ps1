@@ -1277,7 +1277,7 @@ If (Test-CommandExists Invoke-RestMethod) {
     # Logoff the session
     # ------------------
 
-    If ([string]::IsNullOrEmpty($logonToken)) {
+    If (![string]::IsNullOrEmpty($logonToken)) {
         Write-Host "LogonToken passed, session NOT logged off"
     }
     elseif ($DisableLogoff){
