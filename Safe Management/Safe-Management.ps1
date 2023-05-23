@@ -951,6 +951,7 @@ Get-SafeMember -safename "Win-Local-Admins"
     $_safeOwners = $null
     try {
         $accSafeMembersURL = $URL_SafeMembers -f $(ConvertTo-URL $safeName)
+        $accSafeMembersURL += "?filter=includePredefinedUsers eq true" 
         $_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue")
         # Remove default users and change UserName to MemberName
         if (!$g_includeDefaultUsers){
