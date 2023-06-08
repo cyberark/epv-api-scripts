@@ -97,6 +97,10 @@ param(
     [Parameter(Mandatory=$false)]
     [Switch]$UpdateSafeMembers,
 
+    # Use this switch to prevent creation of accounts
+    [Parameter(Mandatory=$false)]
+    [Switch]$noCreate,
+    
     # Use this variable to identify the old CPM
     [Parameter(Mandatory=$false)]
     [String]$CPMOld,
@@ -417,6 +421,8 @@ if ($processAccounts){
             if ($getRemoteMachines){
                 Update-RemoteMachine -url $DSTPVWAURL -logonHeader $dstToken -dstaccount $dstAccount -srcaccount $srcAccount
             }
+        } elseif ($noCreate) {
+            Write-LogMessage -Type Warning -Msg "Destination account in safe `"$($srcAccount.safeName)`" does not exist and account creation disabled, skipping creation of account `"$($srcAccount.Name)`""
         } else {
             try {
                 [SecureString]$srcSecret = Get-Secret -url $SRCPVWAURL -logonHeader $srcToken -id $srcAccount.id
