@@ -440,10 +440,10 @@ if ($processAccounts){
 # Logoff the session
 # ------------------
 Write-Host "Logoff Session..."
-If (![sting]::IsNullOrEmpty($srclogonToken)){
+If (![string]::IsNullOrEmpty($srclogonToken)){
     Invoke-Logoff -url $SRCPVWAURL -logonHeader $srcToken
 }
-If (![sting]::IsNullOrEmpty($dstlogonToken)){
+If (![string]::IsNullOrEmpty($dstlogonToken)){
     if (![string]::IsNullOrEmpty($dstToken)){ 
         Invoke-Logoff -url $DSTPVWAURL -logonHeader $dstToken
     }
