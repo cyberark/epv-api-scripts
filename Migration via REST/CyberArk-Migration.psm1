@@ -698,7 +698,8 @@ Function Get-LogonHeader {
     }
     try {
         # Logon
-        $logonToken = Invoke-Rest -Command Post -Uri $URL -Body $logonBody
+        $_URL = $URL+$URL_Logon
+        $logonToken = Invoke-Rest -Command Post -Uri $_URL -Body $logonBody
         # Clear logon body
         $logonBody = ""
     } catch {

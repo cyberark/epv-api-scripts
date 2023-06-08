@@ -188,9 +188,9 @@ If (![string]::IsNullOrEmpty($srclogonToken)) {
         $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
     }
     if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-        Set-Variable -Scope Global -Name srcToken -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession -RadiusOTP $OTP )
+        Set-Variable -Scope Global -Name srcToken -Value $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP -URL $SRCPVWAURL )
     } else {
-        Set-Variable -Scope Global -Name srcToken -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession)
+        Set-Variable -Scope Global -Name srcToken -Value $(Get-LogonHeader -Credentials $creds -URL $SRCPVWAURL )
     }
     # Verify that we successfully logged on
     If ($null -eq $srcToken) { 
