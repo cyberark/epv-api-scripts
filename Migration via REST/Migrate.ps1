@@ -189,9 +189,9 @@ If (![string]::IsNullOrEmpty($srclogonToken)) {
     Import-Module -Name ".\CyberArk-Migration.psm1" -Force
 
     if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-        Set-Variable -Scope Global -Name srcToken -Value $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP -URL $SRCPVWAURL )
+        Set-Variable -Scope Global -Name srcToken -Value $(Get-Logon -Credentials $creds -AuthType $SrcAuthType -URL $SRCPVWAURL -OTP $OTP)
     } else {
-        Set-Variable -Scope Global -Name srcToken -Value $(Get-LogonHeader -Credentials $creds -URL $SRCPVWAURL )
+        Set-Variable -Scope Global -Name srcToken -Value $(Get-Logon -Credentials $creds -AuthType $SrcAuthType -URL $SRCPVWAURL )
     }
     # Verify that we successfully logged on
     If ($null -eq $srcToken) { 
@@ -205,6 +205,7 @@ $creds = $null
 
 
 if ($export) {
+    $srcToken
     Write-LogMessage -Type Info -Msg "Starting export of accounts"
     $srcAccounts = Get-Accounts -url $SRCPVWAURL -logonHeader $srcToken -limit 1000
     Write-LogMessage -Type debug -Msg "Starting export to CSV of $($srcAccounts.count) accounts"
@@ -239,12 +240,12 @@ if ($processSafes -or $processAccounts) {
         New-Variable -Name AuthType -Value $DstAuthType -Scope Global -Force
         Import-Module -Name ".\CyberArk-Migration.psm1" -Force
         if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-            Set-Variable -Scope Global -Name dstToken -Value $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP )
+            Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $DstAuthType -URL $DSTPVWAURL -OTP $OTP)
         } else {
-            Set-Variable -Scope Global -Name dstToken -Value $(Get-LogonHeader -Credentials $creds)
+            Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $DstAuthType -URL $DSTPVWAURL -OTP $OTP)
         }
         # Verify that we successfully logged on
-        If ($null -eq $srcToken) { 
+        If ($null -eq $dstToken) { 
             return # No logon header, end script 
         }
     } else { 
