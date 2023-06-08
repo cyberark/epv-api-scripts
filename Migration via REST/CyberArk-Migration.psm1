@@ -703,6 +703,8 @@ Function Get-LogonHeader {
         # Clear logon body
         $logonBody = ""
     } catch {
+        $($_.Exception.Response.StatusDescription)
+        $_.Exception
         Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
     }
     $logonHeader = $null
