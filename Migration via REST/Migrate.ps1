@@ -215,9 +215,8 @@ if ($export) {
     Write-LogMessage -Type debug -Msg "Starting export to CSV of $($srcAccounts.count) accounts"
     $srcAccounts | `
         Where-Object {$_.safename -notIn $objectSafesToRemove} | `
-        Select-Object -Property "name","address","userName","safeName","platformId","id" | `
-
-    Export-Csv -Path $exportCSV -NoTypeInformation
+        Select-Object "name","address","userName","safeName","platformId","id",@{ name = "PasswordLastChangeUTC"; Expression = {"$((([System.DateTimeOffset]::FromUnixTimeSeconds($_.secretManagement.lastModifiedTime)).DateTime).ToString())"}}|`
+        Export-Csv -Path $exportCSV -NoTypeInformation
     Write-LogMessage -Type Info -Msg "Export of accounts completed. All other switches will be ignored"
     exit
 }
