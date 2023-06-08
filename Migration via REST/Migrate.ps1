@@ -159,8 +159,6 @@ $ScriptVersion = "0.10"
 # Set Log file path
 New-Variable -Name LOG_FILE_PATH -Value "$ScriptLocation\$(($MyInvocation.MyCommand.Name).Replace("ps1","log"))" -Scope Global -Force
 
-New-Variable -Name AuthType -Value $AuthType -Scope Global -Force
-
 $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
@@ -187,6 +185,9 @@ If (![string]::IsNullOrEmpty($srclogonToken)) {
         $msg = "Enter your source $srcAuthType User name and Password" 
         $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
     }
+    New-Variable -Name AuthType -Value $SrcAuthType -Scope Global -Force
+    Import-Module -Name ".\CyberArk-Migration.psm1" -Force
+
     if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
         Set-Variable -Scope Global -Name srcToken -Value $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP -URL $SRCPVWAURL )
     } else {
@@ -200,7 +201,7 @@ If (![string]::IsNullOrEmpty($srclogonToken)) {
     Write-LogMessage -Type Error -MSG "No Source Credentials were entered" -Footer
     return
 }
-
+$creds = $null
 
 
 if ($export) {
@@ -222,7 +223,7 @@ if ($processSafes -or $processAccounts) {
     Write-LogMessage -Type Info -MSG "Getting Source Logon Tokens"
     If (![string]::IsNullOrEmpty($dstlogonToken)) {
         if ($dstlogonToken.GetType().name -eq "String") {
-            $logonHeader = @{Authorization = $srclogonToken }
+            $logonHeader = @{Authorization = $dstlogonToken }
             Set-Variable -Scope Global -Name dstToken -Value $logonHeader
         } else {
             Set-Variable -Scope Global -Name dstToken -Value $dstlogonToken
@@ -235,10 +236,12 @@ if ($processSafes -or $processAccounts) {
             $msg = "Enter your source $dstAuthType User name and Password" 
             $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
         }
+        New-Variable -Name AuthType -Value $DstAuthType -Scope Global -Force
+        Import-Module -Name ".\CyberArk-Migration.psm1" -Force
         if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-            Set-Variable -Scope Global -Name dstToken -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession -RadiusOTP $OTP )
+            Set-Variable -Scope Global -Name dstToken -Value $(Get-LogonHeader -Credentials $creds -RadiusOTP $OTP )
         } else {
-            Set-Variable -Scope Global -Name dstToken -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession)
+            Set-Variable -Scope Global -Name dstToken -Value $(Get-LogonHeader -Credentials $creds)
         }
         # Verify that we successfully logged on
         If ($null -eq $srcToken) { 
