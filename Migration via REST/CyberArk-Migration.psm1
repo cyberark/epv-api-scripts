@@ -630,7 +630,9 @@ Function Get-Logon {
         [Parameter(Mandatory = $false)]
         [string]$url = $global:PVWAURL,
         [Parameter(Mandatory = $false)]
-        [string]$AuthType = $global:AuthType
+        [string]$AuthType = $global:AuthType,
+        [Parameter(Mandatory = $false)]
+        [string]$OTP
 
     )
 
@@ -644,7 +646,7 @@ Function Get-Logon {
     }
     if ($null -ne $Credentials) {
         if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-            return $(Get-LogonHeader -Credentials $Credentials -RadiusOTP $OT -URL $URL_Logon)
+            return $(Get-LogonHeader -Credentials $Credentials -RadiusOTP $OTP -URL $URL_Logon)
         } else {
             return $(Get-LogonHeader -Credentials $Credentials -URL $URL_Logon)
         }
@@ -702,6 +704,8 @@ Function Get-LogonHeader {
         # Clear logon body
         $logonBody = ""
     } catch {
+        $($_.Exception.Response.StatusDescription)
+        $_.Exception
         Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
     }
     $logonHeader = $null
@@ -743,6 +747,7 @@ Function Set-LogonHeader {
     }
     try {
         # Logon
+        Write-Warning - $logonBody
         $logonToken = Invoke-Rest -Command Post -Uri $URL_Logon -Body $logonBody
         # Clear logon body
         $logonBody = ""

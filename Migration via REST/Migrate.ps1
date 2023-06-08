@@ -97,6 +97,10 @@ param(
     [Parameter(Mandatory=$false)]
     [Switch]$UpdateSafeMembers,
 
+    # Use this switch to prevent creation of accounts
+    [Parameter(Mandatory=$false)]
+    [Switch]$noCreate,
+    
     # Use this variable to identify the old CPM
     [Parameter(Mandatory=$false)]
     [String]$CPMOld,
@@ -159,8 +163,6 @@ $ScriptVersion = "0.10"
 # Set Log file path
 New-Variable -Name LOG_FILE_PATH -Value "$ScriptLocation\$(($MyInvocation.MyCommand.Name).Replace("ps1","log"))" -Scope Global -Force
 
-New-Variable -Name AuthType -Value $AuthType -Scope Global -Force
-
 $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
@@ -187,10 +189,13 @@ If (![string]::IsNullOrEmpty($srclogonToken)) {
         $msg = "Enter your source $srcAuthType User name and Password" 
         $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
     }
+    New-Variable -Name AuthType -Value $SrcAuthType -Scope Global -Force
+    Import-Module -Name ".\CyberArk-Migration.psm1" -Force
+
     if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-        Set-Variable -Scope Global -Name srcToken -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession -RadiusOTP $OTP )
+        Set-Variable -Scope Global -Name srcToken -Value $(Get-Logon -Credentials $creds -AuthType $SrcAuthType -URL $SRCPVWAURL -OTP $OTP)
     } else {
-        Set-Variable -Scope Global -Name srcToken -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession)
+        Set-Variable -Scope Global -Name srcToken -Value $(Get-Logon -Credentials $creds -AuthType $SrcAuthType -URL $SRCPVWAURL )
     }
     # Verify that we successfully logged on
     If ($null -eq $srcToken) { 
@@ -200,10 +205,11 @@ If (![string]::IsNullOrEmpty($srclogonToken)) {
     Write-LogMessage -Type Error -MSG "No Source Credentials were entered" -Footer
     return
 }
-
+$creds = $null
 
 
 if ($export) {
+    $srcToken
     Write-LogMessage -Type Info -Msg "Starting export of accounts"
     $srcAccounts = Get-Accounts -url $SRCPVWAURL -logonHeader $srcToken -limit 1000
     Write-LogMessage -Type debug -Msg "Starting export to CSV of $($srcAccounts.count) accounts"
@@ -222,7 +228,7 @@ if ($processSafes -or $processAccounts) {
     Write-LogMessage -Type Info -MSG "Getting Source Logon Tokens"
     If (![string]::IsNullOrEmpty($dstlogonToken)) {
         if ($dstlogonToken.GetType().name -eq "String") {
-            $logonHeader = @{Authorization = $srclogonToken }
+            $logonHeader = @{Authorization = $dstlogonToken }
             Set-Variable -Scope Global -Name dstToken -Value $logonHeader
         } else {
             Set-Variable -Scope Global -Name dstToken -Value $dstlogonToken
@@ -235,13 +241,15 @@ if ($processSafes -or $processAccounts) {
             $msg = "Enter your source $dstAuthType User name and Password" 
             $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
         }
+        New-Variable -Name AuthType -Value $DstAuthType -Scope Global -Force
+        Import-Module -Name ".\CyberArk-Migration.psm1" -Force
         if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-            Set-Variable -Scope Global -Name dstToken -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession -RadiusOTP $OTP )
+            Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $DstAuthType -URL $DSTPVWAURL -OTP $OTP)
         } else {
-            Set-Variable -Scope Global -Name dstToken -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession)
+            Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $DstAuthType -URL $DSTPVWAURL -OTP $OTP)
         }
         # Verify that we successfully logged on
-        If ($null -eq $srcToken) { 
+        If ($null -eq $dstToken) { 
             return # No logon header, end script 
         }
     } else { 
@@ -413,6 +421,8 @@ if ($processAccounts){
             if ($getRemoteMachines){
                 Update-RemoteMachine -url $DSTPVWAURL -logonHeader $dstToken -dstaccount $dstAccount -srcaccount $srcAccount
             }
+        } elseif ($noCreate) {
+            Write-LogMessage -Type Warning -Msg "Destination account in safe `"$($srcAccount.safeName)`" does not exist and account creation disabled, skipping creation of account `"$($srcAccount.Name)`""
         } else {
             try {
                 [SecureString]$srcSecret = Get-Secret -url $SRCPVWAURL -logonHeader $srcToken -id $srcAccount.id
