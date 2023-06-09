@@ -410,7 +410,7 @@ if ($processAccounts){
                         Write-LogMessage -Type Warning -Msg "Unknown Error encountered on Source Account `"$($srcAccount.Name)`" and Destination account `"$($dstAccount.Name)`" while working with secrets"
                     }
                 } catch [System.Management.Automation.RuntimeException] {
-                    If ("Account Locked" -eq $_.Exception){
+                    If ("Account Locked" -eq $_){
                         Write-LogMessage -Type Warning -Msg "Source Account `"$($srcAccount.Name)`" Locked, unable to update"
                     }
                 } 

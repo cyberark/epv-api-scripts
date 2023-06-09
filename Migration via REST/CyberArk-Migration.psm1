@@ -360,7 +360,7 @@ Function Invoke-Rest {
                     
                     Write-LogMessage -Type Error -Msg "Was able to connect to the PVWA successfully, but the account was locked" 
                     Write-LogMessage -Type Error -Msg "URI:  $URI"
-                    Throw "Account Locked"
+                    Throw [System.Management.Automation.RuntimeException] "Account Locked"
                 } ElseIf (!($($_.ErrorDetails.Message | ConvertFrom-Json).ErrorCode -in $global:SkipErrorCode)) {
                     Write-LogMessage -Type Error -Msg "Was able to connect to the PVWA successfully, but the command resulted in a error"
                     Write-LogMessage -Type Error -Msg "URI:  $URI"
