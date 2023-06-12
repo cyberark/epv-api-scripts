@@ -291,7 +291,7 @@ Function export-platform {
 		Write-LogMessage -Type Debug -Msg "Using URL: $exportURL"
 		Write-LogMessage -Type Debug -Msg "Exporting to: $PlatformZipPath\$PlatformID.zip"
 		Invoke-RestMethod -Method POST -Uri $exportURL -Headers $logonHeader -ContentType "application/zip" -TimeoutSec 2700 -OutFile "$PlatformZipPath\$PlatformID.zip" -ErrorAction SilentlyContinue
-		Write-LogMessage -Type Info -Msg "Successfully exported platform `"$PlatformID"`"
+		Write-LogMessage -Type Info -Msg "Successfully exported platform `"$PlatformID`""
 	} catch {
 		Write-LogMessage -Type Error -Msg "Error while attempting to export platformID `"$PlatformID`""
 		Write-LogMessage -Type Error -Msg "Error Code: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorCode)`""
