@@ -268,13 +268,18 @@ Function import-platform {
 				Write-LogMessage -Type Info -Msg "Platform named `"$($platformDetails.Details.PolicyName)`" with PlatformID `"$($platformDetails.PlatformID)`" was successfully imported and is $(if($platformDetails.Active) { "active" } else { "inactive" })"				
 			}		
 		} catch {
-			IF ($($($_.ErrorDetails | ConvertFrom-Json).ErrorMessage) -match "ITAPS016E" ){
+			IF ($_ -match "ITAPS016E" ){
 				Write-LogMessage -Type Info -Msg "Platform in file `"$PlatformZipPath`" already exists. To update, delete existing version and import again."
 			} else {
 				Write-LogMessage -Type Error -Msg "Error while attempting to import `"$PlatformZipPath`""
-				Write-LogMessage -Type Error -Msg "Error Code: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorCode)`""
-				Write-LogMessage -Type Error -Msg "Error Message: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorMessage)`""
-				Out-Null
+				try {
+					Write-LogMessage -Type Error -Msg "Error Code: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorCode)`""
+					Write-LogMessage -Type Error -Msg "Error Message: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorMessage)`""
+				}
+				catch  {
+					Write-LogMessage -Type Error -Msg "Error `"$($Error[1].ErrorDetails.Message)`""
+				}
+
 			}
 		}
 	}
@@ -291,12 +296,16 @@ Function export-platform {
 		Write-LogMessage -Type Debug -Msg "Using URL: $exportURL"
 		Write-LogMessage -Type Debug -Msg "Exporting to: $PlatformZipPath\$PlatformID.zip"
 		Invoke-RestMethod -Method POST -Uri $exportURL -Headers $logonHeader -ContentType "application/zip" -TimeoutSec 2700 -OutFile "$PlatformZipPath\$PlatformID.zip" -ErrorAction SilentlyContinue
-		Write-LogMessage -Type Info -Msg "Successfully exported platform `"$PlatformID"`"
+		Write-LogMessage -Type Info -Msg "Successfully exported platform `"$PlatformID`""
 	} catch {
 		Write-LogMessage -Type Error -Msg "Error while attempting to export platformID `"$PlatformID`""
-		Write-LogMessage -Type Error -Msg "Error Code: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorCode)`""
-		Write-LogMessage -Type Error -Msg "Error Message: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorMessage)`""
-		Out-Null
+		try {	
+			Write-LogMessage -Type Error -Msg "Error Code: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorCode)`""
+			Write-LogMessage -Type Error -Msg "Error Message: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorMessage)`""
+		}
+		catch  {
+			Write-LogMessage -Type Error -Msg "Error `"$($Error[1].ErrorDetails.Message)`""
+		}
 	}
 } #end function Import
 
@@ -324,8 +333,13 @@ Function Get-PlatformsList {
 
 	} catch {
 		Write-LogMessage -Type Error -Msg "Error while attempting to Get-PlatformsList with `"GetAll`" equal `"$GetAll`""
-		Write-LogMessage -Type Error -Msg "Error Code: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorCode)`""
-		Write-LogMessage -Type Error -Msg "Error Message: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorMessage)`""
+		try {
+			Write-LogMessage -Type Error -Msg "Error Code: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorCode)`""
+			Write-LogMessage -Type Error -Msg "Error Message: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorMessage)`""
+		}
+		catch  {
+			Write-LogMessage -Type Error -Msg "Error `"$($Error[1].ErrorDetails.Message)`""
+		}
 	}
 } #end function Import
 
