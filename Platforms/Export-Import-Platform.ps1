@@ -273,13 +273,13 @@ Function import-platform {
 			} else {
 				Write-LogMessage -Type Error -Msg "Error while attempting to import `"$PlatformZipPath`""
 				try {
-					
 					Write-LogMessage -Type Error -Msg "Error Code: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorCode)`""
 					Write-LogMessage -Type Error -Msg "Error Message: `"$($($_.ErrorDetails | ConvertFrom-Json).ErrorMessage)`""
 				}
 				catch  {
 					Write-LogMessage -Type Error -Msg "Error `"$($Error[1].ErrorDetails.Message)`""
 				}
+
 			}
 		}
 	}
