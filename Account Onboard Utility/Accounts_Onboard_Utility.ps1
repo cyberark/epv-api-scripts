@@ -23,6 +23,7 @@ Change Notes
 2023-04-19 -    Added Separate log file for errors, added output of CSV files for bad and good files
 2023-04-20 -    Suppressed error about unable to delete bad and good csv when they don't exist
 				Updated error output
+2023-06-20 -    Added more information in error logs
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -114,7 +115,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.3.4"
+$ScriptVersion = "2.4.0"
 
 # Set Log file path
 $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
@@ -615,7 +616,8 @@ Function Invoke-Rest {
 	} catch [System.Net.WebException] {
 		if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
 			If ("409" -ne $_.Exception.Response.StatusCode.value__){
-				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine" 
+				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine"
+				Write-LogMessage -Type Error -MSG "SafeName: `"$($global:workAccount.safeName)`" `nUsername: `"$($global:workAccount.userName)`" `nAddress: `"$($global:workAccount.Address)`" `nObject: `"$($global:workAccount.name)`""  
 				Write-LogMessage -Type Error -Msg "Error Message: $_"
 				Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
 				Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
@@ -1387,11 +1389,13 @@ If (![string]::IsNullOrEmpty($PVWAURL)) {
 		If (![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__)) {
 			Write-LogMessage -Type Error -MSG "Received error $($_.Exception.Response.StatusCode.Value__) when trying to validate PVWA URL"
 			Write-LogMessage -Type Error -MSG "Check your connection to PVWA and the PVWA URL"
-			return
+			Throw
+			
 		}
 	} catch {		
 		Write-LogMessage -Type Error -MSG "PVWA URL could not be validated"
 		Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+		Throw
 	}
 	
 } else {
@@ -1767,7 +1771,7 @@ ForEach ($account in $accountsCSV) {
 				} catch {
 					New-BadRecord $global:workAccount
 					Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine" 
-     					Write-LogMessage -Type Error -MSG "SafeName: `"$($objAccount.safeName)`" `nUsername: `"$($objAccount.userName)`" `nAddress: `"$($objAccount.Address)`" `nObject: `"$($objAccount.name)`"" 
+					Write-LogMessage -Type Error -MSG "SafeName: `"$($global:workAccount.safeName)`" `nUsername: `"$($global:workAccount.userName)`" `nAddress: `"$($global:workAccount.Address)`" `nObject: `"$($global:workAccount.name)`""
 					Write-LogMessage -Type Error -MSG "Error: $(Join-ExceptionMessage $_.Exception)"
 				}
 			} else {
