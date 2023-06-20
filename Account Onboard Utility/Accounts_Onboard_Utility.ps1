@@ -114,7 +114,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.3.3"
+$ScriptVersion = "2.3.4
 
 # Set Log file path
 $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
@@ -1472,7 +1472,7 @@ $delimiter = $(If ($CsvDelimiter -eq "Comma") {
 	} else {
 		"`t" 
  } )
-
+Write-LogMessage -Type Info -MSG "Reading CSV from :$CsvPath" 
 $csvPathGood = "$csvPath.good.csv"
 Remove-Item $csvPathGood -force -ErrorAction SilentlyContinue
 $csvPathBad = "$csvPath.bad.csv"
@@ -1767,6 +1767,7 @@ ForEach ($account in $accountsCSV) {
 				} catch {
 					New-BadRecord $global:workAccount
 					Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine" 
+     					Write-LogMessage -Type Error -MSG "SafeName: `"$($objAccount.safeName)`" `nUsername: `"$($objAccount.userName)`" `nAddress: `"$($objAccount.Address)`" `nObject: `'$($objAccount.name)`"" 
 					Write-LogMessage -Type Error -MSG "Error: $(Join-ExceptionMessage $_.Exception)"
 				}
 			} else {
