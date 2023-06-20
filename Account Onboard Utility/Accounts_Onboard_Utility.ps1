@@ -1767,7 +1767,7 @@ ForEach ($account in $accountsCSV) {
 				} catch {
 					New-BadRecord $global:workAccount
 					Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine" 
-     					Write-LogMessage -Type Error -MSG "SafeName: `"$($objAccount.safeName)`" `nUsername: `"$($objAccount.userName)`" `nAddress: `"$($objAccount.Address)`" `nObject: `'$($objAccount.name)`"" 
+     					Write-LogMessage -Type Error -MSG "SafeName: `"$($objAccount.safeName)`" `nUsername: `"$($objAccount.userName)`" `nAddress: `"$($objAccount.Address)`" `nObject: `"$($objAccount.name)`"" 
 					Write-LogMessage -Type Error -MSG "Error: $(Join-ExceptionMessage $_.Exception)"
 				}
 			} else {
