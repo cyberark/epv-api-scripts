@@ -24,6 +24,7 @@
  2.1.3  24/08/2022      - Bug fix for updating safe due to changes in APIs in version 12.5
  2.1.4  17/03/2023      - Fix for issue #317
  2.1.5  22/05/2023      - Added ability to prevent logoff
+ 2.1.6  2023-05-22      - Updated Write-LogMessage to force verbose and debug to log file
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = "List")]
 param
@@ -146,7 +147,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "2.1.5"
+$ScriptVersion = "2.1.6"
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -285,7 +286,8 @@ Function Write-LogMessage {
             "Debug" { 
                 if ($InDebug -or $InVerbose) {
                     Write-Debug $MSG
-                    $msgToWrite += "[DEBUG]`t$Msg"
+		    $writeToFile = $true
+                    $msgToWrite += "[DEBUG]`t$Msg"		    
                 } else {
                     $writeToFile = $False 
                 }
@@ -293,6 +295,7 @@ Function Write-LogMessage {
             "Verbose" { 
                 if ($InVerbose) {
                     Write-Verbose $MSG
+		    $writeToFile = $true
                     $msgToWrite += "[VERBOSE]`t$Msg"
                 } else {
                     $writeToFile = $False 
