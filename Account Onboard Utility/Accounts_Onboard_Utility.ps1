@@ -24,6 +24,7 @@ Change Notes
 2023-04-20 -    Suppressed error about unable to delete bad and good csv when they don't exist
 				Updated error output
 2023-06-20 -    Added more information in error logs
+2023-06-23 - 	Updated to prevent duplicate bad records
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -115,7 +116,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.4.0"
+$ScriptVersion = "2.4.1"
 
 # Set Log file path
 $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
