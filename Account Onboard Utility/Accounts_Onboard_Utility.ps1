@@ -24,6 +24,9 @@ Change Notes
 2023-04-20 -    Suppressed error about unable to delete bad and good csv when they don't exist
 				Updated error output
 2023-06-20 -    Added more information in error logs
+2023-06-23 - 	Updated to prevent duplicate bad records
+=======
+
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -115,7 +118,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.4.0"
+$ScriptVersion = "2.4.1"
 
 # Set Log file path
 $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
@@ -123,6 +126,8 @@ $global:LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility_$LOG_DATE.lo
 
 $InDebug = $PSBoundParameters.Debug.IsPresent
 $InVerbose = $PSBoundParameters.Verbose.IsPresent
+
+[hashtable]$Global:BadAccountHashTable = @{}
 
 # Global URLS
 # -----------
@@ -615,7 +620,7 @@ Function Invoke-Rest {
 		}
 	} catch [System.Net.WebException] {
 		if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
-			If ("409" -ne $_.Exception.Response.StatusCode.value__){
+			If ("409" -ne $_.Exception.Response.StatusCode.value__) {
 				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine"
 				Write-LogMessage -Type Error -MSG "SafeName: `"$($global:workAccount.safeName)`" `nUsername: `"$($global:workAccount.userName)`" `nAddress: `"$($global:workAccount.Address)`" `nObject: `"$($global:workAccount.name)`""  
 				Write-LogMessage -Type Error -Msg "Error Message: $_"
@@ -624,7 +629,7 @@ Function Invoke-Rest {
 				Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
 				$restResponse = $null
 				Throw
-			} else{
+			} else {
 				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine"
 				Write-LogMessage -Type Error -Msg "Duplicate Account Name. Assuming account already exists. If Update required run with -update"
 				$restResponse = $null
@@ -919,15 +924,21 @@ Function New-BadRecord {
 .DESCRIPTION
 	Outputs the bad record to a CSV file for correction and processing
 #>
-	try {
-		$global:workAccount | Export-Csv -Append -NoTypeInformation $csvPathBad
-		Write-LogMessage -Type Debug -MSG "Outputted Bad record to CSV"
-		Write-LogMessage -Type Verbose -MSG "Bad Record: $global:workAccount"
-	} catch {
-		Write-LogMessage -Type Error -MSG "Unable to outout bad record to file: $csvPathBad"
-		Write-LogMessage -Type Verbose -MSG "Bad Record: $global:workAccount"
+	If ($Global:BadAccountHashTable[$global:workAccount.name].count -eq 0) {
+		$Global:BadAccountHashTable.add($global:workAccount.name, $global:workAccount)
+		try {
+			$global:workAccount | Export-Csv -Append -NoTypeInformation $csvPathBad
+			Write-LogMessage -Type Debug -MSG "Outputted Bad record to CSV"
+			Write-LogMessage -Type Verbose -MSG "Bad Record: $global:workAccount"
+		} catch {
+			Write-LogMessage -Type Error -MSG "Unable to outout bad record to file: $csvPathBad"
+			Write-LogMessage -Type Verbose -MSG "Bad Record: $global:workAccount"
 
-	}		
+		}		
+	} else {
+		Write-LogMessage -Type Debug -MSG "Bad record was already output before. Skipping adding to bad CSV"
+	}
+	
 }
 
 # @FUNCTION@ ======================================================================================================================
@@ -1478,9 +1489,9 @@ $delimiter = $(If ($CsvDelimiter -eq "Comma") {
  } )
 Write-LogMessage -Type Info -MSG "Reading CSV from :$CsvPath" 
 $csvPathGood = "$csvPath.good.csv"
-Remove-Item $csvPathGood -force -ErrorAction SilentlyContinue
+Remove-Item $csvPathGood -Force -ErrorAction SilentlyContinue
 $csvPathBad = "$csvPath.bad.csv"
-Remove-Item $csvPathBad -force -ErrorAction SilentlyContinue
+Remove-Item $csvPathBad -Force -ErrorAction SilentlyContinue
 
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
 $rowCount = $($accountsCSV.Safe.Count)
@@ -1584,9 +1595,9 @@ ForEach ($account in $accountsCSV) {
 											$_bodyOp.op = "replace"
 											$_bodyOp.path = "/" + $sProp.Name + "/" + $subProp.Name
 											$_bodyOp.value = $objAccount.$($sProp.Name).$($subProp.Name)
-											If ($_bodyOp.value -eq $true){
+											If ($_bodyOp.value -eq $true) {
 												$_bodyOp.value = "true"
-											} elseif ($_bodyOp.value -eq $false){
+											} elseif ($_bodyOp.value -eq $false) {
 												$_bodyOp.value = "false"
 											}
 											$s_AccountBody += $_bodyOp
