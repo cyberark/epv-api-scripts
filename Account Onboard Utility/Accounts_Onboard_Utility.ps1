@@ -25,6 +25,7 @@ Change Notes
 				Updated error output
 2023-06-20 -    Added more information in error logs
 2023-06-23 - 	Updated to prevent duplicate bad records
+2023-06-25 -	Updated to add WideSearch and NarrowSearch
 =======
 
 
@@ -91,6 +92,14 @@ param(
 
 	[Parameter(Mandatory = $false)]
 	[Switch]$concurrentSession,
+
+	#Use this switch when "WideSeach" is enabled use to quicken seaches via name"
+	[Parameter(ParameterSetName = 'Update', Mandatory = $false)]
+	[Switch]$wideSearch,
+
+	#Use this switch to search by username, address, and platform when name is populated
+	[Parameter(ParameterSetName = 'Update', Mandatory = $false)]
+	[Switch]$NarrowSearch,
 
 	[Parameter(ParameterSetName = 'Update', Mandatory = $false)]
 	[Switch]$CreateOnUpdate,
@@ -1056,13 +1065,16 @@ Function Get-Account {
 		# Create a dynamic filter array
 		$WhereArray = @()
 		# Search only by Account Object Name
-		If (-not [string]::IsNullOrEmpty($accountObjectName)) {
+		If (-not [string]::IsNullOrEmpty($accountObjectName) -and ($wideSearch)) {
+			Write-LogMessage -Type Debug -MSG "Searching accounts by Account name"
+			$urlSearchAccount = $URL_Accounts + "?filter=safename eq $(ConvertTo-URL $safeName)&search=$(ConvertTo-URL $accountObjectName)"
+			$WhereArray += '$_.name -eq $accountObjectName' 
+		} elseIf (-not [string]::IsNullOrEmpty($accountObjectName) -and -not ($narrowSearch)) {
 			Write-LogMessage -Type Debug -MSG "Searching accounts by Account name"
 			$urlSearchAccount = $URL_Accounts + "?filter=safename eq $(ConvertTo-URL $safeName)"
 			$WhereArray += '$_.name -eq $accountObjectName' 
-		}
-		# Search according to other parameters (User name, address, platform)
-		else {
+		} else {
+			# Search according to other parameters (User name, address, platform)
 			Write-LogMessage -Type Debug -MSG "Searching accounts by Account details (user name, address, platform)"
 			$urlSearchAccount = $URL_Accounts + "?filter=safename eq $(ConvertTo-URL $safeName)&search=$(ConvertTo-URL $accountName) $(ConvertTo-URL $accountAddress)"
 			If (-not [string]::IsNullOrEmpty($accountName)) {
@@ -1074,6 +1086,9 @@ Function Get-Account {
 			If (-not [string]::IsNullOrEmpty($accountPlatformID)) {
 				$WhereArray += '$_.platformId -eq $accountPlatformID' 
    }
+			If (-not [string]::IsNullOrEmpty($accountObjectName)) {
+				$WhereArray += '$_.name -eq $accountObjectName'
+			}
 		}
 		try {
 			# Search for accounts
@@ -1589,7 +1604,7 @@ ForEach ($account in $accountsCSV) {
 									ForEach ($subProp in $s_Account.($sProp.Name).PSObject.Properties) { 
 										Write-LogMessage -Type Verbose -MSG "Inspecting Account Property $($subProp.Name)"
 										$s_ExcludeProperties += $subProp.Name
-										If (($null -ne $objAccount.$($sProp.Name).$($subProp.Name)) -and ($objAccount.$($sProp.Name).$($subProp.Name) -ne $subProp.Value)) {
+										If (($null -ne $objAccount.$($sProp.Value)) -or ($null -ne $objAccount.$($sProp.Name).$($subProp.Name)) -and ($objAccount.$($sProp.Name).$($subProp.Name) -ne $subProp.Value)) {
 											Write-LogMessage -Type Verbose -MSG "Updating Account Property $($subProp.Name) value from: '$($subProp.Value)' to: '$($objAccount.$($sProp.Name).$($subProp.Name))'"
 											$_bodyOp = "" | Select-Object "op", "path", "value"
 											$_bodyOp.op = "replace"
