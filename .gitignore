@@ -5,7 +5,5 @@
 
 Reset Credential Files Remotely/Vault.ini
 .vscode/settings.json
-Safe Management/test.csv
 plink.exe
-
-Account Onboard Utility/test.csv
+*test.csv

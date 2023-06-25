@@ -23,6 +23,12 @@ Change Notes
 2023-04-19 -    Added Separate log file for errors, added output of CSV files for bad and good files
 2023-04-20 -    Suppressed error about unable to delete bad and good csv when they don't exist
 				Updated error output
+2023-06-20 -    Added more information in error logs
+2023-06-23 - 	Updated to prevent duplicate bad records
+
+2023-06-25 -	Updated to add WideSearch and NarrowSearch
+=======
+
 
 ########################################################################### #>
 [CmdletBinding()]
@@ -88,6 +94,14 @@ param(
 	[Parameter(Mandatory = $false)]
 	[Switch]$concurrentSession,
 
+	#Use this switch when "WideSeach" is enabled use to quicken seaches via name"
+	[Parameter(ParameterSetName = 'Update', Mandatory = $false)]
+	[Switch]$wideSearch,
+
+	#Use this switch to search by username, address, and platform when name is populated
+	[Parameter(ParameterSetName = 'Update', Mandatory = $false)]
+	[Switch]$NarrowSearch,
+
 	[Parameter(ParameterSetName = 'Update', Mandatory = $false)]
 	[Switch]$CreateOnUpdate,
 
@@ -114,7 +128,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = "2.3.3"
+$ScriptVersion = "2.4.2"
 
 # Set Log file path
 $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
@@ -122,6 +136,8 @@ $global:LOG_FILE_PATH = "$ScriptLocation\Account_Onboarding_Utility_$LOG_DATE.lo
 
 $InDebug = $PSBoundParameters.Debug.IsPresent
 $InVerbose = $PSBoundParameters.Verbose.IsPresent
+
+[hashtable]$Global:BadAccountHashTable = @{}
 
 # Global URLS
 # -----------
@@ -614,15 +630,16 @@ Function Invoke-Rest {
 		}
 	} catch [System.Net.WebException] {
 		if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
-			If ("409" -ne $_.Exception.Response.StatusCode.value__){
-				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine" 
+			If ("409" -ne $_.Exception.Response.StatusCode.value__) {
+				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine"
+				Write-LogMessage -Type Error -MSG "SafeName: `"$($global:workAccount.safeName)`" `nUsername: `"$($global:workAccount.userName)`" `nAddress: `"$($global:workAccount.Address)`" `nObject: `"$($global:workAccount.name)`""  
 				Write-LogMessage -Type Error -Msg "Error Message: $_"
 				Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
 				Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
 				Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
 				$restResponse = $null
 				Throw
-			} else{
+			} else {
 				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine"
 				Write-LogMessage -Type Error -Msg "Duplicate Account Name. Assuming account already exists. If Update required run with -update"
 				$restResponse = $null
@@ -917,15 +934,21 @@ Function New-BadRecord {
 .DESCRIPTION
 	Outputs the bad record to a CSV file for correction and processing
 #>
-	try {
-		$global:workAccount | Export-Csv -Append -NoTypeInformation $csvPathBad
-		Write-LogMessage -Type Debug -MSG "Outputted Bad record to CSV"
-		Write-LogMessage -Type Verbose -MSG "Bad Record: $global:workAccount"
-	} catch {
-		Write-LogMessage -Type Error -MSG "Unable to outout bad record to file: $csvPathBad"
-		Write-LogMessage -Type Verbose -MSG "Bad Record: $global:workAccount"
+	If ($Global:BadAccountHashTable[$global:workAccount.name].count -eq 0) {
+		$Global:BadAccountHashTable.add($global:workAccount.name, $global:workAccount)
+		try {
+			$global:workAccount | Export-Csv -Append -NoTypeInformation $csvPathBad
+			Write-LogMessage -Type Debug -MSG "Outputted Bad record to CSV"
+			Write-LogMessage -Type Verbose -MSG "Bad Record: $global:workAccount"
+		} catch {
+			Write-LogMessage -Type Error -MSG "Unable to outout bad record to file: $csvPathBad"
+			Write-LogMessage -Type Verbose -MSG "Bad Record: $global:workAccount"
 
-	}		
+		}		
+	} else {
+		Write-LogMessage -Type Debug -MSG "Bad record was already output before. Skipping adding to bad CSV"
+	}
+	
 }
 
 # @FUNCTION@ ======================================================================================================================
@@ -1043,13 +1066,16 @@ Function Get-Account {
 		# Create a dynamic filter array
 		$WhereArray = @()
 		# Search only by Account Object Name
-		If (-not [string]::IsNullOrEmpty($accountObjectName)) {
+		If (-not [string]::IsNullOrEmpty($accountObjectName) -and ($wideSearch)) {
+			Write-LogMessage -Type Debug -MSG "Searching accounts by Account name"
+			$urlSearchAccount = $URL_Accounts + "?filter=safename eq $(ConvertTo-URL $safeName)&search=$(ConvertTo-URL $accountObjectName)"
+			$WhereArray += '$_.name -eq $accountObjectName' 
+		} elseIf (-not [string]::IsNullOrEmpty($accountObjectName) -and -not ($narrowSearch)) {
 			Write-LogMessage -Type Debug -MSG "Searching accounts by Account name"
 			$urlSearchAccount = $URL_Accounts + "?filter=safename eq $(ConvertTo-URL $safeName)"
 			$WhereArray += '$_.name -eq $accountObjectName' 
-		}
-		# Search according to other parameters (User name, address, platform)
-		else {
+		} else {
+			# Search according to other parameters (User name, address, platform)
 			Write-LogMessage -Type Debug -MSG "Searching accounts by Account details (user name, address, platform)"
 			$urlSearchAccount = $URL_Accounts + "?filter=safename eq $(ConvertTo-URL $safeName)&search=$(ConvertTo-URL $accountName) $(ConvertTo-URL $accountAddress)"
 			If (-not [string]::IsNullOrEmpty($accountName)) {
@@ -1061,6 +1087,9 @@ Function Get-Account {
 			If (-not [string]::IsNullOrEmpty($accountPlatformID)) {
 				$WhereArray += '$_.platformId -eq $accountPlatformID' 
    }
+			If (-not [string]::IsNullOrEmpty($accountObjectName)) {
+				$WhereArray += '$_.name -eq $accountObjectName'
+			}
 		}
 		try {
 			# Search for accounts
@@ -1387,11 +1416,13 @@ If (![string]::IsNullOrEmpty($PVWAURL)) {
 		If (![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__)) {
 			Write-LogMessage -Type Error -MSG "Received error $($_.Exception.Response.StatusCode.Value__) when trying to validate PVWA URL"
 			Write-LogMessage -Type Error -MSG "Check your connection to PVWA and the PVWA URL"
-			return
+			Throw
+			
 		}
 	} catch {		
 		Write-LogMessage -Type Error -MSG "PVWA URL could not be validated"
 		Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+		Throw
 	}
 	
 } else {
@@ -1472,11 +1503,11 @@ $delimiter = $(If ($CsvDelimiter -eq "Comma") {
 	} else {
 		"`t" 
  } )
-
+Write-LogMessage -Type Info -MSG "Reading CSV from :$CsvPath" 
 $csvPathGood = "$csvPath.good.csv"
-Remove-Item $csvPathGood -force -ErrorAction SilentlyContinue
+Remove-Item $csvPathGood -Force -ErrorAction SilentlyContinue
 $csvPathBad = "$csvPath.bad.csv"
-Remove-Item $csvPathBad -force -ErrorAction SilentlyContinue
+Remove-Item $csvPathBad -Force -ErrorAction SilentlyContinue
 
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
 $rowCount = $($accountsCSV.Safe.Count)
@@ -1574,15 +1605,15 @@ ForEach ($account in $accountsCSV) {
 									ForEach ($subProp in $s_Account.($sProp.Name).PSObject.Properties) { 
 										Write-LogMessage -Type Verbose -MSG "Inspecting Account Property $($subProp.Name)"
 										$s_ExcludeProperties += $subProp.Name
-										If (($null -ne $objAccount.$($sProp.Name).$($subProp.Name)) -and ($objAccount.$($sProp.Name).$($subProp.Name) -ne $subProp.Value)) {
+										If (($null -ne $objAccount.$($sProp.Value)) -or ($null -ne $objAccount.$($sProp.Name).$($subProp.Name)) -and ($objAccount.$($sProp.Name).$($subProp.Name) -ne $subProp.Value)) {
 											Write-LogMessage -Type Verbose -MSG "Updating Account Property $($subProp.Name) value from: '$($subProp.Value)' to: '$($objAccount.$($sProp.Name).$($subProp.Name))'"
 											$_bodyOp = "" | Select-Object "op", "path", "value"
 											$_bodyOp.op = "replace"
 											$_bodyOp.path = "/" + $sProp.Name + "/" + $subProp.Name
 											$_bodyOp.value = $objAccount.$($sProp.Name).$($subProp.Name)
-											If ($_bodyOp.value -eq $true){
+											If ($_bodyOp.value -eq $true) {
 												$_bodyOp.value = "true"
-											} elseif ($_bodyOp.value -eq $false){
+											} elseif ($_bodyOp.value -eq $false) {
 												$_bodyOp.value = "false"
 											}
 											$s_AccountBody += $_bodyOp
@@ -1767,6 +1798,7 @@ ForEach ($account in $accountsCSV) {
 				} catch {
 					New-BadRecord $global:workAccount
 					Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine" 
+					Write-LogMessage -Type Error -MSG "SafeName: `"$($global:workAccount.safeName)`" `nUsername: `"$($global:workAccount.userName)`" `nAddress: `"$($global:workAccount.Address)`" `nObject: `"$($global:workAccount.name)`""
 					Write-LogMessage -Type Error -MSG "Error: $(Join-ExceptionMessage $_.Exception)"
 				}
 			} else {
