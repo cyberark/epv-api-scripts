@@ -1,4 +1,4 @@
-# Account Onboard Utility
+# Migrate Via Rest
 
 > **Note:** The content of the sample_accounts.csv is for example only and does not represent real accounts
 
@@ -26,14 +26,14 @@ There are six FC's that are required to be added to the platform if an account h
 
 ## Parameters:
 ```powershell
-Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-AuthType] [-OTP] [-TemplateSafe] [-CsvPath] [-CsvDelimiter] [-DisableSSLVerify] [-NoSafeCreation] [-DisableAutoUpdate] [-CreateOnUpdate] -[ConcurrentSession] [-BypassSafeSearch] [-BypassAccountSearch]
+Migrate.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-AuthType] [-OTP] [-TemplateSafe] [-CsvPath] [-CsvDelimiter] [-DisableSSLVerify] [-NoSafeCreation] [-DisableAutoUpdate] [-CreateOnUpdate] -[ConcurrentSession] [-BypassSafeSearch] [-BypassAccountSearch]
 ```
 - PVWAURL
 	- The URL of the PVWA that you are working with. 
 	- Note that the URL needs to include 'PasswordVault', for example: "https://myPVWA.myDomain.com/PasswordVault"
 	- When working with PVWA behind a load balancer, note that the session must be defined as sticky session. Alternatively, work with a single node PVWA
 - LogonToken
-	- The logon token when using Privilege Cloud Shared Services (ISPSS)
+	- The logon token when using Privlage Cloud Shared Services (ISPSS)
 	- To generate Token See https://github.com/cyberark/epv-api-scripts/tree/main/Identity%20Authentication 
 - DisableSSLVerify
 	**(NOT RECOMMENDED)**
@@ -66,15 +66,6 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-A
 - CreateOnUpdate
 	- By default, the script will automatically not create new accounts when in update mode
 	- Using this switch will automatic create accounts that do not exist when running in update mode
-- WideAccountsSearch
-	- By default, the script will not search by account object name assuming WideAccountsSearch is set to "no"
-	- Using this switch when "WideAccountsSearch" is set to "Yes" to greatly increase search speeds
-- NarrowSearch
-	- By default, the script when "name" is populated searches are done by getting all accounts from a safe, then comparing names in PowerShell
-	- Using this switch will search the safe by username and address, then do compare of name in PowerShell
-- ignoreAccountName
-	- By default, the script will automatically compare the account "name" when searching.
-	- Using this switch will ignore "name" when searching for accounts to update. Use this if account name could be different
 - ConcurrentSession
 	- By default, Any sessions logged into will be disconnected.
 	- Using this switch will allow for Concurrent Sessions for the user. This includes additional REST API calls (Which must also be set to ConcurrentSession) or allow for connected PVWA user sessions to remain.
@@ -85,7 +76,7 @@ Accounts_Onboard_Utility.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-A
 	- By default, the script will automatically search for requested accounts to determine if they exist. This search is done via "name" property or a combination of "username" and "address" if "name" is not present
 	- Using this switch in create mode will assume that the account does not exist and will attempt to create them. If the name property is populated only duplicate "name" properties will be detected and will cause a failure.  If the "name" property is not populated, there is no checking for duplicate accounts and all other scenarios MAY result in duplicates. USE WITH EXTREME CAUTION. 
 
-### Create Command:
+### Export Command:
 ```powershell
 Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Create [-CPM_NAME <sting>] [-AuthType <string>] [-LogonToken $token] [-OTP <string>] [-TemplateSafe <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [-NoSafeCreation] [<CommonParameters>]
 ```
@@ -115,7 +106,7 @@ If you want to Create Accounts and bypass account searches:
 & .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\accounts.csv -Create -BypassAccountSearch
 ```
 
-### Update Command:
+### ProcessSafes Command:
 ```powershell
 Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Update [-CPM_NAME <sting>] [-AuthType <string>] [-LogonToken $token] [-OTP <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [-NoSafeCreation] [<CommonParameters>]
 ```
@@ -139,7 +130,7 @@ If you want to Update Accounts and bypass safes searches:
 & .\Accounts_Onboard_Utility.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\accounts.csv -Update -BypassSafeSearch
 ```
 
-### Delete Command:
+### ProcessAccounts Command:
 ```powershell
 Accounts_Onboard_Utility.ps1 -PVWAURL <string> -Delete [-AuthType <string>] [-LogonToken $token] [-OTP <string>] [-CsvPath <string>] [-CsvDelimiter <string>] [-DisableSSLVerify] [<CommonParameters>]
 ```

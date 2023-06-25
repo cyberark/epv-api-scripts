@@ -70,12 +70,12 @@ param(
         ValueFromPipelineByPropertyName=$true)]
     [ValidateScript({Test-Path -Path $_ -PathType Leaf -IsValid})]
     [ValidatePattern('\.csv$')]
-    $exportCSV="$($env:TEMP)\ExportOfAccounts.csv",
+    $exportCSV=".\ExportOfAccounts.csv",
 
     [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
     [ValidatePattern( '\.csv$' )]
-    $importCSV="$($env:TEMP)\ExportOfAccounts.csv",
+    $importCSV=".\ExportOfAccounts.csv",
 
 
     [Parameter(Mandatory=$false)]
