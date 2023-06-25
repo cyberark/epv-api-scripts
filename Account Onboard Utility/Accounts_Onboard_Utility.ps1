@@ -1093,7 +1093,8 @@ The Account Safe Name to search in
 				If (-not [string]::IsNullOrEmpty($accountObjectName)) {
 					$WhereArray += '$_.name -eq $accountObjectName'
 				}
-   }
+			}
+		}
 		try {
 			# Search for accounts
 			$GetAccountsResponse = $(Invoke-Rest -Uri $urlSearchAccount -Header $g_LogonHeader -Command "Get" -ErrAction $ErrAction)
