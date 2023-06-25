@@ -25,6 +25,7 @@ Change Notes
 				Updated error output
 2023-06-20 -    Added more information in error logs
 2023-06-23 - 	Updated to prevent duplicate bad records
+
 2023-06-25 -	Updated to add WideSearch and NarrowSearch
 =======
 
