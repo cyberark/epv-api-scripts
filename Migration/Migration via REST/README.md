@@ -1,7 +1,7 @@
 # Migrate Via Rest
 
 
-### IN PROGRESS NOT UP TO DATE
+### IN PROGRESS NOT UP TO DATE AND THIS IS BEING USED AS A TEMPLATE NOTHING IN THESE DIRECTIONS ARE TO BE USED WITH Migrate.ps1 AT THIS TIME
 
 > **Note:** The content of the sample_accounts.csv is for example only and does not represent real accounts
 
