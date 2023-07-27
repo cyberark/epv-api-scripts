@@ -181,7 +181,7 @@ If (![string]::IsNullOrEmpty($srclogonToken)) {
     } else {
         Set-Variable -Scope Global -Name srcToken -Value $srclogonToken
     }
-} elseif ([string]::IsNullOrEmpty($SRCPVWACredentials) -and [sting]::IsNullOrEmpty($srclogonToken)) {
+} else {
     If (![string]::IsNullOrEmpty($srcPVWACredentials)) {
         $creds = $srcPVWACredentials
     } else {
@@ -199,13 +199,10 @@ If (![string]::IsNullOrEmpty($srclogonToken)) {
     # Verify that we successfully logged on
     If ($null -eq $srcToken) { 
         return # No logon header, end script 
-    }
-} else { 
+    } else { 
     Write-LogMessage -Type Error -MSG "No Source Credentials were entered" -Footer
-    return
-}
+    }
 $creds = $null
-
 
 if ($export) {
     $srcToken
