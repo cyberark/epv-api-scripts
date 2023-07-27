@@ -181,7 +181,7 @@ If (![string]::IsNullOrEmpty($srclogonToken)) {
     } else {
         Set-Variable -Scope Global -Name srcToken -Value $srclogonToken
     }
-} elseif ([string]::IsNullOrEmpty($creds) -and [sting]::($srclogonToken)) {
+} elseif ([string]::IsNullOrEmpty($SRCPVWACredentials) -and [sting]::($srclogonToken)) {
     If (![string]::IsNullOrEmpty($srcPVWACredentials)) {
         $creds = $srcPVWACredentials
     } else {
