@@ -221,37 +221,34 @@ if ($processSafes -or $processAccounts) {
     Test-PVWA -PVWAURL $DSTPVWAURL
 
     Write-LogMessage -Type Info -MSG "Getting Destination Logon Tokens"
-    If (![string]::IsNullOrEmpty($dstlogonToken)) {
-        if ($dstlogonToken.GetType().name -eq "String") {
-            $logonHeader = @{Authorization = $dstlogonToken }
-            Set-Variable -Scope Global -Name dstToken -Value $logonHeader
-        } else {
-            Set-Variable -Scope Global -Name dstToken -Value $dstlogonToken
-        }
-        
-    } elseif ($null -eq $creds) {
-        If (![string]::IsNullOrEmpty($dstPVWACredentials)) {
-            $creds = $dstPVWACredentials
-        } else {
-            $msg = "Enter your Destination $dstAuthType User name and Password" 
-            $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
-        }
-        New-Variable -Name AuthType -Value $DstAuthType -Scope Global -Force
-        Import-Module -Name ".\CyberArk-Migration.psm1" -Force
-        if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-            Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $DstAuthType -URL $DSTPVWAURL -OTP $OTP)
-        } else {
-            Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $DstAuthType -URL $DSTPVWAURL -OTP $OTP)
-        }
-        # Verify that we successfully logged on
-        If ($null -eq $dstToken) { 
-            return # No logon header, end script 
-        }
-    } else { 
-        Write-LogMessage -Type Error -MSG "No Destination Credentials were entered" -Footer
-        return
+If (![string]::IsNullOrEmpty($dstlogonToken)) {
+    if ($dstlogonToken.GetType().name -eq "String") {
+        $logonHeader = @{Authorization = $srclogonToken }
+        Set-Variable -Scope Global -Name dstToken -Value $logonHeader
+    } else {
+        Set-Variable -Scope Global -Name dstToken -Value $dstlogonToken
     }
-}
+} else {
+    If (![string]::IsNullOrEmpty($dstVWACredentials)) {
+        $creds = $dstPVWACredentials
+    } else {
+        $msg = "Enter your source $dstAuthType User name and Password" 
+        $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
+    }
+    New-Variable -Name AuthType -Value $dstAuthType -Scope Global -Force
+    Import-Module -Name ".\CyberArk-Migration.psm1" -Force
+
+    if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
+        Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $SRCPVWAURL -OTP $OTP)
+    } else {
+        Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $SRCPVWAURL )
+    }
+    # Verify that we successfully logged on
+    If ($null -eq $dstToken) { 
+    Write-LogMessage -Type Error -MSG "No Destination Credentials were entered" -Footer
+        return # No logon header, end script 
+    } 
+$creds = $null
 
 if ($processSafes) {
     
