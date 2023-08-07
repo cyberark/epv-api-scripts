@@ -45,7 +45,7 @@ Export-Import-Platform.ps1 -ExportAll -PVWAURL <PVWA URL> -PlatformZipPath <The 
 ### Import Command:
 ```powershell
 Export-Import-Platform.ps1 -Import -PVWAURL <PVWA URL> [-AuthType <string>] -PlatformZipPath <The path of the Platform ZIP to import> [<CommonParameters>]
-Export-Import-Platform.ps1 -Import -PVWAURL <PVWA URL> [-AuthType <string>] -Bulk -CSVPath <The path of the CSV for import> [<CommonParameters>]
+Export-Import-Platform.ps1 -Import -PVWAURL <PVWA URL> [-AuthType <string>] -CSVPath <The path of the CSV for import> [<CommonParameters>]
 ```
 ### ImportFile Command:
 ```powershell
