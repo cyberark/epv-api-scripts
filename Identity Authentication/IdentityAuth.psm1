@@ -9,11 +9,17 @@ Function Get-IdentityHeader {
         Each option is then being decided by the user. Once authentication is complete we get a token for the user to use for APIs within the ISPSS platform. 
     
     .PARAMETER IdentityTenantURL
-        The URL of the tenant. you can find it if you go to Identity Admin Portal > constimization > Tenant URL.
+        The URL of the tenant. you can find it if you go to Identity Admin Portal > Settings > Customization > Tenant URL.
     
     .Parameter IdentityUserName
         The Username that will log into the system. It just needs the username, we will ask for PW, Push etc when doing the authentication.
     
+    .Parameter PCloudSubdomain
+        The Subdomain assigned to the privileged cloud environment.
+
+    .Parameter psPASFormat
+        Use this switch to output the token in a format that PSPas can consume directly.
+
     #>
     [CmdletBinding()]
     Param (
@@ -35,8 +41,8 @@ Function Get-IdentityHeader {
         [switch]$psPASFormat,
         [Parameter(
             Mandatory = $false,
-            HelpMessage = "PCloud Tenant API URL")]
-        [string]$PCloudTenantAPIURL
+            HelpMessage = "Subdomain of the privileged cloud environment")]
+        [string]$PCloudSubdomain
             
     )
     $ScriptFullPath = Get-Location
@@ -47,12 +53,14 @@ Function Get-IdentityHeader {
 
     #Platform Identity API
     
-    if($IdentityTenantURL -match "https://"){
+    if ($IdentityTenantURL -match "https://") {
         $IdaptiveBasePlatformURL = $IdentityTenantURL
-    } Else{
+    } Else {
         $IdaptiveBasePlatformURL = "https://$IdentityTenantURL"
     }
     
+    $PCloudTenantAPIURL = "https://$PCloudSubdomain.privilegecloud.cyberark.cloud/PasswordVault/"
+
     Write-LogMessage -type "Verbose" -MSG "URL used : $($IdaptiveBasePlatformURL|ConvertTo-Json)"
     
     #Creating URLs
@@ -66,14 +74,71 @@ Function Get-IdentityHeader {
     
     $startPlatformAPIBody = @{TenantId = $IdentityTenantId; User = $IdentityUserName ; Version = "1.0"} | ConvertTo-Json -Compress
     Write-LogMessage -type "Verbose" -MSG "URL body : $($startPlatformAPIBody|ConvertTo-Json)"
-    
-    $IdaptiveResponse = Invoke-RestMethod -Uri $startPlatformAPIAuth -Method Post -ContentType "application/json" -Body $startPlatformAPIBody -TimeoutSec 30
+    $IdaptiveResponse = Invoke-RestMethod -SessionVariable session -Uri $startPlatformAPIAuth -Method Post -ContentType "application/json" -Body $startPlatformAPIBody -TimeoutSec 30
     Write-LogMessage -type "Verbose" -MSG "IdaptiveResponse : $($IdaptiveResponse|ConvertTo-Json)"
     
     # We can use the following to give info to the customer $IdaptiveResponse.Result.Challenges.mechanisms
-    $j = 1
+    
     $SessionId = $($IdaptiveResponse.Result.SessionId)
     Write-LogMessage -type "Verbose" -MSG "SessionId : $($SessionId |ConvertTo-Json)"
+
+    IF (![string]::IsNullOrEmpty($IdaptiveResponse.Result.IdpRedirectUrl)) {
+        IF ([string]::IsNullOrEmpty($PCloudSubdomain)) {
+            $PCloudSubdomain = Read-Host -Prompt "The Privilege Cloud Subdomain is required when using SAML. Please enter it"            
+        }
+        $OriginalProgressPreference = $Global:ProgressPreference
+        $Global:ProgressPreference = 'SilentlyContinue'
+        IF (Test-NetConnection -InformationLevel Quiet -port 443 "$PCloudSubdomain.privilegecloud.cyberark.cloud"){
+            $PCloudTenantAPIURL = "https://$PCloudSubdomain.privilegecloud.cyberark.cloud/PasswordVault/"
+            $Global:ProgressPreference = $OriginalProgressPreference
+        }
+        else {
+            $Global:ProgressPreference = $OriginalProgressPreference
+            Write-LogMessage -type Error -MSG "Error during subdomain validation: Unable to contact https://$PCloudSubdomain.privilegecloud.cyberark.cloud"
+            exit
+        }
+        $AnswerToResponse = Invoke-SAMLLogon $IdaptiveResponse
+    } else {
+        $AnswerToResponse = Invoke-Challenge $IdaptiveResponse 
+    }
+
+    If ($AnswerToResponse.success) {
+        #Creating Header
+        If (!$psPASFormat) {
+            $IdentityHeaders = @{Authorization = "Bearer $($AnswerToResponse.Result.Token)"}
+            $IdentityHeaders.Add("X-IDAP-NATIVE-CLIENT", "true")
+        } else {
+            $ExternalVersion = Get-PCloudExternalVersion -PCloudTenantAPIURL $PCloudTenantAPIURL -Token $AnswerToResponse.Result.Token
+            $header = New-Object System.Collections.Generic.Dictionary"[String,string]"
+            $header.add("Authorization", "Bearer $($AnswerToResponse.Result.Token)")
+            $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+            $session.Headers = $header
+            $IdentityHeaders = [PSCustomObject]@{
+                User            = $IdentityUserName
+                BaseURI         = $PCloudTenantAPIURL
+                ExternalVersion = $ExternalVersion
+                WebSession      = $session
+            }
+            $IdentityHeaders.PSObject.TypeNames.Insert(0, 'psPAS.CyberArk.Vault.Session')
+        }
+        Write-LogMessage -type "Verbose" -MSG "IdentityHeaders - $($IdentityHeaders |ConvertTo-Json)"
+        Write-LogMessage -type "Info" -MSG "Identity Token Set Successfully"
+        return $identityHeaders
+    } else {
+        Write-LogMessage -type "Verbose" -MSG "identityHeaders: $($AnswerToResponse|ConvertTo-Json)" 
+        Write-LogMessage -type Error -MSG "Error during logon : $($AnswerToResponse.Message)" 
+    }
+}
+    
+Function Invoke-Challenge {
+    [CmdletBinding()]
+    Param (
+        [Parameter(
+            Mandatory = $true)]
+        [array]$IdaptiveResponse
+    )
+
+    $j = 1
     ForEach ($challenge in $IdaptiveResponse.Result.Challenges) {
         #reseting variables
         $Mechanism = $null
@@ -94,7 +159,7 @@ Function Get-IdentityHeader {
                 $mechanismsName = $mechanismsOption.Name
                 $MechanismsMechChosen = $mechanismsOption.PromptMechChosen
                 Write-LogMessage -type "Info" -MSG "$i - is $mechanismsName - $MechanismsMechChosen"
-                $i=$i+1
+                $i = $i + 1
             }
             #Requesting to know which option the user wants to use
             $Option = $Null
@@ -107,7 +172,7 @@ Function Get-IdentityHeader {
                 }
             }
             #Getting the mechanism
-            $Mechanism = $challenge.mechanisms[$Option-1] #This is an array so number-1 means the actual position
+            $Mechanism = $challenge.mechanisms[$Option - 1] #This is an array so number-1 means the actual position
             #Completing step of authentication
             $AnswerToResponse = Invoke-AdvancedAuthBody -SessionId $SessionId -Mechanism $Mechanism -IdentityTenantId $IdentityTenantId
             Write-LogMessage -type "Verbose" -MSG "AnswerToResponce - $($AnswerToResponse |ConvertTo-Json)"
@@ -122,37 +187,14 @@ Function Get-IdentityHeader {
             Write-LogMessage -type "Verbose" -MSG "AnswerToResponce - $($AnswerToResponse |ConvertTo-Json)"
         }
         #Need Better logic here to make sure that we are done with all the challenges correctly and got next challenge.  
-        $j=$j+1 #incrementing the challenge number
+        $j = + 1 #incrementing the challenge number
     }
-    If ($AnswerToResponse.success){
-    #Creating Header
-        If (!$psPASFormat){
-            $IdentityHeaders = @{Authorization = "Bearer $($AnswerToResponse.Result.Token)"}
-            $IdentityHeaders.Add("X-IDAP-NATIVE-CLIENT","true")
-        } else {
-            $ExternalVersion = Get-PCloudExternalVersion -PCloudTenantAPIURL $PCloudTenantAPIURL -Token $AnswerToResponse.Result.Token
 
-            $header = New-Object System.Collections.Generic.Dictionary"[String,string]"
-            $header.add("Authorization","Bearer $($AnswerToResponse.Result.Token)")
-            $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-            $session.Headers = $header
-            $IdentityHeaders = [PSCustomObject]@{
-                User            = $IdentityUserName
-                BaseURI         = $PCloudTenantAPIURL
-                ExternalVersion = $ExternalVersion
-                WebSession      = $session
-            }
-            $IdentityHeaders.PSObject.TypeNames.Insert(0, 'psPAS.CyberArk.Vault.Session')
-        }
-        Write-LogMessage -type "Verbose" -MSG "IdentityHeaders - $($IdentityHeaders |ConvertTo-Json)"
-        return $identityHeaders
-    }
-    else {
-        Write-LogMessage -type "Verbose" -MSG "identityHeaders: $($AnswerToResponse|ConvertTo-Json)" 
-        Write-LogMessage -type Error -MSG "Error during logon : $($AnswerToResponse.Message)" 
-    }
+    Return $AnswerToResponse
+
+
+
 }
-    
     
 #Runs an advanceAuth API. It will wait in the loop if needed
 Function Invoke-AdvancedAuthBody {
@@ -279,11 +321,13 @@ Function Write-LogMessage {
         $msgToWrite = "[$(Get-Date -Format "yyyy-MM-dd hh:mm:ss")]`t"
         if ($InDebug -or $InVerbose) {
             $writeToFile = $true
-        } Else{
+        } Else {
             $writeToFile = $false
         }
         # Replace empty message with 'N/A'
-        if ([string]::IsNullOrEmpty($Msg)) { $Msg = "N/A" }
+        if ([string]::IsNullOrEmpty($Msg)) {
+            $Msg = "N/A" 
+        }
             
         # Mask Passwords
         if ($Msg -match '((?:password|credentials|secret)\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w`~!@#$%^&*()-_\=\+\\\/|;:\.,\[\]{}]+))') {
@@ -293,7 +337,13 @@ Function Write-LogMessage {
         switch ($type) {
             { ($_ -eq "Info") -or ($_ -eq "LogOnly") } { 
                 If ($_ -eq "Info") {
-                    Write-Host $MSG.ToString() -ForegroundColor $(If ($Header -or $SubHeader) { "magenta" } Elseif ($Early) { "DarkGray" } Else { "White" })
+                    Write-Host $MSG.ToString() -ForegroundColor $(If ($Header -or $SubHeader) {
+                            "magenta" 
+                        } Elseif ($Early) {
+                            "DarkGray" 
+                        } Else {
+                            "White" 
+                        })
                 }
                 $msgToWrite += "[INFO]`t$Msg"
             }
@@ -314,23 +364,142 @@ Function Write-LogMessage {
                     $writeToFile = $true
                     Write-Debug $MSG
                     $msgToWrite += "[DEBUG]`t$Msg"
-                } else { $writeToFile = $False }
+                } else {
+                    $writeToFile = $False 
+                }
             }
             "Verbose" { 
                 if ($InVerbose) {
                     $writeToFile = $true
                     Write-Verbose -Msg $MSG
                     $msgToWrite += "[VERBOSE]`t$Msg"
-                } else { $writeToFile = $False }
+                } else {
+                    $writeToFile = $False 
+                }
             }
         }
     
-        If ($writeToFile) { $msgToWrite | Out-File -Append -FilePath $LogFile }
+        If ($writeToFile) {
+            $msgToWrite | Out-File -Append -FilePath $LogFile 
+        }
         If ($Footer) { 
             "=======================================" | Out-File -Append -FilePath $LogFile 
             Write-Host "=======================================" -ForegroundColor Magenta
         }
     } catch {
         Throw $(New-Object System.Exception ("Cannot write message"), $_.Exception)
+    }
+}
+
+function Invoke-SAMLLogon {
+
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [Array] $IdaptiveResponse
+    )
+
+    Begin {
+
+        Add-Type -AssemblyName System.Windows.Forms 
+        Add-Type -AssemblyName System.Web
+
+#Special thanks to Shay Tevet for his assistance on this section
+        $source = @"
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+namespace Cookies
+{
+    public static class getter
+    { 
+       [DllImport("wininet.dll", CharSet=CharSet.None, ExactSpelling=false, SetLastError=true)]
+        public static extern bool InternetGetCookieEx(string url, string cookieName, StringBuilder cookieData, ref int size, int dwFlags, IntPtr lpReserved);
+        
+	public static string GetUriCookieContainer(String uri)
+        {
+            string str;
+            try
+            {
+                int num = 131072;
+                StringBuilder stringBuilder = new StringBuilder(num);
+                if (!InternetGetCookieEx(uri, null, stringBuilder, ref num, 8192, IntPtr.Zero))
+                {
+                        str = null;
+                        return str;
+                }
+                str = (!stringBuilder.ToString().Contains("idToken-") ? "Error" : stringBuilder.ToString().Split(new string[] { "idToken-" }, StringSplitOptions.None)[1].Split(new char[] { ';' })[0].Split(new char[] { '=' })[1]);
+            }
+            catch
+            {
+                str = "Error";
+            }
+            return str;
+        }
+    }
+}
+"@
+
+        $compilerParameters = New-Object System.CodeDom.Compiler.CompilerParameters
+        $compilerParameters.CompilerOptions = "/unsafe"
+ 
+        Add-Type -TypeDefinition $source -Language CSharp -CompilerParameters $compilerParameters
+
+        $PCloudURL = "https://$PCloudSubdomain.cyberark.cloud"
+        $PCloudPortalURL = "$PCloudURL/privilegecloud/"
+        $logonURL = "$IdaptiveBasePlatformURL/login?redirectUrl=https%3A%2F%2F$PCloudSubdomain.cyberark.cloud%2Fprivilegecloud&username=$IdentityUserName&iwa=false&iwaSsl=false"
+
+    }
+
+    Process {
+        $DocComp = {
+
+            if ($web.Url.AbsoluteUri -like "*/privilegecloud" -and $web.document.Cookie -like "*loggedIn-*") {
+                $Global:Auth = [cookies.getter]::GetUriCookieContainer("$PCloudURL").ToString()
+                $form.Close()
+            }
+        }
+            
+
+        # create window for embedded browser
+        $form = New-Object Windows.Forms.Form
+        $form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
+        $form.Width = 640
+        $form.Height = 700
+        $form.showIcon = $false
+        $form.TopMost = $false
+        $form.Text = "SAML Based Authentication"
+
+        $web = New-Object Windows.Forms.WebBrowser
+        $web.Size = $form.ClientSize
+        $web.Anchor = "Left,Top,Right,Bottom"
+        $web.ScriptErrorsSuppressed = $false
+        $web.AllowWebBrowserDrop = $false
+        $web.IsWebBrowserContextMenuEnabled = $true
+        $web.Add_DocumentCompleted($DocComp)
+        $form.Controls.Add($web)
+
+        $web.Navigate(("$logonURL"))
+
+        # show browser window, waits for window to close
+        if ([system.windows.forms.application]::run($form) -ne "OK") {
+            
+            if ($null -ne $auth) {
+                [PSCustomObject]$Return = @{
+                    Success = $true
+                    Result  = @{
+                        Token = $auth
+                    }
+                }
+                return $Return
+                $form.Close()
+            } Else {
+                throw "Unable to get auth token"
+            }
+        }
+
+        End {
+            $form.Dispose()
+        }
     }
 }
