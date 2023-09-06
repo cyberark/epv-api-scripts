@@ -23,53 +23,58 @@
 # 1.0 22/07/2018 - Initial release
 #
 ###########################################################################
-[CmdletBinding(DefaultParameterSetName = "List")]
+[CmdletBinding(DefaultparameterSetName = "List")]
 param
 (
-	[Parameter(Mandatory = $true, HelpMessage = "Enter the PVWA URL")]
+	[parameter(Mandatory = $true, HelpMessage = "Enter the PVWA URL")]
 	[ValidateScript( { Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30 })]
 	[Alias("url")]
 	[String]$PVWAURL,
 	
-	[Parameter(Mandatory = $false, HelpMessage = "Enter the Authentication type (Default:CyberArk)")]
+	[parameter(Mandatory = $false, HelpMessage = "Enter the Authentication type (Default:CyberArk)")]
 	[ValidateSet("cyberark", "ldap", "radius")]
 	[String]$AuthType = "cyberark",
 		
 	# Use this switch to list accounts
-	[Parameter(ParameterSetName = 'List', Mandatory = $true)][switch]$List,
+	[parameter(parameterSetName = 'List', Mandatory = $true)][switch]$List,
 	# Use this switch to list accounts
-	[Parameter(ParameterSetName = 'Details', Mandatory = $true)][switch]$Details,
+	[parameter(parameterSetName = 'Details', Mandatory = $true)][switch]$Details,
 	# Use this switch to see the account in a Report form
-	[Parameter(ParameterSetName = 'List', Mandatory = $false)]
-	[Parameter(ParameterSetName = 'Details')]
+	[parameter(parameterSetName = 'List', Mandatory = $false)]
+	[parameter(parameterSetName = 'Details')]
 	[switch]$Report,
 	
 	# List accounts filters
-	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "Enter a Safe Name to search in")]
+	[parameter(parameterSetName = 'List', Mandatory = $false, HelpMessage = "Enter a Safe Name to search in")]
 	[ValidateScript( { $_.Length -le 28 })]
 	[Alias("Safe")]
 	[String]$SafeName,
 	
-	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "Enter filter Keywords. List of keywords are separated with space to search in accounts")]
+	[parameter(parameterSetName = 'List', Mandatory = $false, HelpMessage = "Enter filter Keywords. List of keywords are separated with space to search in accounts")]
 	[String]$Keywords,
 	
-	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "properties by which to sort returned accounts, followed by asc (default) or desc to control sort direction. Multiple sorts are comma-separated. To sort on members of object properties. Maximum number of properties is 3")]
+	[parameter(parameterSetName = 'List', Mandatory = $false, HelpMessage = "properties by which to sort returned accounts, followed by asc (default) or desc to control sort direction. Multiple sorts are comma-separated. To sort on members of object properties. Maximum number of properties is 3")]
 	[String]$SortBy,
 	
-	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "Maximum number of returned accounts. If not specified, the default value is 50. The maximum number that can be specified is 1000")]
+	[parameter(parameterSetName = 'List', Mandatory = $false, HelpMessage = "Maximum number of returned accounts. if not specified, the default value is 50. The maximum number that can be specified is 1000")]
 	[int]$Limit = 50,
 	
-	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "If used, the next page is automatically returned")]
+	[parameter(parameterSetName = 'List', Mandatory = $false, HelpMessage = "if used, the next page is automatically returned")]
 	[switch]$AutoNextPage,
 	
-	[Parameter(ParameterSetName = 'Details', Mandatory = $true, HelpMessage = "The required Account ID")]
+	[parameter(parameterSetName = 'Details', Mandatory = $true, HelpMessage = "The required Account ID")]
 	[Alias("id")]
 	[string]$AccountID,
 	
-	[Parameter(ParameterSetName = 'List')]
-	[Parameter(ParameterSetName = 'Details', Mandatory = $false, HelpMessage = "Path to a CSV file to export data to")]
+	[parameter(parameterSetName = 'List')]
+	[parameter(parameterSetName = 'Details', Mandatory = $false, HelpMessage = "Path to a CSV file to export data to")]
 	[Alias("path")]
 	[string]$CSVPath
+
+	# Use this parameter to pass a pre-existing authorization token. if passed the token is NOT logged off
+	[parameter(Mandatory = $false)]
+	$logonToken
+ 
 )
 
 # Get Script Location 
@@ -91,28 +96,89 @@ $URL_Platforms = $URL_PVWAAPI + "/Platforms/{0}"
 # Script Defaults
 # ---------------
 
-# Initialize Script Variables
-# ---------------------------
-$rstusername = $rstpassword = ""
-$logonToken = ""
 
 #region Functions
 Function Test-CommandExists {
-	Param ($command)
+	param ($command)
 	$oldPreference = $ErrorActionPreference
 	$ErrorActionPreference = 'stop'
 	try {
 		if (Get-Command $command) {
-			RETURN $true 
+			return $true 
 		} 
  }
-	Catch {
-		Write-Host "$command does not exist"; RETURN $false 
+	catch {
+		Write-Host "$command does not exist"; return $false 
  }
-	Finally {
+	finally {
 		$ErrorActionPreference = $oldPreference 
  }
 } #end function test-CommandExists
+
+
+Function Get-LogonHeader {
+    <# 
+.SYNOPSIS 
+	Get-LogonHeader
+.DESCRIPTION
+	Get-LogonHeader
+.PARAMETER Credentials
+	The REST API Credentials to authenticate
+#>
+    param(
+        [parameter(Mandatory = $true)]
+        [System.Management.Automation.CredentialAttribute()]$Credentials,
+        [parameter(Mandatory = $false)]
+        [string]$RadiusOTP,
+        [parameter(Mandatory = $false)]
+        [boolean]$concurrentSession
+    )
+	
+    if ([string]::IsNullOrEmpty($g_LogonHeader)) {
+        # Disable SSL Verification to contact PVWA
+        if ($DisableSSLVerify) {
+            Disable-SSLVerification
+        }
+		
+        # Create the POST Body for the Logon
+        # ----------------------------------
+        if ($concurrentSession) {
+            $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password; concurrentSession = $true } | ConvertTo-Json
+        } else {
+            $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password } | ConvertTo-Json
+
+        }
+        # Check if we need to add RADIUS OTP
+        if (![string]::IsNullOrEmpty($RadiusOTP)) {
+            $logonBody.Password += ",$RadiusOTP"
+        } 
+        try {
+            # Logon
+            $logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json" -TimeoutSec 2700
+			
+            # Clear logon body
+            $logonBody = ""
+        } catch {
+            throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
+        }
+
+        $logonHeader = $null
+        if ([string]::IsNullOrEmpty($logonToken)) {
+            throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
+        }
+		
+        try {
+            # Create a Logon Token Header (This will be used through out all the script)
+            # ---------------------------
+            $logonHeader = @{Authorization = $logonToken }
+
+            Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
+        } catch {
+            throw $(New-Object System.Exception ("Get-LogonHeader: Could not create Logon Headers Dictionary", $_.Exception))
+        }
+    }
+}
+
 
 Function Format-URL($sText) {
 	if ($sText.Trim() -ne "") {
@@ -134,7 +200,7 @@ Function Convert-Date($epochdate) {
 }
 
 Function New-SearchCriteria {
-	param ([string]$sURL, [string]$sSearch, [string]$sSortParam, [string]$sSafeName, [int]$iLimitPage, [int]$iOffsetPage = 0)
+	param ([string]$sURL, [string]$sSearch, [string]$sSortparam, [string]$sSafeName, [int]$iLimitPage, [int]$iOffsetPage = 0)
 	[string]$retURL = $sURL
 	$retURL += "?"
 	
@@ -146,9 +212,9 @@ Function New-SearchCriteria {
 		Write-Debug "Safe: $sSafeName"
 		$retURL += "filter=safename eq $(Format-URL $sSafeName)&"
 	}
-	if (![string]::IsNullOrEmpty($sSortParam)) {
-		Write-Debug "Sort: $sSortParam"
-		$retURL += "sort=$(Format-URL $sSortParam)&"
+	if (![string]::IsNullOrEmpty($sSortparam)) {
+		Write-Debug "Sort: $sSortparam"
+		$retURL += "sort=$(Format-URL $sSortparam)&"
 	}
 	if ($iLimitPage -gt 0) {
 		Write-Debug "Limit: $iLimitPage"
@@ -191,95 +257,85 @@ Function Update-SearchCriteria {
 
 #endregion
 
-If (Test-CommandExists Invoke-RestMethod) {
+if (Test-CommandExists Invoke-RestMethod) {
 
 	# Check that the PVWA URL is OK
-	If ($PVWAURL -ne "") {
-		If ($PVWAURL.Substring($PVWAURL.Length - 1) -eq "/") {
+	if ($PVWAURL -ne "") {
+		if ($PVWAURL.Substring($PVWAURL.Length - 1) -eq "/") {
 			$PVWAURL = $PVWAURL.Substring(0, $PVWAURL.Length - 1)
 		}
 	}
 	else {
-		Write-Host -ForegroundColor Red "PVWA URL can not be empty"
+		Write-Host -ForegroundColor Red "PVWA URL cannot be empty"
 		return
 	}
 
 	#region [Logon]
-	# Get Credentials to Login
-	# ------------------------
-	$caption = "Get accounts"
-	$msg = "Enter your User name and Password"; 
-	$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
-	if ($null -ne $creds) {
-		$rstusername = $creds.username.Replace('\', '');    
-		$rstpassword = $creds.GetNetworkCredential().password
-	}
-	else {
-		return 
- }
-
-	# Create the POST Body for the Logon
-	# ----------------------------------
-	$logonBody = @{ username = $rstusername; password = $rstpassword }
-	$logonBody = $logonBody | ConvertTo-Json
 	try {
-		# Logon
-		$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json"
-	}
-	catch {
-		Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
-		$logonToken = ""
-	}
-	If ($logonToken -eq "") {
-		Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
+		# Get Credentials to Login
+		# ------------------------
+		$caption = "Get Accounts"
+	
+		if (![string]::IsNullOrEmpty($logonToken)) {
+		    if ($logonToken.GetType().name -eq "String") {
+				$logonHeader = @{Authorization = $logonToken }
+				Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global	
+		    } else {
+				Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
+		    }
+		} elseif ($null -eq $creds) {
+		    $msg = "Enter your User name and Password" 
+		    $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
+		    Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
+		} else { 
+		    Write-LogMessage -Type Error -Msg "No Credentials were entered"
+		    return
+		}
+	} catch {
+		Write-LogMessage -Type Error -Msg "Error Logging on. Error: $(Join-ExceptionMessage $_.Exception)"
 		return
 	}
-	
-	# Create a Logon Token Header (This will be used through out all the script)
-	# ---------------------------
-	$logonHeader = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-	$logonHeader.Add("Authorization", $logonToken)
 	#endregion
 
 	$response = ""
-	switch ($PsCmdlet.ParameterSetName) {
+	switch ($PsCmdlet.parameterSetName) {
 		"List" {
 			# List all Accounts by filters
 			Write-Host "Retrieving accounts..."
 			
 			try {
 				$AccountsURLWithFilters = ""
-				$AccountsURLWithFilters = $(New-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSortParam $SortBy -sSafeName $SafeName -iLimitPage $Limit)
+				$AccountsURLWithFilters = $(New-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSortparam $SortBy -sSafeName $SafeName -iLimitPage $Limit)
 				Write-Debug $AccountsURLWithFilters
 			}
 			catch {
 				Write-Error $_.Exception
 			}
 			try {
-				$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $AccountsURLWithFilters -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
+				$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $AccountsURLWithFilters -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
 			}
 			catch {
 				Write-Error $_.Exception.Response.StatusDescription
 			}
 						
-			If ($AutoNextPage) {
+			if ($AutoNextPage) {
 				$GetAccountsList = @()
 				$counter = 1
 				$GetAccountsList += $GetAccountsResponse.value
 				Write-Debug "Found $($GetAccountsList.count) accounts so far..."
 				$nextLink = Update-SearchCriteria -nextLinkURL $("$PVWAURL/$($GetAccountsResponse.nextLink))") -counter $counter -limit $Limit
 				Write-Debug "Getting accounts next link: $nextLink"
-				While (-not [string]::IsNullOrEmpty($nextLink)) {
-					$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $nextLink -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700	
+				while (-not [string]::IsNullOrEmpty($nextLink)) {
+					$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $nextLink -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700	
 					$GetAccountsList += $GetAccountsResponse.value
 					Write-Debug "Found $($GetAccountsList.count) accounts so far..."
 					# Increase the counter
 					$counter++
-					IF (![string]::IsNullOrEmpty($GetAccountsResponse.nextLink)) {
+					if (![string]::IsNullOrEmpty($GetAccountsResponse.nextLink)) {
 						$nextLink = $GetAccountsResponse.nextLink
 						Write-Debug "Getting accounts next link: $nextLink"
 					}
-					Else {
+					else {
 						$nextLink = $null
 					}
 				}
@@ -294,20 +350,20 @@ If (Test-CommandExists Invoke-RestMethod) {
 		}
 		"Details" {
 			if ($AccountID -ne "") {
-				$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $AccountID) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
+				$GetAccountDetailsResponse = Invoke-RestMethod -Method Get -Uri $($URL_AccountsDetails -f $AccountID) -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
 				$response = $GetAccountDetailsResponse
 			}
 		}
 	}
 	
-	If ($Report) {
+	if ($Report) {
 		$output = @()
-		Foreach ($item in $response) {
+		foreach ($item in $response) {
 			# Get the Platform Name
-			$platformName = Invoke-RestMethod -Method Get -Uri $($URL_Platforms -f $item.platformId) -Headers $logonHeader -ContentType "application/json" -TimeoutSec 2700
+			$platformName = Invoke-RestMethod -Method Get -Uri $($URL_Platforms -f $item.platformId) -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
 			$output += $item | Select-Object id, @{Name = 'UserName'; Expression = { $_.userName } }, @{Name = 'Address'; Expression = { $_.address } }, @{Name = 'SafeName'; Expression = { $_.safeName } }, @{Name = 'Platform'; Expression = { $platformName.Details.PolicyName } }, @{Name = 'CreateDate'; Expression = { Convert-Date $_.createdTime } }
 		}
-		If ([string]::IsNullOrEmpty($CSVPath)) {
+		if ([string]::IsNullOrEmpty($CSVPath)) {
 			$output | Format-Table -AutoSize
 		}
 		else {
@@ -320,7 +376,7 @@ If (Test-CommandExists Invoke-RestMethod) {
 	# Logoff the session
 	# ------------------
 	Write-Host "Logoff Session..."
-	Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $logonHeader -ContentType "application/json" | Out-Null
+	Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" | Out-Null
 }
 else {
 	Write-Error "This script requires PowerShell version 3 or above"
