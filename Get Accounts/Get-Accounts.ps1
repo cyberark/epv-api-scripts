@@ -56,10 +56,10 @@ param
 	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "properties by which to sort returned accounts, followed by asc (default) or desc to control sort direction. Multiple sorts are comma-separated. To sort on members of object properties. Maximum number of properties is 3")]
 	[String]$SortBy,
 	
-	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "Maximum number of returned accounts. if not specified, the default value is 50. The maximum number that can be specified is 1000")]
+	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "Maximum number of returned accounts. If not specified, the default value is 50. The maximum number that can be specified is 1000")]
 	[int]$Limit = 50,
 	
-	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "if used, the next page is automatically returned")]
+	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "If used, the next page is automatically returned")]
 	[switch]$AutoNextPage,
 	
 	[Parameter(ParameterSetName = 'Details', Mandatory = $true, HelpMessage = "The required Account ID")]
@@ -71,7 +71,7 @@ param
 	[Alias("path")]
 	[string]$CSVPath
 
-	# Use this Parameter to pass a pre-existing authorization token. if passed the token is NOT logged off
+	# Use this Parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
 	[Parameter(Mandatory = $false)]
 	$logonToken
  
