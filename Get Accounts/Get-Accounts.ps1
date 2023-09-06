@@ -12,7 +12,7 @@
 # --------------------------
 # Safe Name - Search for all accounts in a specific safe
 # Keywords - Filter by keywords (by default with OR between them)
-# Sort by - Sort by property or properties list (parameter needs to be defined in the accounts list)
+# Sort by - Sort by property or properties list (Parameter needs to be defined in the accounts list)
 # Limit - Limits the number of returned accounts
 # Auto Next Page - In case the limit is small or the returned number of accounts is greater than the limit, this will return all accounts from all pages
 #
@@ -23,56 +23,56 @@
 # 1.0 22/07/2018 - Initial release
 #
 ###########################################################################
-[CmdletBinding(DefaultparameterSetName = "List")]
+[CmdletBinding(DefaultParameterSetName = "List")]
 param
 (
-	[parameter(Mandatory = $true, HelpMessage = "Enter the PVWA URL")]
+	[Parameter(Mandatory = $true, HelpMessage = "Enter the PVWA URL")]
 	[ValidateScript( { Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30 })]
 	[Alias("url")]
 	[String]$PVWAURL,
 	
-	[parameter(Mandatory = $false, HelpMessage = "Enter the Authentication type (Default:CyberArk)")]
+	[Parameter(Mandatory = $false, HelpMessage = "Enter the Authentication type (Default:CyberArk)")]
 	[ValidateSet("cyberark", "ldap", "radius")]
 	[String]$AuthType = "cyberark",
 		
 	# Use this switch to list accounts
-	[parameter(parameterSetName = 'List', Mandatory = $true)][switch]$List,
+	[Parameter(ParameterSetName = 'List', Mandatory = $true)][switch]$List,
 	# Use this switch to list accounts
-	[parameter(parameterSetName = 'Details', Mandatory = $true)][switch]$Details,
+	[Parameter(ParameterSetName = 'Details', Mandatory = $true)][switch]$Details,
 	# Use this switch to see the account in a Report form
-	[parameter(parameterSetName = 'List', Mandatory = $false)]
-	[parameter(parameterSetName = 'Details')]
+	[Parameter(ParameterSetName = 'List', Mandatory = $false)]
+	[Parameter(ParameterSetName = 'Details')]
 	[switch]$Report,
 	
 	# List accounts filters
-	[parameter(parameterSetName = 'List', Mandatory = $false, HelpMessage = "Enter a Safe Name to search in")]
+	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "Enter a Safe Name to search in")]
 	[ValidateScript( { $_.Length -le 28 })]
 	[Alias("Safe")]
 	[String]$SafeName,
 	
-	[parameter(parameterSetName = 'List', Mandatory = $false, HelpMessage = "Enter filter Keywords. List of keywords are separated with space to search in accounts")]
+	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "Enter filter Keywords. List of keywords are separated with space to search in accounts")]
 	[String]$Keywords,
 	
-	[parameter(parameterSetName = 'List', Mandatory = $false, HelpMessage = "properties by which to sort returned accounts, followed by asc (default) or desc to control sort direction. Multiple sorts are comma-separated. To sort on members of object properties. Maximum number of properties is 3")]
+	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "properties by which to sort returned accounts, followed by asc (default) or desc to control sort direction. Multiple sorts are comma-separated. To sort on members of object properties. Maximum number of properties is 3")]
 	[String]$SortBy,
 	
-	[parameter(parameterSetName = 'List', Mandatory = $false, HelpMessage = "Maximum number of returned accounts. if not specified, the default value is 50. The maximum number that can be specified is 1000")]
+	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "Maximum number of returned accounts. if not specified, the default value is 50. The maximum number that can be specified is 1000")]
 	[int]$Limit = 50,
 	
-	[parameter(parameterSetName = 'List', Mandatory = $false, HelpMessage = "if used, the next page is automatically returned")]
+	[Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "if used, the next page is automatically returned")]
 	[switch]$AutoNextPage,
 	
-	[parameter(parameterSetName = 'Details', Mandatory = $true, HelpMessage = "The required Account ID")]
+	[Parameter(ParameterSetName = 'Details', Mandatory = $true, HelpMessage = "The required Account ID")]
 	[Alias("id")]
 	[string]$AccountID,
 	
-	[parameter(parameterSetName = 'List')]
-	[parameter(parameterSetName = 'Details', Mandatory = $false, HelpMessage = "Path to a CSV file to export data to")]
+	[Parameter(ParameterSetName = 'List')]
+	[Parameter(ParameterSetName = 'Details', Mandatory = $false, HelpMessage = "Path to a CSV file to export data to")]
 	[Alias("path")]
 	[string]$CSVPath
 
-	# Use this parameter to pass a pre-existing authorization token. if passed the token is NOT logged off
-	[parameter(Mandatory = $false)]
+	# Use this Parameter to pass a pre-existing authorization token. if passed the token is NOT logged off
+	[Parameter(Mandatory = $false)]
 	$logonToken
  
 )
@@ -126,11 +126,11 @@ Function Get-LogonHeader {
 	The REST API Credentials to authenticate
 #>
     param(
-        [parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true)]
         [System.Management.Automation.CredentialAttribute()]$Credentials,
-        [parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $false)]
         [string]$RadiusOTP,
-        [parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $false)]
         [boolean]$concurrentSession
     )
 	
@@ -298,7 +298,7 @@ if (Test-CommandExists Invoke-RestMethod) {
 	#endregion
 
 	$response = ""
-	switch ($PsCmdlet.parameterSetName) {
+	switch ($PsCmdlet.ParameterSetName) {
 		"List" {
 			# List all Accounts by filters
 			Write-Host "Retrieving accounts..."
