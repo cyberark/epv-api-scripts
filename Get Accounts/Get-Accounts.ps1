@@ -232,7 +232,7 @@ Function Convert-Date($epochdate) {
 }
 
 Function New-SearchCriteria {
-	param ([string]$sURL, [string]$sSearch, [string]$sSortparam, [string]$sSafeName, [int]$iLimitPage, [int]$iOffsetPage = 0)
+	param ([string]$sURL, [string]$sSearch, [string]$sSortParam, [string]$sSafeName, [int]$iLimitPage, [int]$iOffsetPage = 0)
 	[string]$retURL = $sURL
 	$retURL += "?"
 	
@@ -244,9 +244,9 @@ Function New-SearchCriteria {
 		Write-Debug "Safe: $sSafeName"
 		$retURL += "filter=safename eq $(Format-URL $sSafeName)&"
 	}
-	if (![string]::IsNullOrEmpty($sSortparam)) {
-		Write-Debug "Sort: $sSortparam"
-		$retURL += "sort=$(Format-URL $sSortparam)&"
+	if (![string]::IsNullOrEmpty($sSortParam)) {
+		Write-Debug "Sort: $sSortParam"
+		$retURL += "sort=$(Format-URL $sSortParam)&"
 	}
 	if ($iLimitPage -gt 0) {
 		Write-Debug "Limit: $iLimitPage"
@@ -337,7 +337,7 @@ if (Test-CommandExists Invoke-RestMethod) {
 			
 			try {
 				$AccountsURLWithFilters = ""
-				$AccountsURLWithFilters = $(New-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSortparam $SortBy -sSafeName $SafeName -iLimitPage $Limit)
+				$AccountsURLWithFilters = $(New-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSortParam $SortBy -sSafeName $SafeName -iLimitPage $Limit)
 				Write-Debug $AccountsURLWithFilters
 			}
 			catch {
