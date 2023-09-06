@@ -276,9 +276,8 @@ Function Update-SearchCriteria {
 		$limitNumber = [int]$Matches[1]
 		# Verify that we have an increased the limit
 		if ($limitNumber -ge $limit) {
-			$newNextLink = [regex]::Replace($nextLinkURL, [regex]::Escape($limitText), "limit={0}" -f ($limit * $counter), 1)
-		}
-		else {
+			$newNextLink = $nextLinkURL.Replace($limitText, "limit={0}" -f ($limit * $counter))
+   		} else {
 			Write-Debug "Limits are not correct. Next Link limit: $limitNumber; current limit: $limit; Next limit should be: $($limit * $counter)"
 			# No change to the next link URL
 		}
