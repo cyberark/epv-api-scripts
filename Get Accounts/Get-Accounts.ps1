@@ -69,12 +69,20 @@ param
 	[Parameter(ParameterSetName = 'List')]
 	[Parameter(ParameterSetName = 'Details', Mandatory = $false, HelpMessage = "Path to a CSV file to export data to")]
 	[Alias("path")]
-	[string]$CSVPath
+	[string]$CSVPath,
+
+    # Support for Threading (Logon Connection Number)
+    [Parameter(Mandatory = $false, HelpMessage = "Enable conncurrent session")]
+    [switch]$concurrentSession = $false,
 
 	# Use this Parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
 	[Parameter(Mandatory = $false)]
-	$logonToken
- 
+	$logonToken,
+
+    # Use this switch to prevent Invoke-Logoff (NOT RECOMMENDED)
+    [Parameter(Mandatory = $false)]
+    [Switch]$DisableLogoff
+
 )
 
 # Get Script Location 
@@ -82,6 +90,10 @@ $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Global URLS
 # -----------
+if ($PVWAURL.EndsWith("/"))
+{
+    $PVWAURL = $PVWAURL.TrimEnd("/")
+}
 $URL_PVWAAPI = $PVWAURL + "/api"
 $URL_Authentication = $URL_PVWAAPI + "/auth"
 $URL_Logon = $URL_Authentication + "/$AuthType/Logon"
@@ -179,6 +191,26 @@ Function Get-LogonHeader {
     }
 }
 
+Function Invoke-Logoff {
+    <# 
+.SYNOPSIS 
+	Invoke-Logoff
+.DESCRIPTION
+	Logoff a PVWA session
+#>
+    try {
+        # Logoff the session
+        # ------------------
+        If ($null -ne $g_LogonHeader) {
+            Write-LogMessage -Type Info -Msg "Logoff Session..."
+            Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 | Out-Null
+            Set-Variable -Name g_LogonHeader -Value $null -Scope global
+        }
+    } catch {
+        Throw $(New-Object System.Exception ("Invoke-Logoff: Failed to logoff session", $_.Exception))
+    }
+}
+
 
 Function Format-URL($sText) {
 	if ($sText.Trim() -ne "") {
@@ -244,7 +276,7 @@ Function Update-SearchCriteria {
 		$limitNumber = [int]$Matches[1]
 		# Verify that we have an increased the limit
 		if ($limitNumber -ge $limit) {
-			$newNextLink = $nextLinkURL.Replace($limitText, "limit={0}" -f ($limit * $counter))
+			$newNextLink = [regex]::Replace($nextLinkURL, [regex]::Escape($limitText), "limit={0}" -f ($limit * $counter), 1)
 		}
 		else {
 			Write-Debug "Limits are not correct. Next Link limit: $limitNumber; current limit: $limit; Next limit should be: $($limit * $counter)"
@@ -323,17 +355,20 @@ if (Test-CommandExists Invoke-RestMethod) {
 				$counter = 1
 				$GetAccountsList += $GetAccountsResponse.value
 				Write-Debug "Found $($GetAccountsList.count) accounts so far..."
-				$nextLink = Update-SearchCriteria -nextLinkURL $("$PVWAURL/$($GetAccountsResponse.nextLink))") -counter $counter -limit $Limit
-				Write-Debug "Getting accounts next link: $nextLink"
+				Write-Debug "Next Link will be $($PVWAURL + "/" + $($GetAccountsResponse.nextLink))"
+				$nextLink = Update-SearchCriteria -nextLinkURL $("$PVWAURL/$($GetAccountsResponse.nextLink)") -counter $counter -limit $Limit
+				Write-Debug "Getting accounts next link 1: $nextLink"
 				while (-not [string]::IsNullOrEmpty($nextLink)) {
+					Write-Debug "Now starting $nextLink"
 					$GetAccountsResponse = Invoke-RestMethod -Method Get -Uri $nextLink -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700	
 					$GetAccountsList += $GetAccountsResponse.value
 					Write-Debug "Found $($GetAccountsList.count) accounts so far..."
 					# Increase the counter
 					$counter++
+					Write-Debug "Checking if nextlink is empty: $($GetAccountsResponse.nextLink)"
 					if (![string]::IsNullOrEmpty($GetAccountsResponse.nextLink)) {
-						$nextLink = $GetAccountsResponse.nextLink
-						Write-Debug "Getting accounts next link: $nextLink"
+						$nextLink = $("$PVWAURL/$($GetAccountsResponse.nextLink)")
+						Write-Debug "Getting accounts next link 2: $nextLink"
 					}
 					else {
 						$nextLink = $null
@@ -373,10 +408,17 @@ if (Test-CommandExists Invoke-RestMethod) {
 	else {
 		$response
 	}
-	# Logoff the session
-	# ------------------
-	Write-Host "Logoff Session..."
-	Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" | Out-Null
+	
+    # Logoff the session
+    # ------------------
+
+    If (![string]::IsNullOrEmpty($logonToken)) {
+        Write-Host "LogonToken passed, session NOT logged off"
+    } elseif ($DisableLogoff){
+        Write-Host "Logoff has been disabled, session NOT logged off"
+    } else {
+        Invoke-Logoff
+    }
 }
 else {
 	Write-Error "This script requires PowerShell version 3 or above"
