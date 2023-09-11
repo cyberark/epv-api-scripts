@@ -200,10 +200,10 @@ If (![string]::IsNullOrEmpty($srclogonToken)) {
     If ($null -eq $srcToken) { 
         return # No logon header, end script 
     } else { 
-    Write-LogMessage -Type Error -MSG "No Source Credentials were entered" -Footer
+        Write-LogMessage -Type Error -MSG "No Source Credentials were entered" -Footer
     }
-$creds = $null
-
+    $creds = $null
+}
 if ($export) {
     $srcToken
     Write-LogMessage -Type Info -Msg "Starting export of accounts"
@@ -221,239 +221,241 @@ if ($processSafes -or $processAccounts) {
     Test-PVWA -PVWAURL $DSTPVWAURL
 
     Write-LogMessage -Type Info -MSG "Getting Destination Logon Tokens"
-If (![string]::IsNullOrEmpty($dstlogonToken)) {
-    if ($dstlogonToken.GetType().name -eq "String") {
-        $logonHeader = @{Authorization = $srclogonToken }
-        Set-Variable -Scope Global -Name dstToken -Value $logonHeader
-    } else {
-        Set-Variable -Scope Global -Name dstToken -Value $dstlogonToken
-    }
-} else {
-    If (![string]::IsNullOrEmpty($dstVWACredentials)) {
-        $creds = $dstPVWACredentials
-    } else {
-        $msg = "Enter your source $dstAuthType User name and Password" 
-        $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
-    }
-    New-Variable -Name AuthType -Value $dstAuthType -Scope Global -Force
-    Import-Module -Name ".\CyberArk-Migration.psm1" -Force
-
-    if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-        Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $SRCPVWAURL -OTP $OTP)
-    } else {
-        Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $SRCPVWAURL )
-    }
-    # Verify that we successfully logged on
-    If ($null -eq $dstToken) { 
-    Write-LogMessage -Type Error -MSG "No Destination Credentials were entered" -Footer
-        return # No logon header, end script 
-    } 
-$creds = $null
-
-if ($processSafes) {
-    
-    #region Safe Work
-
-    $safecounter = 0
-    $safeobjects = Import-Csv $importCSV | Select-Object -Property safeName -Unique
-
-    foreach ($safe in $safeobjects) {
-        $safecounter++
-
-        If (!$InVerbose) {
-            Write-Progress -Activity "Processing safe objects" -CurrentOperation "$safecounter of $($safeobjects.count)" -PercentComplete (($safecounter / $safeobjects.count) * 100)
-        }
-
-        If ($safe.safeName -in $objectSafesToRemove) {
-            Write-LogMessage -Type Debug -Msg "Safe `"$($safe.safeName)`" is in the excluded safes list and will be skipped"
-            continue
-        }
-
-        $srcSafe = Get-Safe -url $SRCPVWAURL -logonHeader $srcToken -safe $safe.safeName
-
-        $dstsafe = Get-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $safe.safeName 
-
-        if ([string]::IsNullOrEmpty($dstsafe)) {
-            if ($createSafes) {
-                If ((![string]::IsNullOrEmpty($CPMOld)) -and (![string]::IsNullOrEmpty($CPMnew))) {
-                    $dstSafe = New-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $srcSafe -cpnNameOld $CPMOld -cpnNameNew $CPMnew
-                    Write-LogMessage -Type Debug -Msg "Created safe `"$($safe.safeName)`""
-                } else {
-                    $dstSafe = New-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $srcSafe
-                    Write-LogMessage -Type Debug -Msg "Created safe `"$($safe.safeName)`""
-                }
-                $createdDstSafe = $true
-
-            } else {
-                Write-LogMessage -Type Warning -Msg "Target safe `"$($safe.safeName)`" does not exist in destination and creating of safes disabled, skipping `"$($srcAccount.name)`""
-                continue 
-            }
+    If (![string]::IsNullOrEmpty($dstlogonToken)) {
+        if ($dstlogonToken.GetType().name -eq "String") {
+            $logonHeader = @{Authorization = $srclogonToken }
+            Set-Variable -Scope Global -Name dstToken -Value $logonHeader
         } else {
-            Write-LogMessage -Type Debug -Msg "Located safe `"$($dstsafe.safename)`""
+            Set-Variable -Scope Global -Name dstToken -Value $dstlogonToken
         }
-        IF ($($dstsafe.safename) -in $updatedSafes) {
-            Write-LogMessage -Type Debug -Msg "Safe `"$($dstsafe.safename)`" was previously created or updated. No further updates of safe memberships required" 
-        } Else {
-            If (($UpdateSafeMembers -or $createdDstSafe)) {
-                $updatedSafes += $($dstsafe.safename) 
-                $srcSafeMembers = (Get-SafeMembers -url $SRCPVWAURL -logonHeader $srcToken -safe $safe.safeName).value
-                Write-LogMessage -Type Debug -Msg "Retrived Source Safe Members from `"$($safe.safeName)`"."
-                $dstSafeMembers = (Get-SafeMembers -url $DSTPVWAURL -logonHeader $dstToken -safe $safe.safeName).value.membername
-                Write-LogMessage -Type Debug -Msg "Retrived Destination Safe Members from `"$($dstsafe.safename)`"."
-                ForEach ($srcMember in $srcSafeMembers) {
-                    Write-LogMessage -Type Debug -Msg "Working with Safe Member `"$($srcMember.membername)`" in Safe `"$($safe.safeName)`""
-                    IF ($srcMember.membername -in $ownersToRemove) {
-                        Write-LogMessage -Type Debug -Msg "Safe Member $($srcMember.membername) is in the excluded owners list"
-                    } Else {
-                        if ($srcMember.membername -in $dstSafeMembers -or $("$($srcMember.memberName)@$dstUPN") -in $dstSafeMembers) {
-                            $groupSource = Get-GroupSource -url $SRCPVWAURL -logonHeader $srcToken -safemember $srcMember
-                            if ($groupSource -eq "Vault") {
-                                $srcMember | Add-Member NoteProperty searchIn "$groupSource"
-                            } elseif (![string]::IsNullOrEmpty($newLDAP)) {
-                                $srcMember | Add-Member NoteProperty searchIn "$newLDAP"
-                            } else {
-                                $srcMember | Add-Member NoteProperty searchIn "$groupSource"
-                            }
-                            $null = Update-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $safe -safemember $srcMember -newLDAP $newLDAP 
-                            Write-LogMessage -Type Debug -Msg "Safe Member `"$($srcMember.membername)`" updated on safe `"$($dstsafe.safename)`""
+    } else {
+        If (![string]::IsNullOrEmpty($dstVWACredentials)) {
+            $creds = $dstPVWACredentials
+        } else {
+            $msg = "Enter your source $dstAuthType User name and Password" 
+            $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
+        }
+        New-Variable -Name AuthType -Value $dstAuthType -Scope Global -Force
+        Import-Module -Name ".\CyberArk-Migration.psm1" -Force
+
+        if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
+            Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $SRCPVWAURL -OTP $OTP)
+        } else {
+            Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $SRCPVWAURL )
+        }
+        # Verify that we successfully logged on
+        If ($null -eq $dstToken) { 
+            Write-LogMessage -Type Error -MSG "No Destination Credentials were entered" -Footer
+            return # No logon header, end script 
+        } 
+        $creds = $null
+    }
+
+        if ($processSafes) {
+    
+            #region Safe Work
+
+            $safecounter = 0
+            $safeobjects = Import-Csv $importCSV | Select-Object -Property safeName -Unique
+
+            foreach ($safe in $safeobjects) {
+                $safecounter++
+
+                If (!$InVerbose) {
+                    Write-Progress -Activity "Processing safe objects" -CurrentOperation "$safecounter of $($safeobjects.count)" -PercentComplete (($safecounter / $safeobjects.count) * 100)
+                }
+
+                If ($safe.safeName -in $objectSafesToRemove) {
+                    Write-LogMessage -Type Debug -Msg "Safe `"$($safe.safeName)`" is in the excluded safes list and will be skipped"
+                    continue
+                }
+
+                $srcSafe = Get-Safe -url $SRCPVWAURL -logonHeader $srcToken -safe $safe.safeName
+
+                $dstsafe = Get-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $safe.safeName 
+
+                if ([string]::IsNullOrEmpty($dstsafe)) {
+                    if ($createSafes) {
+                        If ((![string]::IsNullOrEmpty($CPMOld)) -and (![string]::IsNullOrEmpty($CPMnew))) {
+                            $dstSafe = New-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $srcSafe -cpnNameOld $CPMOld -cpnNameNew $CPMnew
+                            Write-LogMessage -Type Debug -Msg "Created safe `"$($safe.safeName)`""
                         } else {
-                            if ($srcMember.memberType -eq "User") {
-                                $userSource = Get-UserSource -url $SRCPVWAURL -logonHeader $srcToken -safemember $srcMember
-                                $srcMember | Add-Member NoteProperty searchIn $userSource
-                                If (![string]::IsNullOrEmpty($dstUPN) -and ![string]::IsNullOrEmpty($userSource)) {
-                                    $srcMember.memberName = "$($srcMember.memberName)@$dstUPN"
-                                }
-                                $null = New-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $safe -safemember $srcMember -newLDAP $newLDAP 
-                                Write-LogMessage -Type Debug -Msg "Safe Member User`"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`""
-                            } else {
-                                $groupSource = Get-GroupSource -url $SRCPVWAURL -logonHeader $srcToken -safemember $srcMember
-                                if ($groupSource -eq "Vault") {
-                                    $srcMember | Add-Member NoteProperty searchIn "$groupSource"
-                                } elseif (![string]::IsNullOrEmpty($newLDAP)) {
-                                    $srcMember | Add-Member NoteProperty searchIn "$newLDAP"
-                                } else {
-                                    $srcMember | Add-Member NoteProperty searchIn "$groupSource"
-                                }
-                                $null = New-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $safe -safemember $srcMember -newLDAP $newLDAP
-                                Write-LogMessage -Type Debug -Msg "Safe Member Group `"$($srcMember.membername)`" from source `"$groupSource`" added  to safe `"$($dstsafe.safename)`""
-                            } 
+                            $dstSafe = New-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $srcSafe
+                            Write-LogMessage -Type Debug -Msg "Created safe `"$($safe.safeName)`""
                         }
+                        $createdDstSafe = $true
+
+                    } else {
+                        Write-LogMessage -Type Warning -Msg "Target safe `"$($safe.safeName)`" does not exist in destination and creating of safes disabled, skipping `"$($srcAccount.name)`""
+                        continue 
+                    }
+                } else {
+                    Write-LogMessage -Type Debug -Msg "Located safe `"$($dstsafe.safename)`""
+                }
+                IF ($($dstsafe.safename) -in $updatedSafes) {
+                    Write-LogMessage -Type Debug -Msg "Safe `"$($dstsafe.safename)`" was previously created or updated. No further updates of safe memberships required" 
+                } Else {
+                    If (($UpdateSafeMembers -or $createdDstSafe)) {
+                        $updatedSafes += $($dstsafe.safename) 
+                        $srcSafeMembers = (Get-SafeMembers -url $SRCPVWAURL -logonHeader $srcToken -safe $safe.safeName).value
+                        Write-LogMessage -Type Debug -Msg "Retrived Source Safe Members from `"$($safe.safeName)`"."
+                        $dstSafeMembers = (Get-SafeMembers -url $DSTPVWAURL -logonHeader $dstToken -safe $safe.safeName).value.membername
+                        Write-LogMessage -Type Debug -Msg "Retrived Destination Safe Members from `"$($dstsafe.safename)`"."
+                        ForEach ($srcMember in $srcSafeMembers) {
+                            Write-LogMessage -Type Debug -Msg "Working with Safe Member `"$($srcMember.membername)`" in Safe `"$($safe.safeName)`""
+                            IF ($srcMember.membername -in $ownersToRemove) {
+                                Write-LogMessage -Type Debug -Msg "Safe Member $($srcMember.membername) is in the excluded owners list"
+                            } Else {
+                                if ($srcMember.membername -in $dstSafeMembers -or $("$($srcMember.memberName)@$dstUPN") -in $dstSafeMembers) {
+                                    $groupSource = Get-GroupSource -url $SRCPVWAURL -logonHeader $srcToken -safemember $srcMember
+                                    if ($groupSource -eq "Vault") {
+                                        $srcMember | Add-Member NoteProperty searchIn "$groupSource"
+                                    } elseif (![string]::IsNullOrEmpty($newLDAP)) {
+                                        $srcMember | Add-Member NoteProperty searchIn "$newLDAP"
+                                    } else {
+                                        $srcMember | Add-Member NoteProperty searchIn "$groupSource"
+                                    }
+                                    $null = Update-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $safe -safemember $srcMember -newLDAP $newLDAP 
+                                    Write-LogMessage -Type Debug -Msg "Safe Member `"$($srcMember.membername)`" updated on safe `"$($dstsafe.safename)`""
+                                } else {
+                                    if ($srcMember.memberType -eq "User") {
+                                        $userSource = Get-UserSource -url $SRCPVWAURL -logonHeader $srcToken -safemember $srcMember
+                                        $srcMember | Add-Member NoteProperty searchIn $userSource
+                                        If (![string]::IsNullOrEmpty($dstUPN) -and ![string]::IsNullOrEmpty($userSource)) {
+                                            $srcMember.memberName = "$($srcMember.memberName)@$dstUPN"
+                                        }
+                                        $null = New-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $safe -safemember $srcMember -newLDAP $newLDAP 
+                                        Write-LogMessage -Type Debug -Msg "Safe Member User`"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`""
+                                    } else {
+                                        $groupSource = Get-GroupSource -url $SRCPVWAURL -logonHeader $srcToken -safemember $srcMember
+                                        if ($groupSource -eq "Vault") {
+                                            $srcMember | Add-Member NoteProperty searchIn "$groupSource"
+                                        } elseif (![string]::IsNullOrEmpty($newLDAP)) {
+                                            $srcMember | Add-Member NoteProperty searchIn "$newLDAP"
+                                        } else {
+                                            $srcMember | Add-Member NoteProperty searchIn "$groupSource"
+                                        }
+                                        $null = New-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $safe -safemember $srcMember -newLDAP $newLDAP
+                                        Write-LogMessage -Type Debug -Msg "Safe Member Group `"$($srcMember.membername)`" from source `"$groupSource`" added  to safe `"$($dstsafe.safename)`""
+                                    } 
+                                }
+                            }
+                        }
+                    } else {
+                        Write-LogMessage -Type Debug -Msg "Creating and/or Updating of Safe Members is disabled. Memberships of `"$($dstsafe.safename)`" not changed" 
                     }
                 }
-            } else {
-                Write-LogMessage -Type Debug -Msg "Creating and/or Updating of Safe Members is disabled. Memberships of `"$($dstsafe.safename)`" not changed" 
             }
         }
     }
-}
-#endregion
-if ($processAccounts) {
-    #region Account Work 
-    $counter = 0
-    $accountobjects = Import-Csv $importCSV
-    foreach ($accountobject in $accountobjects) {
-        $counter++
-        $found = $false
+    #endregion
+    if ($processAccounts) {
+        #region Account Work 
+        $counter = 0
+        $accountobjects = Import-Csv $importCSV
+        foreach ($accountobject in $accountobjects) {
+            $counter++
+            $found = $false
 
-        If (!$InVerbose) {
-            Write-Progress -Activity "Processing account objects" -CurrentOperation "$counter of $($accountobjects.count)" -PercentComplete (($counter / $accountobjects.count) * 100)
-        }
-        
-        $srcAccount = Get-AccountDetail -url $SRCPVWAURL -logonHeader $srcToken -AccountID $accountobject.id
-        If ($($srcAccount.safename) -in $objectSafesToRemove) {
-            Write-LogMessage -Type Debug -Msg "Safe $($srcAccount.safename) is in the excluded safes list. Account with username of `"$($srcAccount.userName)`" with the address of `"$($srcAccount.address)`" will be skipped"
-            continue
-        }
-
-        $dstAccountArray = Get-Accounts -url $DSTPVWAURL -logonHeader $dstToken -safename $($srcAccount.safeName) -keywords "$($srcAccount.userName) $($srcAccount.address)" -startswith $true
-        if (![string]::IsNullOrEmpty($dstAccountArray)) {
-            foreach ($account in $dstAccountArray) {
-                IF (($($account.name) -eq $($srcAccount.name)) -and ($($account.userName) -eq $($srcAccount.userName)) -and ($($account.address) -eq $($srcAccount.address)) -and ($($account.safeName) -eq $($srcAccount.safeName))  ) {
-                    Write-LogMessage -Type Debug -Msg "Found Account with username `"$($account.userName)`" and address `"$($account.address)`" in safe `"$($account.safeName)`""
-
-                    $found = $true
-                    $dstAccount = $account
-                }
+            If (!$InVerbose) {
+                Write-Progress -Activity "Processing account objects" -CurrentOperation "$counter of $($accountobjects.count)" -PercentComplete (($counter / $accountobjects.count) * 100)
             }
-        }        
-    
-        if ($found) {
-            if (!$SkipCheckSecret) {
-                Try {
-                    [SecureString]$srcSecret = Get-Secret -url $SRCPVWAURL -logonHeader $srcToken -id $srcAccount.id 
-                    [SecureString]$dstSecret = Get-Secret -url $DSTPVWAURL -logonHeader $dstToken -id $dstAccount.id 
+        
+            $srcAccount = Get-AccountDetail -url $SRCPVWAURL -logonHeader $srcToken -AccountID $accountobject.id
+            If ($($srcAccount.safename) -in $objectSafesToRemove) {
+                Write-LogMessage -Type Debug -Msg "Safe $($srcAccount.safename) is in the excluded safes list. Account with username of `"$($srcAccount.userName)`" with the address of `"$($srcAccount.address)`" will be skipped"
+                continue
+            }
 
-                    If ((![string]::IsNullOrEmpty($srcSecret)) -and (![string]::IsNullOrEmpty($dstSecret)) ) {
-                        $secretMatch = Compare-SecureString -pwd1 $srcSecret -pwd2 $dstSecret
+            $dstAccountArray = Get-Accounts -url $DSTPVWAURL -logonHeader $dstToken -safename $($srcAccount.safeName) -keywords "$($srcAccount.userName) $($srcAccount.address)" -startswith $true
+            if (![string]::IsNullOrEmpty($dstAccountArray)) {
+                foreach ($account in $dstAccountArray) {
+                    IF (($($account.name) -eq $($srcAccount.name)) -and ($($account.userName) -eq $($srcAccount.userName)) -and ($($account.address) -eq $($srcAccount.address)) -and ($($account.safeName) -eq $($srcAccount.safeName))  ) {
+                        Write-LogMessage -Type Debug -Msg "Found Account with username `"$($account.userName)`" and address `"$($account.address)`" in safe `"$($account.safeName)`""
+
+                        $found = $true
+                        $dstAccount = $account
                     }
+                }
+            }        
+    
+            if ($found) {
+                if (!$SkipCheckSecret) {
+                    Try {
+                        [SecureString]$srcSecret = Get-Secret -url $SRCPVWAURL -logonHeader $srcToken -id $srcAccount.id 
+                        [SecureString]$dstSecret = Get-Secret -url $DSTPVWAURL -logonHeader $dstToken -id $dstAccount.id 
+
+                        If ((![string]::IsNullOrEmpty($srcSecret)) -and (![string]::IsNullOrEmpty($dstSecret)) ) {
+                            $secretMatch = Compare-SecureString -pwd1 $srcSecret -pwd2 $dstSecret
+                        }
             
-                    if ($null -eq $dstSecret -and $null -ne $srcSecret) {
-                        Write-LogMessage -Type Debug -Msg "No secret found on destination account $($dstAccount.Name). Setting destination secret to match source secret."
-                        Set-Secret -url $DSTPVWAURL -logonHeader $dstToken -id $dstAccount.id -secret $srcSecret
-                        Write-LogMessage -Type Debug -Msg "Destination account `"$($dstAccount.Name)`" secret set."
-                    } elseif ($null -eq $srcSecret) {
-                        Write-LogMessage -Type Debug -Msg "No secret found on source account $($srcSecret.Name). No change will be made to destination secret."
-                    } elseif (!$secretMatch) {
-                        Write-LogMessage -Type Debug -Msg "Source Account `"$($srcAccount.Name)`" and destination account `"$($dstAccount.Name)`" secret do not match. Setting destination secret to match source secret."
-                        Set-Secret -url $DSTPVWAURL -logonHeader $dstToken -id $dstAccount.id -secret $srcSecret
-                        Write-LogMessage -Type Debug -Msg "Destination account `"$($dstAccount.Name)`" secret set."
-                    } elseif ($secretMatch) {
-                        Write-LogMessage -Type Debug -Msg "Source Account `"$($srcAccount.Name)`" and Destination account `"$($dstAccount.Name)`" secret match. No update required" 
+                        if ($null -eq $dstSecret -and $null -ne $srcSecret) {
+                            Write-LogMessage -Type Debug -Msg "No secret found on destination account $($dstAccount.Name). Setting destination secret to match source secret."
+                            Set-Secret -url $DSTPVWAURL -logonHeader $dstToken -id $dstAccount.id -secret $srcSecret
+                            Write-LogMessage -Type Debug -Msg "Destination account `"$($dstAccount.Name)`" secret set."
+                        } elseif ($null -eq $srcSecret) {
+                            Write-LogMessage -Type Debug -Msg "No secret found on source account $($srcSecret.Name). No change will be made to destination secret."
+                        } elseif (!$secretMatch) {
+                            Write-LogMessage -Type Debug -Msg "Source Account `"$($srcAccount.Name)`" and destination account `"$($dstAccount.Name)`" secret do not match. Setting destination secret to match source secret."
+                            Set-Secret -url $DSTPVWAURL -logonHeader $dstToken -id $dstAccount.id -secret $srcSecret
+                            Write-LogMessage -Type Debug -Msg "Destination account `"$($dstAccount.Name)`" secret set."
+                        } elseif ($secretMatch) {
+                            Write-LogMessage -Type Debug -Msg "Source Account `"$($srcAccount.Name)`" and Destination account `"$($dstAccount.Name)`" secret match. No update required" 
+                        } else {
+                            Write-LogMessage -Type Warning -Msg "Unknown Error encountered on Source Account `"$($srcAccount.Name)`" and Destination account `"$($dstAccount.Name)`" while working with secrets"
+                        }
+                    } catch [System.Management.Automation.RuntimeException] {
+                        If ("Account Locked" -eq $_) {
+                            Write-LogMessage -Type Warning -Msg "Source Account `"$($srcAccount.Name)`" Locked, unable to update"
+                        }
+                    } 
+                } Else {
+                    Write-LogMessage -Type Debug -Msg "SkipCheckSecret set to true. No checks being done on source and destination secrets"
+                }
+                if ($getRemoteMachines) {
+                    Update-RemoteMachine -url $DSTPVWAURL -logonHeader $dstToken -dstaccount $dstAccount -srcaccount $srcAccount
+                }
+            } elseif ($noCreate) {
+                Write-LogMessage -Type Warning -Msg "Destination account in safe `"$($srcAccount.safeName)`" does not exist and account creation disabled, skipping creation of account `"$($srcAccount.Name)`""
+            } else {
+                try {
+                    [SecureString]$srcSecret = Get-Secret -url $SRCPVWAURL -logonHeader $srcToken -id $srcAccount.id
+                    IF (![string]::IsNullOrEmpty($srcSecret)) {
+                        $dstsafe = Get-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $srcAccount.safeName
+                        if ([string]::IsNullOrEmpty($dstsafe)) {
+                            Write-LogMessage -Type Warning -Msg "Destination safe of `"$($srcAccount.safeName)`" does not exist, skipping creation of account `"$($srcAccount.Name)`""
+                        }
+                        $dstAccount = New-Account -url $DSTPVWAURL -logonHeader $dstToken -account $srcAccount -secret $srcSecret 
                     } else {
-                        Write-LogMessage -Type Warning -Msg "Unknown Error encountered on Source Account `"$($srcAccount.Name)`" and Destination account `"$($dstAccount.Name)`" while working with secrets"
+                        Write-LogMessage -Type Warning -Msg "No password set on source for `"$($srcAccount.Name)`""
                     }
                 } catch [System.Management.Automation.RuntimeException] {
-                    If ("Account Locked" -eq $_) {
+                    If ("Account Locked" -eq $_.Exception.Message) {
                         Write-LogMessage -Type Warning -Msg "Source Account `"$($srcAccount.Name)`" Locked, unable to update"
+                    } else {
+                        Write-LogMessage -Type Warning -Msg "Unknown Error encountered on retriving secret from Source Account `"$($srcAccount.Name)`""
                     }
-                } 
-            } Else {
-                Write-LogMessage -Type Debug -Msg "SkipCheckSecret set to true. No checks being done on source and destination secrets"
-            }
-            if ($getRemoteMachines) {
-                Update-RemoteMachine -url $DSTPVWAURL -logonHeader $dstToken -dstaccount $dstAccount -srcaccount $srcAccount
-            }
-        } elseif ($noCreate) {
-            Write-LogMessage -Type Warning -Msg "Destination account in safe `"$($srcAccount.safeName)`" does not exist and account creation disabled, skipping creation of account `"$($srcAccount.Name)`""
-        } else {
-            try {
-                [SecureString]$srcSecret = Get-Secret -url $SRCPVWAURL -logonHeader $srcToken -id $srcAccount.id
-                IF (![string]::IsNullOrEmpty($srcSecret)) {
-                    $dstsafe = Get-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $srcAccount.safeName
-                    if ([string]::IsNullOrEmpty($dstsafe)) {
-                        Write-LogMessage -Type Warning -Msg "Destination safe of `"$($srcAccount.safeName)`" does not exist, skipping creation of account `"$($srcAccount.Name)`""
-                    }
-                    $dstAccount = New-Account -url $DSTPVWAURL -logonHeader $dstToken -account $srcAccount -secret $srcSecret 
-                } else {
-                    Write-LogMessage -Type Warning -Msg "No password set on source for `"$($srcAccount.Name)`""
-                }
-            } catch [System.Management.Automation.RuntimeException] {
-                If ("Account Locked" -eq $_.Exception.Message) {
-                    Write-LogMessage -Type Warning -Msg "Source Account `"$($srcAccount.Name)`" Locked, unable to update"
-                } else {
-                    Write-LogMessage -Type Warning -Msg "Unknown Error encountered on retriving secret from Source Account `"$($srcAccount.Name)`""
                 }
             }
         }
     }
-}
 
-#region [Logoff]
-# Logoff the session
-# ------------------
-Write-Host "Logoff Session..."
-If (![string]::IsNullOrEmpty($srclogonToken)) {
-    Invoke-Logoff -url $SRCPVWAURL -logonHeader $srcToken
-}
-If (![string]::IsNullOrEmpty($dstlogonToken)) {
-    if (![string]::IsNullOrEmpty($dstToken)) { 
-        Invoke-Logoff -url $DSTPVWAURL -logonHeader $dstToken
+    #region [Logoff]
+    # Logoff the session
+    # ------------------
+    Write-Host "Logoff Session..."
+    If (![string]::IsNullOrEmpty($srclogonToken)) {
+        Invoke-Logoff -url $SRCPVWAURL -logonHeader $srcToken
     }
-}
+    If (![string]::IsNullOrEmpty($dstlogonToken)) {
+        if (![string]::IsNullOrEmpty($dstToken)) { 
+            Invoke-Logoff -url $DSTPVWAURL -logonHeader $dstToken
+        }
+    }
 
-Remove-Variable -Name LOG_FILE_PATH -Scope Global -Force
-Remove-Variable -Name AuthType -Scope Global -Force
+    Remove-Variable -Name LOG_FILE_PATH -Scope Global -Force
+    Remove-Variable -Name AuthType -Scope Global -Force
 
-#endregion
+    #endregion
 
-$VerbosePreference = $oldverbose
+    $VerbosePreference = $oldverbose
