@@ -1,0 +1,425 @@
+"UserName","Address","safeName","secretType","platformId","AccountManaged","manualManagementReason","ManagingCPM","SecretStatus","PlatformName","DualControl","ExclusiveUse","OneTime","RequireReason"
+,,"TelemetryConfig","password","","True",,"",,,,,,
+"123","123","IAMSafe2","password","AL-Windows-Domain-Admin-Accounts","True",,"",,"AL-Windows-Domain-Admin-Accounts","False","False","False","True"
+"aaaaaa","192.168.0.1","HenrySafe11","password","UMDomainAdmin","False","No Reason","UM-CPM-01",,"UM Domain Admin","False","False","False","False"
+"Abyi2","host-1.am.pcloud","Safe-01-AM","password","Win-DOM-AM","True",,"UM-CPM-02","success","Win-DOM -AM","False","False","False","False"
+"AbzCCP","10.0.0.15","CCP-AM-Test","password","CP-ABZ_Test","True",,"CPM_2029_Prod",,"CP-ABZ_Test","False","False","False","False"
+"abzmac","abz.pcloud","CA-Safe-2023","password","CP-ABZ_Test","True",,"CON-004-2023-CPM","success","CP-ABZ_Test","False","False","False","False"
+"abzmac","abz.pcloud","Reconcile-2023","password","Reconcile-2023","True",,"CON-004-2023-CPM",,"Reconcile-2023","False","False","False","False"
+"adefrance","sasscorp.local","ModernHTML5-Test-Accounts","password","Win-Dom-ModernHTML5","True",,"CONN01",,"Win-Dom-ModernHTML5","False","False","False","False"
+"admin","10.0.0.6","Unix Accounts","password","servicesumLinuxSSH","True",,"CONN01",,"servicesum Linux SSH","False","False","False","False"
+"admin","10.0.0.7","Unix Accounts","password","Mkin-SSH","True",,"CONN01",,"Mkin-SSH","False","False","False","False"
+"admin","ianslab.com","IanTest","password","IANSPLATFORM","True",,"CONN01",,,,,,
+"admin","lab.local","BABTest","password","BAB-WindowsDomainAccount","True",,"",,"BAB - Windows Domain Account","True","True","True","True"
+"admin-c","argon.local","PPA-ArgonL2","password","ArgonL-WindowsDomainAccount","True",,"CPM-ArgonL-ST1","success","ArgonL - Windows Domain Account","False","False","False","False"
+"administrator","10.0.0.2","MM-Win-Dom","password","MM-Win-Dom","False","(CPM)MaxRetries","mcaugm01_cpm","failure","MM-Win-Dom","False","False","True","False"
+"Administrator","ad-conn1.saascorp.local","Saascorp Win Local Accounts","password","UMServerLocalAccounts","False","(CPM)MaxRetries","CONN01","failure","UM Server Local Accounts","False","False","False","False"
+"Administrator","ArgonL-Con1.argon.local","MM-Win-Dom","password","MM-LCD","True",,"mcaugm01_cpm",,"MM-LCD","False","False","False","False"
+"Administrator","bcconn01.bjc-cyb.local","Collins_WIN_DOM","password","CollinsWinDomAcct","False","(CPM)MaxRetries","bcconn01","failure","Collins Win Dom Acct","False","False","False","False"
+"administrator","bjc-cyb.local","Collins_WIN_DOM","password","CollinsWinDomAcct","True",,"bcconn01","success","Collins Win Dom Acct","False","False","False","False"
+"Administrator","conn01.saascorp.local","Saascorp Win Local Accounts","password","UMServerLocalAccounts","True",,"CONN01","success","UM Server Local Accounts","False","False","False","False"
+"Administrator","CONN-UM-01.argon.local","MM-Win-Dom","password","MM-LCD","True",,"mcaugm01_cpm",,"MM-LCD","False","False","False","False"
+"Administrator","EC2AMAZ-B03NQ0S","FletchLocalTesting","password","FletchAWS-ServerLocal","True",,"",,"FletchAWS-ServerLocal","False","False","False","False"
+"administrator","mylab.local","BilalA-Test","password","BilalAWindowsDomainAccount","False","test","wins2019s",,"BilalA Windows Domain Account","False","False","False","False"
+"administrator","popeconcm.popelabsh.local","PopeWindowsDom","password","pope-win-server-local","True",,"conpope131",,"pope-win-server-local","False","False","False","False"
+"Administrator","saascorp.local","Domain Admins","password","UMDomainAdmin","False","(CPM)MaxRetries","CONN01","failure","UM Domain Admin","False","False","False","False"
+"Administrator","wintest.saascorp.local","Saascorp Win Local Accounts","password","UMServerLocalAccounts","False","(CPM)MaxRetries","CONN01","failure","UM Server Local Accounts","False","False","False","False"
+"administrator@vsphere.local","192.168.41.107","HB-Accounts","password","HBOTHA-vCenter","False","(CPM)MaxRetries","CPM_HBOTHA","failure","HBOTHA-vCenter","False","False","False","False"
+"AdministratorMM1","FINAPP05.exFinance.com","mmcaughey","password","WinServerLocal","True",,"HOST-10",,"Windows Server Local Accounts","False","False","False","False"
+"AdministratorMM2","JSmith.exFinance.com","mmcaughey","password","WinServerLocal","True",,"HOST-10",,"Windows Server Local Accounts","False","False","False","False"
+"AdministratorMM3","TJones.exFinance.com","mmcaughey","password","WinServerLocal","True",,"HOST-10",,"Windows Server Local Accounts","False","False","False","False"
+"AdministratorMM4","FINAPP08.exFinance.com","mmcaughey","password","WinServerLocal","True",,"HOST-10",,"Windows Server Local Accounts","False","False","False","False"
+"AESafeManager@cyberark.cloud.1024","servicesum.cyberark.cloud","mmcaughey","password","CyberArkIdentitySecurity","True",,"HOST-10","success","Cyberark Identity Security","False","False","False","False"
+"a-jake","cybr.local","PPA_I_204","password","MM-Win-Dom","False","(PPADisable)","wins2019s",,"MM-Win-Dom","False","False","True","False"
+"AKIAY5A5KCQRZDN4ZDPF",,"Notification Engine","password","","True",,"",,,,,,
+"alawson_ADM1","saascorps.local","PPA_I_538","password","AL-Windows-Domain-Admin-Accounts","False","(PPADisable)","",,"AL-Windows-Domain-Admin-Accounts","False","False","False","True"
+"alawson_admin","saascorp.local","alawson-demo","password","AL-Windows-Domain-Admin-Accounts","True",,"UM-CPM-02","success","AL-Windows-Domain-Admin-Accounts","False","False","False","True"
+"alawson_AWS",,"alawson-demo","key","ATL-AWS-Service","True",,"UM-CPM-02",,"ATL-AWS-Service","False","False","False","False"
+"alawson_da1","saascorp.local","PPA_I_538","password","MM-Win-Dom","False","(PPADisable)","",,"MM-Win-Dom","False","False","True","False"
+"alawson_root","10.0.0.1","alawson-demo","password","UnixSSH","True",,"UM-CPM-02",,"Unix via SSH","False","False","False","False"
+"alawsontest","10.0.0.5","alawson-demo","password","CiscoSSH","False","No Reason","UM-CPM-02",,"Cisco router via SSH","False","False","False","False"
+"AL-C-Admin01","argonlau.local","PPA-ArgonL-ST","password","ArgonL-WindowsDomainAccount-ST","True",,"CPM-ArgonL-ST1","success","ArgonL - Windows Domain Account - ST","False","False","False","False"
+"ALTEST","database01","alawson-corp","password","MSSql","True",,"CONN01",,"Microsoft SQL Server","False","False","False","False"
+"andrewtest","corp.com","alawson-corp","password","AL-Windows-Domain-Admin-Accounts","True",,"CONN01","success","AL-Windows-Domain-Admin-Accounts","False","False","False","True"
+"apope","10.0.0.5","popetest","key","Pope-Unix-Keys","True",,"conpope131",,"Pope-Unix-Keys","False","False","False","False"
+"apope","10.0.0.7","popetest","password","Pope-Unix-Password","True",,"conpope131",,"Pope-Unix-Password","False","False","False","False"
+"apope","apope.com","popevaultonly","password","vaultonlytest","True",,"conpope131",,"vaultonlytest","False","False","False","False"
+"apope@cyberark.cloud.1024","servicesum.cyberark.cloud","popetest","password","Pope-Identity","True",,"conpope131","success","Pope-Identity","False","False","False","False"
+"apopeidentity","servicesum.cyberark.cloud","popetest","password","Pope-Identity","True",,"conpope131",,"Pope-Identity","False","False","False","False"
+"argonl-safemanager@cyberark.cloud.1024","servicesum.cyberark.cloud","PPA-ArgonL2","password","CyberArkIdentitySecurity-AL","True",,"CPM-ArgonL-ST1","success","Cyberark Identity Security - ArgonL","False","False","False","False"
+"a-rootMM1","FinDevORA01.exFinance.com","mmcaughey","password","UnixSSH","True",,"HOST-10",,"Unix via SSH","False","False","False","False"
+"as400admin","1.2.3.4","SafeDescSearchTest","password","RCH-AS400","False","No Reason","",,"RCH - AS400","False","False","False","False"
+"asdf","adsf","Unix Accounts","password","WinLooselyDevice","False","Loosely connected device password change is pending (ImmediateTask)","CONN01",,"Windows Loosely Device","False","False","False","False"
+"ATLadmin01","saascorp.local","ATL-Dual-Control-OTP","password","ATL-Dual-Control-OTP","True",,"CONN01","success","ATL-Dual-Control-OTP","True","True","True","False"
+"bcollins","bjc-cyb.local","Collins_WIN_DOM","password","CollinsWinDomAcct","True",,"bcconn01","success","Collins Win Dom Acct","False","False","False","False"
+"bjcadminconnect","BJC-CYB.LOCAL","PSM","password","BJC-DOM-PSMADMIN-ACCOUNT","True",,"CONN01",,"BJC-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"bjcconnect","BJC-CYB.LOCAL","PSM","password","BJC-DOM-PSMADMIN-ACCOUNT","True",,"CONN01",,"BJC-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMAC","pcloud-london.com","PSM_Bod","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMAC","pcloud-london.com","PSM_Bod_Old_1","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMAC","pcloud-london.com","PSM_Bod_Old_2","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMAC","pcloud-london.com","PSM_Bod_Old_3","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMAC","pcloud-london.com","PSM_Bod_Old_4","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMAC","pcloud-london.com","PSM_Bod_Old_5","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMAC","pcloud-london.com","PSM_Bod_Old_6","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMAC","pcloud-london.com","PSM_Bod_Old_7","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMC","pcloud-london.com","PSM_Bod","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMC","pcloud-london.com","PSM_Bod_Old_1","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMC","pcloud-london.com","PSM_Bod_Old_2","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMC","pcloud-london.com","PSM_Bod_Old_3","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMC","pcloud-london.com","PSM_Bod_Old_4","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMC","pcloud-london.com","PSM_Bod_Old_5","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMC","pcloud-london.com","PSM_Bod_Old_6","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"Bod-UM-PSMC","pcloud-london.com","PSM_Bod_Old_7","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"bpope","popelabsh.local","PPA_I_266","password","PopeWindowsDomainAcct","False","(PPADisable)MaxRetries","BAB_CPM_Primary","failure","PopeWindowsDomainAcct","False","False","False","False"
+"CA_Reconcile","shadetreewoodshop.local","SHDTRE-WIN-DOM","password","WinDomain-cdeem","True",,"tater_salad",,"WinDomain - cdeem","False","False","False","False"
+"CA-C-PSMADMCON","ARGON.LOCAL","PSM_ArgonL","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"CPM_ArgonL","success","WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"CA-C-PSMCON","ARGON.LOCAL","PSM_ArgonL","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"CPM_ArgonL","success","WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"carecon","mclmcloud.local","mmcaughey","password","MM-Win-Dom","False","(CPM)MaxRetries","HOST-10","failure","MM-Win-Dom","False","False","True","False"
+"CA-Reconcile","hbotha.local","HB-Accounts","password","HBOTHA-WinDom","True",,"CPM_HBOTHA","success","HBOTHA-WinDom","False","False","False","False"
+"CA-T0Admin","hbotha.local","HB-Accounts","password","HBOTHA-WinDom","True",,"CPM_HBOTHA","success","HBOTHA-WinDom","False","False","False","False"
+"CA-T1Admin","hbotha.local","HB-Accounts","password","HBOTHA-WinDom","True",,"CPM_HBOTHA","success","HBOTHA-WinDom","False","False","False","False"
+"chris","chrislab.local","ChrisTest","password","CHRISSSSSSPLATFORM","True",,"CONN01",,"CHRISSSSSS PLATFORM","False","False","False","False"
+"chrischannells","channells.net","PPA_I_47","password","MM-Win-Dom","False","(PPADisable)","wins2019s",,"MM-Win-Dom","False","False","True","False"
+"CPM-MAR","10.0.0.9","CCP-MAR","password","CP-ABZ_Test","True",,"UM-CPM-02",,"CP-ABZ_Test","False","False","False","False"
+"cyberarkadmin","cwlab.int","chriswhite_safe2","password","WinDomain","True",,"",,"Windows Domain Account","False","False","False","False"
+"cyberark-reconcile-01","corp.com","mkin-test","password","mk-demo","True",,"PCC-02",,"mk-demo","False","False","False","True"
+"cyberark-reconcile-1","corp.com","Mkin-ServiceAccounts","password","MK-DemoTier1SecurityHigh","False","(CPM)MaxRetries","PCC-02","failure","MK-Demo Tier 1 Security High","True","False","False","True"
+"CyberArk-Reconcile-2","corp.com","Mkin-ServiceAccounts","password","MK-DemoServiceAccounts","True",,"PCC-02",,"MK-Demo Service Accounts","True","False","False","True"
+"da_cdeem","shadetreewoodshop.local","tater_salad","password","WinDomain-cdeem","False","No Reason","tater_salad",,"WinDomain - cdeem","False","False","False","False"
+"da_tfletch","fletch.local","FletchLocalTesting","password","FletchLocalWinDom","True",,"",,"FletchLocal WinDom","False","False","False","False"
+"da-cdeem","cdeemDOM00.local","cdeem-TestSafe00","password","cdeem-WindowsDomainAccount00","False","Testing","cdeem-wincon00",,"cdeem-Windows Domain Account 00","False","False","False","False"
+"dapool_01","cyberark.cloud","PPA-FRODAK","password","UMDomainAdmin","False","LAB","UM-CPM-01",,"UM Domain Admin","False","False","False","False"
+"DB-Admin-01","corp.com","mk-Demo-DB Team","password","MK-DemoTier1SecurityHigh","True",,"",,"MK-Demo Tier 1 Security High","True","False","False","True"
+"DB-Admin-02","corp.com","mk-Demo-DB Team","password","MK-DemoTier1SecurityHigh","True",,"",,"MK-Demo Tier 1 Security High","True","False","False","True"
+"DCtest","dualcontroltest","BSherwin_ACL_Test","password","MK-DemoTier1SecurityHigh","True",,"",,"MK-Demo Tier 1 Security High","True","False","False","True"
+"DefaultAccount","bcconn01.bjc-cyb.local","Collins_WIN_DOM","password","CollinsWinDomAcct","False","(CPM)MaxRetries","bcconn01","failure","Collins Win Dom Acct","False","False","False","False"
+"deleteme","delete me","mkin-test","password","mk-test","False","No Reason","PCC-02",,"mk-test","False","False","False","True"
+"distest1","popelabsh.local","popetest","password","PopeWindowsDomainAcct","True",,"conpope131",,"PopeWindowsDomainAcct","False","False","False","False"
+"Distest2","popelabsh.local","popetest","password","PopeWindowsDomainAcct","True",,"conpope131",,"PopeWindowsDomainAcct","False","False","False","False"
+"distest4","popelabsh.local","popetest","password","PopeWindowsDomainAcct","True",,"conpope131",,"PopeWindowsDomainAcct","False","False","False","False"
+"DOM2-PSM-Admin-Con","AM.PCLOUD","PSM","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"CONN01",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"DOM2-PSM-Con","AM.PCLOUD","PSM","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"CONN01","success","WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"domainadmin01","ds-lab.local","Drew_Saffrin_test1","password","Drew_Saffrin_test1-Win-Dom-dslab","True",,"",,"Drew_Saffrin_test1-Win-Dom-dslab","False","False","False","False"
+"Domain-Admin-01","corp.com","mk-Demo-Server Team","password","MK-DemoTier1SecurityHigh","True",,"PCC-02",,"MK-Demo Tier 1 Security High","True","False","False","True"
+"Domain-Admin-02","corp.com","mk-Demo-Server Team","password","MK-DemoTier1SecurityHigh","True",,"PCC-02",,"MK-Demo Tier 1 Security High","True","False","False","True"
+"domainadmin4","bige.test","Eric_CM_TEST","password","MEH-WindowsDomainAccount","True",,"cm-test2","success","MEH-Windows Domain Account","False","False","False","False"
+"domainnetbios","lab","BABTest","password","BAB-WindowsDomainAccount","True",,"",,"BAB - Windows Domain Account","True","True","True","True"
+"domainuser","hopkins.com","HopkinsDualControlTest","password","HopkinsTestWinDomain","True",,"CONN01",,"Hopkins Test Win Domain","False","False","False","False"
+"DOM-PSM-Admin-Con","AM.PCLOUD","PSM","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"CONN01",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"DOM-PSM-Con","AM.PCLOUD","PSM","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"CONN01",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"douglas.boddington@cyberark.com","https://portal.azure.com","BOD-WIN-SAFE","password","GenericAzurePortal-DB","True",,"BOD-UM-CPM1",,"Generic Azure Portal - DB","False","False","False","False"
+"dpa","saascorp.local","saascorp-dpa","password","EDS-DA","True",,"CONN01",,"EDS-DA","False","False","False","False"
+"dualcontroltestuser","NA","HopkinsDualControlTest","password","HopkinsDualControlTest","True",,"CONN01",,"HopkinsDualControlTest","True","False","False","False"
+"EHOPKTest","test.ehopk.com","EHOPK-Check-In-Test","password","EHOPK-Check-In-Test","False","(CPM)MaxRetries","CONN01","failure","EHOPK-Check-In-Test","False","False","True","False"
+"esarikas","eds-lab.local","mig-testsafe","password","WinDomain","True",,"CONN01",,"Windows Domain Account","False","False","False","False"
+"esarikas","saascorp.local","Domain Admins","password","UMDomainAdmin","False","Make sure it is simple to enter lab servers","CONN01","success","UM Domain Admin","False","False","False","False"
+"fisher_sysadmin","aal4797.my.idaptive.app","PPA-FRODAK","password","Michael-Identity","True",,"UM-CPM-01",,"Michael - Identity","False","False","False","False"
+"fpope","10.0.0.5","popetest","key","Pope-Unix-Keys","True",,"conpope131",,"Pope-Unix-Keys","False","False","False","False"
+"fpope","popelabsh.local","PopeWindowsDom","password","PopeWindowsDomainAcct","True",,"conpope131","success","PopeWindowsDomainAcct","False","False","False","False"
+"fpope@cyberark.cloud.1024","servicesum.cyberark.cloud","popetest","password","Pope-Identity","True",,"conpope131","success","Pope-Identity","False","False","False","False"
+"frodak_adm","cyberark.cloud","PPA-FRODAK","password","Win-Dom-ModernHTML5","False","LAB","UM-CPM-01",,"Win-Dom-ModernHTML5","False","False","False","False"
+"Guest","ad-conn1.saascorp.local","Domain Admins","password","WinServerLocal","False","(CPM)MaxRetries","CONN01","failure","Windows Server Local Accounts","False","False","False","False"
+"Guest","bcconn01.bjc-cyb.local","Collins_WIN_DOM","password","CollinsWinDomAcct","False","(CPM)MaxRetries","bcconn01","failure","Collins Win Dom Acct","False","False","False","False"
+"Guest","wintest.saascorp.local","Mkin-Demo-Safe","password","WinDesktopLocal","True",,"PCC-02",,"Windows Desktop Local Accounts","False","False","False","False"
+"henningadm","saascorp.local","HB-Accounts","password","HBOTHA-WinDom","True",,"CPM_HBOTHA",,"HBOTHA-WinDom","False","False","False","False"
+"hex","servicesum.cyberark.cloud/","mmcaughey","password","Michael-Identity","False","(CPM)MaxRetries","HOST-10","failure","Michael - Identity","False","False","False","False"
+"Hex for safeadmin","servicesum.cyberark.cloud","mmcaughey","password","Michael-Identity","True",,"HOST-10",,"Michael - Identity","False","False","False","False"
+"iain","10.0.0.9","PPA-IainMarsh","password","IMARSH-UnixViaSSH","True",,"marshycloudpoc-cp","success","IMARSH-Unix Via SSH","False","False","False","False"
+"iain","marshycloud.local","PPA-IainMarsh","password","WindowsDomainIainMarsh","True",,"marshycloudpoc-cp","success","Windows Domain Iain Marsh","False","False","False","False"
+"ian","ianslab.local","IanTest","password","IANSPLATFORM","True",,"CONN01",,,,,,
+"IPAddress","192.168.239.60","BABTest","password","WinServerLocal","True",,"",,"Windows Server Local Accounts","False","False","False","False"
+"karim","karimdc.mydomain.com","KarimH","password","WindowsDomainAccountKarimh","True",,"CPMAZURE",,"Windows Domain Account Karimh","False","False","False","False"
+"labuser1","lab.local","125Test","password","MM-Win-Dom","False","(CPM)MaxRetries","CONN01","failure","MM-Win-Dom","False","False","True","False"
+"labuser2","lab.local","125Test","password","MM-Win-Dom","False","(CPM)MaxRetries","CONN01","failure","MM-Win-Dom","False","False","True","False"
+"l-admin","10.0.0.6","Mkin-Demo-Safe","password","Mkin-SSH","True",,"PCC-02",,"Mkin-SSH","False","False","False","False"
+"l-admin","10.0.0.6","mkin-test","password","mkinsshwithoutkeystrokelogging","True",,"PCC-02",,"mkin ssh without keystroke logging","False","False","False","False"
+"lcduser","UM-CON-02.am.pcloud","AM-UM-EPM","password","AM-UM-EPM","False","(CPM)MaxRetries","UM-CPM-01","failure","AM-UM-EPM","False","False","False","False"
+"localADM2","bodprivclient2.pcloud-london.com","BOD-WIN-SAFE","password","BOD-WIN-LOC","True",,"BOD-UM-CPM1","success","BOD-WIN-LOC","False","False","False","False"
+"localadmin","Laptop1@saascorp.local","alawson-demo","password","WinLooselyDevice","False","Loosely connected device password change is pending (ExpirationPeriod)","UM-CPM-02",,"Windows Loosely Device","False","False","False","False"
+"Local-Admin-01","192.168.100.2","mk-Demo-Server Team","password","MK-DemoTier2SecurityLow","True",,"PCC-02",,"MK-Demo Tier 2 Security Low","False","False","False","True"
+"Local-Admin-02","192.168.100.3","mk-Demo-Server Team","password","MK-DemoTier2SecurityLow","True",,"PCC-02",,"MK-Demo Tier 2 Security Low","False","False","False","True"
+"logonaccount","test.local","JGillmoreTest","password","WinDomAdmGillmore","True",,"",,"WinDomAdmGillmore","False","False","False","False"
+"LOGON-argonl-safemanager@cyberark.cloud.1024","servicesum.cyberark.cloud","PPA-ArgonL2","password","CyberArkIdentitySecurity-AL","False","OTP Hex Key","CPM-ArgonL-ST1",,"Cyberark Identity Security - ArgonL","False","False","False","False"
+"LogonforAESM","servicesum.cyberark.cloud","mmcaughey","password","CyberArkIdentitySecurity","False","TEST","HOST-10",,"Cyberark Identity Security","False","False","False","False"
+"mcaugm01","10.0.0.2","MM-Win-Dom","password","MM-Win-Dom","False","(CPM)MaxRetries","mcaugm01_cpm","failure","MM-Win-Dom","False","False","True","False"
+"Mcaugm01","en.wikipedia.org/w/index.php?title=Special:UserLogin","MM-Win-Dom","password","Wikipedia","False","(CPM)UnrecoverableError","mcaugm01_cpm","failure","Wikipedia","False","False","False","False"
+"MCLM1","0.0.0.0","mmcaughey","password","Michael-Identity","True",,"HOST-10",,"Michael - Identity","False","False","False","False"
+"mclm2","0.0.0.0","mmcaughey","password","Michael-Identity","True",,"HOST-10",,"Michael - Identity","False","False","False","False"
+"mclm3","0.0.0.0","mmcaughey","password","Michael-Identity","True",,"HOST-10",,"Michael - Identity","False","False","False","False"
+"mclm4","0.0.0.0","mmcaughey","password","Michael-Identity","True",,"HOST-10",,"Michael - Identity","False","False","False","False"
+"mclmrecon1","0.0.0.0","mmcaughey","password","Michael-Identity","True",,"HOST-10",,"Michael - Identity","False","False","False","False"
+"mclmrecon2","0.0.0.0","mmcaughey","password","Michael-Identity","True",,"HOST-10",,"Michael - Identity","False","False","False","False"
+"mclmrecon3","0.0.0.0","mmcaughey","password","Michael-Identity","True",,"HOST-10",,"Michael - Identity","False","False","False","False"
+"mclmrecon4","0.0.0.0","mmcaughey","password","Michael-Identity","True",,"HOST-10",,"Michael - Identity","False","False","False","False"
+"MEH-DA1","saascorp.local","MEH_DA","password","MEH-DomainAdmins","True",,"CONN01","success","MEH-Domain Admins","False","False","False","False"
+"MEH-DA2","saascorp.local","MEH_DA","password","MEH-DomainAdmins","True",,"CONN01","success","MEH-Domain Admins","False","False","False","False"
+"MEH-DA3","saascorp.local","MEH_DA","password","MEH-DomainAdmins","True",,"CONN01","success","MEH-Domain Admins","False","False","False","False"
+"MEH-HELPDESK1","saascorp.local","MEH_HELPDESK","password","MEH-WindowsDomainAccount","True",,"CONN01","success","MEH-Windows Domain Account","False","False","False","False"
+"MEH-SA1","saascorp.local","MEH_SA","password","MEH-WindowsDomainAccount","True",,"CONN01","success","MEH-Windows Domain Account","False","False","False","False"
+"MEH-SA2","saascorp.local","MEH_SA","password","MEH-WindowsDomainAccount","True",,"CONN01","success","MEH-Windows Domain Account","False","False","False","False"
+"MEH-SA3","saascorp.local","MEH_SA","password","MEH-WindowsDomainAccount","True",,"CONN01","success","MEH-Windows Domain Account","False","False","False","False"
+"MEH-SQL_SA1","saascorp.local","MEH_SQL","password","MEH-SQLDomainAccount","True",,"CONN01",,"MEH-SQL Domain Account","False","False","False","False"
+"MEH-UNIX_ADM1","saascorp.local","MEH_UNIX","password","MEH-UNIXDomianAccount","True",,"CONN01","success"," MEH-UNIX Domian Account","False","False","False","False"
+"Michael 1","10.0.0.0","MM-Win-Dom","password","MM-Win-Dom","False","Test","mcaugm01_cpm",,"MM-Win-Dom","False","False","True","False"
+"Michael 2","10.0.0.1","MM-Win-Dom","password","MM-Win-Dom","False","(CPM)MaxRetries","mcaugm01_cpm","failure","MM-Win-Dom","False","False","True","False"
+"michael.kinsella","cyberark.cloud.1024","Mkin-Demo-Safe","password","mk-test","False","No Reason","PCC-02",,"mk-test","False","False","False","True"
+"michael.mcaughey@cyberark.cloud.1024","servicesum.cyberark.cloud","mmcaughey","password","Michael-Identity","False","(CPM)MaxRetries","HOST-10","failure","Michael - Identity","False","False","False","False"
+"Michael-Admin-01","Corp.com","Mkin-Demo-Safe","password","mk-demo-platform","True",,"PCC-02","success","mk-demo-platform","False","False","False","False"
+"Michael-Admin-02","Corp.com","Mkin-Demo-Safe","password","mk-demo","True",,"PCC-02","success","mk-demo","False","False","False","True"
+"mk-example","example.com","mkin-test","password","mk-test","True",,"PCC-02",,"mk-test","False","False","False","True"
+"mkin-demo1","saascorp.local","mkin-demo-safe-saascorplocal","password","UMDomainAdmin","False","(CPM)MaxRetries","CONN01","failure","UM Domain Admin","False","False","False","False"
+"mkin-demo2","saascorp.local","z1","password","UMDomainAdmin","True",,"",,"UM Domain Admin","False","False","False","False"
+"mkinsella","cyberark.cloud.1024","Mkin-Demo-Safe","password","mk-test","True",,"PCC-02",,"mk-test","False","False","False","True"
+"mkin-test","saascorp.local","mkin-demo-safe-saascorplocal","password","UMDomainAdmin","False","(CPM)MaxRetries","CONN01","failure","UM Domain Admin","False","False","False","False"
+"mktest","saascorp.local","mkin-demo-safe-saascorplocal","password","UMDomainAdmin","False","(CPM)MaxRetries","CONN01","failure","UM Domain Admin","False","False","False","False"
+"mm","10.0.0.0","PPA_I_545","password","MM-Win-Dom","False","(PPADisable)MaxRetries","BAB_CPM_Primary","failure","MM-Win-Dom","False","False","True","False"
+"mm","mm.mclmcloud.local","mmcaughey","password","WinDesktopLocal","True",,"HOST-10",,"Windows Desktop Local Accounts","False","False","False","False"
+"MMAdmin","SQL.mclmcloud.local","MM-Win-Dom","password","MM-LCD","True",,"mcaugm01_cpm","success","MM-LCD","False","False","False","False"
+"mmcaughey","https://support.cyberark.com/SFE/services.aspx","mmcaughey","password","MichaelWebSites","True",,"HOST-10",,"Michael Web Sites","False","False","False","False"
+"mmcaughey","support.cyberark.com","mmcaughey","password","MichaelWebSites","True",,"HOST-10",,"Michael Web Sites","False","False","False","False"
+"mmcaughey","vault-servicesum.privilegecloud.cyberark.cloud","mmcaughey","password","MMTest","True",,"HOST-10","success","MM Test","False","False","False","False"
+"mmcaughey1","mclmcloud.local","PPA_I_545","password","MM-Win-Dom","False","(PPADisable)MaxRetries","BAB_CPM_Primary","failure","MM-Win-Dom","False","False","True","False"
+"mm-safemanager@cyberark.cloud.1024","servicesum.cyberark.cloud/","mmcaughey","password","Michael-Identity","False","(CPM)MaxRetries","HOST-10","failure","Michael - Identity","False","False","False","False"
+"MMStandard","SQL.mclmcloud.local","MM-Win-Dom","password","MM-LCD","False","Loosely connected device password change is pending (ImmediateTask)","mcaugm01_cpm",,"MM-LCD","False","False","False","False"
+"mounir","karimdc.mydomain.com","KarimH","password","WindowsDomainAccountKarimh","True",,"CPMAZURE","success","Windows Domain Account Karimh","False","False","False","False"
+"netadmin","10.0.0.1","RickSafe","password","CiscodeviceviaRCH","True",,"CONN01",,"Cisco device via RCH","False","False","False","False"
+"notmyaccount","saascorps.local","125Test","password","UMDomainAdmin","False","(CPM)MaxRetries","CONN01","failure","UM Domain Admin","False","False","False","False"
+"oraAdminMM1","FinDevORA01.exFinance.com","mmcaughey","password","Oracle","False","Oracle Admin - Break Glass user","HOST-10",,"Oracle Database","False","False","False","False"
+"PasswordManagerUser","ad-conn1.saascorp.local","IanTest","password","WinServerLocal","True",,"CONN01",,"Windows Server Local Accounts","False","False","False","False"
+"PasswordManagerUser","bcconn01.bjc-cyb.local","Collins_WIN_DOM","password","CollinsWinDomAcct","False","(CPM)MaxRetries","bcconn01","failure","Collins Win Dom Acct","False","False","False","False"
+"PasswordManagerUser","CONN-UM-01.argon.local","IanTest","password","UMServerLocalAccounts","False","(CPM)MaxRetries","CONN01","failure","UM Server Local Accounts","False","False","False","False"
+"PluginManagerUser","10.0.0.1","conpope131_Accounts","password","","True",,"conpope131",,,,,,
+"PluginManagerUser","10.0.0.1","cpm-nexus_Accounts","password","","True",,"cpm-nexus",,,,,,
+"PluginManagerUser","10.0.0.1","rmconn-02_Accounts","password","","True",,"rmconn-02",,,,,,
+"PluginManagerUser","10.0.0.2","bcconn01_Accounts","password","","True",,"bcconn01",,,,,,
+"PluginManagerUser","10.0.0.2","cdeem-wincon00_Accounts","password","","True",,"cdeem-wincon00",,,,,,
+"PluginManagerUser","10.0.0.2","marshycloudpoc-cp_Accounts","password","","True",,"marshycloudpoc-cp",,,,,,
+"PluginManagerUser","10.0.0.2","wins2019s_Accounts","password","","True",,"wins2019s",,,,,,
+"PluginManagerUser","10.0.0.3","CONN01_Accounts","password","","True",,"CONN01",,,,,,
+"PluginManagerUser","10.0.0.3","host-2_Accounts","password","","True",,"host-2",,,,,,
+"PluginManagerUser","10.0.0.3","marshycloud-cp_Accounts","password","","True",,"marshycloud-cp",,,,,,
+"PluginManagerUser","10.0.0.3","PCC-02_Accounts","password","","True",,"PCC-02",,,,,,
+"PluginManagerUser","10.0.0.3","rmconn-01_Accounts","password","","True",,"rmconn-01",,,,,,
+"PluginManagerUser","10.0.0.4","bcconn3_Accounts","password","","True",,"bcconn3",,,,,,
+"PluginManagerUser","10.0.0.4","bcconn31_Accounts","password","","True",,"bcconn31",,,,,,
+"PluginManagerUser","10.0.0.8","Iain2016Serv_Accounts","password","","True",,"Iain2016Serv",,,,,,
+"PluginManagerUser","10.0.2.15","BOD_UM_RA_CPM_Accounts","password","","True",,"BOD_UM_RA_CPM",,,,,,
+"PluginManagerUser","192.168.239.33","BAB_CPM_Primary_Accounts","password","","True",,"BAB_CPM_Primary",,,,,,
+"PluginManagerUser","192.168.86.46","tater_salad_Accounts","password","","True",,"tater_salad",,,,,,
+"PluginManagerUser","bcconn01.bjc-cyb.local","Collins_WIN_DOM","password","CollinsWinDomAcct","False","(CPM)MaxRetries","bcconn01","failure","Collins Win Dom Acct","False","False","False","False"
+"proxymng","10.0.0.9","mmcaughey","password","MCAUG-UnixViaSSH","True",,"HOST-10",,"MCAUG-Unix Via SSH","False","False","False","False"
+"PSM-2000000000000000","ad-conn1.saascorp.local","Domain Admins","password","WinServerLocal","False","(CPM)MaxRetries","CONN01","failure","Windows Server Local Accounts","False","False","False","False"
+"PSM-3000000000000000","conn01.saascorp.local","Domain Admins","password","WinServerLocal","False","(CPM)MaxRetries","CONN01","failure","Windows Server Local Accounts","False","False","False","False"
+"PSM-3100000000000000","conn01.saascorp.local","Domain Admins","password","WinServerLocal","False","(CPM)MaxRetries","CONN01","failure","Windows Server Local Accounts","False","False","False","False"
+"PSM-3800000000000000","conn01.saascorp.local","Domain Admins","password","WinServerLocal","False","(CPM)MaxRetries","CONN01","failure","Windows Server Local Accounts","False","False","False","False"
+"PSM-5600000000000000","conn01.saascorp.local","Domain Admins","password","WinServerLocal","False","(CPM)MaxRetries","CONN01","failure","Windows Server Local Accounts","False","False","False","False"
+"PSM-6200000000000000","conn01.saascorp.local","Domain Admins","password","WinServerLocal","False","(CPM)MaxRetries","CONN01","failure","Windows Server Local Accounts","False","False","False","False"
+"PSM-8200000000000000","conn01.saascorp.local","Domain Admins","password","WinServerLocal","False","(CPM)MaxRetries","CONN01","failure","Windows Server Local Accounts","False","False","False","False"
+"PSM-9700000000000000","conn01.saascorp.local","Domain Admins","password","WinServerLocal","False","(CPM)MaxRetries","CONN01","failure","Windows Server Local Accounts","False","False","False","False"
+"PSM-9F00000000000000","conn01.saascorp.local","Domain Admins","password","WinServerLocal","False","(CPM)MaxRetries","CONN01","failure","Windows Server Local Accounts","False","False","False","False"
+"PSM-AC00000000000000","conn01.saascorp.local","Domain Admins","password","WinServerLocal","False","(CPM)MaxRetries","CONN01","failure","Windows Server Local Accounts","False","False","False","False"
+"PSMAdminConnect","10.0.0.1","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.1","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.1","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.1","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.1","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.10","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.10","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.11","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.111","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.112","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.14","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.15","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.16","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.2","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.2","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.2","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.2","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.2","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.4","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.4","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.4","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.5","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.5","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.5","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.5","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.6","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.6","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.6","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.6","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.7","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.7","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.7","PSM","password","WinServerLocal","True",,"CONN01",,"Windows Server Local Accounts","False","False","False","False"
+"PSMAdminConnect","10.0.0.8","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.8","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.8","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.8","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.8","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.8","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.8","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.9","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.0.9","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.0.2.15","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","10.8.0.17","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","192.168.239.32","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","192.168.33.135","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","192.168.41.104","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","192.168.86.46","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","192.168.86.52","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","192.168.86.52","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","BAB-SerSum.lab.local","PSM","password","","True",,"CONN01",,,,,,
+"PSMAdminConnect","bcconn01.bjc-cyb.local","Collins_WIN_DOM","password","CollinsWinDomAcct","False","(CPM)MaxRetries","bcconn01","failure","Collins Win Dom Acct","False","False","False","False"
+"PSMAdminConnect","HBOTHA.LOCAL","PSM","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"CONN01",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"PSMAdminConnect","mydomain","PSM","password","WinDomain","True",,"CONN01",,"Windows Domain Account","False","False","False","False"
+"psmadminconnect","mylab.local","PSM","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"CONN01",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"PSMAdminConnect","saascorp.local","PSM","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"CONN01","success","WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"PSMAdminConnect","SERVICES.TRAINING","PSMTraining","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"TRAININGCONN01",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"PSMAdminConnect1","MCLMCLOUD.LOCAL","PSM","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"CONN01",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"PSM-B000000000000000","conn01.saascorp.local","Domain Admins","password","WinServerLocal","False","(CPM)MaxRetries","CONN01","failure","Windows Server Local Accounts","False","False","False","False"
+"PSMConnect","10.0.0.1","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.1","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.1","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.1","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.1","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.10","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.10","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.11","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.111","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.112","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.14","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.15","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.16","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.2","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.2","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.2","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.2","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.2","PSM","password","WinServerLocal","False","aa","CONN01",,"Windows Server Local Accounts","False","False","False","False"
+"PSMConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.3","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.4","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.4","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.4","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.5","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.5","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.5","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.5","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.6","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.6","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.6","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.6","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.7","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.7","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.8","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.8","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.8","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.8","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.8","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.8","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.8","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.9","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.0.9","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.0.2.15","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","10.8.0.17","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","192.168.239.32","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","192.168.33.135","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","192.168.41.104","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","192.168.86.46","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","192.168.86.52","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","192.168.86.52","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","BAB-SerSum.lab.local","PSM","password","","True",,"CONN01",,,,,,
+"PSMConnect","bcconn01.bjc-cyb.local","Collins_WIN_DOM","password","CollinsWinDomAcct","False","(CPM)MaxRetries","bcconn01","failure","Collins Win Dom Acct","False","False","False","False"
+"PSMConnect","HBOTHA.LOCAL","PSM","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"CONN01",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"PSMConnect","mydomain","PSM","password","WinDomain","True",,"CONN01",,"Windows Domain Account","False","False","False","False"
+"PSMConnect","mydomain","PSM","password","WinDomain","True",,"CONN01",,"Windows Domain Account","False","False","False","False"
+"psmconnect","mylab.local","PSM","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"CONN01",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"PSMConnect","saascorp.local","PSM","password","WIN-DOM-PSMADMIN-ACCOUNT","False","(CPM)MaxRetries","CONN01","failure","WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"PSMConnect","SERVICES.TRAINING","PSMTraining","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"TRAININGCONN01",,"WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"PSMConnect1","MCLMCLOUD.LOCAL","PSM","password","WIN-DOM-PSMADMIN-ACCOUNT","True",,"CONN01","success","WIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"reconcile","bjc-cyb.local","Collins_WIN_DOM","password","Collins_Reconcile","True",,"bcconn01","success","Collins_Reconcile","False","False","False","False"
+"Reconcile","test.local","JgillmoreRecon","password","WinDomAdmGillmore","True",,"",,"WinDomAdmGillmore","False","False","False","False"
+"reconcile-1","saascorp.local","Reconcile","password","WindowsReconcile","False","(CPM)MaxRetries","CONN01","failure","Windows Reconcile","False","False","False","False"
+"reconcile-2","saascorp.local","Reconcile","password","WindowsReconcile","False","(CPM)MaxRetries","CONN01","failure","Windows Reconcile","False","False","False","False"
+"rick.hubbard@onmicrosoft.com","portal.azure.com","RickSafe","password","MSAzureTest","False","No Reason","CONN01",,"MS Azure Test","False","False","False","False"
+"RMCYB_Reconcile","RMCYB","RM_Reconcile","password","RM_Reconcile","False","(CPM)MaxRetries","CONN01","failure","RM_Reconcile","False","False","False","False"
+"RMPSMAdminConnect","RMCYB.LOCAL","RMPSM","password","RMWIN-DOM-PSMADMIN-ACCOUNT","True",,"rmconn-01","failure","RMWIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"RMPSMConnect","RMCYB.LOCAL","RMPSM","password","RMWIN-DOM-PSMADMIN-ACCOUNT","True",,"rmconn-01","failure","RMWIN-DOM-PSMADMIN-ACCOUNT","False","False","False","False"
+"RMTEST","RMCYB.Local","Collins_WIN_DOM","password","RM_Test","True",,"bcconn01",,"RM_Test","False","False","False","False"
+"root","1.2.3.4","RickSafe","password","RCH-ESXi","True",,"CONN01",,"RCH - ESXi","False","False","False","False"
+"root","10.0.0.5","popetest","password","Pope-Unix-Password","True",,"conpope131",,"Pope-Unix-Password","False","False","False","False"
+"root","10.0.0.6","Unix Accounts","password","servicesumLinuxSSH","True",,"CONN01","success","servicesum Linux SSH","False","False","False","False"
+"root","10.0.0.7","popetest","password","Pope-Unix-Password","True",,"conpope131",,"Pope-Unix-Password","False","False","False","False"
+"root","10.0.0.7","Unix Accounts","password","servicesumLinuxSSH","True",,"CONN01",,"servicesum Linux SSH","False","False","False","False"
+"root","10.0.0.9","Mkin-Linux-SaasCorp","password","servicesumLinuxSSH","True",,"CONN01",,"servicesum Linux SSH","False","False","False","False"
+"root","10.0.0.9","mmcaughey","password","MCAUG-UnixViaSSH","True",,"HOST-10",,"MCAUG-Unix Via SSH","False","False","False","False"
+"root","192.168.41.107","HB-Accounts","password","HBOTHA-vCenter","False","(CPM)MaxRetries","CPM_HBOTHA","failure","HBOTHA-vCenter","False","False","False","False"
+"root","linux.corp.com","RickSafe","key","UnixSSHKeys","True",,"CONN01",,"Unix via SSH Keys","False","False","False","False"
+"SA","SECRET-SQL47B","MEH_SQL","password","MEH-MSSQLServer","True",,"CONN01",,"MEH-MS SQL Server","False","False","False","False"
+"saascorp-user","10.0.0.9","Mkin-Linux-SaasCorp","password","Mkin-SSH","False","(CPM)MaxRetries","CONN01","failure","Mkin-SSH","False","False","False","False"
+"sa-dpa","shadetreewoodshop.local","cdeem_DPA_SA","password","WinDomain-cdeem","True",,"tater_salad","success","WinDomain - cdeem","False","False","False","False"
+"safeadmin@cyberark.cloud.1024","servicesum.cyberark.cloud","mmcaughey","password","Michael-Identity","False","(CPM)MaxRetries","HOST-10","failure","Michael - Identity","False","False","False","False"
+"safemanager1@cyberark.cloud.1024","servicesum.cyberark.cloud","mmcaughey","password","Michael-Identity","True",,"HOST-10","success","Michael - Identity","False","False","False","False"
+"ScannerUser","ad-conn1.saascorp.local","popetest","password","WinServerLocal","True",,"conpope131",,"Windows Server Local Accounts","False","False","False","False"
+"ScannerUser","bcconn01.bjc-cyb.local","Collins_WIN_DOM","password","CollinsWinDomAcct","False","(CPM)MaxRetries","bcconn01","failure","Collins Win Dom Acct","False","False","False","False"
+"Server-Admin-01","Corp.com","mk-Demo-Server Team","password","MK-DemoTier2SecurityLow","True",,"PCC-02","success","MK-Demo Tier 2 Security Low","False","False","False","True"
+"Server-Admin-02","Corp.com","mk-Demo-Server Team","password","MK-DemoTier2SecurityLow","True",,"PCC-02",,"MK-Demo Tier 2 Security Low","False","False","False","True"
+"sharedadm-um","pcloud-london.com","BOD-WIN-SAFE","password","BOD-WIN-DOM","True",,"BOD-UM-CPM1","success","BOD-WIN-DOM","False","False","False","False"
+"SSMS-Admin-01","Corp.com","mk-Demo-DB Team","password","MK-DemoTier2SecurityLow","True",,"",,"MK-Demo Tier 2 Security Low","False","False","False","True"
+"SSMS-Admin-02","corp.com","mk-Demo-DB Team","password","MK-DemoTier2SecurityLow","True",,"",,"MK-Demo Tier 2 Security Low","False","False","False","True"
+"svc_DPA_Strong","pcloud-london.com","BOD-WIN-SAFE","password","BOD-WIN-DOM","True",,"BOD-UM-CPM1","success","BOD-WIN-DOM","False","False","False","False"
+"sys","10.0.0.11","mkin-demo-safe-saascorplocal","password","mkin-oracledb-Wassysdba","False","(CPM)MaxRetries","CONN01","failure","mkin-oracledb-Wassysdba","False","False","False","False"
+"sys","10.0.0.8","Mkin-Demo-Safe","password","mkin-oracleDB-noassysdba","False","(CPM)MaxRetries","PCC-02","failure","mkin-oracleDB-noassysdba","False","False","False","False"
+"system","10.0.0.11","mkin-demo-safe-saascorplocal","password","mkin-oracleDB-noassysdba","False","(CPM)MaxRetries","CONN01","failure","mkin-oracleDB-noassysdba","False","False","False","False"
+"system","10.0.0.11","mkin-demo-safe-saascorplocal","password","mkin-oracledb-Wassysdba","True",,"CONN01","success","mkin-oracledb-Wassysdba","False","False","False","False"
+"system","10.0.0.8","Mkin-Demo-Safe","password","oracledbcorpcom","False","(CPM)MaxRetries","PCC-02","failure","oracledb corp com","False","False","False","False"
+"system","oracledatabases.saascorp.local","Oracle","password","Oracle","True",,"CONN01",,"Oracle Database","False","False","False","False"
+"test","admin@travelcom_aat4799","mmcaughey","password","MSAzureTest","True",,"HOST-10",,"MS Azure Test","False","False","False","False"
+"test","bjc-cyb.local","PPA_I_449","password","MM-Win-Dom","False","(PPADisable)","wins2019s",,"MM-Win-Dom","False","False","True","False"
+"test","saascorp.local","PPA_I_32","password","PopeWindowsDomainAcct","False","(PPADisable)MaxRetries","BAB_CPM_Primary","failure","PopeWindowsDomainAcct","False","False","False","False"
+"test","target.popelabsh.local","PopeWindowsDom","password","WinServerLocal","True",,"conpope131",,"Windows Server Local Accounts","False","False","False","False"
+"test","test","mmcaughey","password","CiscoSSH","False","(CPM)MaxRetries","HOST-10","failure","Cisco router via SSH","False","False","False","False"
+"test","test","PPA-FRODAK","password","FR-terst","True",,"UM-CPM-01",,"FR-terst","False","False","False","False"
+"TEST","TEST","PPA-MCAUGHEY1","password","MM-Win-Dom","True",,"",,"MM-Win-Dom","False","False","True","False"
+"test","Testing","RM_Test","password","RM_Test","False","No Reason","rmconn-01",,"RM_Test","False","False","False","False"
+"TestAccount","lab.local","BABTest","password","BAB-WindowsDomainAccount","True",,"",,"BAB - Windows Domain Account","True","True","True","True"
+"testadm","10.0.0.3","popetest","password","pope-win-server-local","True",,"conpope131","success","pope-win-server-local","False","False","False","False"
+"testadmin1","cybrlab.local","BOD-WIN-SAFE","password","BOD-WIN-DOM","True",,"BOD-UM-CPM1","success","BOD-WIN-DOM","False","False","False","False"
+"Tester","pvwav13","BABTest","password","WinServerLocal","True",,"",,"Windows Server Local Accounts","False","False","False","False"
+"tester1","host-1.am.pcloud","Safe-01-AM","password","Win-DOM-AM","True",,"UM-CPM-02","success","Win-DOM -AM","False","False","False","False"
+"testing","www.portal.azure.com","WEBTEST","password","Newplatformname","True",,"CONN01",,"New platform name","False","False","False","False"
+"testingofuser","addresstest","EDS-test-alex","password","EDS-DA","True",,"CONN01",,"EDS-DA","False","False","False","False"
+"Testone","DC-02.UMAM.pcloud","Safe-01-AM","password","Win-DOM-AM","True",,"UM-CPM-02",,"Win-DOM -AM","False","False","False","False"
+"testservice","mclmcloud.local","mmcaughey","password","MM-Win-Dom","False","(CPM)UnrecoverableError","HOST-10","failure","MM-Win-Dom","False","False","True","False"
+"testUMadm","pcloud-london.com","BOD-WIN-SAFE","password","BOD-WIN-DOM","True",,"BOD-UM-CPM1","success","BOD-WIN-DOM","False","False","False","False"
+"teting","google.com","webtesting","password","GenericWebApp","False","No Reason","CONN01",,"Generic Web App","False","False","False","False"
+"thatguy","saascorp.local","Windomssl","password","WINDOMSSL-Jerry","True",,"CONN01",,"WINDOMSSL-Jerry","False","False","False","False"
+"ticketingtest","testaddress.com","HB-Accounts","password","HenningBothaTicketingTest","True",,"CPM_HBOTHA",,,,,,
+"tre","tre","alawson-demo","password","cdeem-AzureADPasswordMgmt","True",,"UM-CPM-02",,"cdeem - Azure AD Password Mgmt","False","False","False","False"
+"user02","eds.migration","EDS-test-alex","password","EDS-DA","True",,"CONN01",,"EDS-DA","False","False","False","False"
+"username123","example.com","jeff-test-123","password","MMTest","True",,"",,"MM Test","False","False","False","False"
+"username123","example.com","jeff-test-123","password","MMTest","True",,"",,"MM Test","False","False","False","False"
+"username124","example.com","jeff-test-123","password","WinDomain","True",,"",,"Windows Domain Account","False","False","False","False"
+"vincentdpope@outlook.com","outlook.com","popetest","password","PopeWindowsDomainAcct","False","(CPM)MaxRetries","conpope131","failure","PopeWindowsDomainAcct","False","False","False","False"
+"WDAGUtilityAccount","bcconn01.bjc-cyb.local","Collins_WIN_DOM","password","CollinsWinDomAcct","False","(CPM)MaxRetries","bcconn01","failure","Collins Win Dom Acct","False","False","False","False"
+"WDAGUtilityAccount","wintest.saascorp.local","Mkin-Demo-Safe","password","WinDesktopLocal","True",,"PCC-02",,"Windows Desktop Local Accounts","False","False","False","False"
+"WinDomainSvcUser01","shadetreewoodshop.local","tater_salad","password","WinDomain-cdeem","True",,"tater_salad","success","WinDomain - cdeem","False","False","False","False"
+"WinLocalSvcUser01","TARGET01.shadetreewoodshop.local","tater_salad","password","WinServerLocal-cdeem","True",,"tater_salad","success","WinServer Local - cdeem","False","False","False","False"
+"WinLocalTestUser01","TARGET01.shadetreewoodshop.local","SHDTRE-WIN-LOC","password","WinServerLocal-cdeem","True",,"tater_salad","success","WinServer Local - cdeem","False","False","False","False"
+"Workstation-Admin-01","Corp.com","mk-Demo-Helpdesk Team","password","MK-DemoTier2SecurityLow","True",,"",,"MK-Demo Tier 2 Security Low","False","False","False","True"
+"Workstation-Admin-02","Corp.com","mk-Demo-Helpdesk Team","password","MK-DemoTier2SecurityLow","True",,"",,"MK-Demo Tier 2 Security Low","False","False","False","True"
+"zpope","popelabsh.local","PPA_I_266","password","PopeWindowsDomainAcct","False","(PPADisable)MaxRetries","BAB_CPM_Primary","failure","PopeWindowsDomainAcct","False","False","False","False"
