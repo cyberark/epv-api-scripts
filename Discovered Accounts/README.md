@@ -9,14 +9,16 @@
 The Discovered Accounts Report script supports two modes: [*List*](#list-command) and [*Details*](#details-command)
 
 ```powershell
-Get-DiscoveredAccountsReport.ps1 [-PVWAURL] <string> [[-AuthType] <string>] -List [[-PlatformType] <string>] [-OnlyPrivilegedAccounts] [-OnlyNonPrivilegedAccounts] [-OnlyEnabledAccounts] [-OnlyDisabledAccounts] [[-CSVPath] <string>] [-DisableSSLVerify] [<CommonParameters>]
-Get-DiscoveredAccountsReport.ps1 [-PVWAURL] <string> [[-AuthType] <string>] -Details [[-DiscoveredAccountID] <string>] [[-CSVPath] <string>] [-DisableSSLVerify] [<CommonParameters>]
+Get-DiscoveredAccountsReport.ps1 [-PVWAURL] <string> [[-LogonToken <LogonToken>] [-AuthType] <string>] -List [[-PlatformType] <string>] [-OnlyPrivilegedAccounts] [-OnlyNonPrivilegedAccounts] [-OnlyEnabledAccounts] [-OnlyDisabledAccounts] [[-Report] [-CSVPath] <string>] [-DisableSSLVerify] [<CommonParameters>]
+Get-DiscoveredAccountsReport.ps1 [-PVWAURL] <string> [[-AuthType] <string>] -Details [[-DiscoveredAccountID] <string>] [[-Report] [-CSVPath] <string>] [-DisableSSLVerify] [<CommonParameters>]
 ```
 
 - PVWAURL
 	- The URL of the PVWA that you are working with. 
 	- Note that the URL needs to include 'PasswordVault', for example: "https://myPVWA.myDomain.com/PasswordVault"
 	- When working with PVWA behind a load balancer, note that the session must be defined as sticky session. Alternatively, work with a single node PVWA
+- LogonToken
+	- Logon Token for use with ISPSS
 - AuthType
 	- Authentication types for logon. 
 	- Available values: _CyberArk, LDAP, RADIUS_
@@ -48,6 +50,8 @@ Get-DiscoveredAccountsReport.ps1 [-PVWAURL] <string> [[-AuthType] <string>] -Det
 	- Example: "-SortBy 'PlatformType asc'" to get ascending sort by PlatformType
 - DiscoveredAccountID
 	- Used with the Details mode, to return all details on a specific Discovered Account
+- Report
+	- Output to CSV file
 - CsvPath
 	- The CSV Path for the Discovered accounts report
 	- Emitting this parameter will output the report to screen
