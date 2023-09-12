@@ -36,6 +36,7 @@ Used to establish a session to a on-prem or PCloud Standalone environment
 ## Main capabilities
 -----------------
 Report of all accounts the the platform settings with each accounts
+
 The following properties are Default outputs and are not able to be removed from the report
 - Default Properties
     - "UserName", "Address", "Safename", "PlatformID", "SecretType"
