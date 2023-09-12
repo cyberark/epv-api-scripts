@@ -27,8 +27,8 @@ param
     [Parameter(Mandatory = $false)]
     $PermList,
 
-    # Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
-    [Parameter(Mandatory = $false)]
+    #region Parameters used for logon
+    [Parameter(Mandatory = $false, HelpMessage = "Use this parameter to pass a pre-existing authorization token. ")]
     $logonToken,
 
     [Parameter(Mandatory = $false, HelpMessage = "Enter Identity Name")]
@@ -44,7 +44,7 @@ param
     [PSCredential]$PVWACredentials,
     [Parameter(Mandatory = $false, HelpMessage = "Authentication Type for PVWA")]
     [String]$PVWAAuthType = "CyberArk"
-
+    #endregion
 
 )
 #region PAS Connection
