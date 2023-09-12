@@ -55,8 +55,8 @@ All required variables have default values
     - Whether to output all possible properties
     - Overrides all other switches
 - ExcludeExtendedProps [Switch]
-    - Exclude base properties from report
-    - Properties: "SecretStatus", "AccountManaged", "manualManagementReason", "ManagingCPM", "PlatformName"
+    - Exclude Extended properties from report. 
+    - Properties Removed: "SecretStatus", "AccountManaged", "manualManagementReason", "ManagingCPM", "PlatformName"
 - MachineRestrictedProps [Switch]
     - Switch to display properties to show if account has restrictions on usage
     - Properties: "RestrictedToSpecificMachines", "RemoteMachines"
