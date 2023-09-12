@@ -3,36 +3,16 @@
 
 ## Main capabilities
 -----------------
-Automatically adds accounts to PAS using  
+Automatically adds accounts to PAS using EPM as it's source
 
 
 ## Parameters:
 ```powershell
-.\Get-SafeMemberReport.ps1 [-ReportPath ".\SafeMemberReport.csv"] [-userTypes @("EPVUser", "BasicUser")] [-ExcludeUsers] [-IncludePredefinedUsers] [-IncludeGroups] [-IncludeApps] [-HidePerms] [-PermList @("useAccounts", "retrieveAccounts","listAccounts")] [-logonToken $logonToken] [-IdentityUserName "brian.bors@cyberark.cloud.xxxx"] [-IdentityURL aalxxxx.my.idaptive.app] [-PCloudSubDomain "TestingLab"] [-PVWAAddress "https://onprem.lab.local/passwordVault"] [-PVWACredentials $PSCredential] [-PVWAAuthType "CyberArk"]
+.\Invoke-OnboardEPMintoPAS.ps1 [-EPMCredentials <PSCredential>] [-EPMSetID <String>] [-EPMSetID <String>] [-LCDSafeName <String>] [-LCDPUsername <String>] [-LCDDomain] [-LCDAdd] [-logonToken $logonToken] [-IdentityUserName "brian.bors@cyberark.cloud.xxxx"] [-IdentityURL aalxxxx.my.idaptive.app] [-PCloudSubDomain "TestingLab"] [-PVWAAddress "https://onprem.lab.local/passwordVault"] [-PVWACredentials $PSCredential] [-PVWAAuthType "CyberArk"]
 ```
-### Report paramaters
-All required variables have default values
-- ReportPath [String]
-	- Location to where the report will be outputted to.
-    - Default Value: .\SafeMemberReport.csv
-- userTypes [Array]
-	- Vault user types to include in report passed as a array
-    - Default Value: @("EPVUser", "BasicUser")
-- ExcludeUsers [Switch]
-    - Used to exclude the default values from the output
-    - If used with -UserTypes the exclusion will override UserTypes
-- IncludePredefinedUsers [Switch]
-    - Used to include PredefinedUsers
-- IncludeGroups [Switch]
-    - Used to include groups in report output
-    - Can be used with -ExcludeUsers to only output Groups
-- IncludeApps [Switch]
-    - Used to include Applications and Credential Providers
-- HidePerms [Switch]
-    - Used to only output users and the safes they have access to in the report
-- PermList [Array]
-    - Used to specify a specific set of permissions to include in the output
-### Logon Parameters
+
+# Parameters Common to all reports
+## Logon Parameters
 Prior to attempting to logon a check is preformed to determine if a PSPas session already exists and is still valid. If no valid session is found a attempt will be made to if one of the following groupings is also passed
 
 Used for pre-established LogonTokens
@@ -60,3 +40,26 @@ Used to establish a session to a on-prem or PCloud Standalone environment
     - Type of authentication used with PVWA
     - Default Value: CyberArk
     - Acceptable Values: CyberArk or LDAP 
+
+### Onboarding paramaters
+- EPMCredentials [PSCredential]
+	- Credentials that would be used to connect to EPM
+    - There are limits on the allow connections on the amount of calls per min. See link for more information.
+        - https://docs.cyberark.com/EPM/Latest/en/Content/WebServices/WebServicesIntro.htm#LimitationsfornewAPIs
+- EPMSetID [String]
+  - The EPM Management Set ID (Not Name) to retrieve systems from
+- LCDPlatform [String]
+  - Platform to assign new accounts to
+- LCDSafeName [String]
+  - Safe to create accounts in
+- LCDPUsername [String]
+  - Username of the account to create
+- LCDDomain [String]
+  - Domain of the account to create
+- LCDFolder
+  - Folder to output JSON output to
+    - Default Value: ".\"
+- LCDAdd [Switch]
+    - Switch to add accounts automatically to PAS
+    - If not set the accounts will only be outputted to .\ToAdd-$EPMSetID.json.
+      - JSon can later be imported using command outputted
