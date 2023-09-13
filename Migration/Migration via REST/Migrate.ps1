@@ -58,7 +58,7 @@ param(
     [Alias("dsturl")]
     [String]$DSTPVWAURL,
 	
-    [Parameter(Mandatory = $true, HelpMessage = "Source Vault Stored Credentials")]
+    [Parameter(Mandatory = $false, HelpMessage = "Source Vault Stored Credentials")]
     [PSCredential]$SRCPVWACredentials,
 
     [Parameter(Mandatory = $false, HelpMessage = "Destination Vault Stored Credentials")]
@@ -182,7 +182,7 @@ If (![string]::IsNullOrEmpty($srclogonToken)) {
         Set-Variable -Scope Global -Name srcToken -Value $srclogonToken
     }
 } else {
-    If (![string]::IsNullOrEmpty($srcPVWACredentials)) {
+    If (![string]::IsNullOrEmpty($SRCPVWACredentials)) {
         $creds = $srcPVWACredentials
     } else {
         $msg = "Enter your source $srcAuthType User name and Password" 
@@ -197,10 +197,9 @@ If (![string]::IsNullOrEmpty($srclogonToken)) {
         Set-Variable -Scope Global -Name srcToken -Value $(Get-Logon -Credentials $creds -AuthType $SrcAuthType -URL $SRCPVWAURL )
     }
     # Verify that we successfully logged on
-    If ($null -eq $srcToken) { 
-        return # No logon header, end script 
-    } else { 
+    If ([string]::IsNullOrEmpty($global:srcToken)) { 
         Write-LogMessage -Type Error -MSG "No Source Credentials were entered" -Footer
+        return # No logon header, end script 
     }
     $creds = $null
 }
@@ -223,7 +222,7 @@ if ($processSafes -or $processAccounts) {
     Write-LogMessage -Type Info -MSG "Getting Destination Logon Tokens"
     If (![string]::IsNullOrEmpty($dstlogonToken)) {
         if ($dstlogonToken.GetType().name -eq "String") {
-            $logonHeader = @{Authorization = $srclogonToken }
+            $logonHeader = @{Authorization = $dstlogonToken }
             Set-Variable -Scope Global -Name dstToken -Value $logonHeader
         } else {
             Set-Variable -Scope Global -Name dstToken -Value $dstlogonToken
@@ -239,12 +238,12 @@ if ($processSafes -or $processAccounts) {
         Import-Module -Name ".\CyberArk-Migration.psm1" -Force
 
         if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-            Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $SRCPVWAURL -OTP $OTP)
+            Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $DSTPVWAURL -OTP $OTP)
         } else {
-            Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $SRCPVWAURL )
+            Set-Variable -Scope Global -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $DSTPVWAURL )
         }
         # Verify that we successfully logged on
-        If ($null -eq $dstToken) { 
+        If ($null -eq $global:dstToken) { 
             Write-LogMessage -Type Error -MSG "No Destination Credentials were entered" -Footer
             return # No logon header, end script 
         } 
