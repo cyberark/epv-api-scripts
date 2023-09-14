@@ -341,7 +341,7 @@ if ($processSafes -or $processAccounts) {
                             }
                         }
                     } else {
-                        Write-LogMessage -Type Debug -Msg "Creating and/or Updating of Safe Members is disabled. Memberships of `"$($dstsafe.safename)`" not changed" 
+                        Write-LogMessage -Type Info -Msg "Creating and/or Updating of Safe Members is disabled. Memberships of `"$($dstsafe.safename)`" not changed" 
                     }
                 }
             }
