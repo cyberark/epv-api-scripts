@@ -57,7 +57,6 @@ $ScriptVersion = "0.1"
 $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
 $global:LOG_FILE_PATH = "$logFolder\Invoke-OnboardEPMintoPAS_$LOG_DATE.log"
 
-
 Function Write-LogMessage {
     <#
 .SYNOPSIS

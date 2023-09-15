@@ -19,6 +19,8 @@ $URL_Platforms = $URL_PVWAAPI + "/Platforms/{0}"
 if ($InVerbose) {
     $VerbosePreference = "continue"
 }
+
+$LOG_FILE_PATH = $Global:LOG_FILE_PATH
 #endregion
 
 # Initialize Script Variables
@@ -69,10 +71,6 @@ Function Write-LogMessage {
         [Parameter(Mandatory = $false)]
         [String]$LogFile = $LOG_FILE_PATH
     )
-
-    If (![string]::IsNullOrEmpty($PSSenderInfo)) {
-        $WriteLog = $false
-    }
     Try {
         If ([string]::IsNullOrEmpty($LogFile) -and $WriteLog) {
             # User wanted to write logs, but did not provide a log file - Create a temporary file
@@ -353,7 +351,6 @@ Function Invoke-Rest {
             $restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
         }
     } catch [System.Net.WebException] {
-
         if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
             IF (![string]::IsNullOrEmpty($(($_.ErrorDetails.Message | ConvertFrom-Json).ErrorCode))) {
                 If (($($_.ErrorDetails.Message | ConvertFrom-Json).ErrorCode -eq "ITATS127E")) {
@@ -374,14 +371,24 @@ Function Invoke-Rest {
                 Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
                 Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
                 Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
-               
             }
         }
         $restResponse = $null
-    } catch { 
-        Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
+    } catch {
+        IF (![string]::IsNullOrEmpty($(($_ | ConvertFrom-Json -AsHashtable).Details.ErrorMessage))) {
+            Throw $($(($_ | ConvertFrom-Json -AsHashtable).Details.ErrorMessage))
+        } elseif (![string]::IsNullOrEmpty($(($_ | ConvertFrom-Json -AsHashtable).ErrorMessage))) {
+            Throw $($(($_ | ConvertFrom-Json -AsHashtable).ErrorMessage))
+        } else {
+            Write-LogMessage -Type Error -Msg "Error Message: $_"
+            Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
+        }
     }
-    Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $restResponse"
+    If ($URI -match "Password/Retrieve") {
+        Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: ***********"
+    } else {
+        Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $restResponse"
+    }
     return $restResponse
 }
 If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
@@ -602,7 +609,7 @@ Function Invoke-Logon {
     # Get Credentials to Login
     # ------------------------
     $caption = "Reset Remote Cred File Utility"
-    $msg = "Enter your $AuthType User name and Password"; 
+    $msg = "Enter your $AuthType User name and Password" 
     if ($null -eq $Credentials) {
         $Credentials = $Host.UI.PromptForCredential($caption, $msg, "", "")
     }
@@ -640,7 +647,7 @@ Function Get-Logon {
     # Get Credentials to Login
     # ------------------------
     $caption = "Reset Remote Cred File Utility"
-    $msg = "Enter your $AuthType User name and Password"; 
+    $msg = "Enter your $AuthType User name and Password" 
     if ($null -eq $Credentials) {
         $Credentials = $Host.UI.PromptForCredential($caption, $msg, "", "")
     }
@@ -1142,25 +1149,32 @@ Function Set-NextPassword {
     
     $URL_SetSecret = "$url/api/Accounts/$id/SetNextPassword/" 
     
-    Invoke-Rest -Command Post -Uri $URL_SetSecret -Body $(@{ChangeImmediately = "true";NewCredentials = $([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret))) } | ConvertTo-Json -Compress) -header $logonHeader
+    Invoke-Rest -Command Post -Uri $URL_SetSecret -Body $(@{ChangeImmediately = "true"; NewCredentials = $([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret))) } | ConvertTo-Json -Compress) -header $logonHeader
 }
 
 Function New-Account {
     Param
-    (
+    ([CmdletBinding(DefaultParameterSetName = "requireSecret")]
         [Parameter(Mandatory = $false)]
         [string]$url = $global:PVWAURL,
         [Parameter(Mandatory = $false)]
         [hashtable]$logonHeader = $g_LogonHeader,
         [Parameter(Mandatory = $true)]
         $account,
-        [Parameter(Mandatory = $true)]
-        [SecureString]$secret
+        [Parameter(ParameterSetName = 'requireSecret',Mandatory = $true)]
+        [Parameter(ParameterSetName = 'allowEmpty', Mandatory = $false)]
+        [SecureString]$secret,
+        [Parameter(Mandatory = $false)]
+        [Switch]$allowEmpty
     )
     $URL_NewAccount = "$url/api/Accounts/"
-    $account | Add-Member -NotePropertyName secret -NotePropertyValue ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret)))
-    
-    return Invoke-Rest -Command Post -Uri $URL_NewAccount -header $logonHeader -Body $($account | ConvertTo-Json -Compress)
+    If ($allowEmpty) {
+        return Invoke-Rest -Command Post -Uri $URL_NewAccount -header $logonHeader -Body $($account | ConvertTo-Json -Compress)
+    } Else {
+        $account | Add-Member -NotePropertyName secret -NotePropertyValue ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret)))
+        return Invoke-Rest -Command Post -Uri $URL_NewAccount -header $logonHeader -Body $($account | ConvertTo-Json -Compress)
+    }
+
     
 }
 
@@ -1215,7 +1229,13 @@ Function New-Safe {
     $safe = $safe | Select-Object -Property numberOfDaysRetention, numberOfVersionsRetention, oLACEnabled, autoPurgeEnabled, managingCPM, safeName, description, location
 
     If ((![string]::IsNullOrEmpty($cpnNameOld)) -and (![string]::IsNullOrEmpty($cpnNameNew))) {
-        return Invoke-Rest -Command Post -Uri $URL_NewSafe -header $logonHeader -Body $($safe | ConvertTo-Json -Compress).replace($cpnNameOld, $cpnNameNew)
+        if ($safe.managingCPM -eq $cpnNameOld) {
+            $safe.managingCPM = $cpnNameNew
+        }
+        return Invoke-Rest -Command Post -Uri $URL_NewSafe -header $logonHeader -Body $($safe | ConvertTo-Json -Compress)
+    } Elseif (![string]::IsNullOrEmpty($cpnNameNew)) {
+        $safe.managingCPM = $cpnNameNew
+        return Invoke-Rest -Command Post -Uri $URL_NewSafe -header $logonHeader -Body $($safe | ConvertTo-Json -Compress)
     } else {
         return Invoke-Rest -Command Post -Uri $URL_NewSafe -header $logonHeader -Body $($safe | ConvertTo-Json -Compress)
     }
@@ -1233,16 +1253,21 @@ Function New-SafeMember {
         [Parameter(Mandatory = $true)]
         $safeMember,
         [Parameter(Mandatory = $false)]
-        $newLDAP
+        $newLDAP,
+        [Parameter(Mandatory = $false)]
+        [switch]$PCloud
     )
     $URL_SafeMembers = "$url/api/Safes/$safe/Members"
     
-    if($safeMember.searchIn -eq "LDAP") {
+    if ($safeMember.searchIn -eq "LDAP") {
         $safeMember.searchIn = $newLDAP
     }
 
-    $safeMember = $safeMember | Select-Object -Property memberName, searchIn, membershipExpirationDate, permissions
-    
+    If ($PCloud) {
+        $safeMember = $safeMember | Select-Object -Property memberName, memberType, membershipExpirationDate, permissions
+    } Else {
+        $safeMember = $safeMember | Select-Object -Property memberName, searchIn, membershipExpirationDate, permissions
+    }
     return Invoke-Rest -Command Post -Uri $URL_SafeMembers -header $logonHeader -Body $($safeMember | ConvertTo-Json -Compress)
     
 }
@@ -1258,11 +1283,11 @@ Function Get-UserSource {
     )
 
     $URL_UserDetail = "$url/api/Users/$($safeMember.memberId)"
-    Write-LogMessage -Type Debug -Msg "Getting member source: $URL_UserDetail"
-    Write-LogMessage -Type Debug -Msg "Using Member: $safeMember"
+    #Write-LogMessage -Type Debug -Msg "Getting member source: $URL_UserDetail"
+    #Write-LogMessage -Type Debug -Msg "Using Member: $safeMember"
 
     $user = Invoke-Rest -Command GET -Uri $URL_UserDetail -header $logonHeader
-    if ($user.source -eq "Cyberark"){
+    if ($user.source -eq "Cyberark") {
         return "vault"
     } else {
         return $user.source
@@ -1282,16 +1307,16 @@ Function Get-GroupSource {
     )
 
     $URL_Groups = "$url/api/UserGroups?search=$($safeMember.memberName)"
-    Write-LogMessage -Type Debug -Msg "Getting member source: $URL_Groups"
-    Write-LogMessage -Type Debug -Msg "Using Member: $safeMember"
+    #Write-LogMessage -Type Debug -Msg "Getting member source: $URL_Groups"
+    #Write-LogMessage -Type Debug -Msg "Using Member: $safeMember"
 
     $groups = Invoke-Rest -Command GET -Uri $URL_Groups -header $logonHeader
 
     foreach ($group in $groups.value) {
         if ($safeMember.memberName -eq $group.groupName) {
-            if ([string]::IsNullOrEmpty($group.directory)){
+            if ([string]::IsNullOrEmpty($group.directory)) {
                 return "vault"
-            } else{
+            } else {
                 return $group.directory
             }
         }
