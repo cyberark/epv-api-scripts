@@ -270,6 +270,25 @@ If ($null -eq (Get-PASSession).User) {
 }
 #endregion
 
+#region Get accounts in PAS
+$accounts = Get-PASAccount -search $LCDPUsername
+$pasComputers = @()
+ForEach ($account in $accounts){
+
+    try {
+        if (![string]::IsNullOrEmpty($account.Address)){
+            $pasComputers += $account.Address.split(".")[0].ToLower()
+        } else {
+            Write-LogMessage -Type Error -Msg "Invalid Address on `"$account`""
+        }
+    } catch {
+        Write-LogMessage -Type Error -Msg  "Error on account `"$account`""
+    }
+   
+}
+$pasComputers = $pasComputers | Select-Object -Unique
+#endregion
+
 #region Compare and add
 [Array]$listToAdd = $epmComputers | Where-Object {$_.ComputerName -notin $pasComputers} | Select-Object -Property ComputerName, ComputerType, Platform, Status, LastSeen
 Write-LogMessage -Type Info -Msg "`n$($listToAdd.count) computers exist in EPM but not in PAS"
