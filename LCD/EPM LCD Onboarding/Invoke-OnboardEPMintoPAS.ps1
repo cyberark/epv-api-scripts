@@ -191,7 +191,9 @@ if ([string]::IsNullOrEmpty($EPMSetID)) {
 ##### Need to update logging from here down
 
 try {
+Write-LogMessage -Type verbose -Msg "Invoke-RestMethod `"$ManagerURL/EPM/API/Sets/$EPMSetID/Computers?limit=1&offset=0`" -Method 'GET'"
     $setComputersTotal = (Invoke-RestMethod "$ManagerURL/EPM/API/Sets/$EPMSetID/Computers?limit=1&offset=0" -Method 'GET' -Headers $headers).TotalCount
+    Write-LogMessage -Type verbose -Msg "`$setComputersTotal:`n$setComputersTotal"
     $offset = 0
     $limit = 5000
 
@@ -199,8 +201,10 @@ try {
     Do {
         try {
             Write-LogMessage -Type Verbose -Msg "Current `$Offset is $offset"
+	    Write-LogMessage -Type verbose -Msg "Invoke-RestMethod `"$ManagerURL/EPM/API/Sets/$EPMSetID/Computers?limit=$limit&offset=$offset`" -Method 'GET'"
             $setOffsetResult = Invoke-RestMethod "$ManagerURL/EPM/API/Sets/$EPMSetID/Computers?limit=$limit&offset=$offset" -Method 'GET' -Headers $headers
-            Write-LogMessage -Type Info -Msg "Retrived $($setOffsetResult.Count)"
+            Write-LogMessage -Type verbose -Msg "`$setOffsetResult:`n$setOffsetResult 
+	    Write-LogMessage -Type Info -Msg "Retrived $($setOffsetResult.Count)"
             $epmComputers += $setOffsetResult.Computers
             $offset += $limit
         } catch {
@@ -215,9 +219,9 @@ try {
     Break
 }
 #endregion
-Write-LogMessage -Type Info -Msg "Retrived $($setOffsetResult.Count) computers"
+Write-LogMessage -Type Info -Msg "Retrived $($epmComputers.Count) computers"
 #region PAS Connection
-Write-LogMessage -Type Debug -Msg "Connection to EPM is completed`nAttempting to connect to PAS"
+Write-LogMessage -Type verbose -Msg "Connection to EPM is completed`nAttempting to connect to PAS"
 if (!(Get-Module -ListAvailable -Name PSPAS)) {
     Try {
         Install-Module PSPAS -Scope CurrentUser
@@ -271,7 +275,9 @@ If ($null -eq (Get-PASSession).User) {
 #endregion
 
 #region Get accounts in PAS
+Write-LogMessage -Type verbose -Msg "Running search in PAS for $LCDPUsername" 
 $accounts = Get-PASAccount -search $LCDPUsername
+Write-LogMessage -Type verbose -Msg "$($accounts.count) Accounts Found" 
 $pasComputers = @()
 ForEach ($account in $accounts){
 
@@ -286,7 +292,11 @@ ForEach ($account in $accounts){
     }
    
 }
+Write-LogMessage -Type verbose -Msg "$($pasComputers.count) account address validated Found" 
+
 $pasComputers = $pasComputers | Select-Object -Unique
+
+Write-LogMessage -Type verbose -Msg "$($pasComputers.count) unique addresses found" 
 #endregion
 
 #region Compare and add
