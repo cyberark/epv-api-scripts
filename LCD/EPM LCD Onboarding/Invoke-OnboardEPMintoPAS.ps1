@@ -35,8 +35,11 @@ param(
     [Parameter(Mandatory = $false, HelpMessage = "Pass PVWA Credentials")]
     [PSCredential]$PVWACredentials,
     [Parameter(Mandatory = $false, HelpMessage = "Authentication Type for PVWA")]
-    [String]$PVWAAuthType = "CyberArk"
+    [String]$PVWAAuthType = "CyberArk",
     #endregion
+
+    [Parameter(Mandatory = $false, HelpMessage = "Path to Folder for log file")]
+    [String]$logFolder = $(Split-Path -Parent $MyInvocation.MyCommand.Path)
 
 )
 
@@ -52,7 +55,7 @@ $ScriptVersion = "0.1"
 # ------ SET global parameters ------
 # Set Log file path
 $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
-$global:LOG_FILE_PATH = "$ScriptLocation\SafeManagement_$LOG_DATE.log"
+$global:LOG_FILE_PATH = "$logFolder\Invoke-OnboardEPMintoPAS_$LOG_DATE.log"
 
 
 Function Write-LogMessage {
@@ -191,7 +194,9 @@ if ([string]::IsNullOrEmpty($EPMSetID)) {
 ##### Need to update logging from here down
 
 try {
+Write-LogMessage -Type verbose -Msg "Invoke-RestMethod `"$ManagerURL/EPM/API/Sets/$EPMSetID/Computers?limit=1&offset=0`" -Method 'GET'"
     $setComputersTotal = (Invoke-RestMethod "$ManagerURL/EPM/API/Sets/$EPMSetID/Computers?limit=1&offset=0" -Method 'GET' -Headers $headers).TotalCount
+    Write-LogMessage -Type verbose -Msg "`$setComputersTotal:`n$setComputersTotal"
     $offset = 0
     $limit = 5000
 
@@ -199,8 +204,10 @@ try {
     Do {
         try {
             Write-LogMessage -Type Verbose -Msg "Current `$Offset is $offset"
+	    Write-LogMessage -Type verbose -Msg "Invoke-RestMethod `"$ManagerURL/EPM/API/Sets/$EPMSetID/Computers?limit=$limit&offset=$offset`" -Method 'GET'"
             $setOffsetResult = Invoke-RestMethod "$ManagerURL/EPM/API/Sets/$EPMSetID/Computers?limit=$limit&offset=$offset" -Method 'GET' -Headers $headers
-            Write-LogMessage -Type Info -Msg "Retrived $($setOffsetResult.Count)"
+            Write-LogMessage -Type verbose -Msg "`$setOffsetResult:`n$setOffsetResult" 
+	    Write-LogMessage -Type Info -Msg "Retrived $($setOffsetResult.Count)"
             $epmComputers += $setOffsetResult.Computers
             $offset += $limit
         } catch {
@@ -215,9 +222,9 @@ try {
     Break
 }
 #endregion
-Write-LogMessage -Type Info -Msg "Retrived $($setOffsetResult.Count) computers"
+Write-LogMessage -Type Info -Msg "Retrived $($epmComputers.Count) computers"
 #region PAS Connection
-Write-LogMessage -Type Debug -Msg "Connection to EPM is completed`nAttempting to connect to PAS"
+Write-LogMessage -Type verbose -Msg "Connection to EPM is completed`nAttempting to connect to PAS"
 if (!(Get-Module -ListAvailable -Name PSPAS)) {
     Try {
         Install-Module PSPAS -Scope CurrentUser
@@ -227,8 +234,8 @@ if (!(Get-Module -ListAvailable -Name PSPAS)) {
     }
 } 
 
-Get-PASComponentSummary -ErrorAction SilentlyContinue -ErrorVariable TestConnect | Out-Null
-if ($TestConnect.count -ne 0) {
+$TestConnect = Get-PASComponentSummary -ErrorAction SilentlyContinue -ErrorVariable TestConnect | Out-Null
+if ($TestConnect.count -eq 0) {
     Write-LogMessage -Type Debug -Msg "No components found, assuming session is no longer valid, closing existing session"
     Close-PASSession -ErrorAction SilentlyContinue
 }
@@ -268,6 +275,31 @@ If ($null -eq (Get-PASSession).User) {
         break
     }
 }
+#endregion
+
+#region Get accounts in PAS
+Write-LogMessage -Type verbose -Msg "Running search in PAS for $LCDPUsername" 
+$accounts = Get-PASAccount -search $LCDPUsername
+Write-LogMessage -Type verbose -Msg "$($accounts.count) Accounts Found" 
+$pasComputers = @()
+ForEach ($account in $accounts){
+
+    try {
+        if (![string]::IsNullOrEmpty($account.Address)){
+            $pasComputers += $account.Address.split(".")[0].ToLower()
+        } else {
+            Write-LogMessage -Type Error -Msg "Invalid Address on `"$account`""
+        }
+    } catch {
+        Write-LogMessage -Type Error -Msg  "Error on account `"$account`""
+    }
+   
+}
+Write-LogMessage -Type verbose -Msg "$($pasComputers.count) account address validated Found" 
+
+$pasComputers = $pasComputers | Select-Object -Unique
+
+Write-LogMessage -Type verbose -Msg "$($pasComputers.count) unique addresses found" 
 #endregion
 
 #region Compare and add
