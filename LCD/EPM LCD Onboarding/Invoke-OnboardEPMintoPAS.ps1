@@ -35,8 +35,11 @@ param(
     [Parameter(Mandatory = $false, HelpMessage = "Pass PVWA Credentials")]
     [PSCredential]$PVWACredentials,
     [Parameter(Mandatory = $false, HelpMessage = "Authentication Type for PVWA")]
-    [String]$PVWAAuthType = "CyberArk"
+    [String]$PVWAAuthType = "CyberArk",
     #endregion
+
+    [Parameter(Mandatory = $false, HelpMessage = "Path to Folder for log file")]
+    [String]$logFolder = $(Split-Path -Parent $MyInvocation.MyCommand.Path)
 
 )
 
@@ -52,8 +55,7 @@ $ScriptVersion = "0.1"
 # ------ SET global parameters ------
 # Set Log file path
 $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
-$global:LOG_FILE_PATH = "$ScriptLocation\Invoke-OnboardEPMintoPAS_$LOG_DATE.log"
-
+$global:LOG_FILE_PATH = "$logFolder\Invoke-OnboardEPMintoPAS_$LOG_DATE.log"
 
 Function Write-LogMessage {
     <#
@@ -203,7 +205,7 @@ Write-LogMessage -Type verbose -Msg "Invoke-RestMethod `"$ManagerURL/EPM/API/Set
             Write-LogMessage -Type Verbose -Msg "Current `$Offset is $offset"
 	    Write-LogMessage -Type verbose -Msg "Invoke-RestMethod `"$ManagerURL/EPM/API/Sets/$EPMSetID/Computers?limit=$limit&offset=$offset`" -Method 'GET'"
             $setOffsetResult = Invoke-RestMethod "$ManagerURL/EPM/API/Sets/$EPMSetID/Computers?limit=$limit&offset=$offset" -Method 'GET' -Headers $headers
-            Write-LogMessage -Type verbose -Msg "`$setOffsetResult:`n$setOffsetResult 
+            Write-LogMessage -Type verbose -Msg "`$setOffsetResult:`n$setOffsetResult" 
 	    Write-LogMessage -Type Info -Msg "Retrived $($setOffsetResult.Count)"
             $epmComputers += $setOffsetResult.Computers
             $offset += $limit
@@ -231,8 +233,8 @@ if (!(Get-Module -ListAvailable -Name PSPAS)) {
     }
 } 
 
-Get-PASComponentSummary -ErrorAction SilentlyContinue -ErrorVariable TestConnect | Out-Null
-if ($TestConnect.count -ne 0) {
+$TestConnect = Get-PASComponentSummary -ErrorAction SilentlyContinue -ErrorVariable TestConnect | Out-Null
+if ($TestConnect.count -eq 0) {
     Write-LogMessage -Type Debug -Msg "No components found, assuming session is no longer valid, closing existing session"
     Close-PASSession -ErrorAction SilentlyContinue
 }
