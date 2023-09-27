@@ -131,14 +131,14 @@ Function Write-LogMessage {
             }
             "Debug" { 
                 if ($InDebug -or $InVerbose) {
-                    Write-Debug -Msg $MSG
+                    Write-Debug -Message $MSG
                     $msgToWrite = "[Debug]`t$Msg"
                 }
                 break
             }
             "Verbose" { 
                 if ($InVerbose) {
-                    Write-Verbose -Msg $MSG
+                    Write-Verbose -Message $MSG
                     $msgToWrite = "[VERBOSE]`t$Msg"
                 }
                 break
@@ -375,14 +375,16 @@ Function Invoke-Rest {
         }
         $restResponse = $null
     } catch {
-        IF (![string]::IsNullOrEmpty($(($_ | ConvertFrom-Json -AsHashtable).Details.ErrorMessage))) {
-            Throw $($(($_ | ConvertFrom-Json -AsHashtable).Details.ErrorMessage))
+        Write-LogMessage -Type Error -Msg "Error Message: $_"
+        Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
+       <#  IF (![string]::IsNullOrEmpty($(($_ | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue).Details.ErrorMessage))) {
+            Throw $($(($_ | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue).Details.ErrorMessage))
         } elseif (![string]::IsNullOrEmpty($(($_ | ConvertFrom-Json -AsHashtable).ErrorMessage))) {
-            Throw $($(($_ | ConvertFrom-Json -AsHashtable).ErrorMessage))
+            Throw $($(($_ | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue).ErrorMessage))
         } else {
             Write-LogMessage -Type Error -Msg "Error Message: $_"
             Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
-        }
+        } #>
     }
     If ($URI -match "Password/Retrieve") {
         Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: ***********"
@@ -397,7 +399,7 @@ If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
 }
 
 Function New-SearchCriteria {
-    param ([string]$sURL, [string]$sSearch, [string]$sSortParam, [string]$sSafeName, [boolean]$startswith, [int]$iLimitPage, [int]$iOffsetPage = 0)
+    param ([string]$sURL, [string]$sSearch, [string]$sSortParam, [string]$sSafeName, [boolean]$startswith, [int]$iLimitPage)
     [string]$retURL = $sURL
     $retURL += "?"
 	
@@ -412,7 +414,6 @@ Function New-SearchCriteria {
     if (![string]::IsNullOrEmpty($sSortParam)) {
         Write-LogMessage -Type Debug -Msg "Sort: $sSortParam"
         $retURL += "sort=$(Convert-ToURL $sSortParam)&"
-
     }
     if ($startswith) {
         Write-LogMessage -Type Debug -Msg "startswith: $sSortParam"
@@ -504,7 +505,7 @@ Function Get-Accounts {
         Write-LogMessage -Type Error -Msg $_.Exception.Response.StatusDescription
     }
 						
-    $GetAccountsList = @()
+    [array]$GetAccountsList = @()
     $counter = 1
     $GetAccountsList += $GetAccountsResponse.value
     Write-LogMessage -Type debug -Msg "Found $($GetAccountsList.count) accounts so far..."
@@ -530,7 +531,7 @@ Function Get-Accounts {
     }
 				
     Write-LogMessage -Type debug -Msg "Completed retriving $($GetAccountsList.count) accounts"
-    $response = $GetAccountsList
+    [array]$response = $GetAccountsList
 
     return $response
 }
@@ -599,7 +600,6 @@ Function Invoke-Logon {
         [Parameter(Mandatory = $true)]
         [PSCredential]$Credentials,
         [Parameter(Mandatory = $false)]
-
         [String]$url = $global:PVWAURL,
         [Parameter(Mandatory = $false)]
         [String]$AuthType = $global:AuthType
@@ -615,9 +615,9 @@ Function Invoke-Logon {
     }
     if ($null -ne $Credentials) {
         if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $Credentials -AuthType $AuthType -RadiusOTP $OTP )
+            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -url $url -Credentials $Credentials -AuthType $AuthType -RadiusOTP $OTP )
         } else {
-            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $Credentials -AuthType $AuthType)
+            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -url $url -Credentials $Credentials -AuthType $AuthType)
 
         }
         # Verify that we successfully logged on
@@ -1153,29 +1153,28 @@ Function Set-NextPassword {
 }
 
 Function New-Account {
-    Param
-    ([CmdletBinding(DefaultParameterSetName = "requireSecret")]
-        [Parameter(Mandatory = $false)]
-        [string]$url = $global:PVWAURL,
-        [Parameter(Mandatory = $false)]
-        [hashtable]$logonHeader = $g_LogonHeader,
-        [Parameter(Mandatory = $true)]
-        $account,
-        [Parameter(ParameterSetName = 'requireSecret',Mandatory = $true)]
-        [Parameter(ParameterSetName = 'allowEmpty', Mandatory = $false)]
-        [SecureString]$secret,
-        [Parameter(Mandatory = $false)]
-        [Switch]$allowEmpty
+    Param(
+    [Parameter(Mandatory = $false)]
+    [string]$url = $global:PVWAURL,
+    [Parameter(Mandatory = $false)]
+    [hashtable]$logonHeader = $g_LogonHeader,
+    [Parameter(Mandatory = $true)]
+    $account,
+    [Parameter(Mandatory = $false)]
+    [SecureString]$secret,
+    [Parameter(Mandatory = $false)]
+    [Switch]$allowEmpty
     )
     $URL_NewAccount = "$url/api/Accounts/"
+
+    Write-LogMessage -type Verbose -MSG $($account |convertTo-Json)
+
     If ($allowEmpty) {
         return Invoke-Rest -Command Post -Uri $URL_NewAccount -header $logonHeader -Body $($account | ConvertTo-Json -Compress)
     } Else {
         $account | Add-Member -NotePropertyName secret -NotePropertyValue ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret)))
         return Invoke-Rest -Command Post -Uri $URL_NewAccount -header $logonHeader -Body $($account | ConvertTo-Json -Compress)
-    }
-
-    
+    }    
 }
 
 Function Get-Safe {
@@ -1190,8 +1189,12 @@ Function Get-Safe {
     )
 
     $URL_GetSafe = "$url/api/Safes/$safe"
+
+    $ReturnResult = Invoke-Rest -Command Get -Uri $URL_GetSafe -header $logonHeader
+
+    Write-LogMessage -type Verbose -MSG "Get-Safe:ReturnResult: $ReturnResult"
     
-    return Invoke-Rest -Command Get -Uri $URL_GetSafe -header $logonHeader
+    return $ReturnResult
 }
 
 Function Get-SafeMembers {
@@ -1294,6 +1297,33 @@ Function Get-UserSource {
     }
     
 }
+Function Get-Users {
+    Param
+    (
+        [Parameter(Mandatory = $false)]
+        [string]$url = $global:PVWAURL,
+        [Parameter(Mandatory = $false)]
+        [hashtable]$logonHeader = $g_LogonHeader
+    )
+
+    $URL_UserDetail = "$url/api/Users"
+
+
+    return Invoke-Rest -Command GET -Uri $URL_UserDetail -header $logonHeader   
+}
+
+Function Get-Platforms {
+    Param
+    (
+        [Parameter(Mandatory = $false)]
+        [string]$url = $global:PVWAURL,
+        [Parameter(Mandatory = $false)]
+        [hashtable]$logonHeader = $g_LogonHeader
+    )
+
+    $URL_Platforms = "$url/api/Platforms"
+    return Invoke-Rest -Command GET -Uri $URL_Platforms -header $logonHeader
+}
 
 Function Get-GroupSource {
     Param
@@ -1332,9 +1362,7 @@ Function Update-SafeMember {
         [Parameter(Mandatory = $true)]
         $safe,
         [Parameter(Mandatory = $true)]
-        $safeMember,
-        [Parameter(Mandatory = $false)]
-        $newLDAP
+        $safeMember
     )
     $URL_SafeMembers = "$url/api/Safes/$safe/Members/$($safeMember.memberName)"
     
@@ -1409,4 +1437,3 @@ Function Update-RemoteMachine {
         Write-LogMessage -Type Debug -MSG "Account with Username `"$($dstaccount.userName)`" at address of `"$($dstaccount.address)`" in safe `"$($dstaccount.safeName)`" properties updated successfully"
     }
 }
-

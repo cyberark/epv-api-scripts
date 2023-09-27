@@ -129,7 +129,13 @@ param(
     $dstlogonToken,
 
     [Parameter(Mandatory = $false)]
-    $maxJobCount = 10
+    $maxJobCount = 10,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ProgressDetails,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SuppressProgress
 
 )
 
@@ -271,10 +277,14 @@ if ($processSafes -or $processAccounts) {
     Write-LogMessage -type Debug -MSG "Destination Token  set to $($dstToken|ConvertTo-Json -Depth 10)"
 
     if ($processSafes) {
-    
+        Write-LogMessage -Type Info -MSG "Starting Safe Processing"
         #region Safe Work
+        $SrcUsers = (Get-Users -url $SRCPVWAURL -logonHeader $srcToken)
+
         [array]$safeobjects = Import-Csv $importCSV | Select-Object -Property safeName -Unique
         $safeobjects | Add-Member -MemberType NoteProperty -Name ID -Value $null -Force
+
+        
         
         $i = 0
         foreach ($id in $safeobjects) {
@@ -345,12 +355,14 @@ if ($processSafes -or $processAccounts) {
             If ($PSItem.safeName -in $objectSafesToRemove) {
                 Write-LogMessage -Type Debug -Msg "Safe `"$($PSItem.safeName)`" is in the excluded safes list and will be skipped"
                 $SafeStatus.success = $true
+                write-LogMessage -Type Verbose -Msg  $($SafeStatus |ConvertFrom-Json) 
                 continue
             }
             Write-LogMessage -Type Debug -Msg "Getting source safe `"$safename`""
             $srcSafe = Get-Safe -url $SRCPVWAURL -logonHeader $srcToken -safe $($PSItem.safeName)
             if ([string]::IsNullOrEmpty($srcSafe)) {
                 Write-LogMessage -Type Error -Msg "Source safe `"$safename`" not Found. Skipping"
+                write-LogMessage -Type Verbose -Msg  $($SafeStatus |ConvertFrom-Json)  
                 Continue
             } else {
                 Write-LogMessage -Type Debug -Msg "Source safe `"$safename`" located"
@@ -358,7 +370,7 @@ if ($processSafes -or $processAccounts) {
             
             Write-LogMessage -Type Debug -Msg "Getting destination safe `"$safename`""
             $dstsafe = Get-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $($PSItem.safeName) -ErrorAction SilentlyContinue
-           
+            
             if ([string]::IsNullOrEmpty($dstsafe)) {
                 Write-LogMessage -Type Debug -Msg "Destination safe `"$safename`" not Found"
                 if ($createSafes) {
@@ -377,11 +389,13 @@ if ($processSafes -or $processAccounts) {
                         Write-LogMessage -Type Error -Msg "Error creating safe `"$safename`""
                         Write-LogMessage -Type Error -Msg "Error: $_"
                         $process.Completed = $true
+                        write-LogMessage -Type Verbose -Msg  $($SafeStatus |ConvertFrom-Json) 
                         continue 
                     }
                 } else {
                     Write-LogMessage -Type Warning -Msg "Target safe `"$($PSItem.safeName)`" does not exist in destination and creating of safes disabled, skipping `"$($PSItem.safeName)`""
                     $SafeStatus.success = $true
+                    write-LogMessage -Type Verbose -Msg  $($SafeStatus |ConvertFrom-Json) 
                     continue 
                 }
             } else {
@@ -456,56 +470,79 @@ if ($processSafes -or $processAccounts) {
                         }
                     } Catch {
                         Write-LogMessage -Type Error -Msg "Error working with safe `"$($dstsafe.safename)`" and Safe Member `"$($srcMember.membername)`""
-                        Write-LogMessage -Type Error -Msg "Error: $_"  
+                        Write-LogMessage -Type Error -Msg "Error: $_"
+                        write-LogMessage -Type Verbose -Msg  $($SafeStatus |ConvertFrom-Json) 
                         continue
                     }
                 }
                 $SafeStatus.success = $true 
+                write-LogMessage -Type Verbose -Msg  $($SafeStatus |ConvertFrom-Json) 
             } else {
                 Write-LogMessage -Type Debug -Msg "Creating and/or Updating of Safe Members is disabled. Memberships of `"$($dstsafe.safename)`" not changed"
                 $SafeStatus.success = $true
+                write-LogMessage -Type Verbose -Msg  $($SafeStatus |ConvertFrom-Json) 
             } 
-            $process.Completed = $true
-            $SafeStatus  
         }
-    }
-    $PSStyle.Progress.View = "Classic"
-    while ($safeJob.State -eq 'Running') {
-        $safeProgressSync.Keys | ForEach-Object {
-            # If key is not defined, ignore
-            if (![string]::IsNullOrEmpty($safeProgressSync.$_.keys)) {
-                # Create parameter hashtable to splat
-                $param = $safeProgressSync.$_
-
-                # Execute Write-Progress
-                Write-Progress @param
+        $PSStyle.Progress.View = "Classic"
+        while ($safeJob.State -eq 'Running') {
+            $safeProgressSync.Keys | ForEach-Object {
+                # If key is not defined, ignore
+                if (![string]::IsNullOrEmpty($safeProgressSync.$_.keys)) {
+                    if (!$SuppressProgress) {
+                        $completed = $($safeJob.ChildJobs | Where-Object {$_.State -eq "Completed"}).count
+                        $total = $safeJob.ChildJobs.count
+                        $Precent = ($completed / $total) * 100
+                        $process = @{}
+                        $process.Id = 0
+                        $process.Activity = "Processing Safes"
+                        $process.Status = "$completed out of $total jobs completed"
+                        $process.PercentComplete = $Precent
+                        Write-Progress @process
+                   
+                        if ($ProgressDetails.IsPresent) {                              
+                            $param = $safeProgressSync.$_
+                            $param.ParentId = 0
+                            # Execute Write-Progress
+                            Write-Progress @param
+                        }
+                    } 
+                }
             }
+            Start-Sleep -Seconds 0.5
         }
-
+        Write-Progress -Id 0 -Completed $true 
         # Wait to refresh to not overload gui
-        Start-Sleep -Seconds 0.1
+        
+        $($SafeReport = Receive-Job $Safejob) 6> $null 5> $null 4> $null 3> $null 2> $null 1> $null
+        $SafeSuccess = $SafeReport | Where-Object success -EQ $true
+        $SafeFailed = $SafeReport | Where-Object success -EQ $false
+        If (![string]::IsNullOrEmpty($SafeFailed)) {
+            $SafeFailed.SafeData | Add-Member -MemberType NoteProperty -Name FailReason -Value $null -Force
+            $i = 0
+            foreach ($id in $SafeFailed) {
+                $SafeFailed[$i].SafeData.FailReason = $SafeFailed[$i].Error
+                $i++
+            }
+            $SafeFailed.SafeData | Export-Csv .\FailedSafes.csv
+        }
+        Write-LogMessage -Type Info "Safes succesfully update: $($SafeSuccess.success.count)"
+        Write-LogMessage -Type Info "Safes failed update: $($SafeFailed.success.count)"
+        Write-LogMessage -Type Info "Safe processing completed at $(Get-Date -Format "HH:mm:ss")"
     }
 }
-$($SafeReport = Receive-Job $Safejob) 6> $null
-$SafeSuccess = $SafeReport | Where-Object success -EQ $true
-$SafeFailed = $SafeReport | Where-Object success -EQ $false
-If (![string]::IsNullOrEmpty($SafeFailed)) {
-    $SafeFailed.SafeData | Add-Member -MemberType NoteProperty -Name FailReason -Value $null -Force
-    $i = 0
-    foreach ($id in $SafeFailed) {
-        $SafeFailed[$i].SafeData.FailReason = $SafeFailed[$i].Error
-        $i++
-    }
-    $SafeFailed.SafeData | Export-Csv .\FailedSafes.csv
-}
-"Safes succesfully update: $($SafeSuccess.success.count)"
-"Safes failed update: $($SafeFailed.success.count)"
+
+
+
 #endregion
 if ($processAccounts) {
+    Write-LogMessage -Type Info -MSG "Starting account processing at $(Get-Date -Format "HH:mm:ss")"
     #region Account Work 
     [array]$accountobjects = Import-Csv $importCSV
     $accountobjects | Add-Member -MemberType NoteProperty -Name ProcessID -Value $null -Force
     
+    $platforms = (Get-Platforms -url $DSTPVWAURL -logonHeader $dstToken)
+    
+
     $i = 0
     foreach ($id in $accountobjects) {
         $accountobjects[$i].ProcessID = $i + 1
@@ -528,6 +565,7 @@ if ($processAccounts) {
         $getRemoteMachines = $using:getRemoteMachines
         $noCreate = $using:noCreate
         $allowEmpty = $using:allowEmpty
+        $platforms =$using:platforms
 
         $srcToken = $using:srcToken
         $SRCPVWAURL = $using:SRCPVWAURL
@@ -574,7 +612,7 @@ if ($processAccounts) {
                 accountData = $PSItem
                 Error       = @()
             }
-            $found = $false
+            $dstAccountFound = $false
 
             Write-LogMessage -Type Debug -Msg "Getting source account with username `"$($baseAccount.userName)`" and address `"$($baseAccount.address)`" in safe `"$($baseAccount.safeName)`""
             Try {
@@ -588,9 +626,10 @@ if ($processAccounts) {
                 $AccountStatus.success = $true
                 continue
             }
+            write-LogMessage -Type Verbose -Msg "Source Accounts: $($srcAccount |ConvertTo-Json)"
             Write-LogMessage -Type Debug -Msg "Getting destination account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`""
             [array]$dstAccountArray = Get-Accounts -url $DSTPVWAURL -logonHeader $dstToken -safename $($srcAccount.safeName) -keywords "$($srcAccount.userName) $($srcAccount.address)" -startswith $true
-            Write-LogMessage -Type Verbose -MSG "destination count: $($dstAccountArray.count)"
+            Write-LogMessage -Type Verbose -MSG "Destination count: $($dstAccountArray.count)"
             if ((0 -ne $($dstAccountArray.count))) {
                 Write-LogMessage -Type Verbose -MSG "Source: $($srcAccount | ConvertTo-Json)"
                 Write-LogMessage -Type Verbose -MSG "Found: $($dstAccountArray | ConvertTo-Json)"
@@ -600,15 +639,15 @@ if ($processAccounts) {
                     IF (($($account.name) -eq $($srcAccount.name)) -and ($($account.userName) -eq $($srcAccount.userName)) -and ($($account.address) -eq $($srcAccount.address)) -and ($($account.safeName) -eq $($srcAccount.safeName))  ) {
                         Write-LogMessage -Type Debug -Msg "Found Account with username `"$($account.userName)`" and address `"$($account.address)`" in safe `"$($account.safeName)`""
                         Write-LogMessage -Type Debug -Msg "$($account | ConvertTo-Json)"
-                        $found = $true
+                        $dstAccountFound = $true
                         $dstAccount = $account
                     }
                 }
             } else {
-                Write-LogMessage -Type Error -Msg "Unable to locate account in destination"
+                Write-LogMessage -Type Warning -Msg "Unable to locate account `"$($srcAccount.Name)`" in destination safe `"$($srcAccount.safeName)`""
             }
     
-            if ($found) {
+            if ($dstAccountFound) {
                 if (!$SkipCheckSecret) {
                     Try {
                         Write-LogMessage -Type Debug -Msg "Getting source Secret"
@@ -641,6 +680,9 @@ if ($processAccounts) {
                     } catch [System.Management.Automation.RuntimeException] {
                         If ("Account Locked" -eq $_) {
                             Write-LogMessage -Type Warning -Msg "Source Account `"$($srcAccount.Name)`" Locked, unable to update"
+                        } else {
+                            Write-LogMessage -Type Error -Msg "Error encountered while working with `"$($srcAccount.Name)`": $($_.Exception.Message)" -ErrorAction SilentlyContinue
+                            Write-LogMessage -Type LogOnly -Msg "Error encountered while working with `"$($srcAccount.Name)`": $($_|ConvertTo-Json)" -ErrorAction SilentlyContinue
                         }
                     } 
                 } Else {
@@ -655,13 +697,23 @@ if ($processAccounts) {
                 $AccountStatus.success = $true
             } else {
                 try {
+                    write-LogMessage -Type info -Msg "Correcting Platform for account `"$($srcAccount.Name)`" in safe `"$($srcAccount.safeName)`""
+                    write-LogMessage -Type Verbose -Msg "Source Accounts: $($srcAccount |ConvertTo-Json)"
+                    $srcAccount.platformId = $($platforms.Platforms.general |Where-Object {$_.id -like $srcAccount.platformId}).id
+                    if ([string]::IsNullOrEmpty($srcAccount.platformId )){
+                        write-LogMessage -Type Error -Msg "Unable to locate platform Platform for in destination for `"$($srcAccount.Name)`" in safe `"$($srcAccount.safeName)`" unable to create account"
+                        Continue
+                    }
+                    write-LogMessage -Type info -Msg "Destination account `"$($srcAccount.Name)`" in destination safe `"$($srcAccount.safeName)`" does not exist. Attempting to create account."
                     write-LogMessage -Type info -Msg "Checking for destination safe `"$($srcAccount.safeName)`""
-                    $dstsafe = Get-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $srcAccount.safeName
+                    $dstsafe = Get-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $srcAccount.safeName -ErrorAction SilentlyContinue
                     if ([string]::IsNullOrEmpty($dstsafe)) {
                         Write-LogMessage -Type error -Msg "Destination safe of `"$($srcAccount.safeName)`" does not exist, skipping creation of account `"$($srcAccount.Name)`""
+                        continue
                     }
-                    [SecureString]$srcSecret = Get-Secret -url $SRCPVWAURL -logonHeader $srcToken -id $srcAccount.id
+                    [SecureString]$srcSecret = Get-Secret -url $SRCPVWAURL -logonHeader $srcToken -id $srcAccount.id -ErrorAction SilentlyContinue
                     IF (![string]::IsNullOrEmpty($srcSecret)) {
+                        
                         $dstAccount = New-Account -url $DSTPVWAURL -logonHeader $dstToken -account $srcAccount -secret $srcSecret 
                     } elseif ($allowEmpty) {
                         $dstAccount = New-Account -url $DSTPVWAURL -logonHeader $dstToken -account $srcAccount -allowEmpty   
@@ -674,8 +726,12 @@ if ($processAccounts) {
                         Write-LogMessage -Type Warning -Msg "Source Account `"$($srcAccount.Name)`" Locked, unable to update"
                     } elseIf ($_.Exception.Message -match 'Safe .* was not found') {
                         Write-LogMessage -Type Warning -Msg "Source safe `"$($srcAccount.safeName)`" not found"
+                    } elseIf ($_.Exception.Message -match 'Platform .* was not found') {
+                        Write-LogMessage -Type Warning -Msg "Platform `"$($srcAccount.platformId)`" not found. Unable to create `"$($srcAccount.Name)`" in safe `"$($srcAccount.safeName)`""
                     } else {
-                        Write-LogMessage -Type Warning -Msg "Unknown Error encountered on retriving secret for `"$($srcAccount.Name)`""
+                        Write-LogMessage -Type Error -Msg "Error encountered while working with `"$($srcAccount.Name)`": $($_.Exception.Message)" -ErrorAction SilentlyContinue
+                        Write-LogMessage -Type LogOnly -Msg "Error encountered while working with `"$($srcAccount.Name)`": $($_|ConvertTo-Json)" -ErrorAction SilentlyContinue
+                    
                     }
                 }
             }            
@@ -690,31 +746,48 @@ if ($processAccounts) {
             # If key is not defined, ignore
             if (![string]::IsNullOrEmpty($accountProgressSync.$_.keys)) {
                 # Create parameter hashtable to splat
-                $param = $accountProgressSync.$_
-
-                # Execute Write-Progress
-                Write-Progress @param
+                if (!$SuppressProgress) {
+                    $completed = $($AccountJob.ChildJobs | Where-Object {$_.State -eq "Completed"}).count
+                    $total = $AccountJob.ChildJobs.count
+                    $Precent = ($completed / $total) * 100
+                    $process = @{}
+                    $process.Id = 0
+                    $process.Activity = "Processing Accounts"
+                    $process.Status = "$completed out of $total jobs completed"
+                    $process.PercentComplete = $Precent
+                    Write-Progress -Id 0 @process  
+                
+                    if ($ProgressDetails.IsPresent) {
+                        $param = $accountProgressSync.$_
+                        $param.ParentId = 0
+                        # Execute Write-Progress
+                        Write-Progress @param
+                    }
+                }
             }
         }
 
         # Wait to refresh to not overload gui
-        Start-Sleep -Seconds 0.1
+        Start-Sleep -Seconds .5
     }
-}
-$($AccountReport = Receive-Job $accountjob) 6> $null
-$AccountSuccess = $AccountReport | Where-Object success -EQ $true
-$AccountFailed = $AccountReport | Where-Object success -EQ $false
-If (![string]::IsNullOrEmpty($AccountFailed)) {
-    [array]$AccountFailed.accountData | Add-Member -MemberType NoteProperty -Name FailReason -Value $null -Force
-    $i = 0
-    foreach ($id in $AccountFailed) {
-        $AccountFailed[$i].accountData.FailReason = $AccountFailed[$i].Error
-        $i++
+    Write-Progress -Id 0 -Completed $true 
+    $($AccountReport = Receive-Job $accountjob) 6> $null 5> $null 4> $null 3> $null 2> $null 1> $null
+    $AccountSuccess = $AccountReport | Where-Object success -EQ $true
+    $AccountFailed = $AccountReport | Where-Object success -EQ $false -ErrorAction SilentlyContinue
+    If (![string]::IsNullOrEmpty($AccountFailed)) {
+        [array]$AccountFailed.accountData | Add-Member -MemberType NoteProperty -Name FailReason -Value $null -Force
+        $i = 0
+        foreach ($id in $AccountFailed) {
+            $AccountFailed[$i].accountData.FailReason = $AccountFailed[$i].Error
+            $i++
+        }
+        $AccountFailed.accountData | Export-Csv .\FailedAccounts.csv
     }
-    $AccountFailed.accountData | Export-Csv .\FailedAccounts.csv
+    Write-LogMessage -Type Info "Accounts succesfully update: $($accountSuccess.success.count)"
+    Write-LogMessage -Type Info "Accounts failed update: $($AccountFailed.success.count)"
+    Write-LogMessage -Type Info "Account processing completed at $(Get-Date -Format "HH:mm:ss")"
 }
-"Accounts succesfully update: $($accountSuccess.success.count)"
-"Accounts failed update: $($AccountFailed.success.count)"
+
 
 #region [Logoff]
 # Logoff the session
