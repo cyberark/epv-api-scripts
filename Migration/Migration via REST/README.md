@@ -29,7 +29,7 @@ There are six FC's that are required to be added to the platform if an account h
 
 ## Parameters:
 ```powershell
-Migrate.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-AuthType] [-OTP] [-TemplateSafe] [-CsvPath] [-CsvDelimiter] [-DisableSSLVerify] [-NoSafeCreation] [-DisableAutoUpdate] [-CreateOnUpdate] -[ConcurrentSession] [-BypassSafeSearch] [-BypassAccountSearch]
+Migrate.ps1 [-export] [-processSafes] [-processAccounts] [-getRemoteMachines] [-SrcAuthType] [-DstAuthType] [-srcOTP] [-SRCPVWAURL] [-DSTPVWAURL] [-SRCPVWACredentials] -[DSTPVWACredentials] [-exportCSV] [-importCSV] [-newLDAP] [-DisableSSLVerify] [-SkipCheckSecret] [-createSafes] [-UpdateSafeMembers] [-noCreate] [-allowEmpty] [-CPMOld] [-CPMNew] [-CPMOverride] -[dstUPN] [-srclogonToken] [-dstlogonToken] [-maxJobCount] [-ProgressDetails] [-SuppressProgress] 
 ```
 - PVWAURL
 	- The URL of the PVWA that you are working with. 

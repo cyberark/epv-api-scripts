@@ -47,7 +47,7 @@ param(
     
     [Parameter(Mandatory = $false, HelpMessage = "Enter the RADIUS OTP")]
     [ValidateScript({$AuthType -eq "radius"})]
-    [String]$OTP,
+    [String]$srcOTP,
 
     [Parameter(Mandatory = $true, HelpMessage = "Please enter your source PVWA address (For example: https://pvwa.mydomain.com/PasswordVault)")]
     #[ValidateScript({Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $_ -Method 'Head' -ErrorAction 'stop' -TimeoutSec 30})]
@@ -162,7 +162,7 @@ $cpmsInUse = "PrimaryCPM", "PCloud_CPM"
 
 $ownersToRemove = "Auditors", "Backup Users", "Batch", "PasswordManager", "DR Users", "Master", "Notification Engines", "Notification Engine",
 "Operators", "PTAAppUsers", "PTAAppUser", "PVWAGWAccounts", "PVWAAppUsers", "PVWAAppUser", "PVWAAppUser1", "PVWAAppUser2", "PVWAAppUser3", "PVWAAppUser4", "PVWAAppUser5",
-"PVWAAppUser6", "PVWAUsers", "PVWAMonitor", "PSMUsers", "PSMAppUsers", "PTAUser"
+"PVWAAppUser6", "PVWAUsers", "PVWAMonitor", "PSMUsers", "PSMAppUsers", "PTAUser","Administrator"
 
 $global:ownersToRemove += $ownersToRemove
 $global:ownersToRemove += $cpmsInUse
@@ -209,7 +209,7 @@ If (![string]::IsNullOrEmpty($srclogonToken)) {
     New-Variable -Name AuthType -Value $SrcAuthType -Scope Global -Force
     Import-Module -Name ".\CyberArk-Migration.psm1" -Force
 
-    if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
+    if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($srcOTP)) {
         Set-Variable -Scope Global -Name srcToken -Value $(Get-Logon -Credentials $creds -AuthType $SrcAuthType -URL $SRCPVWAURL -OTP $OTP)
     } else {
         Set-Variable -Scope Global -Name srcToken -Value $(Get-Logon -Credentials $creds -AuthType $SrcAuthType -URL $SRCPVWAURL )
@@ -498,7 +498,7 @@ if ($processSafes -or $processAccounts) {
                         $process.Status = "$completed out of $total jobs completed"
                         $process.PercentComplete = $Precent
                         Write-Progress @process
-                   
+                    
                         if ($ProgressDetails.IsPresent) {                              
                             $param = $safeProgressSync.$_
                             $param.ParentId = 0
