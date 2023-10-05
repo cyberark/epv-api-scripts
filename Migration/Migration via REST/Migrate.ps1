@@ -135,10 +135,15 @@ param(
     [switch]$ProgressDetails,
 
     [Parameter(Mandatory = $false)]
-    [switch]$SuppressProgress
+    [switch]$SuppressProgress,
+
+    [String[]]$cpmsInUse = @("PrimaryCPM", "PCloud_CPM")
 
 )
 
+if  ($PSVersionTable.PSVersion -lt  [System.Version]"6.0"){
+    Throw "Script must be run in PowerShell 6 or greater required`nUse the following link for instructions on how to download and install the current version of PowerShell`nhttps://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows"
+}
 #Rest Error Codes to ignore
 $global:SkipErrorCode = @("SFWS0007", "ITATS127E")
 
@@ -156,24 +161,22 @@ $ScriptParameters = @()
 $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0} '{1}'" -f $_.Key, $_.Value) }
 $Script:g_ScriptCommand = "{0} {1}" -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
-$updatedSafes = @()
+$cpmsInUse = 
 
-$cpmsInUse = "PrimaryCPM", "PCloud_CPM"
-
-$ownersToRemove = "Auditors", "Backup Users", "Batch", "PasswordManager", "DR Users", "Master", "Notification Engines", "Notification Engine",
+[String[]]$ownersToRemove = @("Auditors", "Backup Users", "Batch", "PasswordManager", "DR Users", "Master", "Notification Engines", "Notification Engine",
 "Operators", "PTAAppUsers", "PTAAppUser", "PVWAGWAccounts", "PVWAAppUsers", "PVWAAppUser", "PVWAAppUser1", "PVWAAppUser2", "PVWAAppUser3", "PVWAAppUser4", "PVWAAppUser5",
-"PVWAAppUser6", "PVWAUsers", "PVWAMonitor", "PSMUsers", "PSMAppUsers", "PTAUser","Administrator"
+"PVWAAppUser6", "PVWAUsers", "PVWAMonitor", "PSMUsers", "PSMAppUsers", "PTAUser","Administrator")
 
-$global:ownersToRemove += $ownersToRemove
-$global:ownersToRemove += $cpmsInUse
+[String[]]$global:ownersToRemove += $ownersToRemove
+[String[]]$global:ownersToRemove += $cpmsInUse
 
-$global:objectSafesToRemove = "System", "VaultInternal", "Notification Engine", "SharedAuth_Internal", "PVWAUserPrefs",
+[String[]]$global:objectSafesToRemove = @("System", "VaultInternal", "Notification Engine", "SharedAuth_Internal", "PVWAUserPrefs",
 "PVWAConfig", "PVWAReports", "PVWATaskDefinitions", "PVWAPrivateUserPrefs", "PVWAPublicData", "PVWATicketingSystem", "PasswordManager",
 "PasswordManagerTemp", "PasswordManager_Pending", "PasswordManager_workspace", "PasswordManager_ADInternal",
 "PasswordManager_Info", "PasswordManagerShared", "AccountsFeed", "PSM", "xRay", "PIMSuRecordings", "xRay_Config",
 "AccountsFeedADAccounts", "AccountsFeedDiscoveryLogs", "PSMSessions", "PSMLiveSessions", "PSMUniversalConnectors",
 "PSMNotifications", "PSMUnmanagedSessionAccounts", "PSMRecordings", "PSMPADBridgeConf", "PSMPADBUserProfile", "PSMPADBridgeCustom",
-"AppProviderConf"
+"AppProviderConf")
 
 # Script Version
 $ScriptVersion = "0.20"
@@ -292,7 +295,7 @@ if ($processSafes -or $processAccounts) {
             $i++
         }
 
-        New-Item -ItemType Directory -Force -Path .\Safes\ | Out-Null
+        New-Item -ItemType Directory -Force -Path .\LogFiles-Safes\ | Out-Null
         $safeProgress = @{}
         $safeobjects | ForEach-Object {$safeProgress.($_.id) = @{}}
         $safeProgressSync = [System.Collections.Hashtable]::Synchronized($safeProgress)
@@ -549,7 +552,7 @@ if ($processAccounts) {
         $i++
     }
     
-    New-Item -ItemType Directory -Force -Path .\Accounts\ | Out-Null
+    New-Item -ItemType Directory -Force -Path .\LogFiles-Accounts\ | Out-Null
     $accountProgress = @{}
     $accountobjects | ForEach-Object {$accountProgress.($_.ProcessID) = @{}}
     $accountProgressSync = [System.Collections.Hashtable]::Synchronized($accountProgress)
@@ -619,6 +622,8 @@ if ($processAccounts) {
                 $srcAccount = Get-AccountDetail -url $SRCPVWAURL -logonHeader $srcToken -AccountID $baseAccount.id 
             } catch {
                 Write-LogMessage -Type Error -Msg "Unable to connect to source account to retrieve username `"$($baseAccount.userName)`" and address `"$($baseAccount.address)`" in safe `"$($baseAccount.safeName)`""
+                Write-LogMessage -Type Error -Msg $PSitem
+                Write-LogMessage -Type Verbose -Msg "$srcAccount = Get-AccountDetail -url $SRCPVWAURL -logonHeader $srcToken -AccountID $baseAccount.id"
                 continue
             }
             If ($($srcAccount.safename) -in $objectSafesToRemove) {
@@ -680,6 +685,7 @@ if ($processAccounts) {
                     } catch [System.Management.Automation.RuntimeException] {
                         If ("Account Locked" -eq $_) {
                             Write-LogMessage -Type Warning -Msg "Source Account `"$($srcAccount.Name)`" Locked, unable to update"
+                            Write-LogMessage -Type Verbose -Msg $PSitem
                         } else {
                             Write-LogMessage -Type Error -Msg "Error encountered while working with `"$($srcAccount.Name)`": $($_.Exception.Message)" -ErrorAction SilentlyContinue
                             Write-LogMessage -Type LogOnly -Msg "Error encountered while working with `"$($srcAccount.Name)`": $($_|ConvertTo-Json)" -ErrorAction SilentlyContinue
@@ -724,14 +730,17 @@ if ($processAccounts) {
                 } catch [System.Management.Automation.RuntimeException] {
                     If ("Account Locked" -eq $_.Exception.Message) {
                         Write-LogMessage -Type Warning -Msg "Source Account `"$($srcAccount.Name)`" Locked, unable to update"
+                        Write-LogMessage -Type Verbose -Msg $PSitem
                     } elseIf ($_.Exception.Message -match 'Safe .* was not found') {
                         Write-LogMessage -Type Warning -Msg "Source safe `"$($srcAccount.safeName)`" not found"
+                        Write-LogMessage -Type Verbose -Msg $PSitem
                     } elseIf ($_.Exception.Message -match 'Platform .* was not found') {
                         Write-LogMessage -Type Warning -Msg "Platform `"$($srcAccount.platformId)`" not found. Unable to create `"$($srcAccount.Name)`" in safe `"$($srcAccount.safeName)`""
+                        Write-LogMessage -Type Verbose -Msg $PSitem
                     } else {
                         Write-LogMessage -Type Error -Msg "Error encountered while working with `"$($srcAccount.Name)`": $($_.Exception.Message)" -ErrorAction SilentlyContinue
                         Write-LogMessage -Type LogOnly -Msg "Error encountered while working with `"$($srcAccount.Name)`": $($_|ConvertTo-Json)" -ErrorAction SilentlyContinue
-                    
+                        Write-LogMessage -Type Verbose -Msg $PSitem
                     }
                 }
             }            
