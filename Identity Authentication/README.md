@@ -1,4 +1,4 @@
-# Identity Authentication
+# Identity Authentication Module
 
 ## Main capabilities
 
@@ -34,4 +34,18 @@ Note that you must pass the PCloudTenantAPIURL
 Import-Module IdentityAuth.psm1
 $header = Get-IdentityHeader -psPASFormat -IdentityTenantURL "something.id.cyberark.cloud" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID" -PCloudSubdomain "subdomain"
 use-PASSession $header
+```
+
+# Identity User Refresh
+
+- This script is used to intiate a refresh of a active directory based account in Identity.
+  - Refreshing will update attritbute values and group memberships
+  - https://identity-developer.cyberark.com/reference/post_cdirectoryservice-refreshtoken
+- Prefered to run in PowerShell 6+ to allow for use of parrell processing of jobs
+  - IdentityRefresh_5.1.ps1 is a version that has been backported to work with PowerShell 5.1, however processing is done serially.
+- Multiple parmater types can be passed at once, only the highest will be processed. Order or processing: GroupName, UPB, UUID, UUIDArray 
+
+```powershell
+.\IdentityRefresh.ps1 -logonToken $srcToken -IdentityTenantURL "https://something.id.cyberark.cloud" [-GroupName "CyberArk - Vault Users"] [-UPN "User@lab.local] [-UUID "23b7f98c-60b4-4c01-a33f-4caa99472343"] [-UUIDArray @("23b7f98c-60b4-4c01-a33f-e4caa9947703","21b74328c-60b4-4c01-a33f-4caa99472343")]
+.\IdentityRefresh_5.1.1.ps1 -logonToken $srcToken -IdentityTenantURL "https://something.id.cyberark.cloud" [-GroupName "CyberArk - Vault Users"] [-UPN "User@lab.local] [-UUID "23b7f98c-60b4-4c01-a33f-4caa99472343"] [-UUIDArray @("23b7f98c-60b4-4c01-a33f-e4caa9947703","21b74328c-60b4-4c01-a33f-4caa99472343")]
 ```
