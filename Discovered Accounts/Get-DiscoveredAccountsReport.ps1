@@ -34,6 +34,10 @@ param
 	[ValidateSet("cyberark","ldap","radius")]
 	[String]$AuthType="cyberark",
 	
+
+	[Parameter(Mandatory=$false,HelpMessage="Logon Token")]
+	$logonToken,
+
 	# Use this switch to Disable SSL verification (NOT RECOMMENDED)
 	[Parameter(Mandatory=$false)]
 	[Switch]$DisableSSLVerify,
@@ -628,6 +632,37 @@ If($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage")
 	Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
 	return
 }
+
+#region [Logon]
+# Get Credentials to Login
+# ------------------------
+$caption = "Get Dicovered Accounts"
+If (![string]::IsNullOrEmpty($logonToken)) {
+	if ($logonToken.GetType().name -eq "String") {
+		$logonHeader = @{Authorization = $logonToken }
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $logonHeader
+	} else {
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $logonToken
+	}
+} else {
+	If (![string]::IsNullOrEmpty($PVWACredentials)) {
+		$creds = $PVWACredentials
+	} else {
+		$msg = "Enter your $AuthType User name and Password" 
+		$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
+	}
+	if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession -RadiusOTP $OTP )
+	} else {
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession)
+	}
+	# Verify that we successfully logged on
+	If ($null -eq $g_LogonHeader) { 
+		return # No logon header, end script 
+	}
+}
+#endregion
+
 # Check that the PVWA URL is OK
 If ($PVWAURL -ne "")
 {
@@ -644,9 +679,6 @@ else
 
 # Get Credentials to Login
 # ------------------------
-$caption = "Discovered Accounts Report"
-$msg = "Enter your PAS User name and Password ($AuthType)"; 
-$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 
 try {
 	$response = ""
@@ -673,7 +705,7 @@ try {
 				Write-LogMessage -Type Error -MSG "There was an Error creating the filter URL. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
 			try{
-				$GetDiscoveredAccountsResponse = Invoke-Rest -Command Get -Uri $urlFilteredAccounts -Header $(Get-LogonHeader -Credentials $creds)
+				$GetDiscoveredAccountsResponse = Invoke-Rest -Command Get -Uri $urlFilteredAccounts -Header $g_LogonHeader
 			} catch {
 				Write-LogMessage -Type Error -MSG "There was an Error getting filtered Discovered Accounts. Error: $(Collect-ExceptionMessage $_.Exception)"
 			}
@@ -688,7 +720,7 @@ try {
 				
 				While ($nextLink -ne "" -and $null -ne $nextLink)
 				{
-					$GetAccountsResponse = Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header $(Get-LogonHeader -Credentials $creds)
+					$GetAccountsResponse = Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header $g_LogonHeader
 					$nextLink = $GetAccountsResponse.nextLink
 					Write-LogMessage -Type Debug -MSG "Getting next link: $nextLink"
 					$GetDiscoveredAccountsList += $GetAccountsResponse.value

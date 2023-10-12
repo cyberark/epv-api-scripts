@@ -3,7 +3,14 @@
 .creds
 *.log
 
-Reset Credential Files Remotely/Vault.ini
+*Vault.ini
 .vscode/settings.json
 plink.exe
-*test.csv
+*test*.csv
+*test*.txt
+*test*.log
+
+Migration/Migration via REST/ExportOfAccounts.csv
+Migration/Migration via REST/FailedAccounts.csv
+Migration/Migration via REST/history.txt
+Migration/Migration via REST/TestingScript.ps1
