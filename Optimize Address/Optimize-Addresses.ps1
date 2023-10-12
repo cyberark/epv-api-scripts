@@ -1,36 +1,50 @@
+<#
+    .SYNOPSIS
+    Used to review and update account addresses
+
+    .Description
+    Used to query account addresses against DNS to ensure they are valid.
+    Can also updates the format of the address to ensure that when account discovery is ran existing accounts are located and connected.
+#>
+
 [CmdletBinding()]
 param
 (
-
-    [Parameter(Mandatory = $false, HelpMessage = "Enter Logon Token")]
+    #LogonToken to be used to connect
+    [Parameter(Mandatory = $false)]
     $logonToken,
-
-    [Parameter(Mandatory = $false, HelpMessage = "Enter Identity Name")]
+    # Username to use to connect to Identity
+    [Parameter(Mandatory = $false)]
     [String]$IdentityUserName,
-    [Parameter(Mandatory = $false, HelpMessage = "Enter Identity URL")]
-    [String]$IdentityTenantURL ,
-    [Parameter(Mandatory = $false, HelpMessage = "Enter Privilege Cloud Subdomain")]
+    # URL of the Identity Tenant
+    [Parameter(Mandatory = $false)]
+    [String]$IdentityTenantURL,
+    # Subdomain for Privileged Cloud
+    [Parameter(Mandatory = $false)]
     [String]$PCloudSubdomain,
-
-    [Parameter(Mandatory = $false, HelpMessage = "Pass PVWA Credentials")]
+    # Credentials to be used to authenticate stored in a PSCredential object
+    [Parameter(Mandatory = $false)]
     [PSCredential]$PVWACredentials,
-    [Parameter(Mandatory = $false, HelpMessage = "Enter PVWA URL")]
+    # Address of the PVWA
+    [Parameter(Mandatory = $false)]
     [String]$PVWAAddress,
-
-    [Parameter(Mandatory = $false, HelpMessage = "Array of safes to be optimized")]
-    [System.Collections.ArrayList]$safes,
-
-    [Parameter(Mandatory = $false, HelpMessage = "Update Accounts to found Address")]
+    # List of safes that will be reviewed
+    [Parameter(Mandatory = $false)]
+    [System.Collections.ArrayList]$Safes,
+    # Switch to enable updating of the address of accounts found to required updates
+    [Parameter(Mandatory = $false)]
     [switch]$Script:UpdateAccounts,
-
-    [Parameter(Mandatory = $false, HelpMessage = "Output All Results to the screen")]
+    # Display accounts that are able to be optimized or already optimized
+    [Parameter(Mandatory = $false)]
     [switch]$ShowAllResults,
-    [Parameter(Mandatory = $false, HelpMessage = "Suppress Results to the screen")]
+    # Do NOT display the accounts that are not optimezed
+    [Parameter(Mandatory = $false)]
     [switch]$SuppressErrorResults,
-
-    [Parameter(Mandatory = $false, HelpMessage = "Output Results to csv file")]
+    # Export the accounts that where reviewed/updated to a CSV file
+    [Parameter(Mandatory = $false)]
     [switch]$ExportToCSV,
-    [Parameter(Mandatory = $false, HelpMessage = "Path to CSV file")]
+    # File name and location to export results to
+    [Parameter(Mandatory = $false)]
     [string]$CSVPath = ".\Optimize-Addresses-Results.csv"
 )
 
@@ -48,7 +62,7 @@ function Optimize-Account {
         'Success'     = $false
         'Found'       = $false
         'Updated'     = $false
-    } 
+    }
     $address = $target.address | Resolve-DnsName | Select-Object -Unique | `
         ForEach-Object {
         if ([string]::IsNullOrEmpty($PSItem.NameHost)) {
@@ -78,8 +92,8 @@ function Optimize-Account {
                 }
             } else {
                 $result.success = $true
-                    
-            }            
+
+            }
         } else {
             $result.status = "Address on account matches DNS"
             $result.success = $true
@@ -92,7 +106,7 @@ $funcDefOA = ${function:Optimize-Account}.ToString()
 #region PAS Connection
 if (!(Get-Module -ListAvailable -Name PSPAS)) {
     Install-Module PSPAS -Scope CurrentUser
-} 
+}
 
 Get-PASComponentSummary -ErrorAction SilentlyContinue -ErrorVariable TestConnect | Out-Null
 if ($TestConnect.count -ne 0) {
@@ -101,7 +115,7 @@ if ($TestConnect.count -ne 0) {
 
 If ($null -eq (Get-PASSession).User) {
     If (![string]::IsNullOrEmpty($IdentityUserName)) {
-        "Identity username provided"  
+        "Identity username provided"
         IF (!(Test-Path .\IdentityAuth.psm1)) {
             Invoke-WebRequest -Uri https://raw.githubusercontent.com/cyberark/epv-api-scripts/main/Identity%20Authentication/IdentityAuth.psm1 -OutFile IdentityAuth.psm1
         }
@@ -115,30 +129,30 @@ If ($null -eq (Get-PASSession).User) {
     } elseif (![string]::IsNullOrEmpty($PVWAAddress)) {
         if (![string]::IsNullOrEmpty($logonToken)) {
             try {
-                Use-PASSession $logonToken 
+                Use-PASSession $logonToken
                 Get-PASComponentSummary | Out-Null
             } catch {
-                Write-Host -ForegroundColor Red 'Error while attempting to connect. Please verify your $logonToken is using the PSPAS format, has the correct PCLoud Subdomain listed, and your session has not expired.' 
+                Write-Host -ForegroundColor Red 'Error while attempting to connect. Please verify your $logonToken is using the PSPAS format, has the correct PCLoud Subdomain listed, and your session has not expired.'
                 Write-Host -ForegroundColor Red 'Example on how to get $logonToken'
                 Write-Host -ForegroundColor Red ''
                 Write-Host -ForegroundColor Red '$logonToken = Get-IDentityHeader -IdentityTenantURL https://aa12345.id.cyberark.cloud -IdentityUserName brian.bors@cyberark.cloud.xxxx -psPASFormat -PCloudSubdomain testlab'
                 return
-            } 
+            }
         } elseif (![string]::IsNullOrEmpty($PVWACredentials)) {
             $PVWACredentials = Get-Credential
             New-PASSession -Credential $PVWACredentials -concurrentSession $true -BaseURI $PVWAAddress
         }
     } elseif (![string]::IsNullOrEmpty($logonToken)) {
         try {
-            Use-PASSession $logonToken 
+            Use-PASSession $logonToken
             Get-PASComponentSummary | Out-Null
         } catch {
-            Write-Host -ForegroundColor Red 'Error while attempting to connect. Please verify your $logonToken is using the PSPAS format, has the correct PCLoud Subdomain listed, and your session has not expired.' 
+            Write-Host -ForegroundColor Red 'Error while attempting to connect. Please verify your $logonToken is using the PSPAS format, has the correct PCLoud Subdomain listed, and your session has not expired.'
             Write-Host -ForegroundColor Red 'Example on how to get $logonToken'
             Write-Host -ForegroundColor Red ''
             Write-Host -ForegroundColor Red '$logonToken = Get-IDentityHeader -IdentityTenantURL https://aa12345.id.cyberark.cloud -IdentityUserName brian.bors@cyberark.cloud.xxxx -psPASFormat -PCloudSubdomain testlab'
             return
-        } 
+        }
 
     } else {
         "You must enter either a PVWAAddress or IdentityURL and SubDomain or pass a pre-existing PSPAS Session Token"
@@ -147,12 +161,12 @@ If ($null -eq (Get-PASSession).User) {
 }
 
 #EndRegion
-   
+
 $ErrorActionPreference = "SilentlyContinue"
 $ErrorActionPreference = "Break"
 $Results = $Null
 
-$platforms = Get-PASPlatform -SystemType Windows      
+$platforms = Get-PASPlatform -SystemType Windows
 [hashtable]$platformsht = @{}
 $platforms | ForEach-Object {$platformsht.Add($_.PlatformID, $_)}
 
@@ -186,7 +200,7 @@ if ($ExportToCSV) {
 if ($ShowAllResults) {
     $Results | Select-Object -Property $PropToDisplay | Sort-Object -Property $PropToSort | Format-Table -GroupBy Success -AutoSize
 } Elseif (!$SuppressErrorResults) {
-    $Results | Where-Object Success -NE $True | Select-Object -Property $PropToDisplay | Sort-Object -Property $PropToSort | Format-Table -GroupBy Success -AutoSize 
+    $Results | Where-Object Success -NE $True | Select-Object -Property $PropToDisplay | Sort-Object -Property $PropToSort | Format-Table -GroupBy Success -AutoSize
 }
 "$($($Results | Where-Object Found -EQ $True).Count) out of $($accountWorkWindows.Count) addresses found in DNS"
 "$($($Results | Where-Object Updated -EQ $True).Count) out of $($accountWorkWindows.Count) addresses Updated"
