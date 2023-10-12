@@ -55,7 +55,7 @@ Export-Import-Platform.ps1 -ImportFile -PVWAURL <PVWA URL> -ListFile <The path t
 ### Examples
 Export Sample Platform
 ```powershell
-Export-Import-Platform.ps1 -Export -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformID SamplePlatform -PlatformZipPath C:\Temp\Export-SamplePlatform.zip
+Export-Import-Platform.ps1 -Export -PVWAURL https://PAS.mydomain.com/PasswordVault -PlatformID SamplePlatform -PlatformZipPath C:\Temp\
 ```
 
 ExportFile Sample Platform
