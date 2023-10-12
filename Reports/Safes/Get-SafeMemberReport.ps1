@@ -120,12 +120,18 @@ if ($IncludeGroups){
 } else {
     $SafeMembersList = $SafeMembers | Where-Object {($_.userinfo.UserType -In $IncludedUsersTypes)}
 }
+
+IF ([string]::IsNullOrEmpty($SafeMembersList)){
+    Write-Warning "No safe members found, please expand search partamters and try again. Ending script"
+    Return
+}
 $props = @("Source", "UserType", `
         "Description", "managingCPM", "numberOfDaysRetention", "numberOfVersionsRetention"
 )
 $props | ForEach-Object {$SafeMembersList | Add-Member -MemberType NoteProperty -Name $_ -Value $null -Force}
 
 $SafeMembersList | ForEach-Object {
+    Write-Verbose "Working $($PSItem.MemberName) in safe $($PSItem.safeName)"
 
     #User information
     $_.Source = $_.userinfo.Source
@@ -151,4 +157,8 @@ IF (!$HidePerms) {
     [array]$outputProps = $ReportProps
 }
 
-$SafeMembersList | Select-Object -Property $ReportProps -ExpandProperty permissions | Select-Object -Property $outputProps | Sort-Object -Property username, safename | Export-Csv $ReportPath -NoTypeInformation
+$SafeMembersList | `
+Select-Object -Property $ReportProps -ExpandProperty permissions -ExcludeProperty * |`
+Select-Object -Property $outputProps | `
+Sort-Object -Property username, safename |`
+Export-Csv $ReportPath -NoTypeInformation
