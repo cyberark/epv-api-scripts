@@ -14,3 +14,5 @@ Migration/Migration via REST/ExportOfAccounts.csv
 Migration/Migration via REST/FailedAccounts.csv
 Migration/Migration via REST/history.txt
 Migration/Migration via REST/TestingScript.ps1
+Migration/Migration via REST/output*
+Migration/Migration via REST/CheatSheat.ps1

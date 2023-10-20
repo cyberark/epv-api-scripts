@@ -34,11 +34,11 @@ $LOG_FILE_PATH = $Global:LOG_FILE_PATH
 # =================================================================================================================================
 
 Function Write-LogMessage {
-    <# 
-.SYNOPSIS 
+    <#
+.SYNOPSIS
 	Method to log a message on screen and in a log file
 .DESCRIPTION
-	Logging The input Message to the Screen and the Log File. 
+	Logging The input Message to the Screen and the Log File.
 	The Message Type is presented in colours on the screen based on the type
 .PARAMETER LogFile
 	The Log File to write to. By default using the LOG_FILE_PATH
@@ -66,7 +66,7 @@ Function Write-LogMessage {
         [Parameter(Mandatory = $false)]
         [Bool]$WriteLog = $true,
         [Parameter(Mandatory = $false)]
-        [ValidateSet("Info", "Warning", "Error", "Debug", "Verbose", "Success", "LogOnly")]
+        [ValidateSet("Info", "Warning", "Error", "Debug", "Verbose", "Success", "LogOnly", "ErrorThrow")]
         [String]$type = "Info",
         [Parameter(Mandatory = $false)]
         [String]$LogFile = $LOG_FILE_PATH
@@ -78,19 +78,19 @@ Function Write-LogMessage {
             Write-Host "No log file path inputted, created a temporary file at: '$LogFile'"
         }
         If ($Header -and $WriteLog) {
-            "=======================================" | Out-File -Append -FilePath $LogFile 
+            "=======================================" | Out-File -Append -FilePath $LogFile
             Write-Host "=======================================" -ForegroundColor Magenta
-        } ElseIf ($SubHeader -and $WriteLog) { 
-            "------------------------------------" | Out-File -Append -FilePath $LogFile 
+        } ElseIf ($SubHeader -and $WriteLog) {
+            "------------------------------------" | Out-File -Append -FilePath $LogFile
             Write-Host "------------------------------------" -ForegroundColor Magenta
         }
-		
+
         # Replace empty message with 'N/A'
         if ([string]::IsNullOrEmpty($Msg)) {
-            $Msg = "N/A" 
+            $Msg = "N/A"
         }
         $msgToWrite = ""
-		
+
         # Change SecretType if password to prevent masking issues
 
         $Msg = $Msg.Replace('"secretType":"password"', '"secretType":"pass"')
@@ -103,18 +103,18 @@ Function Write-LogMessage {
 
         # Check the message type
         switch ($type) {
-            { ($_ -eq "Info") -or ($_ -eq "LogOnly") } { 
-                If ($_ -eq "Info") {
+            { ($PSItem -eq "Info") -or ($PSItem -eq "LogOnly") } {
+                If ($PSItem -eq "Info") {
                     Write-Host $MSG.ToString() -ForegroundColor $(If ($Header -or $SubHeader) {
-                            "Magenta" 
+                            "Magenta"
                         } Else {
-                            "Gray" 
+                            "Gray"
                         })
                 }
-                $msgToWrite = "[INFO]`t$Msg"
+                $msgToWrite = "[INFO]`t`t$Msg"
                 break
             }
-            "Success" { 
+            "Success" {
                 Write-Host $MSG.ToString() -ForegroundColor Green
                 $msgToWrite = "[SUCCESS]`t$Msg"
                 break
@@ -129,33 +129,38 @@ Function Write-LogMessage {
                 $msgToWrite = "[ERROR]`t$Msg"
                 break
             }
-            "Debug" { 
+            "ErrorThrow" {
+                $msgToWrite = "[THROW]`t$Msg"
+                #Error will be thrown manually after use
+                break
+            }
+            "Debug" {
                 if ($InDebug -or $InVerbose) {
-                    Write-Debug -Msg $MSG
-                    $msgToWrite = "[Debug]`t$Msg"
+                    Write-Debug -Message $MSG
+                    $msgToWrite = "[Debug]`t`t$Msg"
                 }
                 break
             }
-            "Verbose" { 
+            "Verbose" {
                 if ($InVerbose) {
-                    Write-Verbose -Msg $MSG
+                    Write-Verbose -Message $MSG
                     $msgToWrite = "[VERBOSE]`t$Msg"
                 }
                 break
             }
         }
 
-        If ($WriteLog) { 
-            If (![string]::IsNullOrEmpty($msgToWrite)) {				
+        If ($WriteLog) {
+            If (![string]::IsNullOrEmpty($msgToWrite)) {
                 "[$(Get-Date -Format "yyyy-MM-dd hh:mm:ss")]`t$msgToWrite" | Out-File -Append -FilePath $LogFile
             }
         }
-        If ($Footer -and $WriteLog) { 
-            "=======================================" | Out-File -Append -FilePath $LogFile 
+        If ($Footer -and $WriteLog) {
+            "=======================================" | Out-File -Append -FilePath $LogFile
             Write-Host "=======================================" -ForegroundColor Magenta
         }
     } catch {
-        Throw $(New-Object System.Exception ("Cannot write message"), $_.Exception)
+        Throw $(New-Object System.Exception ("Cannot write message"), $PSItem.Exception)
     }
 }
 
@@ -201,8 +206,8 @@ Function Join-ExceptionMessage {
 # Return Values..: True / False
 # =================================================================================================================================
 Function Test-CommandExists {
-    <# 
-.SYNOPSIS 
+    <#
+.SYNOPSIS
 	Tests if a command exists
 .DESCRIPTION
 	Tests if a command exists
@@ -239,7 +244,7 @@ Function Convert-ToURL($sText) {
 	The text to encode
 #>
     if ($sText.Trim() -ne "") {
-        Write-LogMessage -type Verbose -Msg "Returning URL Encode of $sText"
+        Write-LogMessage -Type Verbose -Msg "Returning URL Encode of `"$sText`""
         return [URI]::EscapeDataString($sText)
     } else {
         return $sText
@@ -265,15 +270,15 @@ Function Convert-ToBool {
         [string]$txt
     )
     $retBool = $false
-	
+
     if ($txt -match "^y$|^yes$") {
-        $retBool = $true 
+        $retBool = $true
     } elseif ($txt -match "^n$|^no$") {
-        $retBool = $false 
+        $retBool = $false
     } else {
-        [bool]::TryParse($txt, [ref]$retBool) | Out-Null 
+        [bool]::TryParse($txt, [ref]$retBool) | Out-Null
     }
-    
+
     return $retBool
 }
 
@@ -284,8 +289,8 @@ Function Convert-ToBool {
 # Return Values..: Trimmed text
 # =================================================================================================================================
 Function Get-TrimmedString($sText) {
-    <# 
-.SYNOPSIS 
+    <#
+.SYNOPSIS
 	Returns the trimmed text from a string
 .DESCRIPTION
 	Returns the trimmed text from a string
@@ -306,8 +311,8 @@ Function Get-TrimmedString($sText) {
 # Return Values..: REST response
 # =================================================================================================================================
 Function Invoke-Rest {
-    <# 
-.SYNOPSIS 
+    <#
+.SYNOPSIS
 	Invoke REST Method
 .DESCRIPTION
 	Invoke REST Method
@@ -324,20 +329,21 @@ Function Invoke-Rest {
 #>
     param (
         [Parameter(Mandatory = $true)]
+        [Alias("Method")]
         [ValidateSet("GET", "POST", "DELETE", "PATCH", "PUT")]
-        [String]$Command, 
+        [String]$Command,
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()] 
-        [String]$URI, 
+        [ValidateNotNullOrEmpty()]
+        [String]$URI,
         [Parameter(Mandatory = $false)]
-        $Header, 
+        $Header,
         [Parameter(Mandatory = $false)]
-        [String]$Body, 
+        [String]$Body,
         [Parameter(Mandatory = $false)]
         [ValidateSet("Continue", "Ignore", "Inquire", "SilentlyContinue", "Stop", "Suspend")]
         [String]$ErrAction = "Continue"
     )
-	
+    Write-LogMessage -Type Verbose -Msg "Entering Invoke-Rest"
     If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
         Throw "This script requires PowerShell version 3 or above"
     }
@@ -352,82 +358,97 @@ Function Invoke-Rest {
         }
     } catch [System.Net.WebException] {
         if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
-            IF (![string]::IsNullOrEmpty($(($_.ErrorDetails.Message | ConvertFrom-Json).ErrorCode))) {
-                If (($($_.ErrorDetails.Message | ConvertFrom-Json).ErrorCode -eq "ITATS127E")) {
-                    
-                    Write-LogMessage -Type Error -Msg "Was able to connect to the PVWA successfully, but the account was locked" 
+            IF (![string]::IsNullOrEmpty($(($PSItem.ErrorDetails.Message | ConvertFrom-Json).ErrorCode))) {
+                If (($($PSItem.ErrorDetails.Message | ConvertFrom-Json).ErrorCode -eq "ITATS127E")) {
+
+                    Write-LogMessage -Type Error -Msg "Was able to connect to the PVWA successfully, but the account was locked"
                     Write-LogMessage -Type Error -Msg "URI:  $URI"
+                    Write-LogMessage -Type Verbose -Msg "Exiting Invoke-Rest"
                     Throw [System.Management.Automation.RuntimeException] "Account Locked"
-                } ElseIf (!($($_.ErrorDetails.Message | ConvertFrom-Json).ErrorCode -in $global:SkipErrorCode)) {
+                } ElseIf (!($($PSItem.ErrorDetails.Message | ConvertFrom-Json).ErrorCode -in $global:SkipErrorCode)) {
                     Write-LogMessage -Type Error -Msg "Was able to connect to the PVWA successfully, but the command resulted in a error"
                     Write-LogMessage -Type Error -Msg "URI:  $URI"
                     Write-LogMessage -Type Error -Msg "Command:  $Command"
                     Write-LogMessage -Type Error -Msg "Body:  $Body"
-                    Write-LogMessage -Type Error -Msg "Returned ErrorCode: $(($_.ErrorDetails.Message|ConvertFrom-Json).ErrorCode)"
-                    Write-LogMessage -Type Error -Msg "Returned ErrorMessage: $(($_.ErrorDetails.Message|ConvertFrom-Json).ErrorMessage)"
+                    Write-LogMessage -Type Error -Msg "Returned ErrorCode: $(($PSItem.ErrorDetails.Message|ConvertFrom-Json).ErrorCode)"
+                    Write-LogMessage -Type Error -Msg "Returned ErrorMessage: $(($PSItem.ErrorDetails.Message|ConvertFrom-Json).ErrorMessage)"
+                    Write-LogMessage -Type Verbose $PSItem
                 }
             } Else {
-                Write-LogMessage -Type Error -Msg "Error Message: $_"
-                Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
-                Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
-                Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
+                Write-LogMessage -Type Error -Msg "Error Message: $PSItem"
+                Write-LogMessage -Type Error -Msg "Exception Message: $($PSItem.Exception.Message)"
+                Write-LogMessage -Type Error -Msg "Status Code: $($PSItem.Exception.Response.StatusCode.value__)"
+                Write-LogMessage -Type Error -Msg "Status Description: $($PSItem.Exception.Response.StatusDescription)"
+                Write-LogMessage -Type Verbose $PSItem
             }
         }
         $restResponse = $null
     } catch {
-        IF (![string]::IsNullOrEmpty($(($_ | ConvertFrom-Json -AsHashtable).Details.ErrorMessage))) {
-            Throw $($(($_ | ConvertFrom-Json -AsHashtable).Details.ErrorMessage))
-        } elseif (![string]::IsNullOrEmpty($(($_ | ConvertFrom-Json -AsHashtable).ErrorMessage))) {
-            Throw $($(($_ | ConvertFrom-Json -AsHashtable).ErrorMessage))
+        Write-LogMessage -Type Error -Msg "`tError Message: $PSItem"
+        Write-LogMessage -Type Verbose $PSItem
+        Write-LogMessage -Type Verbose -Msg "Exiting Invoke-Rest"
+        Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $PSItem.Exception))
+        <#  IF (![string]::IsNullOrEmpty($(($PSItem | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue).Details.ErrorMessage))) {
+            Throw $($(($PSItem | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue).Details.ErrorMessage))
+        } elseif (![string]::IsNullOrEmpty($(($PSItem | ConvertFrom-Json -AsHashtable).ErrorMessage))) {
+            Throw $($(($PSItem | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue).ErrorMessage))
         } else {
-            Write-LogMessage -Type Error -Msg "Error Message: $_"
-            Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
-        }
+            Write-LogMessage -Type Error -Msg "Error Message: $PSItem"
+            Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $PSItem.Exception))
+        } #>
     }
     If ($URI -match "Password/Retrieve") {
         Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: ***********"
     } else {
-        Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $restResponse"
+        If ($global:SuperVerbose) {
+            Write-LogMessage -Type Verbose -Msg "Invoke-REST Response Type: $($restResponse.GetType().Name)"
+            $type = $($restResponse.GetType().Name)
+            IF (("String" -ne $type)) {
+                Write-LogMessage -Type Verbose -Msg "Invoke-REST ConvertTo-Json Response: $($restResponse |ConvertTo-Json -Depth 9 -Compress)"
+            } else {
+                Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $($restResponse)"
+            }
+        } else {
+            Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $($restResponse)"
+        }
     }
+    Write-LogMessage -Type Verbose -Msg "Exiting Invoke-Rest"
     return $restResponse
-}
-If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
-    Write-LogMessage -Type Error -MSG "This script requires PowerShell version 3 or above"
-    return
 }
 
 Function New-SearchCriteria {
-    param ([string]$sURL, [string]$sSearch, [string]$sSortParam, [string]$sSafeName, [boolean]$startswith, [int]$iLimitPage, [int]$iOffsetPage = 0)
+    param ([string]$sURL, [string]$sSearch, [string]$sSortParam, [string]$sSafeName, [boolean]$startswith, [int]$iLimitPage)
     [string]$retURL = $sURL
     $retURL += "?"
-	
+
+    Write-LogMessage -Type Verbose -Msg "Entering New-SearchCriteria"
     if (![string]::IsNullOrEmpty($sSearch)) {
-        Write-LogMessage -Type Debug -Msg "Search: $sSearch"
+        Write-LogMessage -Type Verbose -Msg "Search: `"$sSearch`""
         $retURL += "search=$(Convert-ToURL $sSearch)&"
     }
     if (![string]::IsNullOrEmpty($sSafeName)) {
-        Write-LogMessage -Type Debug -Msg "Safe: $sSafeName"
+        Write-LogMessage -Type Verbose -Msg "Safe: `"$sSafeName`""
         $retURL += "filter=safename eq $(Convert-ToURL $sSafeName)&"
     }
     if (![string]::IsNullOrEmpty($sSortParam)) {
-        Write-LogMessage -Type Debug -Msg "Sort: $sSortParam"
+        Write-LogMessage -Type Verbose -Msg "Sort: `"$sSortParam`""
         $retURL += "sort=$(Convert-ToURL $sSortParam)&"
-
     }
     if ($startswith) {
-        Write-LogMessage -Type Debug -Msg "startswith: $sSortParam"
+        Write-LogMessage -Type Verbose -Msg "startswith: `"$sSortParam`""
         $retURL += "searchtype=startswith"
     }
     if ($iLimitPage -gt 0) {
-        Write-LogMessage -Type Debug -Msg "Limit: $iLimitPage"
+        Write-LogMessage -Type Verbose -Msg "Limit: `"$iLimitPage`""
         $retURL += "limit=$iLimitPage&"
     }
-		
+
     if ($retURL[-1] -eq '&') {
-        $retURL = $retURL.substring(0, $retURL.length - 1) 
+        $retURL = $retURL.substring(0, $retURL.length - 1)
     }
-    Write-LogMessage -Type Debug -Msg "URL: $retURL"
-	
+    Write-LogMessage -Type Verbose -Msg "Generated URL: `"$retURL`""
+
+    Write-LogMessage -Type Verbose -Msg "Exiting New-SearchCriteria"
     return $retURL
 }
 Function Update-SearchCriteria {
@@ -468,7 +489,7 @@ Function Get-AccountDetail {
 
     $URL_AccountsDetails = "$url/api/Accounts/$AccountID"
 
-    return Invoke-Rest -Command Get -Uri $URL_AccountsDetails -Header $logonHeader 
+    return Invoke-Rest -Command Get -Uri $URL_AccountsDetails -Header $logonHeader
 }
 Function Get-Accounts {
     param (
@@ -487,51 +508,56 @@ Function Get-Accounts {
         [Parameter(Mandatory = $false)]
         [hashtable]$logonHeader = $g_LogonHeader
     )
-    Write-LogMessage -Type Debug -Msg "Retrieving accounts..."
-			
+    Write-LogMessage -Type Verbose -Msg "Entered Get-Accounts"
+
     $URL_Accounts = "$URL/api/accounts/"
 
     try {
+        Write-LogMessage -Type Verbose -Msg "Base URL: $URL_Accounts"
+
         $AccountsURLWithFilters = ""
         $AccountsURLWithFilters = $(New-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSortParam $SortBy -sSafeName $SafeName -iLimitPage $Limit -startswith $startswith)
-        Write-LogMessage -Type Debug -Msg $AccountsURLWithFilters
     } catch {
-        Write-LogMessage -Type Error -Msg $_.Exception
+        Write-LogMessage -Type Verbose -Msg "Error in Get-Accounts:New-SearchCriteria"
+        Write-LogMessage -Type Error -Msg $PSItem.Exception
+        Write-LogMessage -Type Verbose $PSItem
     }
     try {
         $GetAccountsResponse = Invoke-Rest -Command Get -Uri $AccountsURLWithFilters -Header $logonHeader
     } catch {
-        Write-LogMessage -Type Error -Msg $_.Exception.Response.StatusDescription
+        Write-LogMessage -Type Error -Msg $PSItem.Exception.Response.StatusDescription
+        Write-LogMessage -Type Verbose -Msg "Error in Get-Accounts:Invoke-Rest"
+        Write-LogMessage -Type Verbose $PSItem
     }
-						
-    $GetAccountsList = @()
+
+    [array]$GetAccountsList = @()
     $counter = 1
     $GetAccountsList += $GetAccountsResponse.value
-    Write-LogMessage -Type debug -Msg "Found $($GetAccountsList.count) accounts so far..."
+    Write-LogMessage -Type Verbose -Msg "Starting to retrieve accounts"
     $nextLink = $("$URL/$($GetAccountsResponse.nextLink)")
     If (![string]::IsNullOrEmpty($GetAccountsResponse.nextLink)) {
         $nextLink = $("$URL/$($GetAccountsResponse.nextLink)")
-        Write-LogMessage -Type Debug -Msg "Getting accounts next link: $nextLink"
+        Write-LogMessage -Type Verbose -Msg "Getting accounts next link: $nextLink"
     } else {
         $nextLink = $null
     }
     While (-not [string]::IsNullOrEmpty($nextLink)) {
         $GetAccountsResponse = Invoke-Rest -Command Get -Uri $nextLink -Header $logonHeader
         $GetAccountsList += $GetAccountsResponse.value
-        Write-LogMessage -Type info -Msg "Found $($GetAccountsList.count) accounts so far..."
+        Write-LogMessage -Type verbose -Msg "Found $($GetAccountsList.count) accounts so far"
         # Increase the counter
         $counter++
         If (![string]::IsNullOrEmpty($GetAccountsResponse.nextLink)) {
             $nextLink = $("$URL/$($GetAccountsResponse.nextLink)")
-            Write-LogMessage -Type Debug -Msg "Getting accounts next link: $nextLink"
+            Write-LogMessage -Type verbose -Msg "Getting accounts next link: $nextLink"
         } else {
             $nextLink = $null
         }
     }
-				
-    Write-LogMessage -Type debug -Msg "Completed retriving $($GetAccountsList.count) accounts"
-    $response = $GetAccountsList
 
+    Write-LogMessage -Type debug -Msg "Completed retriving $($GetAccountsList.count) accounts"
+    [array]$response = $GetAccountsList
+    Write-LogMessage -Type Verbose -Msg "Exiting Get-Accounts"
     return $response
 }
 
@@ -550,7 +576,8 @@ Function Set-SSLVerify {
             [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
         } catch {
             Write-LogMessage -Type Error -MSG "Could not change SSL validation"
-            Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+            Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $PSItem.Exception) -ErrorAction "SilentlyContinue"
+            Write-LogMessage -Type Verbose $PSItem
             return
         }
     } Else {
@@ -559,7 +586,8 @@ Function Set-SSLVerify {
             [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
         } catch {
             Write-LogMessage -Type Error -MSG "Could not change SSL settings to use TLS 1.2"
-            Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+            Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $PSItem.Exception) -ErrorAction "SilentlyContinue"
+            Write-LogMessage -Type Verbose $PSItem
         }
     }
 }
@@ -578,28 +606,29 @@ Function Test-PVWA {
             Write-LogMessage -Type Debug -MSG "Trying to validate URL: $PVWAURL"
             Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $PVWAURL -Method 'Head' -TimeoutSec 30 | Out-Null
         } catch [System.Net.WebException] {
-            If (![string]::IsNullOrEmpty($_.Exception.Response.StatusCode.Value__)) {
-                Write-LogMessage -Type Error -MSG "Received error $($_.Exception.Response.StatusCode.Value__) when trying to validate PVWA URL"
+            If (![string]::IsNullOrEmpty($PSItem.Exception.Response.StatusCode.Value__)) {
+                Write-LogMessage -Type Error -MSG "Received error $($PSItem.Exception.Response.StatusCode.Value__) when trying to validate PVWA URL"
                 Write-LogMessage -Type Error -MSG "Check your connection to PVWA and the PVWA URL"
+                Write-LogMessage -Type Verbose $PSItem
                 return
             }
-        } catch {		
+        } catch {
             Write-LogMessage -Type Error -MSG "PVWA URL could not be validated"
-            Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+            Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $PSItem.Exception) -ErrorAction "SilentlyContinue"
+
         }
-        
+
     } else {
         Write-LogMessage -Type Error -MSG "PVWA URL can not be empty"
         return
     }
-    
+
 }
 Function Invoke-Logon {
     param(
         [Parameter(Mandatory = $true)]
         [PSCredential]$Credentials,
         [Parameter(Mandatory = $false)]
-
         [String]$url = $global:PVWAURL,
         [Parameter(Mandatory = $false)]
         [String]$AuthType = $global:AuthType
@@ -609,22 +638,22 @@ Function Invoke-Logon {
     # Get Credentials to Login
     # ------------------------
     $caption = "Reset Remote Cred File Utility"
-    $msg = "Enter your $AuthType User name and Password" 
+    $msg = "Enter your $AuthType User name and Password"
     if ($null -eq $Credentials) {
         $Credentials = $Host.UI.PromptForCredential($caption, $msg, "", "")
     }
     if ($null -ne $Credentials) {
         if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $Credentials -AuthType $AuthType -RadiusOTP $OTP )
+            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -url $url -Credentials $Credentials -AuthType $AuthType -RadiusOTP $OTP )
         } else {
-            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $Credentials -AuthType $AuthType)
+            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -url $url -Credentials $Credentials -AuthType $AuthType)
 
         }
         # Verify that we successfully logged on
-        If ($null -eq $g_LogonHeader) { 
-            return # No logon header, end script 
+        If ($null -eq $g_LogonHeader) {
+            return # No logon header, end script
         }
-    } else { 
+    } else {
         Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
         return
     }
@@ -647,7 +676,7 @@ Function Get-Logon {
     # Get Credentials to Login
     # ------------------------
     $caption = "Reset Remote Cred File Utility"
-    $msg = "Enter your $AuthType User name and Password" 
+    $msg = "Enter your $AuthType User name and Password"
     if ($null -eq $Credentials) {
         $Credentials = $Host.UI.PromptForCredential($caption, $msg, "", "")
     }
@@ -657,7 +686,7 @@ Function Get-Logon {
         } else {
             return $(Get-LogonHeader -Credentials $Credentials -URL $URL_Logon)
         }
-    } else { 
+    } else {
         Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
         return
     }
@@ -682,8 +711,8 @@ Function Invoke-Logoff {
 # Return Values..: Logon Header
 # =================================================================================================================================
 Function Get-LogonHeader {
-    <# 
-.SYNOPSIS 
+    <#
+.SYNOPSIS
 	Get-LogonHeader
 .DESCRIPTION
 	Get-LogonHeader
@@ -711,15 +740,14 @@ Function Get-LogonHeader {
         # Clear logon body
         $logonBody = ""
     } catch {
-        $($_.Exception.Response.StatusDescription)
-        $_.Exception
-        Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
+        Write-LogMessage -Type Verbose $PSItem
+        Throw $(New-Object System.Exception ("Get-LogonHeader: $($PSItem.Exception.Response.StatusDescription)", $PSItem.Exception))
     }
     $logonHeader = $null
     If ([string]::IsNullOrEmpty($logonToken)) {
         Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
     }
-	
+
     # Create a Logon Token Header (This will be used through out all the script)
     # ---------------------------
     $logonHeader = @{Authorization = $logonToken }
@@ -732,8 +760,8 @@ Function Get-LogonHeader {
 # Return Values..: Logon Header
 # =================================================================================================================================
 Function Set-LogonHeader {
-    <# 
-.SYNOPSIS 
+    <#
+.SYNOPSIS
 	Get-LogonHeader
 .DESCRIPTION
 	Get-LogonHeader
@@ -759,13 +787,14 @@ Function Set-LogonHeader {
         # Clear logon body
         $logonBody = ""
     } catch {
-        Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
+        Write-LogMessage -Type Verbose $PSItem
+        Throw $(New-Object System.Exception ("Get-LogonHeader: $($PSItem.Exception.Response.StatusDescription)", $PSItem.Exception))
     }
     $logonHeader = $null
     If ([string]::IsNullOrEmpty($logonToken)) {
         Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
     }
-	
+
     # Create a Logon Token Header (This will be used through out all the script)
     # ---------------------------
     $logonHeader = @{Authorization = $logonToken }
@@ -778,8 +807,8 @@ Function Set-LogonHeader {
 # Return Values..: REST response
 # =================================================================================================================================
 Function Set-DisableSSLVerify {
-    <# 
-.SYNOPSIS 
+    <#
+.SYNOPSIS
 	Invoke REST Method
 .DESCRIPTION
 	Controls if SSL should be verified REST Method
@@ -803,16 +832,18 @@ Function Set-DisableSSLVerify {
             [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
         } catch {
             Write-LogMessage -Type Error -MSG "Could not change SSL validation"
-            Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+            Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $PSItem.Exception) -ErrorAction "SilentlyContinue"
+            Write-LogMessage -Type Verbose $PSItem
             return
         }
     } Else {
         try {
-            Write-LogMessage -type Verbose -MSG "Setting script to use TLS 1.2"
+            Write-LogMessage -Type Verbose -MSG "Setting script to use TLS 1.2"
             [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
         } catch {
             Write-LogMessage -Type Error -MSG "Could not change SSL settings to use TLS 1.2"
-            Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction "SilentlyContinue"
+            Write-LogMessage -Type Error -MSG (Join-ExceptionMessage $PSItem.Exception) -ErrorAction "SilentlyContinue"
+            Write-LogMessage -Type Verbose $PSItem
         }
     }
 }
@@ -864,7 +895,8 @@ Function Get-FileVersion {
 
             return $retFileVersion
         } catch {
-            Throw $(New-Object System.Exception ("Cannot get File ($filePath) version", $_.Exception))
+            Write-LogMessage -Type Verbose $PSItem
+            Throw $(New-Object System.Exception ("Cannot get File ($filePath) version", $PSItem.Exception))
         } finally {
 
         }
@@ -876,12 +908,12 @@ Function Get-FileVersion {
 # Function for colorized Write-Output
 function Use-Color ($fc) {
     process {
-        Write-Host $_ -ForegroundColor $fc 
+        Write-Host $PSItem -ForegroundColor $fc
     }
 }
 Function Set-UserPassword {
-    <# 
-.SYNOPSIS 
+    <#
+.SYNOPSIS
 	Get-LogonHeader
 .DESCRIPTION
 	Get-LogonHeader
@@ -895,19 +927,19 @@ Function Set-UserPassword {
         [SecureString]$Password
     )
     Process {
-        Write-LogMessage -type Verbose -MSG "URL for PVWA: $PVWAURL"
-        Write-LogMessage -type Verbose -MSG "URL for PVWA API: $URL_PVWAAPI"
+        Write-LogMessage -Type Verbose -MSG "URL for PVWA: $PVWAURL"
+        Write-LogMessage -Type Verbose -MSG "URL for PVWA API: $URL_PVWAAPI"
         $urlSearch = $Script:URL_UserSearch -f $Username
-        Write-LogMessage -type Verbose -MSG "URL for user search: $urlSearch"
+        Write-LogMessage -Type Verbose -MSG "URL for user search: $urlSearch"
         $searchResult = $(Invoke-Rest -Uri $urlSearch -Header $g_LogonHeader -Command "Get")
         if ($searchResult.Total -gt 0) {
             $userFound = $false
             foreach ($account in $searchResult.users) {
                 if ($account.username -ieq $Username -and $account.componentUser) {
-                    try {       
+                    try {
                         $userFound = $true
                         $accountID = $account.id
-                        
+
                         $bodyActivate = @{id = $accountID } | ConvertTo-Json -Depth 3 -Compress
                         $urlActivate = $Script:URL_Activate -f $accountID
                         $null = Invoke-Rest -Uri $urlActivate -Header $g_LogonHeader -Command "Post" -Body $bodyActivate
@@ -916,16 +948,17 @@ Function Set-UserPassword {
                         $urlReset = $Script:URL_UserResetPassword -f $accountID
                         $null = Invoke-Rest -Uri $urlReset -Header $g_LogonHeader -Command "Post" -Body $bodyReset
                     } catch {
-                        Throw $_   
+                        Write-LogMessage -Type Verbose $PSItem
+                        Throw $PSItem
                     }
                 }
             }
             If (!$userFound) {
-                Write-LogMessage -type Verbose -MSG "Unable to locate component account for $Username"
+                Write-LogMessage -Type Verbose -MSG "Unable to locate component account for $Username"
             }
         } else {
-            Write-LogMessage -type Verbose -MSG "Unable to locate component account for $Username"
-        } 
+            Write-LogMessage -Type Verbose -MSG "Unable to locate component account for $Username"
+        }
     }
 }
 
@@ -949,7 +982,7 @@ Function New-RandomPassword {
         # Lowercase, Type switch, Use lowercase characters.
         [Parameter(Mandatory = $false)]
         [switch]$Lowercase = $false,
-        
+
         # Uppercase, Type switch, Use uppercase characters.
         [Parameter(Mandatory = $false)]
         [switch]$Uppercase = $false,
@@ -974,13 +1007,13 @@ Function New-RandomPassword {
         $CHARSET_SYMBOL = 8
 
         # Creates character arrays for the different character classes, based on ASCII character values.
-        $charsLower = 97..122 | ForEach-Object { [Char] $_ }
-        $charsUpper = 65..90 | ForEach-Object { [Char] $_ }
-        $charsNumber = 48..57 | ForEach-Object { [Char] $_ }
-        $charsSymbol = 33, 35, 37, 42, 43, 44, 45, 46, 95 | ForEach-Object { [Char] $_ }
+        $charsLower = 97..122 | ForEach-Object { [Char] $PSItem }
+        $charsUpper = 65..90 | ForEach-Object { [Char] $PSItem }
+        $charsNumber = 48..57 | ForEach-Object { [Char] $PSItem }
+        $charsSymbol = 33, 35, 37, 42, 43, 44, 45, 46, 95 | ForEach-Object { [Char] $PSItem }
 
-        Write-LogMessage -type Verbose -MSG "The following symbols may be selected $charSymbol"
-        
+        Write-LogMessage -Type Verbose -MSG "The following symbols may be selected $charSymbol"
+
     }
     Process {
         # Contains the array of characters to use.
@@ -1014,7 +1047,7 @@ Function New-RandomPassword {
         function Test-StringContents([String] $test, [Char[]] $chars) {
             foreach ($char in $test.ToCharArray()) {
                 if ($chars -ccontains $char) {
-                    return $true 
+                    return $true
                 }
             }
             return $false
@@ -1051,7 +1084,7 @@ Function New-RandomPassword {
         }
         until ($flags -eq $charSets)
     }
-    End {   
+    End {
         $output
     }
 }
@@ -1060,7 +1093,7 @@ Function New-RandomPassword {
 
 Function Format-URL($sText) {
     if ($sText.Trim() -ne "") {
-        Write-LogMessage -Type Debug -Msg "Returning URL Encode of $sText"
+        Write-LogMessage -Type Debug -Msg "Returning URL Encode of `"$sText`""
         return [System.Web.HttpUtility]::UrlEncode($sText.Trim())
     } else {
         return ""
@@ -1077,28 +1110,33 @@ Function Get-Secret {
         [String]$ID,
         [Parameter(Mandatory = $false)]
         [hashtable]$logonHeader = $g_LogonHeader
-
     )
-
-
-    $URL_GetSecret = "$url/api/Accounts/$id/Password/Retrieve" 
-
-    $SecretBody = @{reason = "Pulled for comparison via REST" } | ConvertTo-Json -Compress
+    Write-LogMessage -type Verbose -MSG "Entering Get-Secret"
+    $URL_GetSecret = "$url/api/Accounts/$id/Password/Retrieve"
+    $SecretBody = @{reason = "Retrived for comparison via REST" } | ConvertTo-Json -Compress
     try {
-        $secret = Invoke-Rest -Command Post -Uri $URL_GetSecret -Body $SecretBody -header $logonHeader
-        If (![string]::IsNullOrEmpty($secret)) {
-            $secureSecret = ConvertTo-SecureString $secret -AsPlainText -Force
-            Remove-Variable secret
-            return $secureSecret
-        } else {
-            return $null
-        }
-    } catch [System.Management.Automation.RuntimeException] {
-        If ("Account Locked" -eq $_.Exception.Message) {
-            Throw "Account Locked"
-        }
+        Write-LogMessage -type Verbose -MSG "Running: $URL_GetSecret"
+        $private:result = $(Invoke-Rest -Method Post -Uri $URL_GetSecret -Body $SecretBody -header $logonHeader)
+        Write-LogMessage -type Verbose -MSG "Invoke-Rest completed successfully"
+        Return $(ConvertTo-SecureString -AsPlainText $result)
     }
-}
+    Catch [System.Management.Automation.ParameterBindingException] {
+        Write-LogMessage -type Debug -MSG "Result returned is null"
+        Return $null
+    }
+    catch [System.Management.Automation.RuntimeException] {
+        If ("Account Locked" -eq $PSItem.Exception.Message) {
+            Throw "Account Locked"
+        } else {
+            Write-LogMessage -type Error -MSG "Unknown RuntimeException thrown:"
+            $PSItem.Exception
+        }}
+        Catch {
+            Write-LogMessage -type Error -MSG "Unknown Exception thrown:"
+        $PSItem.Exception}
+
+    }
+
 
 Function Compare-SecureString {
 
@@ -1127,9 +1165,9 @@ Function Set-Secret {
         [Parameter(Mandatory = $false)]
         [SecureString]$secret
     )
-    
-    $URL_SetSecret = "$url/api/Accounts/$id/Password/Update" 
-    
+
+    $URL_SetSecret = "$url/api/Accounts/$id/Password/Update"
+
     Invoke-Rest -Command Post -Uri $URL_SetSecret -Body $(@{NewCredentials = $([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret))) } | ConvertTo-Json -Compress) -header $logonHeader
 }
 
@@ -1146,36 +1184,45 @@ Function Set-NextPassword {
         [Parameter(Mandatory = $false)]
         [SecureString]$secret
     )
-    
-    $URL_SetSecret = "$url/api/Accounts/$id/SetNextPassword/" 
-    
+
+    $URL_SetSecret = "$url/api/Accounts/$id/SetNextPassword/"
+
     Invoke-Rest -Command Post -Uri $URL_SetSecret -Body $(@{ChangeImmediately = "true"; NewCredentials = $([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret))) } | ConvertTo-Json -Compress) -header $logonHeader
 }
 
 Function New-Account {
-    Param
-    ([CmdletBinding(DefaultParameterSetName = "requireSecret")]
+    Param(
         [Parameter(Mandatory = $false)]
         [string]$url = $global:PVWAURL,
         [Parameter(Mandatory = $false)]
         [hashtable]$logonHeader = $g_LogonHeader,
         [Parameter(Mandatory = $true)]
         $account,
-        [Parameter(ParameterSetName = 'requireSecret',Mandatory = $true)]
-        [Parameter(ParameterSetName = 'allowEmpty', Mandatory = $false)]
+        [Parameter(Mandatory = $false)]
         [SecureString]$secret,
         [Parameter(Mandatory = $false)]
         [Switch]$allowEmpty
     )
     $URL_NewAccount = "$url/api/Accounts/"
-    If ($allowEmpty) {
-        return Invoke-Rest -Command Post -Uri $URL_NewAccount -header $logonHeader -Body $($account | ConvertTo-Json -Compress)
-    } Else {
-        $account | Add-Member -NotePropertyName secret -NotePropertyValue ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret)))
-        return Invoke-Rest -Command Post -Uri $URL_NewAccount -header $logonHeader -Body $($account | ConvertTo-Json -Compress)
-    }
 
-    
+    Write-LogMessage -Type Debug -MSG "Entering New-Account"
+    Write-LogMessage -Type Verbose -MSG "Recieved the following for new account: `n$($account | ConvertTo-Json)"
+Try {
+    If ($allowEmpty) {
+        $result =  Invoke-Rest -Command Post -Uri $URL_NewAccount -header $logonHeader -Body $($account | ConvertTo-Json -Compress)
+        Write-LogMessage -Type Debug -MSG "New-Account completed successfully"
+        Return $result
+    } elseif (!([string]::IsNullOrEmpty($secret))) {
+        $account | Add-Member -NotePropertyName secret -NotePropertyValue (ConvertFrom-SecureString -SecureString $secret -AsPlainText)
+        $result = Invoke-Rest -Command Post -Command Post -Uri $URL_NewAccount -header $logonHeader -Body $($account | ConvertTo-Json -Compress)
+        Write-LogMessage -Type Debug -MSG "New-Account completed successfully"
+        return $result
+    } Else {
+
+    }
+} Catch {
+    Throw $PSitem
+}
 }
 
 Function Get-Safe {
@@ -1190,8 +1237,10 @@ Function Get-Safe {
     )
 
     $URL_GetSafe = "$url/api/Safes/$safe"
-    
-    return Invoke-Rest -Command Get -Uri $URL_GetSafe -header $logonHeader
+
+    $ReturnResult = Invoke-Rest -Command Get -Uri $URL_GetSafe -header $logonHeader
+
+    return $ReturnResult
 }
 
 Function Get-SafeMembers {
@@ -1206,7 +1255,7 @@ Function Get-SafeMembers {
     )
 
     $URL_GetSafeMembers = "$url/api/Safes/$safe/Members"
-    
+
     return Invoke-Rest -Command GET -Uri $URL_GetSafeMembers -header $logonHeader
 }
 
@@ -1253,23 +1302,18 @@ Function New-SafeMember {
         [Parameter(Mandatory = $true)]
         $safeMember,
         [Parameter(Mandatory = $false)]
-        $newLDAP,
-        [Parameter(Mandatory = $false)]
         [switch]$PCloud
     )
     $URL_SafeMembers = "$url/api/Safes/$safe/Members"
-    
-    if ($safeMember.searchIn -eq "LDAP") {
-        $safeMember.searchIn = $newLDAP
-    }
+
 
     If ($PCloud) {
-        $safeMember = $safeMember | Select-Object -Property memberName, memberType, membershipExpirationDate, permissions
+        $safeMember = $safeMember | Select-Object -Property memberName, searchIn, membershipExpirationDate, permissions, memberType
     } Else {
         $safeMember = $safeMember | Select-Object -Property memberName, searchIn, membershipExpirationDate, permissions
     }
     return Invoke-Rest -Command Post -Uri $URL_SafeMembers -header $logonHeader -Body $($safeMember | ConvertTo-Json -Compress)
-    
+
 }
 Function Get-UserSource {
     Param
@@ -1292,7 +1336,34 @@ Function Get-UserSource {
     } else {
         return $user.source
     }
-    
+
+}
+Function Get-Users {
+    Param
+    (
+        [Parameter(Mandatory = $false)]
+        [string]$url = $global:PVWAURL,
+        [Parameter(Mandatory = $false)]
+        [hashtable]$logonHeader = $g_LogonHeader
+    )
+
+    $URL_UserDetail = "$url/api/Users"
+
+
+    return Invoke-Rest -Command GET -Uri $URL_UserDetail -header $logonHeader
+}
+
+Function Get-Platforms {
+    Param
+    (
+        [Parameter(Mandatory = $false)]
+        [string]$url = $global:PVWAURL,
+        [Parameter(Mandatory = $false)]
+        [hashtable]$logonHeader = $g_LogonHeader
+    )
+
+    $URL_Platforms = "$url/api/Platforms"
+    return Invoke-Rest -Command GET -Uri $URL_Platforms -header $logonHeader
 }
 
 Function Get-GroupSource {
@@ -1334,17 +1405,21 @@ Function Update-SafeMember {
         [Parameter(Mandatory = $true)]
         $safeMember,
         [Parameter(Mandatory = $false)]
-        $newLDAP
+        $newDir
     )
-    $URL_SafeMembers = "$url/api/Safes/$safe/Members/$($safeMember.memberName)"
-    
+    $URL_SafeMembers = "$url/api/Safes/$safe/Members/$($safeMember.memberName)/"
+
     Write-LogMessage -Type Debug -Msg "Updating Safe Member: $safeMember"
 
     $safeMember = $safeMember | Select-Object -Property memberName, searchIn, membershipExpirationDate, permissions
 
+    if (![string]::IsNullOrEmpty($newDir)) {
+        $safeMember.searchIn = $newDir
+    }
+
     return Invoke-Rest -Command PUT -Uri $URL_SafeMembers -header $logonHeader -Body $($safeMember | ConvertTo-Json -Compress)
 
-    
+
 }
 
 Function Update-RemoteMachine {
@@ -1363,43 +1438,43 @@ Function Update-RemoteMachine {
 
     $URL_AccountsDetails = "$url/api/Accounts/$($dstAccount.id)"
 
-    $_bodyOpRest = "" | Select-Object "op", "path", "value"
+    $PSItembodyOpRest = "" | Select-Object "op", "path", "value"
 
     if ([string]::IsNullOrEmpty($($srcAccount.remoteMachinesAccess.remoteMachines))) {
         Write-LogMessage -Type Debug -Msg "Source account has no value set for `"Limit Domain Access To`", Removing destination values"
         $op = "Remove"
-        $_bodyOpMachine = "" | Select-Object "op", "path"
+        $PSItembodyOpMachine = "" | Select-Object "op", "path"
     } elseif (($($srcAccount.remoteMachinesAccess.remoteMachines) -eq $($dstAccount.remoteMachinesAccess.remoteMachines)) -and ($($srcAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines) -eq $($dstAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines)) ) {
         Write-LogMessage -Type Debug -Msg "`"Limit Domain Access To`" and '`"Allow User Connections to Other Machines`"is equal, no update required"
         return
     } elseif ([string]::IsNullOrEmpty($($dstAccount.remoteMachinesAccess.remoteMachines))) {
         Write-LogMessage -Type Debug -Msg "Destination account has no value set for `"Limit Domain Access To`", setting operation to ADD"
         $op = "Add"
-        $_bodyOpMachine = "" | Select-Object "op", "path", "value"
+        $PSItembodyOpMachine = "" | Select-Object "op", "path", "value"
     } else {
         Write-LogMessage -Type Debug -Msg "Destination account has value set for `"Limit Domain Access To`", setting operation to REPLACE"
         $op = "Replace"
-        $_bodyOpMachine = "" | Select-Object "op", "path", "value"
+        $PSItembodyOpMachine = "" | Select-Object "op", "path", "value"
     }
 
-    $_bodyOpRest.op = $op
-    $_bodyOpRest.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
+    $PSItembodyOpRest.op = $op
+    $PSItembodyOpRest.path = "/remoteMachinesAccess/accessRestrictedToRemoteMachines"
     if ($op -ne "Remove") {
-        $_bodyOpRest.value = $srcAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines
+        $PSItembodyOpRest.value = $srcAccount.remoteMachinesAccess.accessRestrictedToRemoteMachines
 
     } Else {
 
-        $_bodyOpRest.op = "Replace"
-        $_bodyOpRest.value = "false"
+        $PSItembodyOpRest.op = "Replace"
+        $PSItembodyOpRest.value = "false"
     }
-    $d_AccountBody += $_bodyOpRest
+    $d_AccountBody += $PSItembodyOpRest
 
-    $_bodyOpMachine.op = $op
-    $_bodyOpMachine.path = "/remoteMachinesAccess/remoteMachines"
+    $PSItembodyOpMachine.op = $op
+    $PSItembodyOpMachine.path = "/remoteMachinesAccess/remoteMachines"
     if ($op -ne "Remove") {
-        $_bodyOpMachine.value = $srcAccount.remoteMachinesAccess.remoteMachines
+        $PSItembodyOpMachine.value = $srcAccount.remoteMachinesAccess.remoteMachines
     }
-    $d_AccountBody += $_bodyOpMachine
+    $d_AccountBody += $PSItembodyOpMachine
 
 
     $restBody = ConvertTo-Json $d_AccountBody -Depth 5 -Compress
@@ -1409,4 +1484,3 @@ Function Update-RemoteMachine {
         Write-LogMessage -Type Debug -MSG "Account with Username `"$($dstaccount.userName)`" at address of `"$($dstaccount.address)`" in safe `"$($dstaccount.safeName)`" properties updated successfully"
     }
 }
-

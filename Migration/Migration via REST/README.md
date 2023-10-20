@@ -1,46 +1,45 @@
 # Migrate Via Rest
 
-
-### IN PROGRESS NOT UP TO DATE AND THIS IS BEING USED AS A TEMPLATE NOTHING IN THESE DIRECTIONS ARE TO BE USED WITH Migrate.ps1 AT THIS TIME
-
-> **Note:** The content of the sample_accounts.csv is for example only and does not represent real accounts
-
 ## Main capabilities
 -----------------
-- The tool Uses REST API and can support v10.4 of PVWA and up
-- The tool supports basic Account and Safe Creation, much like the Password Upload Utility
-- The tool supports Template Safe (currently one for all Accounts)
-- The tool can take a simple CSV file with only the relevant Account information
-- The tool will automatically update it self to the latest version if one exists in this GitHub folder
 
-In order to run the tool you need to run some simple commands in Powershell.
-The Tool supports three modes: [*Create*](#create-command), [*Update*](#update-command) and [*Delete*](#delete-command)
 
-The tool will create a log file in the same folder of the script called: _"Account_Onboarding_Utility.log"_
-Running the tool with common parameters of Debug and Verbose will add more information to the log
-
-## Additional Platform Properties / File Categories
-With the newer version of the REST API's (seen as 2nd gen in the CyberArk documentation), in order to be able to upload accounts that have custom platform properties (file categories) these need to be already enabled/set at the platform level of the platform that the accounts will be linked with. This is also relevant to be able to upload accounts that have linked 'login' and 'reconcile' accounts listed in the CSV file.
-
-When accounts are attempted to be onboarded that have custom platform properties listed in the relevant columns in the csv however have not been already added at the platform level, a meaningful error will be seen relating to the fact that the account property has not been account to the platform.
-
-There are six FC's that are required to be added to the platform if an account has a linked 'login' and 'reconcile' account set, three are for the linked 'login' account and three are for the linked 'reconcile' account. Further information on how to do this can be found in this CyberArk KB:
- "https://cyberark-customers.force.com/s/article/Add-Reconcile-and-Login-Accounts-to-an-Account-using-V10-REST-API"
 
 ## Parameters:
 ```powershell
-Migrate.ps1 -PVWAURL <string> [-<Create / Update / Delete>] [-AuthType] [-OTP] [-TemplateSafe] [-CsvPath] [-CsvDelimiter] [-DisableSSLVerify] [-NoSafeCreation] [-DisableAutoUpdate] [-CreateOnUpdate] -[ConcurrentSession] [-BypassSafeSearch] [-BypassAccountSearch]
+Migrate.ps1   
+
+ [-SRCPVWAURL] [-SrcAuthType] [-srcOTP] [-SRCPVWACredentials] [-srclogonToken]
+
+ [-DSTPVWAURL] [-DstAuthType] [-DSTPVWACredentials] [-dstlogonToken] 
+
+[-export]  [-exportCSV] [-importCSV] 
+
+[-processSafes] [-createSafes]  [-UpdateSafeMembers] [-CPMOld] [-CPMNew] [-CPMOverride] -[dstUPN]
+
+ [-processAccounts] [-getRemoteMachines]  [-newLDAP] [-noCreate] [-allowEmpty] [-SkipCheckSecret]  
+
+[-maxJobCount] [-ProgressDetails] [-SuppressProgress] [-DisableSSLVerify] 
+
 ```
-- PVWAURL
-	- The URL of the PVWA that you are working with. 
-	- Note that the URL needs to include 'PasswordVault', for example: "https://myPVWA.myDomain.com/PasswordVault"
-	- When working with PVWA behind a load balancer, note that the session must be defined as sticky session. Alternatively, work with a single node PVWA
-- LogonToken
-	- The logon token when using Privlage Cloud Shared Services (ISPSS)
-	- To generate Token See https://github.com/cyberark/epv-api-scripts/tree/main/Identity%20Authentication 
+- SRCPVWAURL
+	- URL for the source environment
+	- HTTPS://Source.lab.local/PasswordVault
+- SrcAuthType
+
+- srcOTP
+  - In cases where RADIUS authentication is used for the source and one-time-password is needed, use this parameter to enter the OTP value
+- SRCPVWACredentials
+  - Credentials for use with source environment stored as PSCredentials
+  - 
+
+
 - DisableSSLVerify
 	**(NOT RECOMMENDED)**
 	- In cases when you want to test the script on a PVWA environment that does not include a valid SSL certificate, you can use this parameter
+
+
+
 - AuthType
 	- Authentication types for logon. 
 	- Available values: _CyberArk, LDAP, RADIUS_
