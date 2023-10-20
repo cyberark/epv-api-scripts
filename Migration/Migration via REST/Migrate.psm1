@@ -358,7 +358,6 @@ function Export-Accounts {
         Select-Object "name", "address", "userName", "safeName", "platformId", "id", @{ name = "PasswordLastChangeUTC"; Expression = {"$((([System.DateTimeOffset]::FromUnixTimeSeconds($_.secretManagement.lastModifiedTime)).DateTime).ToString())"}} |`
         Export-Csv -Path $exportCSV -NoTypeInformation
     Write-LogMessage -Type Info -Msg "Export of $($srcAccounts.count) accounts completed. All other switches will be ignored"
-    exit
 }
 Function Import-Accounts {
     param (
