@@ -111,12 +111,14 @@ Function Write-LogMessage {
                             "Gray"
                         })
                 }
-                $msgToWrite = "[INFO]`t`t$Msg"
+
+                $msgToWrite = "[INFO]`t`t`t$Msg"
+
                 break
             }
             "Success" {
                 Write-Host $MSG.ToString() -ForegroundColor Green
-                $msgToWrite = "[SUCCESS]`t$Msg"
+                $msgToWrite = "[SUCCESS]`t`t$Msg"
                 break
             }
             "Warning" {
@@ -126,25 +128,26 @@ Function Write-LogMessage {
             }
             "Error" {
                 Write-Host $MSG.ToString() -ForegroundColor Red
-                $msgToWrite = "[ERROR]`t$Msg"
+                $msgToWrite = "[ERROR]`t`t$Msg"
                 break
             }
             "ErrorThrow" {
-                $msgToWrite = "[THROW]`t$Msg"
+                $msgToWrite = "[THROW]`t`t$Msg"
+
                 #Error will be thrown manually after use
                 break
             }
             "Debug" {
                 if ($InDebug -or $InVerbose) {
                     Write-Debug -Message $MSG
-                    $msgToWrite = "[Debug]`t`t$Msg"
+                    $msgToWrite = "[Debug]`t`t`t$Msg"
                 }
                 break
             }
             "Verbose" {
                 if ($InVerbose) {
                     Write-Verbose -Message $MSG
-                    $msgToWrite = "[VERBOSE]`t$Msg"
+                    $msgToWrite = "[VERBOSE]`t`t$Msg"
                 }
                 break
             }
@@ -350,11 +353,11 @@ Function Invoke-Rest {
     $restResponse = ""
     try {
         if ([string]::IsNullOrEmpty($Body)) {
-            Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
+            Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $($Header |ConvertTo-Json -Compress -Depth 9) -ContentType ""application/json"" -TimeoutSec 2700"
             $restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700 -ErrorAction $ErrAction
         } else {
-            Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
-            $restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
+            Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Body $Body -Header $($Header |ConvertTo-Json -Compress -Depth 9) -ContentType ""application/json"" -TimeoutSec 2700"
+            $restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Body $Body -Header $Header -ContentType "application/json" -TimeoutSec 2700 -ErrorAction $ErrAction
         }
     } catch [System.Net.WebException] {
         if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
@@ -1119,23 +1122,23 @@ Function Get-Secret {
         $private:result = $(Invoke-Rest -Method Post -Uri $URL_GetSecret -Body $SecretBody -header $logonHeader)
         Write-LogMessage -type Verbose -MSG "Invoke-Rest completed successfully"
         Return $(ConvertTo-SecureString -AsPlainText $result)
-    }
-    Catch [System.Management.Automation.ParameterBindingException] {
+    } Catch [System.Management.Automation.ParameterBindingException] {
         Write-LogMessage -type Debug -MSG "Result returned is null"
         Return $null
-    }
-    catch [System.Management.Automation.RuntimeException] {
+    } catch [System.Management.Automation.RuntimeException] {
+
         If ("Account Locked" -eq $PSItem.Exception.Message) {
             Throw "Account Locked"
         } else {
             Write-LogMessage -type Error -MSG "Unknown RuntimeException thrown:"
             $PSItem.Exception
-        }}
-        Catch {
-            Write-LogMessage -type Error -MSG "Unknown Exception thrown:"
-        $PSItem.Exception}
-
+        }
+    } Catch {
+        Write-LogMessage -type Error -MSG "Unknown Exception thrown:"
+        $PSItem.Exception
     }
+
+}
 
 
 Function Compare-SecureString {
@@ -1204,25 +1207,24 @@ Function New-Account {
         [Switch]$allowEmpty
     )
     $URL_NewAccount = "$url/api/Accounts/"
-
     Write-LogMessage -Type Debug -MSG "Entering New-Account"
     Write-LogMessage -Type Verbose -MSG "Recieved the following for new account: `n$($account | ConvertTo-Json)"
-Try {
-    If ($allowEmpty) {
-        $result =  Invoke-Rest -Command Post -Uri $URL_NewAccount -header $logonHeader -Body $($account | ConvertTo-Json -Compress)
-        Write-LogMessage -Type Debug -MSG "New-Account completed successfully"
-        Return $result
-    } elseif (!([string]::IsNullOrEmpty($secret))) {
-        $account | Add-Member -NotePropertyName secret -NotePropertyValue (ConvertFrom-SecureString -SecureString $secret -AsPlainText)
-        $result = Invoke-Rest -Command Post -Command Post -Uri $URL_NewAccount -header $logonHeader -Body $($account | ConvertTo-Json -Compress)
-        Write-LogMessage -Type Debug -MSG "New-Account completed successfully"
-        return $result
-    } Else {
+    Try {
+        If ($allowEmpty) {
+            $result = Invoke-Rest -Command Post -Uri $URL_NewAccount -header $logonHeader -Body $($account | ConvertTo-Json -Compress)
+            Write-LogMessage -Type Debug -MSG "New-Account completed successfully"
+            Return $result
+        } elseif (!([string]::IsNullOrEmpty($secret))) {
+            $account | Add-Member -NotePropertyName secret -NotePropertyValue (ConvertFrom-SecureString -SecureString $secret -AsPlainText)
+            $result = Invoke-Rest -Command Post -Uri $URL_NewAccount -header $logonHeader -Body $($account | ConvertTo-Json -Compress)
+            Write-LogMessage -Type Debug -MSG "New-Account completed successfully"
+            return $result
+        } Else {
 
+        }
+    } Catch {
+        Throw $PSitem
     }
-} Catch {
-    Throw $PSitem
-}
 }
 
 Function Get-Safe {
@@ -1306,14 +1308,13 @@ Function New-SafeMember {
     )
     $URL_SafeMembers = "$url/api/Safes/$safe/Members"
 
+    If ($logonHeader.ContainsKey("X-IDAP-NATIVE-CLIENT")) {
 
-    If ($PCloud) {
         $safeMember = $safeMember | Select-Object -Property memberName, searchIn, membershipExpirationDate, permissions, memberType
     } Else {
         $safeMember = $safeMember | Select-Object -Property memberName, searchIn, membershipExpirationDate, permissions
     }
     return Invoke-Rest -Command Post -Uri $URL_SafeMembers -header $logonHeader -Body $($safeMember | ConvertTo-Json -Compress)
-
 }
 Function Get-UserSource {
     Param
@@ -1327,17 +1328,41 @@ Function Get-UserSource {
     )
 
     $URL_UserDetail = "$url/api/Users/$($safeMember.memberId)"
-    #Write-LogMessage -Type Debug -Msg "Getting member source: $URL_UserDetail"
-    #Write-LogMessage -Type Debug -Msg "Using Member: $safeMember"
+    Write-LogMessage -Type Debug -Msg "Getting member source: $URL_UserDetail"
+    Write-LogMessage -Type Debug -Msg "Using Member: $safeMember"
 
     $user = Invoke-Rest -Command GET -Uri $URL_UserDetail -header $logonHeader
     if ($user.source -eq "Cyberark") {
+        Write-LogMessage -Type Debug -Msg "User source is `"CyberArk`", returning vault"
         return "vault"
     } else {
-        return $user.source
+        Write-LogMessage -Type Debug -Msg "User source is `"LDAP`", attempting to find directory"
+        $sourceDomain = $domainlist.GetEnumerator().Where({ $user.userDN -like "*$($_.Name)*" })
+        If ([string]::IsNullOrEmpty($sourceDomain)) {
+            Write-LogMessage -Type Write-Warning -Msg "User LDAP Source is not found, returning $null"
+            return $null
+        } else {
+            Write-LogMessage -Type Debug -Msg "User LDAP Source is `"$($sourceDomain.value)`""
+            return $sourceDomain.value
+        }
     }
 
 }
+
+Function Get-Directories {
+    Param
+    (
+        [Parameter(Mandatory = $false)]
+        [string]$url = $global:PVWAURL,
+        [Parameter(Mandatory = $false)]
+        [hashtable]$logonHeader = $g_LogonHeader
+    )
+
+    $URL_Directory = "$url/API/Configuration/LDAP/Directories/"
+    Write-LogMessage -Type Debug -Msg "Attempting to get directories: $URL_Directory"
+    return Invoke-Rest -Command GET -Uri $URL_Directory -header $logonHeader
+}
+
 Function Get-Users {
     Param
     (
@@ -1378,8 +1403,8 @@ Function Get-GroupSource {
     )
 
     $URL_Groups = "$url/api/UserGroups?search=$($safeMember.memberName)"
-    #Write-LogMessage -Type Debug -Msg "Getting member source: $URL_Groups"
-    #Write-LogMessage -Type Debug -Msg "Using Member: $safeMember"
+    Write-LogMessage -Type Debug -Msg "Getting member source: $URL_Groups"
+    Write-LogMessage -Type Debug -Msg "Using Member: $safeMember"
 
     $groups = Invoke-Rest -Command GET -Uri $URL_Groups -header $logonHeader
 

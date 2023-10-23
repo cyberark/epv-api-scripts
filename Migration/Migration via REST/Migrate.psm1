@@ -3,6 +3,8 @@ if ($PSVersionTable.PSVersion -lt [System.Version]"6.0") {
     Throw
 }
 # Script Version
+
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('UseDeclaredVarsMoreThanAssignments', "")]
 $ScriptVersion = "0.20"
 
 New-Variable -Name LOG_FILE_PATH -Value "$(($Script:MyInvocation.MyCommand.Name).Replace("psm1","log"))" -Scope Global -Force
@@ -19,10 +21,10 @@ $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmms
 
 [String[]]$script:ownersToRemove = @("Auditors", "Backup Users", "Batch", "PasswordManager", "DR Users", "Master", "Notification Engines", "Notification Engine",
     "Operators", "PTAAppUsers", "PTAAppUser", "PVWAGWAccounts", "PVWAAppUsers", "PVWAAppUser", "PVWAAppUser1", "PVWAAppUser2", "PVWAAppUser3", "PVWAAppUser4", "PVWAAppUser5",
-    "PVWAAppUser6", "PVWAUsers", "PVWAMonitor", "PSMUsers", "PSMAppUsers", "PTAUser", "Administrator", "PSMAppUsers")
-
+    "PVWAAppUser6", "PVWAUsers", "PVWAMonitor", "PSMUsers", "PSMAppUsers", "PTAUser", "Administrator", "PSMAppUsers", "Export")
 
 Import-Module -Name ".\CyberArk-Migration.psm1" -Force
+. .\Invoke-Process.ps1
 
 function Initialize-Function {
     [CmdletBinding()]
@@ -45,12 +47,14 @@ Function Get-CPMUsers {
     [OutputType([System.Boolean])]
     [CmdletBinding()]
     [OutputType([String[]])]
-    param(    )
-    $URL_GetCPMList = "$script:SRCPVWAURL/API/ComponentsMonitoringDetails/CPM/"
+    param([switch]$SuppressCPMWarning)    
+    $URL_GetCPMList = "$script:srcPVWAURL/API/ComponentsMonitoringDetails/CPM/"
     Try {
         $CPMList = Invoke-RestMethod -Method Get -Uri $URL_GetCPMList -Headers $Script:srcToken -ErrorVariable ErrorCPMList
         IF ([string]::IsNullOrEmpty($CPMList.ComponentsDetails.ComponentUSername)) {
-            Write-Warning "Unable to retrieve list of CPM users. Ensure that CPMList parameter has been passed or source CPM is named `"PasswordManager`"" -WarningAction Inquire
+            If (!$SuppressCPMWarning) {
+                Write-Warning "Unable to retrieve list of CPM users. Ensure that CPMList parameter has been passed or source CPM is named `"PasswordManager`"" -WarningAction Inquire
+            }
             return @()
         } else {
             Write-LogMessage -type Debug "$($($CPMList.ComponentsDetails.ComponentUSername).count) CPM users found"
@@ -59,14 +63,18 @@ Function Get-CPMUsers {
         }
     } catch [Microsoft.PowerShell.Commands.HttpResponseException] {
         If ($PSitem.Exception.Response.StatusCode -eq "Forbidden") {
-            $URL_Verify = "$url/API/Verify/"
+            $URL_Verify = "$script:srcPVWAURL/API/Verify/"
             $ReturnResultUser = Invoke-RestMethod -Method Get -Uri $URL_Verify -Headers $logonToken -ErrorVariable RestErrorUser
             IF ([string]::IsNullOrEmpty($ReturnResultUser.ServerName) -or [string]::IsNullOrEmpty(!$RestErrorUser)) {
-                Write-Warning "Unable to retrieve list of CPM users. Ensure that CPMList parameter has been passed or source CPM is named `"PasswordManager`"" -WarningAction Inquire
+                If (!$SuppressCPMWarning) {
+                    Write-Warning "Unable to retrieve list of CPM users. Ensure that CPMList parameter has been passed or source CPM is named `"PasswordManager`"" -WarningAction Inquire
+                }
                 return @()
             } else {
                 Write-Warning "Connected with a account that is not a member of `"vault admins`""
-                Write-Warning "Unable to retrieve list of CPM users. Ensure that CPMList parameter has been passed or source CPM is named `"PasswordManager`"" -WarningAction Inquire
+                If (!$SuppressCPMWarning) {
+                    Write-Warning "Unable to retrieve list of CPM users. Ensure that CPMList parameter has been passed or source CPM is named `"PasswordManager`"" -WarningAction Inquire
+                }
                 return @()
             }
         }
@@ -106,7 +114,7 @@ Function Test-Session {
                 Return $false
             } else {
                 Invoke-Report
-                Write-LogMessage -type Warning -MSG "Connected with a account that is not a member of `"vault admins`". Access to create may be restricted."
+                Write-LogMessage -type Warning -MSG "`tConnected with a account that is not a member of `"vault admins`". Access to some functions may be restricted."
                 Return $true
             }
         }
@@ -136,17 +144,21 @@ function Test-SessionsValid {
     }
 }
 function New-SourceSession {
+
+    # .SYNOPSIS
+    # Established a new session to the source environment
+    # .DESCRIPTION
+    # Established a new session to the source environment. This can be either on-premie or Privileged Cloud environment
     [CmdletBinding()]
     param (
 
         <#
-    URL for the source environment
+    URL for the environment
     - HTTPS://Source.lab.local/PasswordVault
     #>
         [Parameter(Mandatory = $true)]
-        [Alias("srcurl", "PVWAURL")]
-        [String]$SRCPVWAURL,
-
+        [Alias("srcURL", "PVWAURL", "URL")]
+        [String]$srcPVWAURL,
         <#
     Authentication types for logon.
 	- Available values: _CyberArk, LDAP, RADIUS_
@@ -154,28 +166,28 @@ function New-SourceSession {
     #>
         [Parameter(Mandatory = $false)]
         [ValidateSet("cyberark", "ldap", "radius")]
-        [String]$SrcAuthType = "cyberark",
+        [String]$srcAuthType = "cyberark",
 
         <#
-    One Time Password for the source environment when used with RADIUS
+    One Time Password for the environment when used with RADIUS
     #>
         [Parameter(Mandatory = $false)]
-        [ValidateScript({$AuthType -eq "radius"})]
+        [ValidateScript({ $AuthType -eq "radius" })]
         [String]$srcOTP,
 
         <#
     Stored credentials for source environment
     #>
         [Parameter(Mandatory = $false)]
-        [PSCredential]$SRCPVWACredentials,
+        [PSCredential]$srcPVWACredentials,
 
         <#
-    Headers for use with source environment
+    Headers for use with environment
     - Used with Privileged Cloud environment
     - When used, log off is suppressed in the source environment
     #>
         [Parameter(Mandatory = $false)]
-        $srclogonToken,
+        $srcLogonToken,
         <#
             Use this switch to Disable SSL verification (NOT RECOMMENDED)
             #>
@@ -187,30 +199,30 @@ function New-SourceSession {
     Set-SSLVerify($DisableSSLVerify)
 
     # Check that the PVWA URL is OK
-    Test-PVWA -PVWAURL $SRCPVWAURL
+    Test-PVWA -PVWAURL $srcPVWAURL
 
     Write-LogMessage -Type Info -MSG "Getting Source Logon Tokens"
-    If (![string]::IsNullOrEmpty($srclogonToken)) {
-        if ($srclogonToken.GetType().name -eq "String") {
-            $logonHeader = @{Authorization = $srclogonToken }
+    If (![string]::IsNullOrEmpty($srcLogonToken)) {
+        if ($srcLogonToken.GetType().name -eq "String") {
+            $logonHeader = @{Authorization = $srcLogonToken }
             Set-Variable -Scope script -Name srcToken -Value $logonHeader
         } else {
-            Set-Variable -Scope script -Name srcToken -Value $srclogonToken
+            Set-Variable -Scope script -Name srcToken -Value $srcLogonToken
         }
     } else {
-        If (![string]::IsNullOrEmpty($SRCPVWACredentials)) {
+        If (![string]::IsNullOrEmpty($srcPVWACredentials)) {
             $creds = $srcPVWACredentials
         } else {
             $msg = "Enter your source $srcAuthType User name and Password"
             $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
         }
-        New-Variable -Name AuthType -Value $SrcAuthType -Scope script -Force
+        New-Variable -Name AuthType -Value $srcAuthType -Scope script -Force
         Import-Module -Name ".\CyberArk-Migration.psm1" -Force
 
         if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($srcOTP)) {
-            Set-Variable -Scope Script -Name srcToken -Value $(Get-Logon -Credentials $creds -AuthType $SrcAuthType -URL $SRCPVWAURL -OTP $OTP)
+            Set-Variable -Scope Script -Name srcToken -Value $(Get-Logon -Credentials $creds -AuthType $srcAuthType -URL $srcPVWAURL -OTP $OTP)
         } else {
-            Set-Variable -Scope Script -Name srcToken -Value $(Get-Logon -Credentials $creds -AuthType $SrcAuthType -URL $SRCPVWAURL )
+            Set-Variable -Scope Script -Name srcToken -Value $(Get-Logon -Credentials $creds -AuthType $srcAuthType -URL $srcPVWAURL )
         }
         # Verify that we successfully logged on
         If ([string]::IsNullOrEmpty($srcToken)) {
@@ -219,8 +231,8 @@ function New-SourceSession {
         }
         $creds = $null
     }
-    Set-Variable -Scope Script -Name SRCPVWAURL -Value $SRCPVWAURL
-    if (Test-Session -logonToken $script:srcToken -url $script:SRCPVWAURL) {
+    Set-Variable -Scope Script -Name srcPVWAURL -Value $srcPVWAURL
+    if (Test-Session -logonToken $script:srcToken -url $script:srcPVWAURL) {
         Write-LogMessage -type Info -MSG "Source session successfully configured and tested"
         Write-LogMessage -type Debug -MSG "Source Token set to $($srcToken|ConvertTo-Json -Depth 10)"
     } else {
@@ -229,52 +241,65 @@ function New-SourceSession {
 }
 Function Close-SourceSession {
     Initialize-Function
-    Invoke-Logoff -url $SRCPVWAURL -logonHeader $srcToken -ErrorAction SilentlyContinue
+    Invoke-Logoff -url $srcPVWAURL -logonHeader $srcToken -ErrorAction SilentlyContinue
 }
 Function Test-SourceSession {
     [OutputType([System.Boolean])]
     [CmdletBinding()]
     param()
-    If ([string]::IsNullOrEmpty($Script:srcToken) -or [string]::IsNullOrEmpty($Script:SRCPVWAURL)) {
+    If ([string]::IsNullOrEmpty($Script:srcToken) -or [string]::IsNullOrEmpty($Script:srcPVWAURL)) {
         return $false
     } else {
-        Return Test-Session -logonToken $Script:srcToken -url $Script:SRCPVWAURL
+        Return Test-Session -logonToken $Script:srcToken -url $Script:srcPVWAURL
     }
 }
 function New-DestinationSession {
+    # .SYNOPSIS
+    # Established a new session to the destination environment
+    # .DESCRIPTION
+    # Established a new session to the destination environment. This can be either on-premie or Privileged Cloud environment
+
     [CmdletBinding()]
     param (
+
         <#
     URL for the destination environment
-    - HTTPS://Destination.lab.local/PasswordVault
+    - HTTPS://Source.lab.local/PasswordVault
     #>
-        [Parameter(Mandatory = $false)]
-        [Alias("dsturl", "PVWAURL")]
-        [String]$DSTPVWAURL,
+        [Parameter(Mandatory = $true)]
+        [Alias("dstURL", "PVWAURL", "URL")]
+        [String]$dstPVWAURL,
 
         <#
     Authentication types for logon.
-	- Available values: _CyberArk, LDAP_
+	- Available values: _CyberArk, LDAP, RADIUS_
 	- Default value: _CyberArk_
     #>
-
         [Parameter(Mandatory = $false)]
-        [ValidateSet("cyberark", "ldap")]
-        [String]$DstAuthType = "cyberark",
+        [ValidateSet("cyberark", "ldap", "radius")]
+        [String]$dstAuthType = "cyberark",
 
         <#
-    Destination credentials for source environment
+    One Time Password for the environment when used with RADIUS
     #>
         [Parameter(Mandatory = $false)]
-        [PSCredential]$DSTPVWACredentials,
+        [ValidateScript({ $AuthType -eq "radius" })]
+        [String]$dstOTP,
 
         <#
-    Headers for use with destination environment
+    Stored credentials for environment
+    #>
+        [Parameter(Mandatory = $false)]
+        [PSCredential]$dstPVWACredentials,
+
+        <#
+    Headers for use with environment
     - Used with Privileged Cloud environment
-    - When used, log off is suppressed in the destination environment
+    - When used, log off is suppressed in the environment
     #>
         [Parameter(Mandatory = $false)]
-        $dstlogonToken,
+        $dstLogonToken,
+
         <#
             Use this switch to Disable SSL verification (NOT RECOMMENDED)
             #>
@@ -282,14 +307,18 @@ function New-DestinationSession {
         [Switch]$DisableSSLVerify
     )
     Initialize-Function
-    Test-PVWA -PVWAURL $DSTPVWAURL
+    Set-SSLVerify($DisableSSLVerify)
+
+    # Check that the PVWA URL is OK
+    Test-PVWA -PVWAURL $dstPVWAURL
+
     Write-LogMessage -Type Info -MSG "Getting Destination Logon Tokens"
     If (![string]::IsNullOrEmpty($dstlogonToken)) {
         if ($dstlogonToken.GetType().name -eq "String") {
             $logonHeader = @{Authorization = $dstlogonToken }
-            Set-Variable -Scope Global -Name dstToken -Value $logonHeader
+            Set-Variable -Scope Script -Name dstToken -Value $logonHeader
         } else {
-            Set-Variable -Scope Global -Name dstToken -Value $dstlogonToken
+            Set-Variable -Scope Script -Name dstToken -Value $dstlogonToken
         }
     } else {
         If (![string]::IsNullOrEmpty($dstPVWACredentials)) {
@@ -302,9 +331,9 @@ function New-DestinationSession {
         Import-Module -Name ".\CyberArk-Migration.psm1" -Force
 
         if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-            Set-Variable -Scope script -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $DSTPVWAURL -OTP $OTP)
+            Set-Variable -Scope script -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $dstPVWAURL -OTP $OTP)
         } else {
-            Set-Variable -Scope script -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $DSTPVWAURL )
+            Set-Variable -Scope script -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $dstPVWAURL )
         }
         # Verify that we successfully logged on
         If ($null -eq $script:dstToken) {
@@ -313,8 +342,9 @@ function New-DestinationSession {
         }
         $creds = $null
     }
-    Set-Variable -Scope Script -Name DSTPVWAURL -Value $DSTPVWAURL
-    if (Test-Session -logonToken $script:dstToken -url $script:DSTPVWAURL) {
+
+    Set-Variable -Scope Script -Name dstPVWAURL -Value $dstPVWAURL
+    if (Test-Session -logonToken $Script:dstToken -url $Script:dstPVWAURL) {
         Write-LogMessage -type Info -MSG "Destination session successfully configured and tested"
         Write-LogMessage -type Debug -MSG "Destination Token set to $($script:dstToken |ConvertTo-Json -Depth 10)"
     } else {
@@ -322,52 +352,60 @@ function New-DestinationSession {
     }
 }
 function Close-DestinationSession {
-    Invoke-Logoff -url $DSTPVWAURL -logonHeader $dstToken -ErrorAction SilentlyContinue
+    Invoke-Logoff -url $dstPVWAURL -logonHeader $dstToken -ErrorAction SilentlyContinue
 }
 Function Test-DestinationSession {
     [OutputType([System.Boolean])]
     [CmdletBinding()]
     param()
-    If ([string]::IsNullOrEmpty($Script:dstToken) -or [string]::IsNullOrEmpty($Script:DSTPVWAURL)) {
+    If ([string]::IsNullOrEmpty($Script:dstToken) -or [string]::IsNullOrEmpty($Script:dstPVWAURL)) {
         return $false
     } else {
-        Return Test-Session -logonToken $Script:dstToken -url $Script:DSTPVWAURL
+        Return Test-Session -logonToken $Script:dstToken -url $Script:dstPVWAURL
     }
 }
 function Export-Accounts {
+    # .SYNOPSIS
+    # Exports accounts from the source environment
+    # .DESCRIPTION
+    # Exports accounts from the source environment and stores them in a variable called AccountList to be used by Sync-Safe and Sync-Accounts. Generates a feed file called ExportOfAccounts.csv
     param (
         <#
     Path and filename for use by Export
     #>
         [Parameter(Mandatory = $false)]
-        [ValidateScript({Test-Path -Path $_ -PathType Leaf -IsValid})]
+        [ValidateScript({ Test-Path -Path $_ -PathType Leaf -IsValid })]
         [ValidatePattern('\.csv$')]
         $exportCSV = ".\ExportOfAccounts.csv"
     )
     Initialize-Function
 
     Write-LogMessage -Type Info -Msg "Starting export of accounts"
-    $srcAccounts = Get-Accounts -url $SRCPVWAURL -logonHeader $srcToken -limit 1000
+    $srcAccounts = Get-Accounts -url $srcPVWAURL -logonHeader $srcToken -limit 1000
     Write-LogMessage -Type Info -Msg "Found $($srcAccounts.count) accounts"
-    $remove = $srcAccounts | Where-Object {$_.safename -In $objectSafesToRemove}
+    $remove = $srcAccounts | Where-Object { $_.safename -In $objectSafesToRemove }
     Write-LogMessage -Type Info -Msg "Found $($remove.count) accounts in excluded safes and removing from list"
-    $srcAccounts = $srcAccounts | Where-Object {$_.safename -notIn $objectSafesToRemove}
+    $srcAccounts = $srcAccounts | Where-Object { $_.safename -notIn $objectSafesToRemove }
     Write-LogMessage -Type Info -Msg "Starting export to CSV of $($srcAccounts.count) accounts"
     $srcAccounts | `
-        Where-Object {$_.safename -notIn $objectSafesToRemove} | `
-        Select-Object "name", "address", "userName", "safeName", "platformId", "id", @{ name = "PasswordLastChangeUTC"; Expression = {"$((([System.DateTimeOffset]::FromUnixTimeSeconds($_.secretManagement.lastModifiedTime)).DateTime).ToString())"}} |`
-        Export-Csv -Path $exportCSV -NoTypeInformation
+            Where-Object { $_.safename -notIn $objectSafesToRemove } | `
+            Select-Object "name", "address", "userName", "safeName", "platformId", "id", @{ name = "PasswordLastChangeUTC"; Expression = { "$((([System.DateTimeOffset]::FromUnixTimeSeconds($_.secretManagement.lastModifiedTime)).DateTime).ToString())" } } |`
+            Export-Csv -Path $exportCSV -NoTypeInformation
     Write-LogMessage -Type Info -Msg "Export of $($srcAccounts.count) accounts completed. All other switches will be ignored"
 }
 Function Import-Accounts {
+    # .SYNOPSIS
+    # Import a list of accounts to be used by Sync-Safe and Sync-Accounts
+    # .DESCRIPTION
+    # Import accounts from a CSV and stores them in a variable called AccountList to be used by Sync-Safe and Sync-Accounts. Default name of feed file called ExportOfAccounts.csv
     param (
         <#
     Path and filename for use by Export
     #>
         [Parameter(Mandatory = $false)]
-        [ValidateScript({Test-Path -Path $_ -PathType Leaf -IsValid})]
+        [ValidateScript({ Test-Path -Path $_ -PathType Leaf -IsValid })]
         [ValidatePattern('\.csv$')]
-        $importCSV = ".\ExportOfAccounts.csv"
+        [string]$importCSV = ".\ExportOfAccounts.csv"
     )
     [array]$script:AccountList = Import-Csv $importCSV -ErrorAction SilentlyContinue
     Write-LogMessage -Type Info -Msg "Imported $($script:AccountList.count) accounts from `"$importCSV`""
@@ -392,49 +430,75 @@ Function Set-AccountList {
 Function Clear-Accountlist {
     Remove-Variable -Scope Script -Name AccountList -ErrorAction SilentlyContinue
 }
-Function Sync-All {
-    Sync-Safes
-    Sync-Accounts
-}
+
 Function Sync-Safes {
+    <#
+    .SYNOPSIS
+    Synchronizes the safes between the two environments
+    .DESCRIPTION
+Using the variable AccountList to target specific safes connects to the two environments does the following process
+- Determines if the safe already exists in the destination environment
+	- If the safe does not exist, create the safe if CreateSafes switch is passed
+- Updates safe ownerships on newly created safes based on the ownership in the source environment
+- If the safe does exist and UpdateSafeMembers switch is passed updates safe ownerships on safes based on the ownership in the source environment
+
+Prior to running ensure the following items in both environments are set
+- The user that is running the command has direct access to all in scope safes in both environments
+	- In the source environment the minimum ownerships are the following
+		- List Accounts, Retrieve Accounts, View Safe members, Access Safe without confirmation (If dual control active)
+	- In the destination environment the minimum ownerships are the following
+		- Full Permission required
+			- This is due to the requirement that you must have the permissions to be able to grant the permissions
+	- Group membership in "Vault Admins" or "Auditors" will cause all accounts to be exported, including system level accounts which should not be migrated
+
+Prior to running it is recommended that the following items in both environments are set.
+- A dedicated "Export" and "Import" users are created
+
+After running the following items are recommended
+- After beginning use of the destination environment and verifications have been completed, delete the user account used to import safes
+- The import user will retain full permissions to any safe it created, the easiest and most secure method to ensure that access is removed is to delete the user.
+
+To get further information about the paramaters use "Get-Help Sync-Safes -full"
+            #>
+    [CmdletBinding(PositionalBinding = $false)]
     param (
         <#
         Automatically create safes in destination environment if not found.
         #>
-        [Parameter(Mandatory = $false)]
-        [Switch]$createSafes,
+        [Parameter(ValueFromPipelineByPropertyName)]
+        [Switch]$CreateSafes,
         <#
         Automatically update safe members permissions in destination environment to match source environment.
         - May result in loss of permissions
         #>
-        [Parameter(Mandatory = $false)]
+        [Parameter(ValueFromPipelineByPropertyName)]
         [Switch]$UpdateSafeMembers,
         <#
         Name of the old CPM which will be replaced
         #>
-        [Parameter(Mandatory = $false)]
+        [Parameter(ValueFromPipelineByPropertyName)]
         [String]$CPMOld,
         <#
         Name of the new CPM which will be used in place of CPMOld
         #>
-        [Parameter(Mandatory = $false)]
+        [Parameter(ValueFromPipelineByPropertyName)]
         [String]$CPMNew,
         <#
         Name of CPM to be used in all creation
         - Overrides CPMOld and CPMNew
         #>
-        [Parameter(Mandatory = $false)]
+        [Parameter(ValueFromPipelineByPropertyName)]
         [String]$CPMOverride,
         <#
         Array of strings with the names of CPM servers currently in the source environment so they can be skipped during ownership processing
         #>
-        [Parameter(Mandatory = $false)]
+        [Parameter(ValueFromPipelineByPropertyName)]
         [String[]]$CPMList,
         <#
         Name of directory in the destination
         For PCloud destinations this should be the DirectoryServiceUuid
         #>
-        [Parameter(Mandatory = $false)]
+        [Parameter(ValueFromPipelineByPropertyName)]
         [String]$newDir,
         <#
         Domain name to be added to safe owners who are memberType of "user" when searching the destination environment
@@ -445,30 +509,35 @@ Function Sync-Safes {
             - End result of username
                 Admin@lab.local
         #>
-        [Parameter(Mandatory = $false)]
+        [Parameter(ValueFromPipelineByPropertyName)]
         [String]$dstDomainSuffix,
         <#
         Display details of jobs in progress bar
         Not recommended if maxJobCount is higher then 5
         #>
-        [Parameter(Mandatory = $false)]
+        [Parameter(ValueFromPipelineByPropertyName)]
         [switch]$srcRemoveDomain,
         <#
         The amount of jobs that should be running at one time
         #>
-        [Parameter(Mandatory = $false)]
+        [Parameter(ValueFromPipelineByPropertyName)]
         [String]$maxJobCount = 10,
         <#
         Display details of jobs in progress bar
         Not recommended if maxJobCount is higher then 5
         #>
-        [Parameter(Mandatory = $false)]
+        [Parameter(ValueFromPipelineByPropertyName)]
         [switch]$ProgressDetails,
         <#
         Suppress Progress bar being displayed
         #>
-        [Parameter(Mandatory = $false)]
-        [switch]$SuppressProgress
+        [Parameter(ValueFromPipelineByPropertyName)]
+        [switch]$SuppressProgress,
+        <#
+Switch to prevent running in powershell job
+#>
+        [switch]$RunSingle,
+        [switch]$SuppressCPMWarning
     )
 
     Write-LogMessage -Type Info -MSG "Starting safe processing at $(Get-Date -Format "HH:mm:ss")"
@@ -476,10 +545,10 @@ Function Sync-Safes {
     Initialize-Function
     Test-SessionsValid
     Test-AccountList
-
+    $global:DomainList = $script:DomainList 
     #region Safe Work
 
-    $cpmUsers = Get-CPMUsers
+    $cpmUsers = Get-CPMUsers -SuppressCPMWarning:$SuppressCPMWarning
     $cpmSafes = @()
     $cpmUsers | ForEach-Object {
         $cpmSafes += "$($PSitem)"
@@ -495,9 +564,9 @@ Function Sync-Safes {
 
 
     [array]$safeobjects += $script:AccountList | `
-        Select-Object -Property safeName -Unique | `
-        Where-Object {$_.safename -notIn $SafesToRemove} | `
-        ForEach-Object { $PSItem }
+            Select-Object -Property safeName -Unique | `
+            Where-Object { $_.safename -notIn $SafesToRemove } | `
+            ForEach-Object { $PSItem }
 
     Write-LogMessage -Type Info -MSG "Found $($safeobjects.count) unique safes for processing"
 
@@ -518,58 +587,77 @@ Function Sync-Safes {
 
     New-Item -ItemType Directory -Force -Path .\LogFiles-Safes\ | Out-Null
     $safeProgress = @{}
-    $safeobjects | ForEach-Object {$safeProgress.($_.id) = @{}}
+    $safeobjects | ForEach-Object { $safeProgress.($_.id) = @{} }
     $safeProgressSync = [System.Collections.Hashtable]::Synchronized($safeProgress)
     Write-LogMessage -Type Info -MSG "Setup of safe job object completed. Starting to submit jobs at $(Get-Date -Format "HH:mm:ss")."
-    $safeJob = $safeobjects | ForEach-Object -ThrottleLimit $maxJobCount -AsJob -Parallel {
-
-        $global:InDebug = $Using:InDebug
-        $global:InVerbose = $Using:InVerbose
-        $createSafes = $using:createSafes
-        $UpdateSafeMembers = $using:UpdateSafeMembers
-        $objectSafesToRemove = $Using:objectSafesToRemove
-        $srcToken = $using:srcToken
-        $SRCPVWAURL = $using:SRCPVWAURL
-        $dstToken = $using:dstToken
-        $DSTPVWAURL = $using:DSTPVWAURL
-        $srcRemoveDomain = $using:srcRemoveDomain
-        $dstDomainSuffix = $using:dstDomainSuffix
-        $newDir = $using:newDir
-        $CPMnew = $using:CPMnew
-        $CPMOld = $using:CPMOld
-        $CPMOverride = $using:CPMOverride
-        $ownersToRemove = $using:ownersToRemove
-        $global:safename = $($PSItem.safeName)
-        $global:LOG_FILE_PATH = ".\LogFiles-Safes\$safename.log"
-        $global:SuperVerbose = $using:SuperVerbose
-        Import-Module .\CyberArk-Migration.psm1 -Force
-
-        #endregion
-        Function Write-LogMessage {
-            param(
-                [String]$MSG,
-                [Switch]$NoWrite,
-                [String]$type
-            )
-            $SafeStatus.log += "`[$safename`] $msg"
-            If ("error" -eq $type) {
-                $SafeStatus.Error += $MSG
-            }
-            if (!$NoWrite) {
-                CyberArk-Migration\Write-LogMessage -MSG $MSG -type $type -LogFile $LOG_FILE_PATH @Args
-                $process.Status = $msg
-            }
+    #region ForEach-Object
+    If (($([Version]$PSVersionTable.PSVersion).Major -le 5) -or $RunSingle ) {
+        Write-LogMessage -Type Info -MSG "Processing Safes one at a a time"
+        $safeobjects | ForEach-Object {
+            Invoke-ProcessSafe -SafeName $PSItem.Safename
         }
-        Try {
-            #region Setup Progress
+    } else {
+        Write-LogMessage -Type Info -MSG "Processing Safes using PowerShell Jobs"
+        If ([string]::IsNullOrEmpty($SuperVerbose)) {
+            $SuperVerbose = $false
+        }
+        $safeJob = $safeobjects | ForEach-Object -ThrottleLimit $maxJobCount -AsJob -Parallel {
+
+            #region Setup for Using
+            $global:InDebug = $Using:InDebug
+            $global:InVerbose = $Using:InVerbose
+            $global:SuperVerbose = $using:SuperVerbose
+            $srcToken = $using:srcToken
+            $srcPVWAURL = $using:srcPVWAURL
+            $dstToken = $using:dstToken
+            $dstPVWAURL = $using:dstPVWAURL
+            $objectSafesToRemove = $Using:objectSafesToRemove
+            $ownersToRemove = $using:ownersToRemove
+            $DomainList = $using:DomainList
+
+            $CreateSafes = $using:CreateSafes
+            $UpdateSafeMembers = $using:UpdateSafeMembers
+            $srcRemoveDomain = $using:srcRemoveDomain
+            $dstDomainSuffix = $using:dstDomainSuffix
+            $newDir = $using:newDir
+            $CPMnew = $using:CPMnew
+            $CPMOld = $using:CPMOld
+            $CPMOverride = $using:CPMOverride
+
+
             $syncCopy = $using:safeProgressSync
+
+
+            $global:safename = $($PSItem.safeName)
+            $global:LOG_FILE_PATH = ".\LogFiles-Safes\$safename.log"
+
+            Import-Module -Name ".\CyberArk-Migration.psm1" -Force
+            . '.\Invoke-Process.ps1'
+            Function Write-LogMessage {
+                param(
+                    [String]$MSG,
+                    [Switch]$NoWrite,
+                    [String]$type
+                )
+                $SafeStatus.log += "`[$safename`] $msg"
+                If ("error" -eq $type) {
+                    $SafeStatus.Error += $MSG
+                }
+                if (!$NoWrite) {
+                    CyberArk-Migration\Write-LogMessage -MSG $MSG -type $type -LogFile $LOG_FILE_PATH @Args
+                    $process.Status = $msg
+                }
+            }
+
+
+            #region Setup Progress
             $process = $syncCopy.$($PSItem.Id)
             $process.Id = $PSItem.Id
             $process.Activity = "Processing safe $($PSItem.safeName)"
             $process.Status = "Starting"
-            #endregion
+            #endregion Setup Progress
             #region Setup Logging
-            $SafeStatus = @{
+            [hashtable]$SafeStatus = @{
                 id                = $PSItem.id
                 safeName          = $PSItem.safeName
                 success           = $false
@@ -579,225 +667,139 @@ Function Sync-Safes {
                 Log               = @()
                 Error             = @()
             }
-            #endregion
-            #endregion
-            Write-LogMessage -Type Info -Msg "Working with Safe `"$safename`""
-
-            If ($PSItem.safeName -in $objectSafesToRemove) {
-                Write-LogMessage -Type Info -Msg "Safe `"$($PSItem.safeName)`" is in the excluded safes list and will be skipped"
-                $SafeStatus.success = $true
-                write-LogMessage -Type Verbose -Msg "Final `$SafeStatus $($SafeStatus | ConvertTo-Json -Compress)"
-                continue
-            }
-            Write-LogMessage -Type Debug -Msg "Getting source safe `"$safename`""
-            $srcSafe = Get-Safe -url $SRCPVWAURL -logonHeader $srcToken -safe $($PSItem.safeName)
-            if ([string]::IsNullOrEmpty($srcSafe)) {
-                Write-LogMessage -Type error -Msg "Source safe `"$safename`" not Found. Skipping"
-                write-LogMessage -Type Verbose -Msg "Final `$SafeStatus $($SafeStatus |ConvertTo-Json -Compress)"
-                Continue
-            } else {
-                Write-LogMessage -Type Debug -Msg "Source safe `"$safename`" located"
-            }
-
-            Write-LogMessage -Type Debug -Msg "Getting destination safe `"$safename`""
+            #endregion Setup Logging
+            #endregion Setup for Using
             Try {
-                $dstsafe = Get-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $($PSItem.safeName) -ErrorAction SilentlyContinue
-            } catch {
-                $dstsafe = $null
-            }
-
-            if ([string]::IsNullOrEmpty($dstsafe)) {
-                Write-LogMessage -Type Debug -Msg "Destination safe `"$safename`" not Found"
-                if ($createSafes) {
-                    Try {
-                        if (![string]::IsNullOrEmpty($CPMOverride)) {
-                            $dstSafe = New-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $srcSafe -cpnNameNew $CPMOverride
-                        } elseIf ((![string]::IsNullOrEmpty($CPMOld)) -and (![string]::IsNullOrEmpty($CPMnew))) {
-                            $dstSafe = New-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $srcSafe -cpnNameOld $CPMOld -cpnNameNew $CPMnew
-                        } else {
-                            $dstSafe = New-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $srcSafe
-                        }
-                        Write-LogMessage -Type Debug -Msg "Created safe `"$safename`""
-                        $createdDstSafe = $true
-                    } catch {
-                        Write-LogMessage -Type error -Msg "Error creating safe `"$safename`""
-                        Write-LogMessage -Type Debug -Msg "Error: $_"
-                        $process.Completed = $true
-                        continue
-                    }
+                #region Actual work
+                Invoke-ProcessSafe -SafeName $safename -SafeStatus $SafeStatus
+                #endregion Actual work
+                #endregion ForEach-Object
+            } Finally {
+                write-LogMessage -Type Info -Msg "Completed work with safe `"$safename`""
+                If ($SuperVerbose) {
+                    write-LogMessage -Type Verbose -Msg "SuperVerbose: Final `$SafeStatus $($SafeStatus | ConvertTo-Json -Compress)"
                 } else {
-                    Write-LogMessage -Type Warning -Msg "`tTarget safe `"$($PSItem.safeName)`" does not exist in destination and creating of safes disabled, skipping `"$($PSItem.safeName)`""
-                    $SafeStatus.createSkip = $true
-                    $SafeStatus.success = $true
-                    continue
-                }
-            } else {
-                Write-LogMessage -Type Debug -Msg "Destination safe  `"$($dstsafe.safename)`" located"
+                    write-LogMessage -Type Verbose -Msg "Final `$SafeStatus $($SafeStatus |Select-Object -Property Id,SafeName,createSkip,Success,UpdateMembersFail | ConvertTo-Json -Depth 1 -Compress)"
+                } 
+                $SafeStatus
+                $process.Completed = $true
             }
-            If (($UpdateSafeMembers -or $createdDstSafe)) {
-                $srcSafeMembers = (Get-SafeMembers -url $SRCPVWAURL -logonHeader $srcToken -safe $PSItem.safeName).value
-                Write-LogMessage -Type Info -Msg "From source safe retrived $($srcSafeMembers.Count) Safe Members"
-                $dstSafeMembers = (Get-SafeMembers -url $DSTPVWAURL -logonHeader $dstToken -safe $PSItem.safeName).value.membername
-                Write-LogMessage -Type Info -Msg "From destination safe retrived $($dstSafeMembers.Count) Safe Members"
-                $safememberCount = 0
-                ForEach ($srcMember in $srcSafeMembers) {
-                    $safememberCount += 1
-                    Try {
-                        Write-LogMessage -Type Info -Msg "[$($safememberCount)] Working with Safe Member `"$($srcMember.membername)`" in Safe `"$($PSItem.safeName)`""
-                        IF ($srcMember.membername -in $ownersToRemove) {
-                            Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is in the excluded owners list"
-                        } Else {
-                            if ($srcRemoveDomain) {
-                                Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Removing domain from source username `"$($srcMember.membername)`""
-                                $srcMember.membername = $($($srcMember.membername).Split("@"))[0]
-                                Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Updated username to `"$($srcMember.membername)`""
-                                If (!$([string]::IsNullOrEmpty($dstDomainSuffix))) {
-                                    Write-LogMessage -type Debug "[$($safememberCount)] New domain suffix of $dstDomainSuffix provided"
-                                    $srcMember.memberName = "$($srcMember.memberName)@$dstDomainSuffix"
-                                    Write-LogMessage -type Debug "[$($safememberCount)] Updated username to `"$($srcMember.membername)`""
-                                }
-                            }
-                            if ($srcMember.membername -in $dstSafeMembers -or $("$($srcMember.memberName)@$dstDomainSuffix") -in $dstSafeMembers) {
-                                Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is a member of safe `"$($dstsafe.safename)`" attempting to update permissions"
-                                $groupSource = Get-GroupSource -url $SRCPVWAURL -logonHeader $srcToken -safemember $srcMember
-                                <#                                 if ($groupSource -eq "Vault") {
-                                    $srcMember | Add-Member -MemberType NoteProperty -NotePropertyName searchIn -NotePropertyValue "$groupSource"
-                                } elseif (![string]::IsNullOrEmpty($newDir)) {
-                                    Write-LogMessage -type Debug -MSG "New direcory provided, updating `"seachIn`" to `"$newDir`""
-                                    $srcMember | Add-Member -MemberType NoteProperty -NotePropertyName searchIn -NotePropertyValue "$newDir"
-                                } else {
-                                    $srcMember | Add-Member -MemberType NoteProperty -NotePropertyName searchIn -NotePropertyValue "$groupSource"
-                                } #>
-                                Update-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $PSItem.safename -safemember $srcMember | Out-Null
-                                Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" updated on safe `"$($dstsafe.safename)`" succesfully"
-                            } else {
-                                if ($srcMember.memberId -match "[A-Z]") {
-                                    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is from PCloud ISPSS"
-                                    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Attempting to add $($srcMember.MemberType) `"$($srcMember.membername)`" to safe `"$($dstsafe.safename)`""
-                                    try {
-                                        $null = New-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $PSItem.safename -safemember $srcMember -PCloud
-                                        Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType)  `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
-                                    } catch {
-                                        Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType)  `"$($srcMember.membername)`" faild to added to safe `"$($dstsafe.safename)`" changing memberType to Role and trying again"
-                                        Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Removing domain from source username `"$($srcMember.membername)`""
-                                        $srcMember.membername = $($($srcMember.membername).Split("@"))[0]
-                                        $srcMember.memberType = "Role"
-                                        $null = New-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember -PCloud
-                                        Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType)  `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
-                                    }
-                                } elseif ($srcMember.memberType -eq "User") {
-                                    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is a user, attempting to find source"
-                                    $userSource = Get-UserSource -url $SRCPVWAURL -logonHeader $srcToken -safemember $srcMember
-                                    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" source is `"$userSource`""
-                                    IF ([sting]::IsNullOrEmpty($newDir)) {
-                                        $srcMember | Add-Member NoteProperty searchIn $userSource
-                                    } else {
-                                        Write-LogMessage -type Debug -MSG "New direcory provided, updating `"seachIn`" to `"$newDir`""
-                                        $srcMember | Add-Member NoteProperty searchIn $newDir
-                                    }
-                                    Write-LogMessage -Type Info -Msg "[$($safememberCount)] Attempting to add user `"$($srcMember.membername)`" to safe `"$($dstsafe.safename)`""
-                                    $null = New-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $PSItem.safename -safemember $srcMember
-                                    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member User`"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`""
-                                } elseif ($srcMember.memberType -eq "Group") {
-                                    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is a group, attempting to find source"
-                                    $groupSource = Get-GroupSource -url $SRCPVWAURL -logonHeader $srcToken -safemember $srcMember
-                                    if ($groupSource -eq "Vault") {
-                                        $srcMember | Add-Member NoteProperty searchIn "$groupSource"
-                                    } elseif (![string]::IsNullOrEmpty($newDir)) {
-                                        Write-LogMessage -type Debug -MSG "New direcory provided, updating `"seachIn`" to `"$newDir`""
-                                        $srcMember | Add-Member NoteProperty searchIn "$newDir"
-                                    } else {
-                                        $srcMember | Add-Member NoteProperty searchIn "$groupSource"
-                                    }
-                                    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" source is `"$groupSource`""
-                                    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Attempting to add group `"$($srcMember.membername)`" to safe `"$($dstsafe.safename)`""
-                                    try {
-                                        $null = New-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $PSItem.safename -safemember $srcMember -PCloud
-                                        Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType)  `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
-                                    } catch {
-                                        Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType)  `"$($srcMember.membername)`" faild to added to safe `"$($dstsafe.safename)`""
-                                        Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Removing domain from source username `"$($srcMember.membername)`" and trying again"
-                                        $srcMember.membername = $($($srcMember.membername).Split("@"))[0]
-                                        $null = New-SafeMember -url $DSTPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember -PCloud
-                                        Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType)  `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
-                                    }
-                                } else {
-                                    Write-LogMessage -Type Error -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is a unknown and is being skipped"
-                                    $SafeStatus.UpdateMembersFail = $true
-                                }
-                            }
+        }
+        Write-LogMessage -Type Info -MSG "Submission of $($safeJob.ChildJobs.Count) jobs completed at $(Get-Date -Format "HH:mm:ss"). Maxiumn running PowerShell jobs set to $maxJobCount."
+        $PSStyle.Progress.View = "Classic"
+        while ($safeJob.State -eq 'Running') {
+            $safeProgressSync.Keys | ForEach-Object {
+                if (![string]::IsNullOrEmpty($safeProgressSync.$_.keys)) {
+                    if (!$SuppressProgress) {
+                        $completed = $($safeJob.ChildJobs | Where-Object { $_.State -eq "Completed" }).count
+                        $total = $safeJob.ChildJobs.count
+                        $Precent = ($completed / $total) * 100
+                        $process = @{}
+                        $process.Id = 0
+                        $process.Activity = "Processing Safes"
+                        $process.Status = "$completed out of $total jobs completed"
+                        $process.PercentComplete = $Precent
+                        Write-Progress @process
+                        if ($ProgressDetails.IsPresent) {
+                            $param = $safeProgressSync.$_
+                            $param.ParentId = 0
+                            Write-Progress @param
                         }
-                    } Catch {
-                        Write-LogMessage -Type Error -Msg "`t[$($safememberCount)] Failed to add or update Safe Member `"$($srcMember.membername)`" in safe `"$($dstsafe.safename)`""
-                        $SafeStatus.UpdateMembersFail = $true
-                        continue
-                    }
-                }
-                $SafeStatus.success = $true
-            } else {
-                Write-LogMessage -Type Info -Msg "Creating and/or Updating of Safe Members is disabled. Memberships of `"$($dstsafe.safename)`" not changed"
-                $SafeStatus.success = $true
-            }
-        } Finally {
-            write-LogMessage -Type Info -Msg "Completed work with safe `"$safename`""
-            If ($SuperVerbose) {
-                write-LogMessage -Type Verbose -Msg "SuperVerbose: Final `$SafeStatus $($SafeStatus | ConvertTo-Json -Compress)"
-            } else {
-                write-LogMessage -Type Verbose -Msg "Final `$SafeStatus $($SafeStatus |Select-Object -Property Id,SafeName,createSkip,Success,UpdateMembersFail | ConvertTo-Json -Depth 1 -Compress)"
-            } $SafeStatus
-            $process.Completed = $true
-        }
-    }
-    Write-LogMessage -Type Info -MSG "Submission of $($safeJob.ChildJobs.Count) jobs completed at $(Get-Date -Format "HH:mm:ss"). Maxiumn running PowerShell jobs set to $maxJobCount."
-    $PSStyle.Progress.View = "Classic"
-    while ($safeJob.State -eq 'Running') {
-        $safeProgressSync.Keys | ForEach-Object {
-            if (![string]::IsNullOrEmpty($safeProgressSync.$_.keys)) {
-                if (!$SuppressProgress) {
-                    $completed = $($safeJob.ChildJobs | Where-Object {$_.State -eq "Completed"}).count
-                    $total = $safeJob.ChildJobs.count
-                    $Precent = ($completed / $total) * 100
-                    $process = @{}
-                    $process.Id = 0
-                    $process.Activity = "Processing Safes"
-                    $process.Status = "$completed out of $total jobs completed"
-                    $process.PercentComplete = $Precent
-                    Write-Progress @process
-                    if ($ProgressDetails.IsPresent) {
-                        $param = $safeProgressSync.$_
-                        $param.ParentId = 0
-                        Write-Progress @param
                     }
                 }
             }
+            Start-Sleep -Seconds 0.5
         }
-        Start-Sleep -Seconds 0.5
-    }
-    Write-Progress -Id 0 -Completed $true
-    # Wait to refresh to not overload gui
-    Write-LogMessage -Type Info "All safes processed, generating results"
+        Write-Progress -Id 0 -Completed $true
+        # Wait to refresh to not overload gui
+        Write-LogMessage -Type Info "All safes processed, generating results"
 
-    $($SafeReport = Receive-Job $Safejob -Keep) 6> $null 5> $null 4> $null 3> $null 2> $null 1> $null
-    $SafeSuccess = $SafeReport | Where-Object {($PSItem.success -EQ $true) -and ($PSItem.createSkip -eq $false)}
-    $SafeCreateSkip = $SafeReport | Where-Object {($PSItem.success -EQ $true) -and ($PSItem.createSkip -eq $true)}
-    $SafeFailed = $SafeReport | Where-Object {$PSItem.success -EQ $false}
-    $SafeUpdateMembersFail = $SafeReport | Where-Object {$PSItem.UpdateMembersFail -EQ $true}
-    If (![string]::IsNullOrEmpty($SafeFailed)) {
-        $SafeFailed.SafeData | Add-Member -MemberType NoteProperty -Name FailReason -Value $null -Force
-        $i = 0
-        foreach ($id in $SafeFailed) {
-            $SafeFailed[$i].SafeData.FailReason = $SafeFailed[$i].Error
-            $i++
+        $($SafeReport = Receive-Job $Safejob -Keep) 6> $null 5> $null 4> $null 3> $null 2> $null 1> $null
+        $SafeSuccess = $SafeReport | Where-Object { ($PSItem.success -EQ $true) -and ($PSItem.createSkip -eq $false) }
+        $SafeCreateSkip = $SafeReport | Where-Object { ($PSItem.success -EQ $true) -and ($PSItem.createSkip -eq $true) }
+        $SafeFailed = $SafeReport | Where-Object { $PSItem.success -EQ $false }
+        $SafeUpdateMembersFail = $SafeReport | Where-Object { $PSItem.UpdateMembersFail -EQ $true }
+        If (![string]::IsNullOrEmpty($SafeFailed)) {
+            $SafeFailed.SafeData | Add-Member -MemberType NoteProperty -Name FailReason -Value $null -Force
+            If ($SafeFailed.SafeData.count -eq 1) {
+                $SafeFailed.SafeData.FailReason = $SafeFailed.Error
+            } else {
+                $i = 0
+                foreach ($id in $SafeFailed) {
+                    $SafeFailed[$i].SafeData.FailReason = $SafeFailed[$i].Error
+                    $i++
+                }
+            }
+            
+            $SafeFailed.SafeData | Export-Csv .\FailedSafes.csv
         }
-        $SafeFailed.SafeData | Export-Csv .\FailedSafes.csv
+        Write-LogMessage -Type Info "Safes succesfully processed: $($SafeSuccess.success.count)"
+        Write-LogMessage -Type Info "Safes creation skipped: $($SafeCreateSkip.success.count)"
+        Write-LogMessage -Type Info "Safes processing failed: $($SafeFailed.success.count)"
+        Write-LogMessage -Type Info "Safes membership add or updates failed: $($SafeUpdateMembersFail.success.count)"
     }
-    Write-LogMessage -Type Info "Safes succesfully processed: $($SafeSuccess.success.count)"
-    Write-LogMessage -Type Info "Safes creation skipped: $($SafeCreateSkip.success.count)"
-    Write-LogMessage -Type Info "Safes processing failed: $($SafeFailed.success.count)"
-    Write-LogMessage -Type Info "Safes membership add or updates failed: $($SafeUpdateMembersFail.success.count)"
     Write-LogMessage -Type Info "Processing of safes completed at $(Get-Date -Format "HH:mm:ss")"
 }
 function Sync-Accounts {
+    <#
+    .SYNOPSIS
+    Synchronizes the accounts between the two environments
+    .DESCRIPTION
+Using the variable AccountList to target specific accounts connects to two environments does the following process
+- If VerifyPlatform is passed get a list of all platforms on destination environment
+    - For each future create verify that the platform from the source environment exist in the destination environment, if it doesn't fail the create
+    - For each future create update the platformID casing to match the casing in the destination environment
+- Determines if the account already exists in the destination environment and the source account has a secret set
+    - If the account does not exist create the account unless NoCreate is passed
+    - If the account does not have a secret set, do not create the account unless allowEmpty is passed
+- Unless SkipCheckSecret is passed, for each existing account found, verify that the secret matches between the source and destination
+    - Whenever possible ensures that secrets for both the source and destination are stored in variables as SecureStrings and only retained for as long as needed and then removed.
+- If getRemoteMachines is passed, update the destination account with the values from the source account
+
+Prior to running ensure the following items in both environments are set
+- CPMs stopped in both environments
+  - This is to prevent password from being locked due to CPM initiated changes and password unexpectedly changing
+- "Enforce check-in/check-out exclusive access" is inactive
+  - Due to the command reading the secret in both environments if Exclusive use is enabled all accounts will become locked to the user running the command
+- "Enforce one-time password access" is inactive
+  - If enabled all secrets will change based on the platform MinValidityPeriod and exclusive access settings
+- "Require dual control password access approval" is inactive or the user running the commands has "Access Safe without Confirmation" for all in scope safes
+  - If "DisableDualControlForPSMConnections" is set to "Yes" on the platform either "dual controls" must be set to inactive or the platform updated to have "DisableDualControlForPSMConnections" set to "No".
+    - This is due to a limitation in the REST interface
+- Ensure all in scope accounts are unlocked
+  - This can easiest be done by using PrivateArk Client.
+    - After logging in "CTRL + F", select "Advanced" tab, check only "Locked", and clicking "Find".
+    - All locked accounts will be displayed in the results pane, click in this pane and then select "Edit", "Select All".
+      - With everything highlighted, right click and then select "Unlock File"
+      - All locked files will now be unlocked.
+        - Unlocking this way will NOT trigger the CPM to change the password when restarted.
+
+Prior to running it is recommended that the following items in both environments are set.
+- A dedicated "Export" and "Import" users are created
+- "NFNotifyOnPasswordUsed" is set to "No" to ensure a large amount of emails are not generated
+  - If "Yes", ensure that "Event Notification Engine" is stopped and you delete "\PrivateArk\Safes\ENE\ENELastEventID.dat" prior to restarting.
+    - In Privilege Cloud environments clients do not have access to the ENE.
+- "EnforcePasswordPolicyOnManualChange" is set to "No"
+  - This will allow for the currently in use secrets, and prior secrets, to be used to ensure they are synchronized between environments
+- "AutoChangeOnAdd" are set to "No"
+  - The will prevent the secrets from automatically changing when the CPM in the destination is turned on
+- "AutoVerifyOnAdd" are set to "No"
+  - This will prevent the CPM from having a large workload on initial startup after work
+
+After running the following items are recommended
+- Any "Master Policy" or "Platform" settings adjusted to allow for export and import are reset back to standard values
+- Only the environment that is currently being actively used has a running CPM.
+- IF CPMs are required to be running in both environments, ensure each safe has a CPM assigned in only one environment at a time.
+- Prior to beginning use of the destination environment, verify no password have changed in the source environment that have not been synchronized.
+  - You can see the data of last secret change of the source account by running "Export-Accounts" and reviewing the column titled "PasswordLastChangeUTC".
+    - The time zone used to display the date and time of last password change is UTC (+0)
+  - If secretes have changed remove all other entries in the CSV, leaving on the accounts with secret changes, and use "Import-Account" to target those accounts specifically
+- After beginning use of the destination environment and verifications have been completed, delete the user account used to import safes
+  - The import user will retain full permissions to any safe it created, the easiest and most secure method to ensure that access is removed is to delete the user.
+
+To get further information about the paramaters use "Get-Help Sync-Accounts -full"
+#>
+    [CmdletBinding(PositionalBinding = $false)]
     param (
         <#
         Skip checking of existing secrets
@@ -850,7 +852,7 @@ function Sync-Accounts {
 
     IF ($VerifyPlatform) {
         Write-LogMessage -Type Info -Msg "VerifyPlatform set, retriving platforms for destination environment"
-        $platforms = (Get-Platforms -url $DSTPVWAURL -logonHeader $dstToken)
+        $platforms = (Get-Platforms -url $dstPVWAURL -logonHeader $dstToken)
         Write-LogMessage -Type debug -MSG "$($platforms.count) platforms retrieved from destination environment"
     } else {
         $platforms = "Skipped"
@@ -867,7 +869,7 @@ function Sync-Accounts {
 
     New-Item -ItemType Directory -Force -Path .\LogFiles-Accounts\ | Out-Null
     $accountProgress = @{}
-    $accountobjects | ForEach-Object {$accountProgress.($_.ProcessID) = @{}}
+    $accountobjects | ForEach-Object { $accountProgress.($_.ProcessID) = @{} }
     $accountProgressSync = [System.Collections.Hashtable]::Synchronized($accountProgress)
     Write-LogMessage -Type Debug -MSG "Setup of account object completed. Starting to submit jobs at $(Get-Date -Format "HH:mm:ss")."
     $AccountJob = $accountobjects | ForEach-Object -ThrottleLimit $maxJobCount -AsJob -Parallel {
@@ -887,9 +889,9 @@ function Sync-Accounts {
         }
 
         $srcToken = $using:srcToken
-        $SRCPVWAURL = $using:SRCPVWAURL
+        $srcPVWAURL = $using:srcPVWAURL
         $dstToken = $using:dstToken
-        $DSTPVWAURL = $using:DSTPVWAURL
+        $dstPVWAURL = $using:dstPVWAURL
 
         $baseAccount = $PSItem
         $global:accountID = $($PSItem.id)
@@ -935,11 +937,11 @@ function Sync-Accounts {
 
             Write-LogMessage -Type Info -Msg "Working with source account with username `"$($baseAccount.userName)`" and address `"$($baseAccount.address)`" in safe `"$($baseAccount.safeName)`""
             Try {
-                $srcAccount = Get-AccountDetail -url $SRCPVWAURL -logonHeader $srcToken -AccountID $baseAccount.id
+                $srcAccount = Get-AccountDetail -url $srcPVWAURL -logonHeader $srcToken -AccountID $baseAccount.id
             } catch {
                 Write-LogMessage -Type Error -Msg "Unable to connect to source account to retrieve username `"$($baseAccount.userName)`" and address `"$($baseAccount.address)`" in safe `"$($baseAccount.safeName)`""
                 Write-LogMessage -Type Error -Msg $PSitem
-                Write-LogMessage -Type Debug -Msg "$srcAccount = Get-AccountDetail -url $SRCPVWAURL -logonHeader $srcToken -AccountID $baseAccount.id"
+                Write-LogMessage -Type Debug -Msg "$srcAccount = Get-AccountDetail -url $srcPVWAURL -logonHeader $srcToken -AccountID $baseAccount.id"
                 continue
             }
             If ($($srcAccount.safename) -in $objectSafesToRemove) {
@@ -950,7 +952,7 @@ function Sync-Accounts {
             write-LogMessage -Type Debug -Msg "Found source account"
             write-LogMessage -Type Verbose -Msg "Source account: $($srcAccount |ConvertTo-Json -Compress)"
             Write-LogMessage -Type Debug -Msg "Searching for destination account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`""
-            [array]$dstAccountArray = Get-Accounts -url $DSTPVWAURL -logonHeader $dstToken -safename $($srcAccount.safeName) -keywords "$($srcAccount.userName) $($srcAccount.address)" -startswith $true
+            [array]$dstAccountArray = Get-Accounts -url $dstPVWAURL -logonHeader $dstToken -safename $($srcAccount.safeName) -keywords "$($srcAccount.userName) $($srcAccount.address)" -startswith $true
             if ((0 -ne $($dstAccountArray.count))) {
                 Write-LogMessage -Type Verbose -MSG "Results array from destination: $($dstAccountArray | ConvertTo-Json -Compress)"
                 Write-LogMessage -Type Debug -Msg "Found $($dstAccountArray.count) possible destination accounts"
@@ -972,15 +974,15 @@ function Sync-Accounts {
                     Write-LogMessage -Type debug -Msg "SkipCheckSecret set to false. Starting check on source and destination secrets"
                     Try {
                         Write-LogMessage -Type Debug -Msg "Getting source Secret"
-                        [SecureString]$srcSecret = Get-Secret -url $SRCPVWAURL -logonHeader $srcToken -id $srcAccount.id -ErrorAction SilentlyContinue
+                        [SecureString]$srcSecret = Get-Secret -url $srcPVWAURL -logonHeader $srcToken -id $srcAccount.id -ErrorAction SilentlyContinue
                         Write-LogMessage -Type Debug -Msg "Source secret found: $(!$([string]::IsNullOrEmpty($srcSecret)))"
-                         if ($null -eq $srcSecret) {
+                        if ($null -eq $srcSecret) {
                             Write-LogMessage -Type Info -Msg "No secret found on source account. No change will be made to destination secret."
                             $AccountStatus.success = $true
-                        Continue
+                            Continue
                         }
                         Write-LogMessage -Type Debug -Msg "Getting destination Secret"
-                        [SecureString]$dstSecret = Get-Secret -url $DSTPVWAURL -logonHeader $dstToken -id $dstAccount.id -ErrorAction SilentlyContinue
+                        [SecureString]$dstSecret = Get-Secret -url $dstPVWAURL -logonHeader $dstToken -id $dstAccount.id -ErrorAction SilentlyContinue
                         Write-LogMessage -Type Debug -Msg "Destination secret found: $(!$([string]::IsNullOrEmpty($srcSecret)))"
                         If ((![string]::IsNullOrEmpty($srcSecret)) -and (![string]::IsNullOrEmpty($dstSecret)) ) {
                             Write-LogMessage -type Debug -MSG "Comparing secrets"
@@ -988,12 +990,12 @@ function Sync-Accounts {
                         }
                         if ($null -eq $dstSecret -and $null -ne $srcSecret) {
                             Write-LogMessage -Type Debug -Msg "No secret found on destination account $($dstAccount.Name). Setting destination secret to match source secret."
-                            Set-Secret -url $DSTPVWAURL -logonHeader $dstToken -id $dstAccount.id -secret $srcSecret
+                            Set-Secret -url $dstPVWAURL -logonHeader $dstToken -id $dstAccount.id -secret $srcSecret
                             Write-LogMessage -Type Info -Msg "Destination account with username `"$($dstAccount.userName)`" and address `"$($dstAccount.address)`" in safe `"$($dstAccount.safeName)`" secret set to match source account."
                             $AccountStatus.success = $true
                         } elseif (!$secretMatch) {
                             Write-LogMessage -Type Debug -Msg "The secret for ource and destination account with username `"$($dstAccount.userName)`" and address `"$($dstAccount.address)`" in safe `"$($dstAccount.safeName)`" secret do not match. Setting destination secret to match source secret."
-                            Set-Secret -url $DSTPVWAURL -logonHeader $dstToken -id $dstAccount.id -secret $srcSecret
+                            Set-Secret -url $dstPVWAURL -logonHeader $dstToken -id $dstAccount.id -secret $srcSecret
                             Write-LogMessage -Type Info -Msg "Destination account secret with username `"$($dstAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`" set to match source account."
                             $AccountStatus.success = $true
                         } elseif ($secretMatch) {
@@ -1017,7 +1019,7 @@ function Sync-Accounts {
                 }
                 if ($getRemoteMachines) {
                     Write-LogMessage -Type Debug -Msg "getRemoteMachines set to true. Updating remoteMachinesAccess on destination account with usernam `"$($dstAccount.userName)`" and address `"$($dstAccount.address)`" in safe `" $($srcAccount.safeName)`""
-                    Update-RemoteMachine -url $DSTPVWAURL -logonHeader $dstToken -dstaccount $dstAccount -srcaccount $srcAccount
+                    Update-RemoteMachine -url $dstPVWAURL -logonHeader $dstToken -dstaccount $dstAccount -srcaccount $srcAccount
                 }
             } elseif ($noCreate) {
                 Write-LogMessage -Type Warning -Msg "Destination account with username of `"$($dstAccount.userName)`" and address `"$($dstAccount.address)`" in safe safe `" $($srcAccount.safeName)`" does not exist and account creation disabled, skipping creation of account"
@@ -1027,7 +1029,8 @@ function Sync-Accounts {
                     If ($VerifyPlatform) {
                         write-LogMessage -Type info -Msg "Verifying platform with ID of `"$($srcAccount.platformId)`" exists in destination enviorment for account `"$($srcAccount.Name)`" in safe `"$($srcAccount.safeName)`""
                         write-LogMessage -Type Verbose -Msg "Source Accounts: $($srcAccount |ConvertTo-Json -Compress)"
-                        $srcAccount.platformId = $($platforms.Platforms.general | Where-Object {$_.id -like $srcAccount.platformId}).id
+
+                        $srcAccount.platformId = $($platforms.Platforms.general | Where-Object { $_.id -like $srcAccount.platformId }).id
                         if ([string]::IsNullOrEmpty($srcAccount.platformId )) {
                             write-LogMessage -Type Error -Msg "Unable to locate platform in destination for account with the username `"$($dstAccount.userName)`" and address `"$($dstAccount.address)`" in safe `" $($srcAccount.safeName)`" unable to create account"
                             Continue
@@ -1036,23 +1039,23 @@ function Sync-Accounts {
 
                     write-LogMessage -Type info -Msg "Destination account with username `"$($dstAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`" does not exist. Attempting to create account."
                     write-LogMessage -Type info -Msg "Checking for destination safe `"$($srcAccount.safeName)`""
-                    $dstsafe = Get-Safe -url $DSTPVWAURL -logonHeader $dstToken -safe $srcAccount.safeName -ErrorAction SilentlyContinue
+                    $dstsafe = Get-Safe -url $dstPVWAURL -logonHeader $dstToken -safe $srcAccount.safeName -ErrorAction SilentlyContinue
                     if ([string]::IsNullOrEmpty($dstsafe)) {
                         Write-LogMessage -Type error -Msg "Destination safe of `"$($srcAccount.safeName)`" does not exist, skipping creation of account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`""
                         continue
                     }
                     write-LogMessage -Type info -Msg "Destination safe `"$($srcAccount.safeName)`" found"
-                    [SecureString]$srcSecret = Get-Secret -url $SRCPVWAURL -logonHeader $srcToken -id $srcAccount.id -ErrorAction SilentlyContinue
+                    [SecureString]$srcSecret = Get-Secret -url $srcPVWAURL -logonHeader $srcToken -id $srcAccount.id -ErrorAction SilentlyContinue
                     IF (![string]::IsNullOrEmpty($srcSecret)) {
                         Write-LogMessage -Type debug -Msg "Source account with username `"$($dstAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`" has a secret. Sending creation request to destination enviorment"
-                        $dstAccount = New-Account -url $DSTPVWAURL -logonHeader $dstToken -account $srcAccount -secret $srcSecret
+                        $dstAccount = New-Account -url $dstPVWAURL -logonHeader $dstToken -account $srcAccount -secret $srcSecret
                         Write-LogMessage -type Debug -Msg "Account with username `"$($dstAccount.userName)`" and address `"$($dstAccount.address)`" in safe `"$($dstAccount.safeName)`" succefully created in destination enviorment"
                     } elseif ($allowEmpty) {
                         Write-LogMessage -Type debug -Msg "Source account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`" does not have a secret, but empty secrets are allowed. Sending creation request to destination enviorment"
-                        $dstAccount = New-Account -url $DSTPVWAURL -logonHeader $dstToken -account $srcAccount -allowEmpty
+                        $dstAccount = New-Account -url $dstPVWAURL -logonHeader $dstToken -account $srcAccount -allowEmpty
                         Write-LogMessage -type Debug -Msg "Account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`" succefully created in destination enviorment"
                     } else {
-                            Write-LogMessage -Type Warning -Msg "No password set on source account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`""
+                        Write-LogMessage -Type Warning -Msg "No password set on source account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`""
                     }
                     $AccountStatus.success = $true
                 } catch [System.Management.Automation.RuntimeException] {
@@ -1083,7 +1086,7 @@ function Sync-Accounts {
         $accountProgressSync.Keys | ForEach-Object {
             if (![string]::IsNullOrEmpty($accountProgressSync.$_.keys)) {
                 if (!$SuppressProgress) {
-                    $completed = $($AccountJob.ChildJobs | Where-Object {$_.State -eq "Completed"}).count
+                    $completed = $($AccountJob.ChildJobs | Where-Object { $_.State -eq "Completed" }).count
                     $total = $AccountJob.ChildJobs.count
                     $Precent = ($completed / $total) * 100
                     $process = @{}
@@ -1118,7 +1121,7 @@ function Sync-Accounts {
             $AccountFailed[$i].accountData.FailReason = $AccountFailed[$i].Error
             $i++
         }
-        $AccountFailed.accountData | Where-Object {!$([string]::IsNullOrEmpty($PSItem.FailReason))} | Export-Csv -Force .\FailedAccounts.csv
+        $AccountFailed.accountData | Where-Object { !$([string]::IsNullOrEmpty($PSItem.FailReason)) } | Export-Csv -Force .\FailedAccounts.csv
         Write-LogMessage -type Error -MSG "Errors found, list outputted to `".\FailedAccounts.csv`""
     }
     Write-LogMessage -Type Info "Processing of accounts completed at $(Get-Date -Format "HH:mm:ss")"
@@ -1127,9 +1130,67 @@ function Sync-Accounts {
         $srcToken = Get-IdentityHeader -IdentityUserName brian.bors@cyberark.cloud.1024 -IdentityTenantURL "https://aal4797.my.idaptive.app"
     }
 }
-<#
-.SYNOPSIS
 
-Migrate data from one CyberArk environment to another
-Synchronize data from CyberArk environment to another
-#>
+Function Set-DomainList {
+    (
+        [Parameter(Mandatory)]
+        $domainJSon
+    )
+    $script:DomainList = $domainJSon
+}
+
+
+Function New-DomainList 
+(
+    [Parameter(Mandatory)]
+    $DomainName,
+    [Parameter(Mandatory)]
+    $DomainBaseContext
+) {
+    [hashtable]$script:DomainList = @{}
+    $script:DomainList.add($DomainBaseContext, $DomainName)
+}
+Function New-DomainEntry 
+(
+    [Parameter(Mandatory)]
+    $DomainName,
+    [Parameter(Mandatory)]
+    $DomainBaseContext
+) {
+    IF ([string]::IsNullOrEmpty($script:domainlist)) {
+        Write-LogMessage -type Warning -MSG "No domain list exists, creating new domain list"
+        New-DomainList -DomainName $DomainName -DomainBaseContext $DomainBaseContext
+    } elseIF ([string]::IsNullOrEmpty($script:domainlist[$DomainBaseContext])) {
+        $script:DomainList.add($DomainBaseContext, $DomainName)
+    } else {
+        Write-LogMessage -type Warning -MSG "Existing Domain Base Context found. Updated to provided domain name"
+        $script:DomainList.Remove($DomainBaseContext)
+        $script:DomainList.add($DomainBaseContext, $DomainName)
+    }
+}
+
+Function Remove-DomainEntry 
+(
+    [Parameter(Mandatory)]
+    $DomainName,
+    [Parameter(Mandatory)]
+    $DomainBaseContext
+) {
+    IF ([string]::IsNullOrEmpty($script:domainlist[$DomainBaseContext])) {
+        Write-LogMessage -type Warning -MSG "Existing Domain Base Context not found. No Changes Made"
+    } else {
+        $script:DomainList.Remove($DomainBaseContext)
+        Write-LogMessage -type Warning -MSG "Existing Domain Base Context found and removed"
+
+    }
+}
+
+Function Import-DomainList () {
+    Try {
+        $Results = Get-Directories -url $script:srcPVWAURL -logonHeader $script:srcToken
+        [hashtable]$script:DomainList = @{}
+        $results | ForEach-Object { New-DomainEntry -DomainName $PSitem.DomainName -DomainBaseContext $PSitem.DomainBaseContext }
+    } catch {
+        Write-LogMessage -type Warning -MSG "Error Importing Domain List, manually load directory list using New-DomainEntry"
+    }
+}
