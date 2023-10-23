@@ -970,12 +970,14 @@ The Good record to output
 #>
 
 	try {
-		$global:workAccount.Password = $null
+ 		If ($null -ne $global:workAccount.Password){
+			$global:workAccount.Password = $null
+   		}
 		$global:workAccount | Export-Csv -Append -NoTypeInformation $csvPathGood
 		Write-LogMessage -Type Debug -MSG "Outputted good record to CSV"
 		Write-LogMessage -Type Verbose -MSG "Good Record: $global:workAccount"
 	} catch {
-		Write-LogMessage -Type Error -MSG "Unable to outout good record to file: $csvPathGood"
+		Write-LogMessage -Type Error -MSG "Unable to output good record to file: $csvPathGood"
 		Write-LogMessage -Type Verbose -MSG "Good Record: $global:workAccount"
 
 	}		
