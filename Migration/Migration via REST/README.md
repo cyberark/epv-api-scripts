@@ -1,3 +1,4 @@
+
 # Main capabilities
 -----------------
 Module to migrate accounts and safes from one environment into another
@@ -59,6 +60,7 @@ This can be either on-premie or Privileged Cloud environment
 ### SYNOPSIS
 Exports accounts from the source environment
 ### SYNTAX
+
 ```
 Export-Accounts [[-exportCSV] <Object>] [<CommonParameters>]
 ```

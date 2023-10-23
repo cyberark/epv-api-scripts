@@ -3,6 +3,7 @@ if ($PSVersionTable.PSVersion -lt [System.Version]"6.0") {
     Throw
 }
 # Script Version
+
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('UseDeclaredVarsMoreThanAssignments', "")]
 $ScriptVersion = "0.20"
 
@@ -21,7 +22,6 @@ $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmms
 [String[]]$script:ownersToRemove = @("Auditors", "Backup Users", "Batch", "PasswordManager", "DR Users", "Master", "Notification Engines", "Notification Engine",
     "Operators", "PTAAppUsers", "PTAAppUser", "PVWAGWAccounts", "PVWAAppUsers", "PVWAAppUser", "PVWAAppUser1", "PVWAAppUser2", "PVWAAppUser3", "PVWAAppUser4", "PVWAAppUser5",
     "PVWAAppUser6", "PVWAUsers", "PVWAMonitor", "PSMUsers", "PSMAppUsers", "PTAUser", "Administrator", "PSMAppUsers", "Export")
-
 
 Import-Module -Name ".\CyberArk-Migration.psm1" -Force
 . .\Invoke-Process.ps1
@@ -60,7 +60,7 @@ Function Get-CPMUsers {
             Write-LogMessage -type Debug "$($($CPMList.ComponentsDetails.ComponentUSername).count) CPM users found"
             Write-LogMessage -type Verbose "List of CPM users found: $($($CPMList.ComponentsDetails.ComponentUSername)|ConvertTo-Json -Depth 9 -Compress)"
             return $($CPMList.ComponentsDetails.ComponentUSername)
-        }hh
+        }
     } catch [Microsoft.PowerShell.Commands.HttpResponseException] {
         If ($PSitem.Exception.Response.StatusCode -eq "Forbidden") {
             $URL_Verify = "$script:srcPVWAURL/API/Verify/"
@@ -144,6 +144,7 @@ function Test-SessionsValid {
     }
 }
 function New-SourceSession {
+
     # .SYNOPSIS
     # Established a new session to the source environment
     # .DESCRIPTION
@@ -158,7 +159,6 @@ function New-SourceSession {
         [Parameter(Mandatory = $true)]
         [Alias("srcURL", "PVWAURL", "URL")]
         [String]$srcPVWAURL,
-
         <#
     Authentication types for logon.
 	- Available values: _CyberArk, LDAP, RADIUS_
@@ -299,6 +299,7 @@ function New-DestinationSession {
     #>
         [Parameter(Mandatory = $false)]
         $dstLogonToken,
+
         <#
             Use this switch to Disable SSL verification (NOT RECOMMENDED)
             #>
@@ -310,6 +311,7 @@ function New-DestinationSession {
 
     # Check that the PVWA URL is OK
     Test-PVWA -PVWAURL $dstPVWAURL
+
     Write-LogMessage -Type Info -MSG "Getting Destination Logon Tokens"
     If (![string]::IsNullOrEmpty($dstlogonToken)) {
         if ($dstlogonToken.GetType().name -eq "String") {
@@ -340,6 +342,7 @@ function New-DestinationSession {
         }
         $creds = $null
     }
+
     Set-Variable -Scope Script -Name dstPVWAURL -Value $dstPVWAURL
     if (Test-Session -logonToken $Script:dstToken -url $Script:dstPVWAURL) {
         Write-LogMessage -type Info -MSG "Destination session successfully configured and tested"
@@ -427,6 +430,7 @@ Function Set-AccountList {
 Function Clear-Accountlist {
     Remove-Variable -Scope Script -Name AccountList -ErrorAction SilentlyContinue
 }
+
 Function Sync-Safes {
     <#
     .SYNOPSIS
@@ -666,7 +670,6 @@ Switch to prevent running in powershell job
             #endregion Setup Logging
             #endregion Setup for Using
             Try {
-                
                 #region Actual work
                 Invoke-ProcessSafe -SafeName $safename -SafeStatus $SafeStatus
                 #endregion Actual work
@@ -1026,6 +1029,7 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
                     If ($VerifyPlatform) {
                         write-LogMessage -Type info -Msg "Verifying platform with ID of `"$($srcAccount.platformId)`" exists in destination enviorment for account `"$($srcAccount.Name)`" in safe `"$($srcAccount.safeName)`""
                         write-LogMessage -Type Verbose -Msg "Source Accounts: $($srcAccount |ConvertTo-Json -Compress)"
+
                         $srcAccount.platformId = $($platforms.Platforms.general | Where-Object { $_.id -like $srcAccount.platformId }).id
                         if ([string]::IsNullOrEmpty($srcAccount.platformId )) {
                             write-LogMessage -Type Error -Msg "Unable to locate platform in destination for account with the username `"$($dstAccount.userName)`" and address `"$($dstAccount.address)`" in safe `" $($srcAccount.safeName)`" unable to create account"

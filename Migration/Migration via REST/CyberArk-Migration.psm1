@@ -111,7 +111,9 @@ Function Write-LogMessage {
                             "Gray"
                         })
                 }
+
                 $msgToWrite = "[INFO]`t`t`t$Msg"
+
                 break
             }
             "Success" {
@@ -131,6 +133,7 @@ Function Write-LogMessage {
             }
             "ErrorThrow" {
                 $msgToWrite = "[THROW]`t`t$Msg"
+
                 #Error will be thrown manually after use
                 break
             }
@@ -1123,6 +1126,7 @@ Function Get-Secret {
         Write-LogMessage -type Debug -MSG "Result returned is null"
         Return $null
     } catch [System.Management.Automation.RuntimeException] {
+
         If ("Account Locked" -eq $PSItem.Exception.Message) {
             Throw "Account Locked"
         } else {
@@ -1203,7 +1207,6 @@ Function New-Account {
         [Switch]$allowEmpty
     )
     $URL_NewAccount = "$url/api/Accounts/"
-
     Write-LogMessage -Type Debug -MSG "Entering New-Account"
     Write-LogMessage -Type Verbose -MSG "Recieved the following for new account: `n$($account | ConvertTo-Json)"
     Try {
@@ -1304,7 +1307,9 @@ Function New-SafeMember {
         [switch]$PCloud
     )
     $URL_SafeMembers = "$url/api/Safes/$safe/Members"
+
     If ($logonHeader.ContainsKey("X-IDAP-NATIVE-CLIENT")) {
+
         $safeMember = $safeMember | Select-Object -Property memberName, searchIn, membershipExpirationDate, permissions, memberType
     } Else {
         $safeMember = $safeMember | Select-Object -Property memberName, searchIn, membershipExpirationDate, permissions
@@ -1341,6 +1346,7 @@ Function Get-UserSource {
             return $sourceDomain.value
         }
     }
+
 }
 
 Function Get-Directories {
@@ -1354,10 +1360,7 @@ Function Get-Directories {
 
     $URL_Directory = "$url/API/Configuration/LDAP/Directories/"
     Write-LogMessage -Type Debug -Msg "Attempting to get directories: $URL_Directory"
-
-
     return Invoke-Rest -Command GET -Uri $URL_Directory -header $logonHeader
-
 }
 
 Function Get-Users {
