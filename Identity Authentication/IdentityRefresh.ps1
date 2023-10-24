@@ -192,7 +192,7 @@ If (!$([string]::IsNullOrEmpty($UUID))) {
 		}
 	}
 }
-If ([String]::IsNullOrEmpty($usersToRefresh)) {
+If ([String]::IsNullOrEmpty($usersToRefresh.ObjectGUID)) {
 	Write-LogMessage -type Error "No group, UPN, or UUID passed."
 	continue
 } else {
@@ -211,18 +211,29 @@ $refreshJob = $usersToRefresh | ForEach-Object -ThrottleLimit 25 -AsJob -Paralle
 	$url = "$using:IdentityTenantURL/CDirectoryService/RefreshToken?ID=$($PSitem.ObjectGUID)"
 
 	Write-LogMessage -type verbose "Invokeing: Invoke-RestMethod $url -Method 'POST' -Headers $using:logonToken"
-	$RefreshResponce = Invoke-RestMethod $url -Method 'POST' -Headers $using:logonToken
-	Write-LogMessage -type Info "User `"$($Psitem.UserPrincipalName)`" refreshed succesfully: $($RefreshResponce.success)"
-	$result = [PSCustomObject]@{
-		UserPrincipalName = $Psitem.UserPrincipalName
-		ObjectGUID        = $PSItem.ObjectGUID
-		Succesful         = $RefreshResponce.success
+	Try {
+		$RefreshResponce = Invoke-RestMethod $url -Method 'POST' -Headers $using:logonToken
+		Write-LogMessage -type Info "User `"$($Psitem.UserPrincipalName)`" refreshed succesfully: $($RefreshResponce.success)"
+		$result = [PSCustomObject]@{
+			UserPrincipalName = $Psitem.UserPrincipalName
+			ObjectGUID        = $PSItem.ObjectGUID
+			Succesful         = $RefreshResponce.success
+		}
+		Return $result
+	} catch {
+		Write-LogMessage -type Error -Msg "Thrown Error on User `"$($Psitem.UserPrincipalName)`" with GUID of `"$($Psitem.ObjectGUID)`""
+		$result = [PSCustomObject]@{
+			UserPrincipalName = $Psitem.UserPrincipalName
+			ObjectGUID        = $PSItem.ObjectGUID
+			Succesful         = "Thrown Error $PSitem"
+		}
+		Return $result
 	}
-	Return $result
 }
 
 while ($refreshJob.State -eq 'Running') {
-	Start-Sleep -Seconds .5
+	Start-Sleep -Seconds 2
+	Write-LogMessage -type info "$(($($refreshJob.ChildJobs.State) -eq "Completed").count) jobs completed out of $($refreshJob.ChildJobs.count) Jobs"
 }
 $($refreshReport += Receive-Job $refreshJob) 6> $null 5> $null 4> $null 3> $null 2> $null 1> $null
 IF ( 0 -ne $($refreshReport | Where-Object -Not Succesful).Count) {

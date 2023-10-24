@@ -15,7 +15,7 @@ $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmms
     "PVWAConfig", "PVWAReports", "PVWATaskDefinitions", "PVWAPrivateUserPrefs", "PVWAPublicData", "PVWATicketingSystem",
     "AccountsFeed", "PSM", "xRay", "PIMSuRecordings", "xRay_Config", "AccountsFeedADAccounts", "AccountsFeedDiscoveryLogs", "PSMSessions", "PSMLiveSessions", "PSMUniversalConnectors",
     "PSMNotifications", "PSMUnmanagedSessionAccounts", "PSMRecordings", "PSMPADBridgeConf", "PSMPADBUserProfile", "PSMPADBridgeCustom",
-    "AppProviderConf", "PasswordManagerTemp", "PasswordManager_Pending", "PasswordManagerShared")
+    "AppProviderConf", "PasswordManagerTemp", "PasswordManager_Pending", "PasswordManagerShared","TelemetryConfig")
 
 [String[]]$script:CPMSafes = @("PasswordManager", "PasswordManager_workspace", "PasswordManager_ADInternal", "PasswordManager_Info")
 
@@ -495,6 +495,11 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
         [Parameter(ValueFromPipelineByPropertyName)]
         [String[]]$CPMList,
         <#
+        Array of strings with the names of owners that should not be migrated
+        #>
+        [Parameter(ValueFromPipelineByPropertyName)]
+        [String[]]$OwnersToExclude,
+        <#
         Name of directory in the destination
         For PCloud destinations this should be the DirectoryServiceUuid
         #>
@@ -581,6 +586,9 @@ Switch to prevent running in powershell job
     $ownersToRemove = $script:ownersToRemove
     $ownersToRemove += $CPMList
     $ownersToRemove += $cpmUsers
+    If (![String]::IsNullOrEmpty($OwnersToExclude)) {
+        $ownersToRemove += $OwnersToExclude
+    }
 
     Write-LogMessage -Type Debug "$($ownersToRemove.Count) owners in owners to remove list"
     Write-LogMessage -Type Verbose "$($ownersToRemove|ConvertTo-Json -Depth 9 -Compress)"

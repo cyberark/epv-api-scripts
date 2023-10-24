@@ -96,7 +96,7 @@ This can be either on-premie or Privileged Cloud environment
 Synchronizes the safes between the two environments
 ### SYNTAX
 ```powershell
-Sync-Safes [-CreateSafes] [-UpdateSafeMembers] [[-CPMOld] <String>] [[-CPMNew] <String>] [[-CPMOverride] <String>] [[-CPMList] <String[]>] [[-newDir] <String>] [[-dstDomainSuffix] <String>] [-srcRemoveDomain] [[-maxJobCount] <String>] [-ProgressDetails] [-SuppressProgress] [<CommonParameters>]
+Sync-Safes [-CreateSafes] [-UpdateSafeMembers] [[-CPMOld] <String>] [[-CPMNew] <String>] [[-CPMOverride] <String>] [[-CPMList] <String[]>] [[-OwnersToExclude] <String[]>]  [[-newDir] <String>] [[-dstDomainSuffix] <String>] [-srcRemoveDomain] [[-maxJobCount] <String>] [-ProgressDetails] [-SuppressProgress] [<CommonParameters>]
 ```
 ### DESCRIPTION
 Using the variable AccountList to target specific safes connects to the two environments does the following process
