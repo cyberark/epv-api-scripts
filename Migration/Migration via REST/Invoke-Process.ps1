@@ -102,7 +102,7 @@ Function Invoke-ProcessSafe {
                     IF ($srcMember.membername -in $ownersToRemove) {
                         Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is in the excluded owners list"
                     } Else {
-                        if ($srcRemoveDomain) {
+                        if ($srcRemoveDomain -or (![string]::IsNullOrEmpty($dstDomainSuffix))) {
                             Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Removing domain from source username `"$($srcMember.membername)`""
                             IF ($srcMember.membername -match '@') {
                                 $srcMember.membername = $($($srcMember.membername).Split("@"))[0]
@@ -110,15 +110,27 @@ Function Invoke-ProcessSafe {
                             } else {
                                 Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Username is not in UPN format, no change made"
                             }
-                            If (!$([string]::IsNullOrEmpty($dstDomainSuffix))) {
-                                Write-LogMessage -type Debug "[$($safememberCount)] New domain suffix of $dstDomainSuffix provided"
-                                $srcMember.memberName = "$($srcMember.memberName)@$dstDomainSuffix"
-                                Write-LogMessage -type Debug "[$($safememberCount)] Updated username to `"$($srcMember.membername)`""
-                            }
+                        }
+                        If (!$([string]::IsNullOrEmpty($dstDomainSuffix))) {
+                            Write-LogMessage -type Debug "[$($safememberCount)] New domain suffix of $dstDomainSuffix provided"
+                            $srcMember.memberName = "$($srcMember.memberName)@$dstDomainSuffix"
+                            Write-LogMessage -type Debug "[$($safememberCount)] Updated username to `"$($srcMember.membername)`""
                         }
                         if ($srcMember.membername -in $dstSafeMembers -or $("$($srcMember.memberName)@$dstDomainSuffix") -in $dstSafeMembers) {
                             Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is a member of safe `"$($dstsafe.safename)`" attempting to update permissions"
-                            Update-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember | Out-Null
+                            Try {
+                                Update-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember | Out-Null
+                            } Catch {
+                                IF ("User" -eq $srcMember.memberType) {
+                                Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" not found on safe `"$($dstsafe.safename)`" Attempting to locate user UPN and re-attempt"
+                                $userUPN = Get-UserPrincipalName -url $srcPVWAURL -logonHeader $srcToken -safemember $srcMember
+                                $srcMembetUPN = $srcMember | ConvertTo-Json -Depth 100 |ConvertFrom-Json
+                                $srcMembetUPN.memberName = $userUPN
+                                Update-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMembetUPN | Out-Null
+                                } else {
+                                    Throw $PSItem
+                                }
+                            }
                             Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" updated on safe `"$($dstsafe.safename)`" succesfully"
                         } else {
                             if ($srcMember.memberId -match "[A-Z]") {
@@ -126,7 +138,6 @@ Function Invoke-ProcessSafe {
                                 Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Attempting to add $($srcMember.MemberType) `"$($srcMember.membername)`" to safe `"$($dstsafe.safename)`""
                                 try {
                                     $null = New-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember
-                                    
                                     Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType)  `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
                                 } catch {
                                     Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType)  `"$($srcMember.membername)`" faild to added to safe `"$($dstsafe.safename)`" changing memberType to Role and trying again"
@@ -139,13 +150,13 @@ Function Invoke-ProcessSafe {
                                 }
                             } elseif ($srcMember.memberType -eq "User") {
                                 Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is a user, attempting to find source"
-                                Try {
-                                    $userSource = Get-UserSource -url $srcPVWAURL -logonHeader $srcToken -safemember $srcMember
-                                    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" source is `"$userSource`""
-                                } Catch {
-                                    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Unable to retrieve user source"
-                                }
                                 IF ([string]::IsNullOrEmpty($newDir)) {
+                                    Try {
+                                        $userSource = Get-UserSource -url $srcPVWAURL -logonHeader $srcToken -safemember $srcMember
+                                        Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" source is `"$userSource`""
+                                    } Catch {
+                                        Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Unable to retrieve user source"
+                                    }
                                     $srcMember | Add-Member NoteProperty searchIn $userSource
                                 } else {
                                     Write-LogMessage -type Debug -MSG "New direcory provided, updating `"seachIn`" to `"$newDir`""
@@ -174,7 +185,12 @@ Function Invoke-ProcessSafe {
                                 } catch {
                                     Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType)  `"$($srcMember.membername)`" faild to added to safe `"$($dstsafe.safename)`""
                                     Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Removing domain from source username `"$($srcMember.membername)`" and trying again"
-                                    $srcMember.membername = $($($srcMember.membername).Split("@"))[0]
+                                    IF ($srcMember.membername -match '@') {
+                                        $srcMember.membername = $($($srcMember.membername).Split("@"))[0]
+                                        Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Updated username to `"$($srcMember.membername)`""
+                                    } else {
+                                        Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Username is not in UPN format, no change made"
+                                    }
                                     $null = New-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember
                                     Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType)  `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
                                 }
