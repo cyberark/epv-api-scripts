@@ -191,7 +191,7 @@ If (!$([string]::IsNullOrEmpty($UUID))) {
 		}
 	}
 }
-If ([String]::IsNullOrEmpty($usersToRefresh)) {
+If ([String]::IsNullOrEmpty($usersToRefresh.ObjectGUID)) {
 	Write-LogMessage -type Error "No group, UPN, or UUID passed."
 	continue
 }
@@ -204,14 +204,24 @@ $refreshReport = $usersToRefresh |ForEach-Object  {
 	Write-LogMessage -type Verbose "User ObjectGUID: `"$($PSItem.ObjectGUID)`""
 	$url = "$IdentityTenantURL/CDirectoryService/RefreshToken?ID=$($PSitem.ObjectGUID)"
 	Write-LogMessage -type verbose "Invokeing: Invoke-RestMethod $url -Method 'POST' -Headers $logonToken"
-    $RefreshResponce = Invoke-RestMethod $url -Method 'POST' -Headers $logonToken -errorAction SilentlyContinue
-	Write-LogMessage -type Info "User `"$($Psitem.UserPrincipalName)`" refreshed succesfully: $($RefreshResponce.success)"
-	$result = [PSCustomObject]@{
-		UserPrincipalName = $Psitem.UserPrincipalName
-		ObjectGUID = $PSItem.ObjectGUID
-		Succesful = $RefreshResponce.success
+    Try {
+		$RefreshResponce = Invoke-RestMethod $url -Method 'POST' -Headers $using:logonToken
+		Write-LogMessage -type Info "User `"$($Psitem.UserPrincipalName)`" refreshed succesfully: $($RefreshResponce.success)"
+		$result = [PSCustomObject]@{
+			UserPrincipalName = $Psitem.UserPrincipalName
+			ObjectGUID        = $PSItem.ObjectGUID
+			Succesful         = $RefreshResponce.success
+		}
+		Return $result
+	} catch {
+        Write-LogMessage -type Error -Msg "Thrown Error on User `"$($Psitem.UserPrincipalName)`" with GUID of `"$($Psitem.ObjectGUID)`""
+		$result = [PSCustomObject]@{
+			UserPrincipalName = $Psitem.UserPrincipalName
+			ObjectGUID        = $PSItem.ObjectGUID
+			Succesful         = "Thrown Error $PSitem"
+		}
+		Return $result
 	}
-	Return $result
 }
 
 IF ( 0 -ne $($refreshReport |Where-object -not Succesful).Count) {
