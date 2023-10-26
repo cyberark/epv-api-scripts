@@ -1349,6 +1349,28 @@ Function Get-UserSource {
 
 }
 
+Function Get-UserPrincipalName {
+    Param
+    (
+        [Parameter(Mandatory = $false)]
+        [string]$url = $global:PVWAURL,
+        [Parameter(Mandatory = $false)]
+        [hashtable]$logonHeader = $g_LogonHeader,
+        [Parameter(Mandatory = $true)]
+        $safeMember
+    )
+
+    $URL_UserDetail = "$url/api/Users/$($safeMember.memberId)"
+    Write-LogMessage -Type Debug -Msg "Getting member UserPrincipalName: $URL_UserDetail"
+    Write-LogMessage -Type Debug -Msg "Using Member: $safeMember"
+
+    $user = Invoke-Rest -Command GET -Uri $URL_UserDetail -header $logonHeader
+
+    Import-Module ActiveDirectory
+    Return (Get-ADUser $($user.userDN)).UserPrincipalName
+}
+
+
 Function Get-Directories {
     Param
     (

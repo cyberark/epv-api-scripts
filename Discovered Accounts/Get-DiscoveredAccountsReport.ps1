@@ -521,6 +521,27 @@ Function Run-Logoff
 }
 
 # @FUNCTION@ ======================================================================================================================
+# Name...........: Format-URL
+# Description....: Encodes a text for URL
+# Parameters.....: Text
+# Return Values..: Encoded Text
+# =================================================================================================================================
+Function Format-URL($sText) {
+	<# 
+.SYNOPSIS 
+	Format-URL
+.DESCRIPTION
+	Encodes a text for URL
+#>
+	if ($sText.Trim() -ne "") {
+		Write-LogMessage -Type Verbose -Msg "Returning URL Encode of $sText"
+		return [URI]::EscapeDataString($sText)
+	} else {
+		return ""
+	}
+}
+
+# @FUNCTION@ ======================================================================================================================
 # Name...........: Get-FilterParameters
 # Description....: Returns the filter parameters for the required URL
 # Parameters.....: URL, Platform Type, Privileged Account, Search keywords, Search Type
