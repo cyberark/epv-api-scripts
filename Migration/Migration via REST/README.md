@@ -13,6 +13,8 @@ Module to migrate accounts and safes from one environment into another
 - Sync-Safes
 - Sync-Accounts
 
+### Explanation 
+
 - "Import-Module '\Migrate.psm1' -force" will load the module
 - "New-SourceSession" will establish a connection to the environment that currently has the safes and accounts
 - "Export-Accounts" will export all accounts the user that used "New-SourceSession" has access too
