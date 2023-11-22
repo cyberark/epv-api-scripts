@@ -102,3 +102,4 @@ DeletePending.ps1 [-PVWAURL] <string> [[-AuthType] <string> -DisableSSLVerify -L
 	- Default value: _CyberArk_
 - LogonToken
 	- Logon Token for use with ISPSS
+ 	- See https://github.com/cyberark/epv-api-scripts/tree/main/Identity%20Authentication to generate token 	
