@@ -89,7 +89,7 @@ Get-DiscoveredAccountsReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault
 The script will clear all pending accounts to allow them to be discovered again
 
 ```powershell
-DeletePending.ps1 [-PVWAURL] <string> [[-AuthType] <string>] -DisableSSLVerify [<CommonParameters>]
+DeletePending.ps1 [-PVWAURL] <string> [[-AuthType] <string> -DisableSSLVerify -LogonToken <string[]>] [<CommonParameters>]
 ```
 
 - PVWAURL
@@ -100,3 +100,5 @@ DeletePending.ps1 [-PVWAURL] <string> [[-AuthType] <string>] -DisableSSLVerify [
 	- Authentication types for logon. 
 	- Available values: _CyberArk, LDAP_
 	- Default value: _CyberArk_
+- LogonToken
+	- Logon Token for use with ISPSS
