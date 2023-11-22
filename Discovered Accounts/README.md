@@ -89,7 +89,7 @@ Get-DiscoveredAccountsReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault
 The script will clear all pending accounts to allow them to be discovered again
 
 ```powershell
-DeletePending.ps1 [-PVWAURL] <string> [[-AuthType] <string> -DisableSSLVerify -LogonToken <string[]>] [<CommonParameters>]
+DeletePending.ps1 -PVWAURL <string> [-AuthType <string>] [-DisableSSLVerify] [-LogonToken <LogonToken>] [<CommonParameters>]
 ```
 
 - PVWAURL
