@@ -1,7 +1,10 @@
 # Get-Accounts
 
-A script that allows easy reporting or enumerating of Accounts
-In this example script you will find examples of Get a list of Accounts, Get specific Account details, create a report of accounts
+> **General**
+> - Supported version: CyberArk PAS version 10.4 and above
+> - Allow easy reporting or enumerating of Accounts.
+In this example script, you will find examples of Get a list of Accounts, Get specific Account details, Create a report of accounts.
+
 
 ## Usage
 ```powershell
@@ -9,12 +12,12 @@ Get-Accounts.ps1 -PVWAURL <string> -List [-Report] [-SafeName <string>] [-Keywor
 Get-Accounts.ps1 -PVWAURL <string> -Details -AccountID <string> [-Report] [-CSVPath <string>] [<CommonParameters>]
 ```
 
-The script supports two modes [*List*](#list) and [*Details*](#account-details)
+The script supports two modes [*List*](#list) and [*Details*](#account-details).
 
 List:
 -----
-List all accounts that answer a specific search criteria (by Safe or keywords)
-Allows to sort, limit or get all accounts with no limit
+List all accounts that answer to a specific search criteria (by Safe or keywords).
+Allows to sort, limit or get all accounts with no limit.
 ```powershell
 Get-Accounts.ps1 -PVWAURL <PVWA URL> -List [-SafeName <Safe Name to filter by>] [-Keywords <Keywords to search by>] [-SortBy <Property to sort by>] [-Limit <Number of accounts per 'page'>] [-AutoNextPage]
 ```
@@ -28,34 +31,33 @@ Get-Accounts.ps1 -PVWAURL <PVWA URL> -List -Report -CSVPath <Path to the report 
 
 Account Details:
 ---------------
-Get all details on a specific account
+Get all details on a specific account.
 ```powershell
 Get-Accounts.ps1 -PVWAURL <PVWA URL> -Details -AccountID <Account ID>
 ```
 
 Report of specific account:
 --------------------------
-Allows to generate a report of the specific Account found
+Allows to generate a report of the specific Account found.
 ```powershell
 Get-Accounts.ps1 -PVWAURL <PVWA URL> -Details -Report -CSVPath <Path to the report CSV> -AccountID <Account ID> 
 ```
 
-## Supported version
-CyberArk PAS version 10.4 and above
 
-# Update-Accounts
 
-A script that allows updating of multiple account properties of a specific account.
-You can provide any parameter name that you wish to update.
-Parameter values will be based on the same list of parameter names or if only one value is provided all parameters will have the same value (last parameter value will complete any parameter that does not have a value).
+# Update-Account
+
+> **General**
+> - Supported version: CyberArk PAS version 10.4 and above.
+> - Allow the update of multiple properties for a given account. Any parameter name can be provided. The values will be set through the list `ParameterValues`. If this list is shorter than the list of `ParameterNames`, the parameters lacking a value will be completed by the last value of `ParameterValue`.
+
 
 ## Usage
 ```powershell
-Update-Account.ps1 -PVWAURL <string> -AccountID <string> -ParameterNames <Comma seperated parameter names> -ParameterValues <Comma seperated parameter values> [<CommonParameters>]
+Update-Account.ps1 -PVWAURL <string> -AccountID <string> -ParameterNames <Comma separated parameter names> -ParameterValues <Comma separated parameter values> [<CommonParameters>]
 ```
 
-Examples:
------
+## Examples:
 ### Update one custom property of an account
 ```powershell
 Update-Account.ps1 -PVWAURL https://mydomain.com/PasswordVault -AccountID 12_34 -ParameterNames "Environment" -ParameterValues "Production"
@@ -65,28 +67,29 @@ Update-Account.ps1 -PVWAURL https://mydomain.com/PasswordVault -AccountID 12_34 
 ```powershell
 Update-Account.ps1 -PVWAURL https://mydomain.com/PasswordVault -AccountID 12_34 -ParameterNames "DataCenter","Building","ApplicationName" -ParameterValues "Washington","B1","FinancialApp"
 ```
-The account will update the Properties with their values according to the order they were entered
-DataCenter = Washington
-Building = B1
-ApplicationName = FinancialApp
+The account will update the Properties with their values according to the order they were entered:
+- DataCenter = Washington,
+- Building = B1,
+- ApplicationName = FinancialApp.
 
 ### Update multiple custom properties of an account with partial values
 ```powershell
 Update-Account.ps1 -PVWAURL https://mydomain.com/PasswordVault -AccountID 12_34 -ParameterNames "ApplicationName","ApplicationOwner","ApplicationTeam" -ParameterValues "FinancialApp","John Doe"
 ```
-The account will update the Properties with their values according to the order they were entered
-ApplicationName = FinancialApp
-ApplicationOwner = John Doe 
-ApplicationTeam = John Doe
+The account will update the Properties with their values according to the order they were entered:
+- ApplicationName = FinancialApp,
+- ApplicationOwner = John Doe,
+- ApplicationTeam = John Doe.
 
-## Supported version
-CyberArk PAS version 10.4 and above
+
 
 # Invoke-BulkAccountActions
 
-A script that can run Account Actions on a List of Accounts using REST API.
-This script will execute a single account action on a list of accounts according to filters (optional).
-Or execute a single account action on all accounts from a file.
+> **General**
+> - Supported version: CyberArk PAS version 10.4 and above.
+> - Run a single action on a list of Accounts, according to filters (optional) or from a file. Uses REST APIs.
+
+
 
 ## Usage
 ```powershell
@@ -94,31 +97,35 @@ Invoke-BulkAccountActions.ps1 -PVWAURL <string> -AuthType <["cyberark","ldap","r
 ```
 
 ## Available filters
-- Safe Name - Search for all accounts in a specific safe
-- Filter by specific keywords: 
-    - 	PlatformID
-    - 	UserName
-    - 	Address
-    - 	Custom - Using this parameter will not validate the results
-    -   FailedOnly - run the action only on failed accounts
-> Note: All filters will be by default with OR between them
-> Each filter (except custom) will be validated to bring the exact results
+- SafeName 
+    - Search for all accounts in a specific safe
+- PlatformID
+- UserName
+- Address
+- Custom 
+    - Using this parameter will not validate the results
+- FailedOnly 
+    - Run the action only on failed accounts
+- CPMDisabled
 
-Examples:
------
-### Verify all root accounts from UnixSSH
+> Note: The result will be the union of all filters' results (consider it as an "or" gate).
+> Each filter (except `custom`) will be validated to bring exact results.
+
+## Examples:
+
+### Verify all root accounts from the UnixSSH Platform
 ```powershell
 Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -PlatformID "UnixSSH" -UserName "root" -AccountsAction "Verify"
 ```
 
-### Verify all accounts in a specific safe that are in production (custom account property)
-This will verify any account that has "production" in any property in that safe
+### Verify all accounts - in a specific Safe - that are in production (custom account property)
+This will verify any account that has "production" in any property in that Safe
 ```powershell
 Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -SafeName "PRD-ATL-App01-Admin" -Custom "production" -AccountsAction "Verify"
 ```
 
 
-### Change all accounts on a specific server (from any platform, in any safe)
+### Change all accounts on a specific server (from any Platform, in any Safe)
 ```powershell
 Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -Address "myserver.mydomain.com" -AccountsAction "Change"
 ```
@@ -128,7 +135,7 @@ Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -Addre
 Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -UserName "Administrator" -PlatformID "WindowsServerLocal" -SafeName "WIN-IT-Admin" -Address "myserver.mydomain.com" -AccountsAction "Reconcile"
 ```
 
-### Reconcile all failed accounts in a specific safe
+### Reconcile all failed accounts in a specific Safe
 ```powershell
 Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -SafeName "PRD-ATL-App01-Admin" -FailedOnly -AccountsAction "Reconcile"
 ```
@@ -139,10 +146,8 @@ Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -CPMDi
 ```
 
 ### Verify all accounts marked as CPMDisabled OR failed accounts
-This uses a "or" statement, not a "and" statement. Added to add backwards compatibility with older accounts.
+This uses an "or" statement, not an "and" statement. Added for backwards compatibility with older accounts.
 ```powershell
 Invoke-BulkAccountActions.ps1 -PVWAURL https://mydomain.com/PasswordVault -CPMDisabled -FailedOnly -AccountsAction "Verify"
 ```
 
-## Supported version
-CyberArk PAS version 10.4 and above

@@ -2,7 +2,7 @@
 
 > **General**
 > - Uses REST API and can support v10.6 of PVWA and up.
-> - The goal for these scripts is to allow easy management for Dual Account.
+> - Allow easy management for Dual Account.
 
 ## Convert Platform DualAccount
 Convert an existing Platform to support Dual Account use cases.
