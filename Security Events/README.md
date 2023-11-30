@@ -1,19 +1,20 @@
-Main capabilities
------------------
-- The tool Uses REST API and can support v10.4 of PVWA and up
-- The tool needs PTA installed and a user credential that has access to the Security Events module
-- The goal for this script is to allow easy reporting of Account Risks gathered from PTA Security Events
-- The script can output the report on screen or to a CSV file
+# Accounts Risk Reports
 
-Usage:
-------
+## Main capabilities
+This tool:
+- Allows easy reporting of Account Risk gathered from the PTA Security Events.
+- Needs PTA installed and a user credential that has access to the Security Events module.
+- Outputs the report on screen or to a .csv file.
+- Uses REST API and can support v10.4 of PVWA and up.
+
+## Usage
 ```powershell
 Get-AccoutnsRiskReport.ps1 [-PVWAURL] <string> [[-AuthType] <string>] [[-EventsDaysFilter] <int>] [[-CSVPath] <string>] [-DisableSSLVerify] [<CommonParameters>]
 ```
 
-Output Examples:
-----------------
-### Report Sample to screen
+## Output Examples
+
+### Report to the screen
 ```powershell
 .\Get-AccoutnsRiskReport.ps1 -PVWAURL "https://mypvwaserver.mydomain.com/PasswordVault"
 ```
@@ -33,7 +34,7 @@ Output Examples:
 |bind_pta      |                      | AWS              | 85.0         | 5 | 3/18/2019 4:38:21 AM |  
 |administrator | 172.31.24.236         | Client Accounts  | 89.0         | 9 | 11/5/2017 5:52:36 AM |
 
-### Report Sample to file
+### Report to a .csv file
 ```powershell
 .\Get-AccoutnsRiskReport.ps1 -PVWAURL "https://mypvwaserver.mydomain.com/PasswordVault" -path .\output.csv
 ```
