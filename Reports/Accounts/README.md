@@ -2,7 +2,7 @@
 
 ## Main capabilities
 
-Report of all accounts the the platform settings with each accounts
+Create reports for all accessible accounts including properties like Platform IDs, username etc.
 
 The following properties are **default** outputs and can't be removed from the report:
 - "UserName", 
@@ -17,7 +17,7 @@ The following properties are **default** outputs and can't be removed from the r
 ```
 
 ### Login Parameters
->Prior to logging in, the script will check if a psPAS session exists and is still valid. If no valid session is found, an attempt to log in is made *if* one of the following groups is passed.
+>Before logging in, the script will check if a psPAS session exists and is still valid. If no valid session is found, an attempt to log in is made *if* one of the following groups is passed.
 
 For pre-established **LogonTokens**:
 - LogonToken
@@ -47,7 +47,7 @@ For establishing a session to a **on-prem or PCloud Standalone environment**:
 
 
 ### Report parameters
-All required variables have default values
+>All required variables have default values.
 - ReportPath [String]
 	- Location of the ouput report.
     - Default: '.\AccountReport.csv'
