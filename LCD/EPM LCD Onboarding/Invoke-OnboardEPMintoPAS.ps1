@@ -344,7 +344,7 @@ forEach ($add in $toAdd) {
         -userName $($add.Username) `
         -SafeName $($add.SafeNAme) 
 
-     $accountinfo | Invoke-PASCPMOperation -ChangeTask -ImmediateChangeByCPM Yes -ErrorAction SilentlyContinue
+     $accountinfo | Invoke-PASCPMOperation -ChangeTask -ErrorAction SilentlyContinue
 }
 '@
     Write-LogMessage -Type Warning -Msg $Output
