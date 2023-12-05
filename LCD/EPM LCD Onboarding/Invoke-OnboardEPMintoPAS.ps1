@@ -326,7 +326,7 @@ If ($LCDAdd) {
             -userName $($add.Username) `
             -SafeName $($add.SafeNAme) 
     
-        $accountinfo | Invoke-PASCPMOperation -ChangeTask -ImmediateChangeByCPM Yes -ErrorAction SilentlyContinue
+        $accountinfo | Invoke-PASCPMOperation -ChangeTask -ErrorAction SilentlyContinue
         $count += 1
     }
     Write-LogMessage -Type Info -Msg "`nOnboarded $count accounts`n"
