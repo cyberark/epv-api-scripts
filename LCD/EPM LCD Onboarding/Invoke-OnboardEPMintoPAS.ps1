@@ -13,7 +13,7 @@ param(
     [String]$LCDPUsername,
     [Parameter(Mandatory = $true, HelpMessage = "Enter domain to be appended to address")]
     [String]$LCDDomain,
-    [Parameter(Mandatory = $true, HelpMessage = "Folder to place JSON output")]
+    [Parameter(Mandatory = $false, HelpMessage = "Folder to place JSON output")]
     [String]$LCDFolder = ".\",
     [Parameter(Mandatory = $false, HelpMessage = "Load Accounts?")]
     [Switch]$LCDAdd,
