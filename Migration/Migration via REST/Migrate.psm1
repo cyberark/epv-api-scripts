@@ -517,8 +517,7 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
         [Parameter(ValueFromPipelineByPropertyName)]
         [String]$dstDomainSuffix,
         <#
-        Display details of jobs in progress bar
-        Not recommended if maxJobCount is higher then 5
+	Removes the prior domain by doing a match to "@" and using everything to the left
         #>
         [Parameter(ValueFromPipelineByPropertyName)]
         [switch]$srcRemoveDomain,
