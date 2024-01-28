@@ -42,7 +42,7 @@ param
 	[Parameter(ParameterSetName='Create',Mandatory=$false,HelpMessage="Enter the destination Safe name")]
 	[String]$SafeName,
 	
-	# User this switch to delete a rule
+	# Use this switch to delete a rule
 	[Parameter(ParameterSetName='Delete',Mandatory=$false)][switch]$Delete,
 	[Parameter(ParameterSetName='Delete',Mandatory=$false,HelpMessage="Enter the Rule ID for deletion")]
 	[int]$RuleID	

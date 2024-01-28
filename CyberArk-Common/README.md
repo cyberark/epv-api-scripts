@@ -1,1 +1,1 @@
-Module that will contain funcitons used by multiple scripts
+This module contains functions used in multiple scripts.
