@@ -46,6 +46,10 @@ Function Get-IdentityHeader {
         [Parameter(
             Mandatory = $false,
             HelpMessage = "Subdomain of the privileged cloud environment")]
+        [Parameter(
+            ParameterSetName = 'psPASFormat',
+            Mandatory = $true,
+            HelpMessage = "Subdomain of the privileged cloud environment")]
         [string]$PCloudSubdomain,
         [Parameter(
             ParameterSetName = 'UPCreds',
