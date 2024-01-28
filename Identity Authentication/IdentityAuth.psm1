@@ -19,15 +19,19 @@ Function Get-IdentityHeader {
 
     .Parameter psPASFormat
         Use this switch to output the token in a format that PSPas can consume directly.
+    
+    .Parameter UPCreds
+        Use this switch to output the token in a format that PSPas can consume directly.
 
     #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'IdentityUserName')]
     Param (
         [Parameter(
             Mandatory = $true,
             HelpMessage = "Identity Tenant URL")]
         [string]$IdentityTenantURL,
         [Parameter(
+            ParameterSetName = "IdentityUserName",
             Mandatory = $true,
             HelpMessage = "User to authenticate into the platform")]
         [string]$IdentityUserName,
@@ -42,7 +46,12 @@ Function Get-IdentityHeader {
         [Parameter(
             Mandatory = $false,
             HelpMessage = "Subdomain of the privileged cloud environment")]
-        [string]$PCloudSubdomain
+        [string]$PCloudSubdomain,
+        [Parameter(
+            ParameterSetName = 'UPCreds',
+            Mandatory = $true,
+            HelpMessage = "Credentials to pass if option is UP")]
+        [pscredential]$UPCreds
 
     )
     $ScriptFullPath = Get-Location
@@ -71,8 +80,11 @@ Function Get-IdentityHeader {
     $LogoffPlatform = "$IdaptiveBasePlatformSecURL/logout"
 
     #Creating the username/password variables
-
-    $startPlatformAPIBody = @{TenantId = $IdentityTenantId; User = $IdentityUserName ; Version = "1.0"} | ConvertTo-Json -Compress -Depth 9
+    if ('UPCreds' -eq $PSCmdlet.ParameterSetName) {
+        $InUPCreds = $true
+        $IdentityUserName = $UPCreds.UserName
+    }
+    $startPlatformAPIBody = @{TenantId = $IdentityTenantId; User = $IdentityUserName ; Version = "1.0" } | ConvertTo-Json -Compress -Depth 9
     Write-LogMessage -type "Verbose" -MSG "URL body : $($startPlatformAPIBody|ConvertTo-Json -Depth 9)"
     $IdaptiveResponse = Invoke-RestMethod -SessionVariable session -Uri $startPlatformAPIAuth -Method Post -ContentType "application/json" -Body $startPlatformAPIBody -TimeoutSec 30
     Write-LogMessage -type "Verbose" -MSG "IdaptiveResponse : $($IdaptiveResponse|ConvertTo-Json -Depth 9)"
@@ -104,7 +116,7 @@ Function Get-IdentityHeader {
     If ($AnswerToResponse.success) {
         #Creating Header
         If (!$psPASFormat) {
-            $IdentityHeaders = @{Authorization = "Bearer $($AnswerToResponse.Result.Token)"}
+            $IdentityHeaders = @{Authorization = "Bearer $($AnswerToResponse.Result.Token)" }
             $IdentityHeaders.Add("X-IDAP-NATIVE-CLIENT", "true")
         } else {
             $ExternalVersion = Get-PCloudExternalVersion -PCloudTenantAPIURL $PCloudTenantAPIURL -Token $AnswerToResponse.Result.Token
@@ -223,9 +235,14 @@ Function Invoke-AdvancedAuthBody {
         Write-LogMessage -type "Info" -MSG "Waiting for Push to be pressed"
     } ElseIf ($Mechanism.AnswerType -eq "Text") {
         $Action = "Answer"
-        $Answer = Read-Host "Please enter the answer from the challenge type" -AsSecureString
+        IF (($Mechanism.Name -eq "UP") -and ($InUPCreds)) {
+            Write-Host "Responding with stored credentials"
+            $answer = $UPCreds.Password
+        } else {
+            $Answer = Read-Host "Please enter the answer from the challenge type" -AsSecureString
+        }
         $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Answer)
-        $startPlatformAPIAdvancedAuthBody = @{TenantID = $IdentityTenantId; SessionId = $SessionId; MechanismId = $MechanismId; Action = $Action; Answer = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR))} | ConvertTo-Json -Compress
+        $startPlatformAPIAdvancedAuthBody = @{TenantID = $IdentityTenantId; SessionId = $SessionId; MechanismId = $MechanismId; Action = $Action; Answer = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)) } | ConvertTo-Json -Compress
         If ($Mechanism.Name -in $MaskList) {
             Write-LogMessage -type "Verbose" -MSG "startPlatformAPIAdvancedAuthBody: $($startPlatformAPIAdvancedAuthBody|ConvertTo-Json -Depth 9))" -maskAnswer
         } Else {
