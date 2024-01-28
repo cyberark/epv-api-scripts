@@ -2,45 +2,48 @@
 
 
 ## Main capabilities
------------------
-- Used to query account addresses against DNS to ensure they are valid.
-- Can also updates the format of the address to ensure that when account discovery is ran existing accounts are located and connected.
 
-## Parameters:
+- Used to query Account addresses against DNS to ensure they are valid.
+- Can also update the format of the address to ensure that when Account discovery is ran, existing accounts are located and connected.
+
+## Parameters
+
 ```powershell
 .\Optimize-Addresses.ps1 [-logonToken] [-IdentityUserName] [-IdentityTenantURL] [-PCloudSubdomain] [-PVWACredentials] [-PVWAAddress] [-Safes] [-UpdateAccounts] [-ShowAllResults] [-SuppressErrorResults] [-ExportToCSV] [-CSVPath]
 ```
 
 - logonToken
-  - LogonToken to be used to connect
+  - Logon token used to connect
 - IdentityUserName
-  - Username to use to connect to Identity
+  - Username used to connect to Identity
 - IdentityTenantURL
   - URL of the Identity Tenant
 - PCloudSubdomain
   - Subdomain for Privileged Cloud
 - PVWACredentials
-  - Credentials to be used to authenticate stored in a PSCredential object
+  - Credentials used to authenticate 
+  - Must be stored in a PSCredential object
 - PVWAAddress
   - Address of the PVWA
 - Safes
   - List of safes that will be reviewed
 - UpdateAccounts
-  - Switch to enable updating of the address of accounts found to required updates
+  - Enable updating of the address of Accounts when it is required
 - ShowAllResults
-  - Display accounts that are able to be optimized or already optimized
+  - Display Accounts that are able to be optimized or already optimized
 - SuppressErrorResults
-  - Do NOT display the accounts that are not optimezed
+  - Do **not** display the accounts that are not optimized
 - ExportToCSV
-  - Export the accounts that where reviewed/updated to a CSV file
+  - Export the accounts that where reviewed/updated to a .csv file
 - CSVPath
   - File name and location to export results to
   - Default: ".\Optimize-Addresses-Results.csv"
 
-### Examples
-- Once a session is established the first time it does not need to be provided again unless invalidated.
+## Examples
 
-#### Logon
+>Once a session is established, it does not need to be provided again later unless invalidated.
+
+### Logon
 ```powershell
 Import-Module IdentityAuth.psm1
 $logonToken = Get-IdentityHeader -psPASFormat -IdentityTenantURL "something.id.cyberark.cloud" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID" -PCloudSubdomain "TestTenant"
@@ -50,9 +53,9 @@ $logonToken = Get-IdentityHeader -psPASFormat -IdentityTenantURL "something.id.c
 
 $creds = Get-Credential
 .\Optimize-Addresses.ps1 -PVWACredentials $creds -PVWAAddress "https://pvwa.lab.local/PasswordVault"
-````
+```
 
-#### Usage
+### Regular Usage
 ```powershell
 .\Optimize-Addresses.ps1
 

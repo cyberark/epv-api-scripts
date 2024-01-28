@@ -1,42 +1,39 @@
 # PSM-SessionsManagement
-
-A script to list or Terminate all Active sessions on a specific PSM server.
-This allows an Administrator to verify if a specific PSM server is available for maintenance by listing all active sessions and Terminate them if needed.
+## General
+- List or Terminate all Active sessions on a specific PSM server.
+- Allows an Administrator to verify if a specific PSM server is available for maintenance, by listing all active sessions and Terminate them if needed.
+- Supported version: CyberArk PAS version 10.5 and above.
 
 ## Usage
+The script supports two modes [*List*](#list-command) and [*Terminate*](#terminate-command):
+
 ```powershell
 PSM-SessionsManagement.ps1 -PVWAURL <string> [-AuthType <cyberark, ldap, radius>] [-List] [-Terminate] [-PSMServerName <string>] [<CommonParameters>]
 ```
 
-The script supports two modes [*List*](#list-command) and [*Terminate*](#terminate-command)
-
-List Command:
----------------
-Using this command lists all active session on a specific PSM server
-As a result you will get all the relevant details on all active sessions on the selected PSM server
+### List Command:
+- List all active session on a specific PSM server.
+- As a result you will get all the relevant details on all active sessions on the selected PSM server:
 ```powershell
 PSM-SessionsManagement.ps1 -PVWAURL <string> [-AuthType <cyberark, ldap, radius>] -List -PSMServerName <string> [<CommonParameters>]
 ```
 
-Terminate Command:
----------------
-Using this command will terminate all active session (that can be terminated according to the logged in user) on a specific PSM server
-Any session that could not be terminated will be loggeded in the log file
+### Terminate Command:
+- Terminate all active sessions (that can be terminated according to the logged-in user) on a specific PSM server.
+- Any session that could not be terminated will be logged in the log file.
 ```powershell
 PSM-SessionsManagement.ps1 -PVWAURL <string> [-AuthType <cyberark, ldap, radius>] -Terminate -PSMServerName <string> [<CommonParameters>]
 ```
 
-## Supported version
-CyberArk PAS version 10.5 and above
 
 ## Examples
 
-### List all active sessions from PSMSever server ID
+### List all active sessions for a PSMServer ID
 ```powershell
 PSM-SessionsManagement.ps1 -PVWAURL https://mydomain.com/PasswordVault -List -PSMServerName PSMServer
 ```
 
-### List all active sessions from PSMSever server ID
+### List all active sessions for a PSMServer ID
 ```powershell
 PSM-SessionsManagement.ps1 -PVWAURL https://mydomain.com/PasswordVault -List -PSMServerName PSMServer
 ```
@@ -60,24 +57,25 @@ Terminating Admin1 Session to RemoteServer1 (more details: From IP: 1.1.1.1; Acc
 Terminating MyUser Session to RemoteServer2 (more details: From IP: 1.2.2.1; Account User: a_MyUser; Account Address: mydomain.com)
 ```
 
-# Get-AdHocAccess
 
-A script that will grant the user administrative access on a target and then opens a PSM connection to that target using the user credentials.
-Using the Just-in-Time Access in CyberArk this session will be limited according to the defined time frame on the requested target platform.
-The script will automatically filter only accounts that have the AdHocAccess setting (AllowDomainUserAdHocAccess) enabled in the platform.
+# Get-AdHocAccess
+## General
+- Grant the user administrative access on a target and opens a PSM connection to that target using the user credentials.
+- Using the Just-in-Time Access in CyberArk, this session will be limited according to the defined time frame on the requested target Platform.
+- The script will only filter accounts that have the AdHocAccess setting (AllowDomainUserAdHocAccess) enabled in the Platform.
+- Supported version: CyberArk PAS version 10.6 and above.
 
 ## Usage
 ```powershell
 Get-AdHocAccess.ps1 -PVWAURL <string> [-AuthType <ldap, radius>] [-RemoteMachine <string>] [-MachinesFilePath <string>][<CommonParameters>]
 ```
 
-In order to use this script, the RemoteMachine needs to be a Windows target machine that has the AdHocAccess parameter turned on the account platform.
-The authentication to the script needs to be with an LDAP user (using either LDAP or RADIUS authentication)
-PSM needs to be installed and PSM Ad-Hoc Connection needs to be enabled (the script uses by default the PSMSecureConnect platform)
-In order to run the script on a list of machines, have a text file ready with a list of remote machines (each on a speprate line) and use the MachinesFilePath parameter
+In order to use this script:
+- the RemoteMachine needs to be a Windows target machine that has the AdHocAccess parameter turned on the account platform.
+- authentication to the script needs to be done with an LDAP user (using either LDAP or RADIUS authentication)
+- PSM needs to be installed and PSM Ad-Hoc Connection needs to be enabled (the script uses by default the PSMSecureConnect Platform)
+- on a list of machines, have a text file ready with a list of remote machines (each on a separate line) and use the `-MachinesFilePath` parameter.
 
-## Supported version
-CyberArk PAS version 10.6 and above
 
 ## Examples
 
@@ -85,18 +83,18 @@ CyberArk PAS version 10.6 and above
 ```powershell
 Get-AdHocAccess.ps1 -PVWAURL https://mydomain.com/PasswordVault -RemoteMachine RemoteServer1
 ```
-This would result in a RDP file download that will automatically start to the requested remote machine, where the running (LDAP) user is a local admin on the remote machine
+Result: a RDP file download that will automatically start to the requested remote machine, where the running (LDAP) user is a local admin.
 
-### Connecting with RDP to a list of machines
+### Connecting to a list of machines using RDP
 ```powershell
 Get-AdHocAccess.ps1 -PVWAURL https://mydomain.com/PasswordVault -MachinesFilePath "C:\Files\MachinesList.txt"
 ```
 
-The MachinesList file would look like this:
+The 'MachinesList.txt' file needs to look like this:
 ```text
 RemoteServer1
 RemoteServer2
 RemoteServer3
 ```
-This would result in a RDP file for each of the remote machines in the file downloaded.
-This will automatically start each RDP file to each of the requested remote machines, where the running (LDAP) user is a local admin on each of these remote machines
+
+Result: a RDP file for each of the remote machines in the file downloaded. Automatically starts each RDP file for each requested remote machines, where the running (LDAP) user is a local admin on each of these remote machines.
