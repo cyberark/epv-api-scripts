@@ -28,6 +28,14 @@ Import-Module IdentityAuth.psm1
 $header = Get-IdentityHeader -IdentityTenantURL "something.id.cyberark.cloud" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID"
 ```
 
+If you want to specify information prior to running the scripts including credentails for automatic responce to a user password request you can run:
+
+```powershell
+Import-Module IdentityAuth.psm1
+$UPCreds = Get-Credential
+$header = Get-IdentityHeader -IdentityTenantURL "something.id.cyberark.cloud" -UPCreds $UPCreds
+```
+
 To output in a format able to be consumed by PS PAS.
 Note that you must pass the PCloudTenantAPIURL
 ```powershell
@@ -36,6 +44,12 @@ $header = Get-IdentityHeader -psPASFormat -IdentityTenantURL "something.id.cyber
 use-PASSession $header
 ```
 
+SYNTAX
+````powershell
+Get-IdentityHeader -IdentityTenantURL <String> -IdentityUserName <String> [-IdentityTenantId <String>] [-psPASFormat] [-PCloudSubdomain <String>] [<CommonParameters>]
+
+Get-IdentityHeader -IdentityTenantURL <String> -UPCreds <PSCredential> [-IdentityTenantId <String>] [-psPASFormat] [-PCloudSubdomain <String>] [<CommonParameters>]
+````
 # Identity User Refresh
 
 - This script is used to intiate a refresh of a active directory based account in Identity.
