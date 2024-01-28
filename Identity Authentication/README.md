@@ -27,15 +27,28 @@ If you want to specify information prior to running the scripts you can run:
 Import-Module IdentityAuth.psm1
 $header = Get-IdentityHeader -IdentityTenantURL "something.id.cyberark.cloud" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID"
 ```
-Output it in a psPAS-compatible format. Note: you must pass the `PCloudTenantAPIURL`.
 
+If you want to specify information prior to running the scripts including credentials for automatic response to a user password request you can run:
+
+```powershell
+Import-Module IdentityAuth.psm1
+$UPCreds = Get-Credential
+$header = Get-IdentityHeader -IdentityTenantURL "something.id.cyberark.cloud" -UPCreds $UPCreds
+```
+
+Format output in a psPAS-compatible format.
 ```powershell
 Import-Module IdentityAuth.psm1
 $header = Get-IdentityHeader -psPASFormat -IdentityTenantURL "something.id.cyberark.cloud" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID" -PCloudSubdomain "subdomain"
 use-PASSession $header
 ```
 
+SYNTAX
+````powershell
+Get-IdentityHeader -IdentityTenantURL <String> -IdentityUserName <String> [-IdentityTenantId <String>] [-psPASFormat] [-PCloudSubdomain <String>] [<CommonParameters>]
 
+Get-IdentityHeader -IdentityTenantURL <String> -UPCreds <PSCredential> [-IdentityTenantId <String>] [-psPASFormat] [-PCloudSubdomain <String>] [<CommonParameters>]
+````
 
 # Identity User Refresh
 ## Main capabilities
