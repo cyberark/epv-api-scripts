@@ -28,7 +28,7 @@ Import-Module IdentityAuth.psm1
 $header = Get-IdentityHeader -IdentityTenantURL "something.id.cyberark.cloud" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID"
 ```
 
-If you want to specify information prior to running the scripts including credentails for automatic responce to a user password request you can run:
+If you want to specify information prior to running the scripts including credentials for automatic response to a user password request you can run:
 
 ```powershell
 Import-Module IdentityAuth.psm1
