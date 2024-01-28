@@ -28,7 +28,7 @@ CCP via REST.ps1
 -----------------
 - The tool for testing CCP using REST calls using client certificate authenticaiton
 - Requires that the client ceritifcate is imported in the localmachine personal store
--- The command "Get-ChildItem -path cert:\LocalMachine\My" can be use to list certificates and the thumbprints
+  - The command "Get-ChildItem -path cert:\LocalMachine\My" can be use to list certificates and the thumbprints
 
 ## Parameters:
 Update lines 2 thru 10 with correct information

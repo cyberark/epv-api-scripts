@@ -13,7 +13,7 @@ param(
     [String]$LCDPUsername,
     [Parameter(Mandatory = $true, HelpMessage = "Enter domain to be appended to address")]
     [String]$LCDDomain,
-    [Parameter(Mandatory = $true, HelpMessage = "Folder to place JSON output")]
+    [Parameter(Mandatory = $false, HelpMessage = "Folder to place JSON output")]
     [String]$LCDFolder = ".\",
     [Parameter(Mandatory = $false, HelpMessage = "Load Accounts?")]
     [Switch]$LCDAdd,
@@ -326,7 +326,7 @@ If ($LCDAdd) {
             -userName $($add.Username) `
             -SafeName $($add.SafeNAme) 
     
-        $accountinfo | Invoke-PASCPMOperation -ChangeTask -ImmediateChangeByCPM Yes -ErrorAction SilentlyContinue
+        $accountinfo | Invoke-PASCPMOperation -ChangeTask -ErrorAction SilentlyContinue
         $count += 1
     }
     Write-LogMessage -Type Info -Msg "`nOnboarded $count accounts`n"
@@ -344,7 +344,7 @@ forEach ($add in $toAdd) {
         -userName $($add.Username) `
         -SafeName $($add.SafeNAme) 
 
-     $accountinfo | Invoke-PASCPMOperation -ChangeTask -ImmediateChangeByCPM Yes -ErrorAction SilentlyContinue
+     $accountinfo | Invoke-PASCPMOperation -ChangeTask -ErrorAction SilentlyContinue
 }
 '@
     Write-LogMessage -Type Warning -Msg $Output

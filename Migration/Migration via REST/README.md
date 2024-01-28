@@ -13,16 +13,18 @@ Module to migrate accounts and safes from one environment into another
 - Sync-Safes
 - Sync-Accounts
 
-"Import-Module '\Migrate.psm1' -force" will load the module
-"New-SourceSession" will establish a connection to the environment that currently has the safes and accounts
-"Export-Accounts" will export all accounts the user that used "New-SourceSession" has access too
+### Explanation 
+
+- "Import-Module '\Migrate.psm1' -force" will load the module
+- "New-SourceSession" will establish a connection to the environment that currently has the safes and accounts
+- "Export-Accounts" will export all accounts the user that used "New-SourceSession" has access too
 	After the accounts have been exported you will want to review the CSV file to determin if accounts need to be removed from the list
-"Import-Accounts" will import a new list of accounts that will be targeted for migration
+- "Import-Accounts" will import a new list of accounts that will be targeted for migration
 	Only needed if the exported account list required changes
-"New-DestinationSession" will establish a connection to the environment that will be receiving the safes and accounts
-"Sync-Safes" can be used to create safes, including the safe memberships, in the new destination environment. If the safe already exists it the destination environment, and update safe member is passed,  you can optionally update the destination safe memberships
+- "New-DestinationSession" will establish a connection to the environment that will be receiving the safes and accounts
+- "Sync-Safes" can be used to create safes, including the safe memberships, in the new destination environment. If the safe already exists it the destination environment, and update safe member is passed,  you can optionally update the destination safe memberships
 	If safe memberships are selected for updates, it is possible for owners to have existing access removed. Use with caution
-"Sync-Accounts" can be used to create accounts in the destination environment. It can also be used to synchronize the remote machines that the account has access too.
+- "Sync-Accounts" can be used to create accounts in the destination environment. It can also be used to synchronize the remote machines that the account has access too.
 	At this time, it will NOT update any properties on existing accounts. Only the secret and remote machines will be updated on existing accounts
 
 ## Current limitations
