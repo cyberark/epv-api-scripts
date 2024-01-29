@@ -389,6 +389,14 @@ Function Invoke-Rest {
     } catch {
         Write-LogMessage -Type Error -Msg "`tError Message: $PSItem"
         Write-LogMessage -Type Verbose $PSItem
+        if ($global:SuperVerbose) {
+            Write-LogMessage -Type Verbose "URL: `"$($PSItem.Exception.Response.RequestMessage.RequestUri.OriginalString)`""
+            Write-LogMessage -Type Verbose "METHOD: `"$($PSItem.Exception.Response.RequestMessage.Method.Method)`""
+            If (![string]::IsNullOrEmpty($body)) {
+                Write-LogMessage -Type Verbose "BODY:`n $($(Invoke-ExpandValue -Expand $($Body |ConvertFrom-Json -Depth 3) -mark $true)|ForEach-Object {"`n$PSitem"})`n"
+            }
+            Write-LogMessage -Type Verbose "ScriptStackTrace: `n$($PSItem.ScriptStackTrace)"
+        }
         Write-LogMessage -Type Verbose -Msg "Exiting Invoke-Rest"
         Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $PSItem.Exception))
         <#  IF (![string]::IsNullOrEmpty($(($PSItem | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue).Details.ErrorMessage))) {
@@ -1304,11 +1312,18 @@ Function New-SafeMember {
         [Parameter(Mandatory = $true)]
         $safeMember,
         [Parameter(Mandatory = $false)]
+        $newSafeMember,
+        [Parameter(Mandatory = $false)]
         [switch]$PCloud
     )
     $URL_SafeMembers = "$url/api/Safes/$safe/Members"
 
-    If ($logonHeader.ContainsKey("X-IDAP-NATIVE-CLIENT")) {
+    if (![string]::IsNullOrEmpty($newSafeMember)) {
+        $safeMember.MemberName = $newSafeMember
+    }
+
+
+    If ($logonHeader.Authorization.Contains("Bearer")) {
 
         $safeMember = $safeMember | Select-Object -Property memberName, searchIn, membershipExpirationDate, permissions, memberType
     } Else {
@@ -1452,8 +1467,13 @@ Function Update-SafeMember {
         [Parameter(Mandatory = $true)]
         $safeMember,
         [Parameter(Mandatory = $false)]
+        $newSafeMember,
+        [Parameter(Mandatory = $false)]
         $newDir
     )
+    if (![string]::IsNullOrEmpty($newSafeMember)) {
+        $safeMember.MemberName = $newSafeMember
+    }
     $URL_SafeMembers = "$url/api/Safes/$safe/Members/$($safeMember.memberName)/"
 
     Write-LogMessage -Type Debug -Msg "Updating Safe Member: $safeMember"
@@ -1530,4 +1550,26 @@ Function Update-RemoteMachine {
     if ($null -ne $UpdateAccountResult) {
         Write-LogMessage -Type Debug -MSG "Account with Username `"$($dstaccount.userName)`" at address of `"$($dstaccount.address)`" in safe `"$($dstaccount.safeName)`" properties updated successfully"
     }
+}
+
+Function Invoke-ExpandValue {
+    param (
+        $Expand,
+        $mark
+    )
+    [string[]]$ExpandResponce = "" | Out-Null
+    ForEach ($name in $Expand.PSObject.Properties.Name) {
+        If ([string]::IsNullOrEmpty($expand.$name)) {
+            $ExpandResponce += "$($name): `$null"
+        } elseIf ($expand.$name.GetType() -in @("String", "Bool")) {
+            $ExpandResponce += "$($name): $($expand.$name)"
+        } else {
+            If ($mark) { $ExpandResponce += "--- $($Name): Expanding"
+            }
+            $ExpandResponce += $(Invoke-ExpandValue -Expand $($expand.$name) -mark $mark)
+            If ($mark) { $ExpandResponce += "--- $($Name): Completed"
+            }
+        }
+    }
+    return [string[]]$ExpandResponce
 }

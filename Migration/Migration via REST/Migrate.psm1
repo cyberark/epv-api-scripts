@@ -199,7 +199,11 @@ function New-SourceSession {
     Set-SSLVerify($DisableSSLVerify)
 
     # Check that the PVWA URL is OK
+    try {
     Test-PVWA -PVWAURL $srcPVWAURL
+    } catch {
+        Throw "Test-PVWA Failed: $PSItem"
+    }
 
     Write-LogMessage -Type Info -MSG "Getting Source Logon Tokens"
     If (![string]::IsNullOrEmpty($srcLogonToken)) {
@@ -517,7 +521,7 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
         [Parameter(ValueFromPipelineByPropertyName)]
         [String]$dstDomainSuffix,
         <#
-	Removes the prior domain by doing a match to "@" and using everything to the left
+        Removes the prior domain by doing a match to "@" and using everything to the left
         #>
         [Parameter(ValueFromPipelineByPropertyName)]
         [switch]$srcRemoveDomain,
@@ -538,9 +542,14 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
         [Parameter(ValueFromPipelineByPropertyName)]
         [switch]$SuppressProgress,
         <#
-Switch to prevent running in powershell job
-#>
+        Switch to prevent running in powershell job
+        #>
         [switch]$RunSingle,
+        <# 
+        Prevent matches based on removing @domain from destination
+        #>
+        [Parameter(ValueFromPipelineByPropertyName)]
+        [switch]$dstMatchWitoutDomain,
         [switch]$SuppressCPMWarning
     )
 
@@ -569,10 +578,12 @@ Switch to prevent running in powershell job
 
     [array]$safeobjects += $script:AccountList | `
             Select-Object -Property safeName -Unique | `
+            Where-Object { $_.safename -ne ""}
             Where-Object { $_.safename -notIn $SafesToRemove } | `
             ForEach-Object { $PSItem }
 
     Write-LogMessage -Type Info -MSG "Found $($safeobjects.count) unique safes for processing"
+    Write-LogMessage -Type Verbose -MSG "Safes Found: $($safeobjects.SafeName)"
 
     $safeobjects | Add-Member -MemberType NoteProperty -Name ID -Value $null -Force
 
@@ -626,10 +637,12 @@ Switch to prevent running in powershell job
             $UpdateSafeMembers = $using:UpdateSafeMembers
             $srcRemoveDomain = $using:srcRemoveDomain
             $dstDomainSuffix = $using:dstDomainSuffix
+            $dstMatchWitoutDomain = $using:dstMatchWitoutDomain
             $newDir = $using:newDir
             $CPMnew = $using:CPMnew
             $CPMOld = $using:CPMOld
             $CPMOverride = $using:CPMOverride
+            
 
 
             $syncCopy = $using:safeProgressSync
