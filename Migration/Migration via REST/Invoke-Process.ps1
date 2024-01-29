@@ -164,22 +164,27 @@ Function Invoke-ProcessGroup($srcMember, $dstSafeMembers) {
     Throw "Safe Member Update Failed"
 }
 
-
-
 Function Invoke-ProcessRole($srcMember, $dstSafeMembers) {
     Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is a Role."
-    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Attempting to add Role `"$($srcMember.membername)`" to safe `"$($dstsafe.safename)`""
-    try {
-        $null = New-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember
-        Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType) `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
-    } catch {
-        Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType) `"$($srcMember.membername)`" faild to added to safe `"$($dstsafe.safename)`""
-        Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Updating memberType to `"Group`""
-        $srcMember.MemberType = "Group"
-        Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Attempting to add Role `"$($srcMember.membername)`" to safe `"$($dstsafe.safename)`""
-        $null = New-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember
+    IF ($dstToken.Authorization.Contains("Bearer")) {
+        try {
+            Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Attempting to add Role `"$($srcMember.membername)`" to safe `"$($dstsafe.safename)`""
+            $null = New-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember
+            Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType) `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
+            return
+        } catch {
+            Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType) `"$($srcMember.membername)`" faild to added to safe `"$($dstsafe.safename)`""
+        }
+    } else {
+        Write-LogMessage -Type Info -Msg "[$($safememberCount)] Destination is not PCLoud ISPSS. Not possible to add as a role. Updating memberType to `"Group`""
     }
+    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Updating memberType to `"Group`""
+    $srcMember.MemberType = "Group"
+    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Attempting to add Role `"$($srcMember.membername)`" to safe `"$($dstsafe.safename)`" as a group"
+    $null = New-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember
+    Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType) `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
 }
+
 
 
 Function Invoke-ProcessSafe {
@@ -285,6 +290,10 @@ Function Invoke-ProcessSafe {
                     IF ($srcMember.membername -in $ownersToRemove) {
                         Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is in the excluded owners list"
                         continue
+                    }
+                    if ($srcMember.memberId -match "[_]" -and $srcMember.memberType -eq "Group") {
+                        Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is a Role, updating memberType to `"Role`""
+                        $srcMember.memberType = "Role"
                     }
                     $srcMember = Update-Username -srcMember $srcMember
                     $MemberUpdated = $(Invoke-UpdateMember -srcMember $srcMember -dstSafeMembers $dstSafeMembers)
