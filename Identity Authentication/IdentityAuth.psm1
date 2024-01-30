@@ -3,60 +3,60 @@ Function Get-IdentityHeader {
     .SYNOPSIS
         Function to get Identity Header to enable running scripts using the token parameter. This will allow running the rest of the scripts in the directory for Identity Shared Services - Shared Services customers (ISPSS) (Privilege Cloud).
         Token created using Identity documentation https://docs.cyberark.com/Product-Doc/OnlineHelp/PrivCloud-SS/Latest/en/Content/WebServices/ISP-Auth-APIs.htm
-
     .DESCRIPTION
         This function starts by requesting authentication into identity APIs. Once the process starts there can be multiple challenges that need to be responded with multiple options.
         Each option is then being decided by the user. Once authentication is complete we get a token for the user to use for APIs within the ISPSS platform.
-
-    .PARAMETER IdentityTenantURL
-        The URL of the tenant. you can find it if you go to Identity Admin Portal > Settings > Customization > Tenant URL.
-
-    .Parameter IdentityUserName
-        The Username that will log into the system. It just needs the username, we will ask for PW, Push etc when doing the authentication.
-
-    .Parameter PCloudSubdomain
-        The Subdomain assigned to the privileged cloud environment.
-
-    .Parameter psPASFormat
-        Use this switch to output the token in a format that PSPas can consume directly.
-    
+        .Parameter IdentityUserName
+        
     .Parameter UPCreds
-        Use this switch to output the token in a format that PSPas can consume directly.
+        
+    .Parameter OAuthCreds
+        
+            .PARAMETER IdentityTenantURL
+        
+        .Parameter PCloudSubdomain
+        
+    .Parameter psPASFormat
+        
+
+
 
     #>
     [CmdletBinding(DefaultParameterSetName = 'IdentityUserName')]
     Param (
-        [Parameter(
-            Mandatory = $true,
-            HelpMessage = "Identity Tenant URL")]
-        [string]$IdentityTenantURL,
+        #The Username that will log into the system. It just needs the username, we will ask for PW, Push etc when doing the authentication.
         [Parameter(
             ParameterSetName = "IdentityUserName",
             Mandatory = $true,
             HelpMessage = "User to authenticate into the platform")]
         [string]$IdentityUserName,
-        [Parameter(
-            Mandatory = $false,
-            HelpMessage = "Identity Tenant ID")]
-        [string]$IdentityTenantId,
-        [Parameter(
-            Mandatory = $false,
-            HelpMessage = "Output header in a format for use with psPAS")]
-        [switch]$psPASFormat,
-        [Parameter(
-            Mandatory = $false,
-            HelpMessage = "Subdomain of the privileged cloud environment")]
-        [Parameter(
-            ParameterSetName = 'psPASFormat',
-            Mandatory = $true,
-            HelpMessage = "Subdomain of the privileged cloud environment")]
-        [string]$PCloudSubdomain,
+        #Username and Password to use when prompted for user password. Replaces the parameter IdentityUserName
         [Parameter(
             ParameterSetName = 'UPCreds',
             Mandatory = $true,
             HelpMessage = "Credentials to pass if option is UP")]
-        [pscredential]$UPCreds
-
+        [pscredential]$UPCreds,
+        #Username and shared secret to use when connecting via OAuth. Replaces the parameter IdentityUserName
+        [Parameter(
+            ParameterSetName = 'OAuthCreds',
+            Mandatory = $true,
+            HelpMessage = "Credentials to pass if option is UP")]
+        [pscredential]$OAuthCreds,
+        #The URL of the tenant. you can find it if you go to Identity Admin Portal > Settings > Customization > Tenant URL.
+        [Parameter(
+            Mandatory = $true,
+            HelpMessage = "Identity Tenant URL")]
+        [string]$IdentityTenantURL,
+        #Use this switch to output the token in a format that PSPas can consume directly.
+        [Parameter(
+            Mandatory = $false,
+            HelpMessage = "Output header in a format for use with psPAS")]
+        [switch]$psPASFormat,
+        #The Subdomain assigned to the privileged cloud environment.
+        [Parameter(
+            Mandatory = $false,
+            HelpMessage = "Subdomain of the privileged cloud environment")]
+        [string]$PCloudSubdomain
     )
     $ScriptFullPath = Get-Location
     $LOG_FILE_PATH = "$ScriptFullPath\IdentityAuth.log"
@@ -76,6 +76,14 @@ Function Get-IdentityHeader {
 
     Write-LogMessage -type "Verbose" -MSG "URL used : $($IdaptiveBasePlatformURL|ConvertTo-Json -Depth 9)"
 
+    if ('OAuthCreds' -eq $PSCmdlet.ParameterSetName) {
+        $IdentityUserName = $OAuthCreds.UserName
+        $identityHeaders = Format-Token(Get-OAuthCreds -OAuthCreds $OAuthCreds)
+        Write-LogMessage -type "Verbose" -MSG "IdentityHeaders - $($IdentityHeaders |ConvertTo-Json)"
+        Write-LogMessage -type "Info" -MSG "Identity Token Set Successfully"
+        return $identityHeaders
+    }
+
     #Creating URLs
 
     $IdaptiveBasePlatformSecURL = "$IdaptiveBasePlatformURL/Security"
@@ -88,7 +96,7 @@ Function Get-IdentityHeader {
         $InUPCreds = $true
         $IdentityUserName = $UPCreds.UserName
     }
-    $startPlatformAPIBody = @{TenantId = $IdentityTenantId; User = $IdentityUserName ; Version = "1.0" } | ConvertTo-Json -Compress -Depth 9
+    $startPlatformAPIBody = @{User = $IdentityUserName ; Version = "1.0" } | ConvertTo-Json -Compress -Depth 9
     Write-LogMessage -type "Verbose" -MSG "URL body : $($startPlatformAPIBody|ConvertTo-Json -Depth 9)"
     $IdaptiveResponse = Invoke-RestMethod -SessionVariable session -Uri $startPlatformAPIAuth -Method Post -ContentType "application/json" -Body $startPlatformAPIBody -TimeoutSec 30
     Write-LogMessage -type "Verbose" -MSG "IdaptiveResponse : $($IdaptiveResponse|ConvertTo-Json -Depth 9)"
@@ -119,23 +127,7 @@ Function Get-IdentityHeader {
 
     If ($AnswerToResponse.success) {
         #Creating Header
-        If (!$psPASFormat) {
-            $IdentityHeaders = @{Authorization = "Bearer $($AnswerToResponse.Result.Token)" }
-            $IdentityHeaders.Add("X-IDAP-NATIVE-CLIENT", "true")
-        } else {
-            $ExternalVersion = Get-PCloudExternalVersion -PCloudTenantAPIURL $PCloudTenantAPIURL -Token $AnswerToResponse.Result.Token
-            $header = New-Object System.Collections.Generic.Dictionary"[String,string]"
-            $header.add("Authorization", "Bearer $($AnswerToResponse.Result.Token)")
-            $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-            $session.Headers = $header
-            $IdentityHeaders = [PSCustomObject]@{
-                User            = $IdentityUserName
-                BaseURI         = $PCloudTenantAPIURL
-                ExternalVersion = $ExternalVersion
-                WebSession      = $session
-            }
-            $IdentityHeaders.PSObject.TypeNames.Insert(0, 'psPAS.CyberArk.Vault.Session')
-        }
+        $identityHeaders = Format-Token($AnswerToResponse.Result.Token)
         Write-LogMessage -type "Verbose" -MSG "IdentityHeaders - $($IdentityHeaders |ConvertTo-Json)"
         Write-LogMessage -type "Info" -MSG "Identity Token Set Successfully"
         return $identityHeaders
@@ -189,7 +181,7 @@ Function Invoke-Challenge {
             #Getting the mechanism
             $Mechanism = $challenge.mechanisms[$Option - 1] #This is an array so number-1 means the actual position
             #Completing step of authentication
-            $AnswerToResponse = Invoke-AdvancedAuthBody -SessionId $SessionId -Mechanism $Mechanism -IdentityTenantId $IdentityTenantId
+            $AnswerToResponse = Invoke-AdvancedAuthBody -SessionId $SessionId -Mechanism $Mechanism
             Write-LogMessage -type "Verbose" -MSG "AnswerToResponce - $($AnswerToResponse |ConvertTo-Json)"
         }
         #One mechanism
@@ -198,17 +190,13 @@ Function Invoke-Challenge {
             $MechanismName = $Mechanism.Name
             $MechanismPrmpt = $Mechanism.PromptMechChosen
             Write-LogMessage -type "Info" -MSG "$MechanismName - $MechanismPrmpt"
-            $AnswerToResponse = Invoke-AdvancedAuthBody -SessionId $SessionId -Mechanism $Mechanism -IdentityTenantId $IdentityTenantId
+            $AnswerToResponse = Invoke-AdvancedAuthBody -SessionId $SessionId -Mechanism $Mechanism
             Write-LogMessage -type "Verbose" -MSG "AnswerToResponce - $($AnswerToResponse |ConvertTo-Json)"
         }
         #Need Better logic here to make sure that we are done with all the challenges correctly and got next challenge.
         $j = + 1 #incrementing the challenge number
     }
-
     Return $AnswerToResponse
-
-
-
 }
 
 #Runs an advanceAuth API. It will wait in the loop if needed
@@ -222,11 +210,7 @@ Function Invoke-AdvancedAuthBody {
         [Parameter(
             Mandatory = $true,
             HelpMessage = "Mechanism of Authentication")]
-        $Mechanism,
-        [Parameter(
-            Mandatory = $false,
-            HelpMessage = "Tenant ID")]
-        [String]$IdentityTenantId
+        $Mechanism
     )
     $MaskList = @("UP")
     $MechanismId = $Mechanism.MechanismId
@@ -234,7 +218,7 @@ Function Invoke-AdvancedAuthBody {
     If ($Mechanism.AnswerType -eq "StartTextOob") {
         #We got two options here 1 text and one Push notification. We will need to do the while statement in this option.
         $Action = "StartOOB"
-        $startPlatformAPIAdvancedAuthBody = @{TenantID = $IdentityTenantId; SessionId = $SessionId; MechanismId = $MechanismId; Action = $Action; } | ConvertTo-Json -Compress
+        $startPlatformAPIAdvancedAuthBody = @{SessionId = $SessionId; MechanismId = $MechanismId; Action = $Action; } | ConvertTo-Json -Compress
         Write-LogMessage -type "Verbose" -MSG "startPlatformAPIAdvancedAuthBody: $($startPlatformAPIAdvancedAuthBody|ConvertTo-Json -Depth 9)"
         Write-LogMessage -type "Info" -MSG "Waiting for Push to be pressed"
     } ElseIf ($Mechanism.AnswerType -eq "Text") {
@@ -246,7 +230,7 @@ Function Invoke-AdvancedAuthBody {
             $Answer = Read-Host "Please enter the answer from the challenge type" -AsSecureString
         }
         $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Answer)
-        $startPlatformAPIAdvancedAuthBody = @{TenantID = $IdentityTenantId; SessionId = $SessionId; MechanismId = $MechanismId; Action = $Action; Answer = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)) } | ConvertTo-Json -Compress
+        $startPlatformAPIAdvancedAuthBody = @{SessionId = $SessionId; MechanismId = $MechanismId; Action = $Action; Answer = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)) } | ConvertTo-Json -Compress
         If ($Mechanism.Name -in $MaskList) {
             Write-LogMessage -type "Verbose" -MSG "startPlatformAPIAdvancedAuthBody: $($startPlatformAPIAdvancedAuthBody|ConvertTo-Json -Depth 9))" -maskAnswer
         } Else {
@@ -262,7 +246,7 @@ Function Invoke-AdvancedAuthBody {
     }
     while ($AnswerToResponse.Result.Summary -eq "OobPending") {
         Start-Sleep -Seconds 2
-        $pollBody = @{TenantID = $IdentityTenantId; SessionId = $SessionId; MechanismId = $MechanismId; Action = "Poll"; } | ConvertTo-Json -Compress
+        $pollBody = @{SessionId = $SessionId; MechanismId = $MechanismId; Action = "Poll"; } | ConvertTo-Json -Compress
         Write-LogMessage -type "Verbose" -MSG "pollBody: $($pollBody|ConvertTo-Json)"
         $AnswerToResponse = Invoke-RestMethod -Uri $startPlatformAPIAdvancedAuth -Method Post -ContentType "application/json" -Body $pollBody -TimeoutSec 30
         Write-LogMessage -type "Verbose" -MSG "AnswerToResponse: $($AnswerToResponse|ConvertTo-Json)"
@@ -282,10 +266,7 @@ function Get-PCloudExternalVersion {
 
     $ExternalVersion = "12.6.0"
     try {
-        $Headers = @{
-            Authorization = "Bearer $Token"
-        }
-        $Response = Invoke-RestMethod -Method GET -Uri "$PCloudTenantApiUrl/WebServices/PIMServices.svc/Server" -Headers $Headers -ContentType 'application/json'
+        $Response = Invoke-RestMethod -Method GET -Uri "$PCloudTenantApiUrl/WebServices/PIMServices.svc/Server" -Headers $Token -ContentType 'application/json'
         $ExternalVersion = $Response.ExternalVersion
     } catch {
         Write-LogMessage -Type Error -MSG $_.ErrorDetails.Message
@@ -528,4 +509,40 @@ namespace Cookies
             $form.Dispose()
         }
     }
+}
+
+function Get-OAuthCreds {
+    [CmdletBinding()]
+    param (
+        [pscredential]$OAuthCreds
+    )
+    $body = @{
+        "grant_type"    = "client_credentials"
+        "client_id"     = $($OAuthCreds.GetNetworkCredential().UserName)
+        "client_secret" = $($OAuthCreds.GetNetworkCredential().Password)
+    } 
+    Return $($(Invoke-RestMethod "$IdaptiveBasePlatformURL/oauth2/platformtoken/" -Method 'POST' -Body $body).access_token)
+}
+
+function Format-Token {
+    [CmdletBinding()]
+    param (
+        $AuthToken
+    )
+    $IdentityHeaders = New-Object System.Collections.Generic.Dictionary"[String,string]"
+    $IdentityHeaders.add("Authorization", "Bearer $AuthToken")
+    $IdentityHeaders.add("X-IDAP-NATIVE-CLIENT", "true")
+    If ($psPASFormat) {
+        $ExternalVersion = Get-PCloudExternalVersion -PCloudTenantAPIURL $PCloudTenantAPIURL -Token $IdentityHeaders
+        $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+        $session.Headers = $IdentityHeaders
+        $IdentityHeaders = [PSCustomObject]@{
+            User            = $IdentityUserName
+            BaseURI         = $PCloudTenantAPIURL
+            ExternalVersion = $ExternalVersion
+            WebSession      = $session
+        }
+        $IdentityHeaders.PSObject.TypeNames.Insert(0, 'psPAS.CyberArk.Vault.Session')
+    }
+    Return $IdentityHeaders
 }
