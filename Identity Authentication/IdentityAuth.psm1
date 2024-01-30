@@ -6,21 +6,6 @@ Function Get-IdentityHeader {
     .DESCRIPTION
         This function starts by requesting authentication into identity APIs. Once the process starts there can be multiple challenges that need to be responded with multiple options.
         Each option is then being decided by the user. Once authentication is complete we get a token for the user to use for APIs within the ISPSS platform.
-        .Parameter IdentityUserName
-        
-    .Parameter UPCreds
-        
-    .Parameter OAuthCreds
-        
-            .PARAMETER IdentityTenantURL
-        
-        .Parameter PCloudSubdomain
-        
-    .Parameter psPASFormat
-        
-
-
-
     #>
     [CmdletBinding(DefaultParameterSetName = 'IdentityUserName')]
     Param (
