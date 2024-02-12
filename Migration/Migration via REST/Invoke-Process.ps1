@@ -13,7 +13,8 @@ function Update-Username {
             IF ($srcMember.membername -match '@') {
                 $srcMember.membername = $($($srcMember.membername).Split("@"))[0]
                 Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Updated username to `"$($srcMember.membername)`""
-            } else {
+            }
+            else {
                 Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Username is not in UPN format, no change made"
             }
         }
@@ -25,6 +26,20 @@ function Update-Username {
     }
     end {
         return $srcMember    
+    }
+}
+
+function Get-UPNFromAD {
+    [CmdletBinding()]
+    param (
+        $srcMember
+    )
+    process {
+        $adUser = Get-ADUser -Identity $srcMember
+        If ([string]::IsNullOrEmpty($adUser.UserPrincipalName)) {
+            Throw "Unable to locate UPN using samAccountName `"$srcMember`""
+        }
+        return $adUser.UserPrincipalName    
     }
 }
 
@@ -69,7 +84,8 @@ Function Invoke-UpdateMember($srcMember, $dstSafeMembers) {
     IF ($MemberFound.Found) {
         Update-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $($srcMember.safename) -safemember $srcMember -newSafeMember $($MemberFound.dstUSername ) | Out-Null
         Return $true
-    } Else {
+    }
+    Else {
         if ([string]::IsNullOrEmpty($ReplaceMap)) {
             return $false
         }
@@ -93,22 +109,35 @@ Function Invoke-ProcessUser ($srcMember, $dstSafeMembers) {
         }
         Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Final Username is `"$($srcMember.membername)`""
     }
+    if ($GetUPNFromAD) {
+        Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Getting UPN from AD for `"$($srcMember.membername)`""
+        Try {
+            $srcMember.memberName = Get-UPNFromAD -samAccountName $($srcMember.membername)
+            Write-LogMessage -Type Debug -Msg "[$($safememberCount)] UPN from AD for `"$($srcMember.membername)`""
+        }
+        Catch {
+            Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Unable to get UPN from AD for  `"$($srcMember.membername)`""
+        }
+    }
     if ($srcMember.memberId -match "[A-Z]") {
         Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is from PCloud ISPSS"
         Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Attempting to add $($srcMember.MemberType) `"$($srcMember.membername)`" to safe `"$($dstsafe.safename)`""
         $null = New-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember
         Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType) `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
-    } elseif ($srcMember.memberType -eq "User") {
+    }
+    elseif ($srcMember.memberType -eq "User") {
         Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is a user, attempting to find source"
         IF ([string]::IsNullOrEmpty($newDir)) {
             Try {
                 $userSource = Get-UserSource -url $srcPVWAURL -logonHeader $srcToken -safemember $srcMember
                 Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" source is `"$userSource`""
-            } Catch {
+            }
+            Catch {
                 Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Unable to retrieve user source"
             }
             $srcMember | Add-Member NoteProperty searchIn $userSource
-        } else {
+        }
+        else {
             Write-LogMessage -type Debug -MSG "New direcory provided, updating `"seachIn`" to `"$newDir`""
             $srcMember | Add-Member NoteProperty searchIn $newDir
         }
@@ -126,10 +155,12 @@ Function Invoke-ProcessGroup($srcMember, $dstSafeMembers) {
     $groupSource = Get-GroupSource -url $srcPVWAURL -logonHeader $srcToken -safemember $srcMember
     if ($groupSource -eq "Vault") {
         $srcMember | Add-Member NoteProperty searchIn "$groupSource"
-    } elseif (![string]::IsNullOrEmpty($newDir)) {
+    }
+    elseif (![string]::IsNullOrEmpty($newDir)) {
         Write-LogMessage -type Debug -MSG "New direcory provided, updating `"seachIn`" to `"$newDir`""
         $srcMember | Add-Member NoteProperty searchIn "$newDir"
-    } else {
+    }
+    else {
         $srcMember | Add-Member NoteProperty searchIn "$groupSource"
     }
     Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" source is `"$groupSource`""
@@ -138,7 +169,8 @@ Function Invoke-ProcessGroup($srcMember, $dstSafeMembers) {
         $null = New-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember
         Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType) `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
         Return
-    } catch {
+    }
+    catch {
         Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType) `"$($srcMember.membername)`" faild to added to safe `"$($dstsafe.safename)`""
     }
     
@@ -150,7 +182,8 @@ Function Invoke-ProcessGroup($srcMember, $dstSafeMembers) {
             $null = New-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember
             Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType) `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
             Return
-        } Catch {
+        }
+        Catch {
             Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType) `"$($srcMember.membername)`" faild to added to safe `"$($dstsafe.safename)`""
         }
     }
@@ -172,10 +205,12 @@ Function Invoke-ProcessRole($srcMember, $dstSafeMembers) {
             $null = New-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember
             Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType) `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
             return
-        } catch {
+        }
+        catch {
             Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType) `"$($srcMember.membername)`" faild to added to safe `"$($dstsafe.safename)`""
         }
-    } else {
+    }
+    else {
         Write-LogMessage -Type Info -Msg "[$($safememberCount)] Destination is not PCLoud ISPSS. Not possible to add as a role. Updating memberType to `"Group`""
     }
     Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Updating memberType to `"Group`""
@@ -184,7 +219,6 @@ Function Invoke-ProcessRole($srcMember, $dstSafeMembers) {
     $null = New-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember
     Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType) `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
 }
-
 
 
 Function Invoke-ProcessSafe {
@@ -205,6 +239,7 @@ Function Invoke-ProcessSafe {
             success           = $false
             createSkip        = $false
             UpdateMembersFail = $false
+            GetUPNFromAD      = $false
             safeData          = $SafeObject
             Log               = @()
             Error             = @()
@@ -236,14 +271,16 @@ Function Invoke-ProcessSafe {
             Write-LogMessage -Type error -Msg "Source safe `"$safename`" not Found. Skipping"
             write-LogMessage -Type Verbose -Msg "Final `$SafeStatus $($SafeStatus |ConvertTo-Json -Compress)"
             Continue
-        } else {
+        }
+        else {
             Write-LogMessage -Type Debug -Msg "Source safe `"$safename`" located"
         }
 
         Write-LogMessage -Type Debug -Msg "Getting destination safe `"$safename`""
         Try {
             $dstsafe = Get-Safe -url $dstPVWAURL -logonHeader $dstToken -safe $($safename) -ErrorAction SilentlyContinue
-        } catch {
+        }
+        catch {
             $dstsafe = $null
         }
 
@@ -254,27 +291,32 @@ Function Invoke-ProcessSafe {
                     Write-LogMessage -Type Debug -Msg "CreateSafe passed, attempting to create safe `"$safename`" in destination"
                     if (![string]::IsNullOrEmpty($CPMOverride)) {
                         $dstSafe = New-Safe -url $dstPVWAURL -logonHeader $dstToken -safe $srcSafe -cpnNameNew $CPMOverride
-                    } elseIf ((![string]::IsNullOrEmpty($CPMOld)) -and (![string]::IsNullOrEmpty($CPMnew))) {
+                    }
+                    elseIf ((![string]::IsNullOrEmpty($CPMOld)) -and (![string]::IsNullOrEmpty($CPMnew))) {
                         $dstSafe = New-Safe -url $dstPVWAURL -logonHeader $dstToken -safe $srcSafe -cpnNameOld $CPMOld -cpnNameNew $CPMnew
-                    } else {
+                    }
+                    else {
                         $dstSafe = New-Safe -url $dstPVWAURL -logonHeader $dstToken -safe $srcSafe
                     }
                     Write-LogMessage -Type Debug -Msg "Created safe `"$safename`""
                     $createdDstSafe = $true
-                } catch {
+                }
+                catch {
                     Write-LogMessage -Type error -Msg "`tError creating safe `"$safename`""
                     Write-LogMessage -Type Debug -Msg "Error: $_"
                     $SafeStatus.error = $_
                     $process.Completed = $true
                     continue
                 }
-            } else {
+            }
+            else {
                 Write-LogMessage -Type Warning -Msg "`tTarget safe `"$($safename)`" does not exist in destination and creating of safes disabled, skipping `"$($safename)`""
                 $SafeStatus.createSkip = $true
                 $SafeStatus.success = $true
                 continue
             }
-        } else {
+        }
+        else {
             Write-LogMessage -Type Debug -Msg "Destination safe `"$($dstsafe.safename)`" located"
         }
         If (($UpdateSafeMembers -or $createdDstSafe)) {
@@ -299,15 +341,19 @@ Function Invoke-ProcessSafe {
                     $MemberUpdated = $(Invoke-UpdateMember -srcMember $srcMember -dstSafeMembers $dstSafeMembers)
                     if (!$($MemberUpdated)) {
                         Switch ($($srcMember.memberType)) {
-                            "User" { Invoke-ProcessUser -srcMember $srcMember -dstSafeMembers $dstSafeMembers
+                            "User" {
+                                Invoke-ProcessUser -srcMember $srcMember -dstSafeMembers $dstSafeMembers
                             }
-                            "Group" { Invoke-ProcessGroup -srcMember $srcMember -dstSafeMembers $dstSafeMembers
+                            "Group" {
+                                Invoke-ProcessGroup -srcMember $srcMember -dstSafeMembers $dstSafeMembers
                             }
-                            "Role" { Invoke-ProcessRole -srcMember $srcMember -dstSafeMembers $dstSafeMembers
+                            "Role" {
+                                Invoke-ProcessRole -srcMember $srcMember -dstSafeMembers $dstSafeMembers
                             }
                         } 
                     }
-                } Catch {
+                }
+                Catch {
                     Write-LogMessage -Type Error -Msg "`t[$($safememberCount)] Failed to add or update Safe Member `"$($srcMember.membername)`" in safe `"$($dstsafe.safename)`""
                     $SafeStatus.UpdateMembersFail = $true
                     $SafeStatus.error = "[$($safememberCount)] $($PSItem.ErrorDetails)"
@@ -315,14 +361,17 @@ Function Invoke-ProcessSafe {
                 }
             }
             $SafeStatus.success = $true
-        } else {
+        }
+        else {
             Write-LogMessage -Type Info -Msg "Creating and/or Updating of Safe Members is disabled. Memberships of `"$($dstsafe.safename)`" not changed"
             $SafeStatus.success = $true
         }
-    } Catch {
+    }
+    Catch {
         $PSItem
         $SafeStatus.error = $PSItem
-    } Finally {
+    }
+    Finally {
         IF ($SafeStatus.UpdateMembersFail) {
             $SafeStatus.success = $false
         }

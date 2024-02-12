@@ -542,6 +542,11 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
         [Parameter(ValueFromPipelineByPropertyName)]
         [switch]$SuppressProgress,
         <#
+        Retrive UPN from Active Directroy using SAMAccountName
+        #>
+        [Parameter(ValueFromPipelineByPropertyName)]
+        [switch]$GetUPNFromAD,
+        <#
         Switch to prevent running in powershell job
         #>
         [switch]$RunSingle,
@@ -635,6 +640,7 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
 
             $CreateSafes = $using:CreateSafes
             $UpdateSafeMembers = $using:UpdateSafeMembers
+            $GetUPNFromAD = $Using:GetUPNFromAD
             $srcRemoveDomain = $using:srcRemoveDomain
             $dstDomainSuffix = $using:dstDomainSuffix
             $dstMatchWitoutDomain = $using:dstMatchWitoutDomain
