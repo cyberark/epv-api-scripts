@@ -36,18 +36,30 @@ $UPCreds = Get-Credential
 $header = Get-IdentityHeader -IdentityTenantURL "something.id.cyberark.cloud" -UPCreds $UPCreds
 ```
 
-Format output in a psPAS-compatible format.
+If you want to connect using OAuth:
+
 ```powershell
 Import-Module IdentityAuth.psm1
-$header = Get-IdentityHeader -psPASFormat -IdentityTenantURL "something.id.cyberark.cloud" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID" -PCloudSubdomain "subdomain"
+$OAuth = Get-Credential
+$header = Get-IdentityHeader -IdentityTenantURL "something.id.cyberark.cloud" -OAuthCreds $OAuth
+```
+
+Format output in a psPAS-compatible format. Only run $header once based on type of connection desired
+```powershell
+Import-Module IdentityAuth.psm1
+$header = Get-IdentityHeader -IdentityTenantURL "something.id.cyberark.cloud" -psPASFormat -PCloudSubdomain "subdomain" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID"
+$header = Get-IdentityHeader -IdentityTenantURL "something.id.cyberark.cloud" -psPASFormat -PCloudSubdomain "subdomain" -UPCreds $UPCreds -PCloudSubdomain "subdomain"
+$header = Get-IdentityHeader -IdentityTenantURL "something.id.cyberark.cloud" -psPASFormat -PCloudSubdomain "subdomain" -OAuthCreds $OAuth 
 use-PASSession $header
 ```
 
 SYNTAX
 ````powershell
-Get-IdentityHeader -IdentityTenantURL <String> -IdentityUserName <String> [-IdentityTenantId <String>] [-psPASFormat] [-PCloudSubdomain <String>] [<CommonParameters>]
+Get-IdentityHeader -IdentityTenantURL <String> -IdentityUserName <String> [-psPASFormat] [-PCloudSubdomain <String>] [<CommonParameters>]
 
-Get-IdentityHeader -IdentityTenantURL <String> -UPCreds <PSCredential> [-IdentityTenantId <String>] [-psPASFormat] [-PCloudSubdomain <String>] [<CommonParameters>]
+Get-IdentityHeader -IdentityTenantURL <String> -UPCreds <PSCredential> [-psPASFormat] [-PCloudSubdomain <String>] [<CommonParameters>]
+
+Get-IdentityHeader -IdentityTenantURL <String> -OAuthCreds <PSCredential> [-psPASFormat] [-PCloudSubdomain <String>] [<CommonParameters>]
 ````
 
 # Identity User Refresh
