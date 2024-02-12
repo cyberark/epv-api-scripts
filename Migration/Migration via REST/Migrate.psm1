@@ -15,7 +15,7 @@ $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmms
     "PVWAConfig", "PVWAReports", "PVWATaskDefinitions", "PVWAPrivateUserPrefs", "PVWAPublicData", "PVWATicketingSystem",
     "AccountsFeed", "PSM", "xRay", "PIMSuRecordings", "xRay_Config", "AccountsFeedADAccounts", "AccountsFeedDiscoveryLogs", "PSMSessions", "PSMLiveSessions", "PSMUniversalConnectors",
     "PSMNotifications", "PSMUnmanagedSessionAccounts", "PSMRecordings", "PSMPADBridgeConf", "PSMPADBUserProfile", "PSMPADBridgeCustom",
-    "AppProviderConf", "PasswordManagerTemp", "PasswordManager_Pending", "PasswordManagerShared","TelemetryConfig")
+    "AppProviderConf", "PasswordManagerTemp", "PasswordManager_Pending", "PasswordManagerShared", "TelemetryConfig")
 
 [String[]]$script:CPMSafes = @("PasswordManager", "PasswordManager_workspace", "PasswordManager_ADInternal", "PasswordManager_Info")
 
@@ -56,12 +56,14 @@ Function Get-CPMUsers {
                 Write-Warning "Unable to retrieve list of CPM users. Ensure that CPMList parameter has been passed or source CPM is named `"PasswordManager`"" -WarningAction Inquire
             }
             return @()
-        } else {
+        }
+        else {
             Write-LogMessage -type Debug "$($($CPMList.ComponentsDetails.ComponentUSername).count) CPM users found"
             Write-LogMessage -type Verbose "List of CPM users found: $($($CPMList.ComponentsDetails.ComponentUSername)|ConvertTo-Json -Depth 9 -Compress)"
             return $($CPMList.ComponentsDetails.ComponentUSername)
         }
-    } catch [Microsoft.PowerShell.Commands.HttpResponseException] {
+    }
+    catch [Microsoft.PowerShell.Commands.HttpResponseException] {
         If ($PSitem.Exception.Response.StatusCode -eq "Forbidden") {
             $URL_Verify = "$script:srcPVWAURL/API/Verify/"
             $ReturnResultUser = Invoke-RestMethod -Method Get -Uri $URL_Verify -Headers $logonToken -ErrorVariable RestErrorUser
@@ -70,7 +72,8 @@ Function Get-CPMUsers {
                     Write-Warning "Unable to retrieve list of CPM users. Ensure that CPMList parameter has been passed or source CPM is named `"PasswordManager`"" -WarningAction Inquire
                 }
                 return @()
-            } else {
+            }
+            else {
                 Write-Warning "Connected with a account that is not a member of `"vault admins`""
                 If (!$SuppressCPMWarning) {
                     Write-Warning "Unable to retrieve list of CPM users. Ensure that CPMList parameter has been passed or source CPM is named `"PasswordManager`"" -WarningAction Inquire
@@ -95,24 +98,27 @@ Function Test-Session {
         }
     }
 
-    $URL_GetHealthSummery = "$url/API/ComponentsMonitoringSummary/"
+    $URL_GetHealthSummery = "$url/API/1/"
     Try {
         $ReturnResultAdmin = Invoke-RestMethod -Method Get -Uri $URL_GetHealthSummery -Headers $logonToken -ErrorVariable RestErrorAdmin
         Write-LogMessage -Type Verbose -MSG "Test-Session:ReturnResult: $($ReturnResultAdmin|ConvertTo-Json -Depth 9 -Compress)"
         if ((![string]::IsNullOrEmpty($ReturnResultAdmin.Components)) -and ($ReturnResultAdmin.Components.Count -ne 0)) {
             Return $true
-        } else {
+        }
+        else {
             Invoke-Report
             return $false
         }
-    } catch [Microsoft.PowerShell.Commands.HttpResponseException] {
+    }
+    catch [Microsoft.PowerShell.Commands.HttpResponseException] {
         If ($PSitem.Exception.Response.StatusCode -eq "Forbidden") {
             $URL_Verify = "$url/API/Verify/"
             $ReturnResultUser = Invoke-RestMethod -Method Get -Uri $URL_Verify -Headers $logonToken -ErrorVariable RestErrorUser
             IF ([string]::IsNullOrEmpty($ReturnResultUser.ServerName) -or [string]::IsNullOrEmpty(!$RestErrorUser)) {
                 Invoke-Report
                 Return $false
-            } else {
+            }
+            else {
                 Invoke-Report
                 Write-LogMessage -type Warning -MSG "`tConnected with a account that is not a member of `"vault admins`". Access to some functions may be restricted."
                 Return $true
@@ -200,8 +206,9 @@ function New-SourceSession {
 
     # Check that the PVWA URL is OK
     try {
-    Test-PVWA -PVWAURL $srcPVWAURL
-    } catch {
+        Test-PVWA -PVWAURL $srcPVWAURL
+    }
+    catch {
         Throw "Test-PVWA Failed: $PSItem"
     }
 
@@ -210,13 +217,16 @@ function New-SourceSession {
         if ($srcLogonToken.GetType().name -eq "String") {
             $logonHeader = @{Authorization = $srcLogonToken }
             Set-Variable -Scope script -Name srcToken -Value $logonHeader
-        } else {
+        }
+        else {
             Set-Variable -Scope script -Name srcToken -Value $srcLogonToken
         }
-    } else {
+    }
+    else {
         If (![string]::IsNullOrEmpty($srcPVWACredentials)) {
             $creds = $srcPVWACredentials
-        } else {
+        }
+        else {
             $msg = "Enter your source $srcAuthType User name and Password"
             $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
         }
@@ -225,7 +235,8 @@ function New-SourceSession {
 
         if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($srcOTP)) {
             Set-Variable -Scope Script -Name srcToken -Value $(Get-Logon -Credentials $creds -AuthType $srcAuthType -URL $srcPVWAURL -OTP $OTP)
-        } else {
+        }
+        else {
             Set-Variable -Scope Script -Name srcToken -Value $(Get-Logon -Credentials $creds -AuthType $srcAuthType -URL $srcPVWAURL )
         }
         # Verify that we successfully logged on
@@ -239,7 +250,8 @@ function New-SourceSession {
     if (Test-Session -logonToken $script:srcToken -url $script:srcPVWAURL) {
         Write-LogMessage -type Info -MSG "Source session successfully configured and tested"
         Write-LogMessage -type Debug -MSG "Source Token set to $($srcToken|ConvertTo-Json -Depth 10)"
-    } else {
+    }
+    else {
         Throw "Source session failed to connect successfully"
     }
 }
@@ -253,7 +265,8 @@ Function Test-SourceSession {
     param()
     If ([string]::IsNullOrEmpty($Script:srcToken) -or [string]::IsNullOrEmpty($Script:srcPVWAURL)) {
         return $false
-    } else {
+    }
+    else {
         Return Test-Session -logonToken $Script:srcToken -url $Script:srcPVWAURL
     }
 }
@@ -321,13 +334,16 @@ function New-DestinationSession {
         if ($dstlogonToken.GetType().name -eq "String") {
             $logonHeader = @{Authorization = $dstlogonToken }
             Set-Variable -Scope Script -Name dstToken -Value $logonHeader
-        } else {
+        }
+        else {
             Set-Variable -Scope Script -Name dstToken -Value $dstlogonToken
         }
-    } else {
+    }
+    else {
         If (![string]::IsNullOrEmpty($dstPVWACredentials)) {
             $creds = $dstPVWACredentials
-        } else {
+        }
+        else {
             $msg = "Enter your source $dstAuthType User name and Password"
             $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
         }
@@ -336,7 +352,8 @@ function New-DestinationSession {
 
         if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
             Set-Variable -Scope script -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $dstPVWAURL -OTP $OTP)
-        } else {
+        }
+        else {
             Set-Variable -Scope script -Name dstToken -Value $(Get-Logon -Credentials $creds -AuthType $dstAuthType -URL $dstPVWAURL )
         }
         # Verify that we successfully logged on
@@ -351,7 +368,8 @@ function New-DestinationSession {
     if (Test-Session -logonToken $Script:dstToken -url $Script:dstPVWAURL) {
         Write-LogMessage -type Info -MSG "Destination session successfully configured and tested"
         Write-LogMessage -type Debug -MSG "Destination Token set to $($script:dstToken |ConvertTo-Json -Depth 10)"
-    } else {
+    }
+    else {
         Write-LogMessage -type Error -MSG "Destination session failed to connect successfully"
     }
 }
@@ -364,7 +382,8 @@ Function Test-DestinationSession {
     param()
     If ([string]::IsNullOrEmpty($Script:dstToken) -or [string]::IsNullOrEmpty($Script:dstPVWAURL)) {
         return $false
-    } else {
+    }
+    else {
         Return Test-Session -logonToken $Script:dstToken -url $Script:dstPVWAURL
     }
 }
@@ -555,6 +574,20 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
         #>
         [Parameter(ValueFromPipelineByPropertyName)]
         [switch]$dstMatchWitoutDomain,
+        <# 
+        Hashtable of replacement username
+        Name = Old Username
+        Value = New Username
+
+        $ImportRM = Import-Csv -Path .\ReplaceMap.csv
+        $ReplaceMap=@{}
+        foreach($r in $ImportRM)
+        {
+            $ReplaceMap[$r.old]=$r.new
+        }
+        #>
+        [Parameter(ValueFromPipelineByPropertyName)]
+        [hashtable]$ReplaceMap,
         [switch]$SuppressCPMWarning
     )
 
@@ -583,8 +616,8 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
 
     [array]$safeobjects += $script:AccountList | `
             Select-Object -Property safeName -Unique | `
-            Where-Object { $_.safename -ne ""}
-            Where-Object { $_.safename -notIn $SafesToRemove } | `
+            Where-Object { $_.safename -ne "" }
+    Where-Object { $_.safename -notIn $SafesToRemove } | `
             ForEach-Object { $PSItem }
 
     Write-LogMessage -Type Info -MSG "Found $($safeobjects.count) unique safes for processing"
@@ -619,7 +652,8 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
         $safeobjects | ForEach-Object {
             Invoke-ProcessSafe -SafeName $PSItem.Safename
         }
-    } else {
+    }
+    else {
         Write-LogMessage -Type Info -MSG "Processing Safes using PowerShell Jobs"
         If ([string]::IsNullOrEmpty($SuperVerbose)) {
             $SuperVerbose = $false
@@ -641,6 +675,7 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
             $CreateSafes = $using:CreateSafes
             $UpdateSafeMembers = $using:UpdateSafeMembers
             $GetUPNFromAD = $Using:GetUPNFromAD
+            $ReplaceMap = $Using:ReplaceMap
             $srcRemoveDomain = $using:srcRemoveDomain
             $dstDomainSuffix = $using:dstDomainSuffix
             $dstMatchWitoutDomain = $using:dstMatchWitoutDomain
@@ -648,12 +683,7 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
             $CPMnew = $using:CPMnew
             $CPMOld = $using:CPMOld
             $CPMOverride = $using:CPMOverride
-            
-
-
             $syncCopy = $using:safeProgressSync
-
-
             $global:safename = $($PSItem.safeName)
             $global:LOG_FILE_PATH = ".\LogFiles-Safes\$safename.log"
 
@@ -700,11 +730,13 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
                 Invoke-ProcessSafe -SafeName $safename -SafeStatus $SafeStatus
                 #endregion Actual work
                 #endregion ForEach-Object
-            } Finally {
+            }
+            Finally {
                 write-LogMessage -Type Info -Msg "Completed work with safe `"$safename`""
                 If ($SuperVerbose) {
                     write-LogMessage -Type Verbose -Msg "SuperVerbose: Final `$SafeStatus $($SafeStatus | ConvertTo-Json -Compress)"
-                } else {
+                }
+                else {
                     write-LogMessage -Type Verbose -Msg "Final `$SafeStatus $($SafeStatus |Select-Object -Property Id,SafeName,createSkip,Success,UpdateMembersFail | ConvertTo-Json -Depth 1 -Compress)"
                 } 
                 $SafeStatus
@@ -749,7 +781,8 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
             $SafeFailed.SafeData | Add-Member -MemberType NoteProperty -Name FailReason -Value $null -Force
             If ($SafeFailed.SafeData.count -eq 1) {
                 $SafeFailed.SafeData.FailReason = $SafeFailed.Error
-            } else {
+            }
+            else {
                 $i = 0
                 foreach ($id in $SafeFailed) {
                     $SafeFailed[$i].SafeData.FailReason = $SafeFailed[$i].Error
@@ -880,7 +913,8 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
         Write-LogMessage -Type Info -Msg "VerifyPlatform set, retriving platforms for destination environment"
         $platforms = (Get-Platforms -url $dstPVWAURL -logonHeader $dstToken)
         Write-LogMessage -Type debug -MSG "$($platforms.count) platforms retrieved from destination environment"
-    } else {
+    }
+    else {
         $platforms = "Skipped"
     }
 
@@ -964,7 +998,8 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
             Write-LogMessage -Type Info -Msg "Working with source account with username `"$($baseAccount.userName)`" and address `"$($baseAccount.address)`" in safe `"$($baseAccount.safeName)`""
             Try {
                 $srcAccount = Get-AccountDetail -url $srcPVWAURL -logonHeader $srcToken -AccountID $baseAccount.id
-            } catch {
+            }
+            catch {
                 Write-LogMessage -Type Error -Msg "Unable to connect to source account to retrieve username `"$($baseAccount.userName)`" and address `"$($baseAccount.address)`" in safe `"$($baseAccount.safeName)`""
                 Write-LogMessage -Type Error -Msg $PSitem
                 Write-LogMessage -Type Debug -Msg "$srcAccount = Get-AccountDetail -url $srcPVWAURL -logonHeader $srcToken -AccountID $baseAccount.id"
@@ -991,7 +1026,8 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
                         $dstAccount = $account
                     }
                 }
-            } else {
+            }
+            else {
                 Write-LogMessage -Type Warning -Msg "Unable to locate destination account `"$($srcAccount.Name)`" in destination safe `"$($srcAccount.safeName)`""
             }
 
@@ -1016,30 +1052,36 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
                         }
                         if ($null -eq $dstSecret -and $null -ne $srcSecret) {
                             Write-LogMessage -Type Debug -Msg "No secret found on destination account $($dstAccount.Name). Setting destination secret to match source secret."
-                            Set-Secret -url $dstPVWAURL -logonHeader $dstToken -id $dstAccount.id -secret $srcSecret
+                            Set-Secret -url $dstPVWAURL -logonHeader $dstToken -id $dstAccount.id -Secret $srcSecret
                             Write-LogMessage -Type Info -Msg "Destination account with username `"$($dstAccount.userName)`" and address `"$($dstAccount.address)`" in safe `"$($dstAccount.safeName)`" secret set to match source account."
                             $AccountStatus.success = $true
-                        } elseif (!$secretMatch) {
+                        }
+                        elseif (!$secretMatch) {
                             Write-LogMessage -Type Debug -Msg "The secret for ource and destination account with username `"$($dstAccount.userName)`" and address `"$($dstAccount.address)`" in safe `"$($dstAccount.safeName)`" secret do not match. Setting destination secret to match source secret."
-                            Set-Secret -url $dstPVWAURL -logonHeader $dstToken -id $dstAccount.id -secret $srcSecret
+                            Set-Secret -url $dstPVWAURL -logonHeader $dstToken -id $dstAccount.id -Secret $srcSecret
                             Write-LogMessage -Type Info -Msg "Destination account secret with username `"$($dstAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`" set to match source account."
                             $AccountStatus.success = $true
-                        } elseif ($secretMatch) {
+                        }
+                        elseif ($secretMatch) {
                             Write-LogMessage -Type Info -Msg "Source and destination account secret match. No update required"
                             $AccountStatus.success = $true
-                        } else {
+                        }
+                        else {
                             Write-LogMessage -Type Warning -Msg "Unknown Error encountered while working with secrets for source and destination account with username `"$($dstAccount.userName)`" and address `"$($dstAccount.address)`" in safe `"$($dstAccount.safeName)`""
                         }
-                    } catch [System.Management.Automation.RuntimeException] {
+                    }
+                    catch [System.Management.Automation.RuntimeException] {
                         If ("Account Locked" -eq $_) {
                             Write-LogMessage -Type Warning -Msg "Source Account `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`" Locked to another user, unable to update."
                             Write-LogMessage -Type Debug -Msg "$($PSitem.Exception)"
-                        } else {
+                        }
+                        else {
                             Write-LogMessage -Type Error -Msg "Error encountered while working with acount with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `" $($srcAccount.safeName)`": $($_.Exception.Message)" -ErrorAction SilentlyContinue
                             Write-LogMessage -Type LogOnly -Msg "Error encountered while working with acount with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `": $($_|ConvertTo-Json -Compress)" -ErrorAction SilentlyContinue
                         }
                     }
-                } Else {
+                }
+                Else {
                     Write-LogMessage -Type Debug -Msg "SkipCheckSecret set to true. No checks being done on source and destination secrets"
                     $AccountStatus.success = $true
                 }
@@ -1047,10 +1089,12 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
                     Write-LogMessage -Type Debug -Msg "getRemoteMachines set to true. Updating remoteMachinesAccess on destination account with usernam `"$($dstAccount.userName)`" and address `"$($dstAccount.address)`" in safe `" $($srcAccount.safeName)`""
                     Update-RemoteMachine -url $dstPVWAURL -logonHeader $dstToken -dstaccount $dstAccount -srcaccount $srcAccount
                 }
-            } elseif ($noCreate) {
+            }
+            elseif ($noCreate) {
                 Write-LogMessage -Type Warning -Msg "Destination account with username of `"$($dstAccount.userName)`" and address `"$($dstAccount.address)`" in safe safe `" $($srcAccount.safeName)`" does not exist and account creation disabled, skipping creation of account"
                 $AccountStatus.success = $true
-            } else {
+            }
+            else {
                 try {
                     If ($VerifyPlatform) {
                         write-LogMessage -Type info -Msg "Verifying platform with ID of `"$($srcAccount.platformId)`" exists in destination enviorment for account `"$($srcAccount.Name)`" in safe `"$($srcAccount.safeName)`""
@@ -1076,32 +1120,39 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
                         Write-LogMessage -Type debug -Msg "Source account with username `"$($dstAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`" has a secret. Sending creation request to destination enviorment"
                         $dstAccount = New-Account -url $dstPVWAURL -logonHeader $dstToken -account $srcAccount -secret $srcSecret
                         Write-LogMessage -type Debug -Msg "Account with username `"$($dstAccount.userName)`" and address `"$($dstAccount.address)`" in safe `"$($dstAccount.safeName)`" succefully created in destination enviorment"
-                    } elseif ($allowEmpty) {
+                    }
+                    elseif ($allowEmpty) {
                         Write-LogMessage -Type debug -Msg "Source account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`" does not have a secret, but empty secrets are allowed. Sending creation request to destination enviorment"
                         $dstAccount = New-Account -url $dstPVWAURL -logonHeader $dstToken -account $srcAccount -allowEmpty
                         Write-LogMessage -type Debug -Msg "Account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`" succefully created in destination enviorment"
-                    } else {
+                    }
+                    else {
                         Write-LogMessage -Type Warning -Msg "No password set on source account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`""
                     }
                     $AccountStatus.success = $true
-                } catch [System.Management.Automation.RuntimeException] {
+                }
+                catch [System.Management.Automation.RuntimeException] {
                     If ("Account Locked" -eq $_.Exception.Message) {
                         Write-LogMessage -Type Warning -Msg "Source Account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`" Locked, unable to update"
                         Write-LogMessage -Type Debug -Msg $PSitem
-                    } elseIf ($_.Exception.Message -match 'Safe .* was not found') {
+                    }
+                    elseIf ($_.Exception.Message -match 'Safe .* was not found') {
                         Write-LogMessage -Type Warning -Msg "Source safe `"$($srcAccount.safeName)`" not found"
                         Write-LogMessage -Type Debug -Msg $PSitem
-                    } elseIf ($_.Exception.Message -match 'Platform .* was not found') {
+                    }
+                    elseIf ($_.Exception.Message -match 'Platform .* was not found') {
                         Write-LogMessage -Type Warning -Msg "Platform `"$($srcAccount.platformId)`" not found. Unable to create `"$($srcAccount.Name)`" in safe `"$($srcAccount.safeName)`""
                         Write-LogMessage -Type Debug -Msg $PSitem
-                    } else {
+                    }
+                    else {
                         Write-LogMessage -Type Error -Msg "Error encountered while working with account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`": $($_.Exception.Message)" -ErrorAction SilentlyContinue
                         Write-LogMessage -Type LogOnly -Msg "Error encountered while working with `"$($srcAccount.Name)`": $($_|ConvertTo-Json -Compress)" -ErrorAction SilentlyContinue
                         Write-LogMessage -Type Debug -Msg "Caught Exception:`n$($PSitem.Exception)"
                     }
                 }
             }
-        } Finally {
+        }
+        Finally {
             $accountStatus
             $process.Completed = $true
         }
@@ -1186,9 +1237,11 @@ Function New-DomainEntry
     IF ([string]::IsNullOrEmpty($script:domainlist)) {
         Write-LogMessage -type Warning -MSG "No domain list exists, creating new domain list"
         New-DomainList -DomainName $DomainName -DomainBaseContext $DomainBaseContext
-    } elseIF ([string]::IsNullOrEmpty($script:domainlist[$DomainBaseContext])) {
+    }
+    elseIF ([string]::IsNullOrEmpty($script:domainlist[$DomainBaseContext])) {
         $script:DomainList.add($DomainBaseContext, $DomainName)
-    } else {
+    }
+    else {
         Write-LogMessage -type Warning -MSG "Existing Domain Base Context found. Updated to provided domain name"
         $script:DomainList.Remove($DomainBaseContext)
         $script:DomainList.add($DomainBaseContext, $DomainName)
@@ -1204,7 +1257,8 @@ Function Remove-DomainEntry
 ) {
     IF ([string]::IsNullOrEmpty($script:domainlist[$DomainBaseContext])) {
         Write-LogMessage -type Warning -MSG "Existing Domain Base Context not found. No Changes Made"
-    } else {
+    }
+    else {
         $script:DomainList.Remove($DomainBaseContext)
         Write-LogMessage -type Warning -MSG "Existing Domain Base Context found and removed"
 
@@ -1216,7 +1270,8 @@ Function Import-DomainList () {
         $Results = Get-Directories -url $script:srcPVWAURL -logonHeader $script:srcToken
         [hashtable]$script:DomainList = @{}
         $results | ForEach-Object { New-DomainEntry -DomainName $PSitem.DomainName -DomainBaseContext $PSitem.DomainBaseContext }
-    } catch {
+    }
+    catch {
         Write-LogMessage -type Warning -MSG "Error Importing Domain List, manually load directory list using New-DomainEntry"
     }
 }

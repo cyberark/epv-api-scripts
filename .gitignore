@@ -21,3 +21,6 @@ Migration/Migration via REST/Migrate - Copy.psm1
 Migration/Migration via REST/CheatSheet.ps1
 Migration/Migration via REST/Test-Migrate-via-Rest.ps1
 Migration/Migration via REST/AccountsForImport.csv
+Migration/Migration via REST/FailedSafes.csv
+ExportOfAccounts.csv
+Migration/Migration via REST/List.csv

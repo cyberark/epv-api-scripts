@@ -23,10 +23,9 @@ function Update-Username {
             $srcMember.memberName = "$($srcMember.memberName)@$dstDomainSuffix"
             Write-LogMessage -type Debug "[$($safememberCount)] Updated username to `"$($srcMember.membername)`""
         }
+        return $srcMember  
     }
-    end {
-        return $srcMember    
-    }
+
 }
 
 function Get-UPNFromAD {
@@ -43,7 +42,12 @@ function Get-UPNFromAD {
     }
 }
 
-Function Search-Members ($srcMember, $dstSafeMembers) {
+Function Search-Members {
+    [CmdletBinding()]
+    param (
+        $srcMember,
+        $dstSafeMembers
+    )
     [PSCustomObject]$result = @{
         Found       = $false
         srcUsername = $null
@@ -89,23 +93,27 @@ Function Invoke-UpdateMember($srcMember, $dstSafeMembers) {
         if ([string]::IsNullOrEmpty($ReplaceMap)) {
             return $false
         }
-        Write-Host "No match found, processing replacement map name"
-        ForEach ($map in $ReplaceMap.GetEnumerator() ) {
-            $tarMember = Invoke-DeepCopy($srcMember)
-            $tarMember.memberName = $tarMember.memberName.Replace($($map.Name), $($map.Value))
-            $MemberFound = Search-Members ($tarMember, $dstSafeMembers)
-            IF ($MemberFound.Found) {
-                Update-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $($tarMember.safename) -safemember $tarMember -newSafeMember $($MemberFound.dstUSername ) | Out-Null
-                Return $true
-            }
+        Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Processing Username Replacement Map for `"$($srcMember.memberName)`""
+        if (![string]::IsNullOrEmpty($ReplaceMap[$($srcMember.memberName)])) {
+                $srcMember.memberName = $ReplaceMap[$($srcMember.memberName)]
+        }
+        else {
+            Write-LogMessage -Type Debug -Msg "[$($safememberCount)] No match found in Replacement Map for `"$($srcMember.memberName)`""
+            Return $false
+        }
+        Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Found in Replacement Map. New username is `"$($srcMember.memberName)`""
+        $MemberFound = Search-Members -srcMember $srcMember -dstSafeMembers $dstSafeMembers        
+        IF ($MemberFound.Found) {
+            Update-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $($srcMember.safename) -safemember $srcMember -newSafeMember $($MemberFound.dstUSername ) | Out-Null
+            Return $true
         }
     }
 }
 Function Invoke-ProcessUser ($srcMember, $dstSafeMembers) {
     if (![string]::IsNullOrEmpty($ReplaceMap)) {
         Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Processing Username Replacement Map for `"$($srcMember.membername)`""
-        ForEach ($map in $ReplaceMap.GetEnumerator() ) {
-            $srcMember.memberName = $srcMember.memberName.Replace($($map.Name), $($map.Value))
+        if (![string]::IsNullOrEmpty($ReplaceMap[$($srcMember.memberName)])) {
+            $srcMember.memberName = $ReplaceMap[$($srcMember.memberName)]
         }
         Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Final Username is `"$($srcMember.membername)`""
     }
