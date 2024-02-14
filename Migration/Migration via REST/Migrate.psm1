@@ -620,12 +620,12 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
     )
 
     Write-LogMessage -Type Info -MSG "Starting safe processing at $(Get-Date -Format "HH:mm:ss")"
+    $startTime = Get-Date
 
     Initialize-Function
     Test-SessionsValid
     Test-AccountList
     $global:DomainList = $script:DomainList 
-    #region Safe Work
 
     $cpmUsers = Get-CPMUsers -SuppressCPMWarning:$SuppressCPMWarning
     $cpmSafes = @()
@@ -826,6 +826,9 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
         Write-LogMessage -Type Info "Safes processing failed: $($SafeFailed.success.count)"
         Write-LogMessage -Type Info "Safes membership add or updates failed: $($SafeUpdateMembersFail.success.count)"
     }
+    $endTime = Get-Date
+    $executionTime = $endTime - $startTime
+    Write-LogMessage -Type Info "Sync-Safes took $($executionTime.ToString("hh\:mm\:ss")) to process"
     Write-LogMessage -Type Info "Processing of safes completed at $(Get-Date -Format "HH:mm:ss")"
 }
 function Sync-Accounts {
@@ -931,6 +934,7 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
         [Parameter(Mandatory = $false)]
         [switch]$SuppressProgress
     )
+    $startTime = Get-Date
     Write-LogMessage -Type Info -MSG "Starting account processing at $(Get-Date -Format "HH:mm:ss")"
 
     Initialize-Function
@@ -1230,11 +1234,9 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
         $AccountFailed.accountData | Where-Object { !$([string]::IsNullOrEmpty($PSItem.FailReason)) } | Export-Csv -Force .\FailedAccounts.csv
         Write-LogMessage -type Error -MSG "Errors found, list outputted to `".\FailedAccounts.csv`""
     }
+    $executionTime = $endTime - $startTime
+    Write-LogMessage -Type Info "Sync-Accounts took $($executionTime.ToString("hh\:mm\:ss")) to process"
     Write-LogMessage -Type Info "Processing of accounts completed at $(Get-Date -Format "HH:mm:ss")"
-
-    if ([string]::IsNullOrEmpty($srcToken)) {
-        $srcToken = Get-IdentityHeader -IdentityUserName brian.bors@cyberark.cloud.1024 -IdentityTenantURL "https://aal4797.my.idaptive.app"
-    }
 }
 
 Function Set-DomainList {

@@ -209,10 +209,6 @@ Function Get-SearchIn {
     Write-LogMessage -type Debug -MSG "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" attribute`"seachIn`" succesfully set"
     return $srcMember 
 }
-else {
-    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Source is not `"vault`" and not able to match to a domain"
-    Throw 
-}
 
 Function Invoke-ProcessGroup {
     [CmdletBinding()]
