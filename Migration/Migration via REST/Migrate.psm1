@@ -98,7 +98,7 @@ Function Test-Session {
         }
     }
 
-    $URL_GetHealthSummery = "$url/API/1/"
+    $URL_GetHealthSummery = "$url/API/ComponentsMonitoringSummary/"
     Try {
         $ReturnResultAdmin = Invoke-RestMethod -Method Get -Uri $URL_GetHealthSummery -Headers $logonToken -ErrorVariable RestErrorAdmin
         Write-LogMessage -Type Verbose -MSG "Test-Session:ReturnResult: $($ReturnResultAdmin|ConvertTo-Json -Depth 9 -Compress)"
@@ -497,6 +497,12 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
         [Parameter(ValueFromPipelineByPropertyName)]
         [Switch]$UpdateSafeMembers,
         <#
+        Automatically update safe members permissions in destination environment to match source environment.
+        - May result in loss of permissions
+        #>
+        [Parameter(ValueFromPipelineByPropertyName)]
+        [Switch]$RetainExistingPerms,
+        <#
         Name of the old CPM which will be replaced
         #>
         [Parameter(ValueFromPipelineByPropertyName)]
@@ -578,7 +584,8 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
         Hashtable of replacement username
         Name = Old Username
         Value = New Username
-
+        old,new
+        
         $ImportRM = Import-Csv -Path .\ReplaceMap.csv
         $ReplaceMap=@{}
         foreach($r in $ImportRM)
@@ -588,6 +595,27 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
         #>
         [Parameter(ValueFromPipelineByPropertyName)]
         [hashtable]$ReplaceMap,
+        <# 
+        Hashtable of replacement username
+        Name = AD Root
+        Value = Identity Directory GUID
+
+        ADRoot,Dir
+
+        $importDirMap = Import-Csv -Path .\test-DirMap.csv 
+        $DirMap = @{}
+        foreach ($r in $importDirMap) {
+            $DirMap[$r.ADRoot] = $r.Dir
+        }
+        #>
+        [Parameter(ValueFromPipelineByPropertyName)]
+        [hashtable]$DirMap,
+                <#
+        Name of directory in the destination for vault user
+        For PCloud destinations this should be the DirectoryServiceUuid
+        #>
+        [Parameter(ValueFromPipelineByPropertyName)]
+        [String]$VaultDir,
         [switch]$SuppressCPMWarning
     )
 
@@ -676,7 +704,9 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
             $UpdateSafeMembers = $using:UpdateSafeMembers
             $GetUPNFromAD = $Using:GetUPNFromAD
             $ReplaceMap = $Using:ReplaceMap
+            $DirMap = $Using:DirMap
             $srcRemoveDomain = $using:srcRemoveDomain
+            $RetainExistingPerms = $using:RetainExistingPerms
             $dstDomainSuffix = $using:dstDomainSuffix
             $dstMatchWitoutDomain = $using:dstMatchWitoutDomain
             $newDir = $using:newDir
@@ -704,7 +734,6 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
                     $process.Status = $msg
                 }
             }
-
 
             #region Setup Progress
             $process = $syncCopy.$($PSItem.Id)
@@ -1256,11 +1285,11 @@ Function Remove-DomainEntry
     $DomainBaseContext
 ) {
     IF ([string]::IsNullOrEmpty($script:domainlist[$DomainBaseContext])) {
-        Write-LogMessage -type Warning -MSG "Existing Domain Base Context not found. No Changes Made"
+        Write-LogMessage -type Warning -MSG "`tExisting Domain Base Context not found. No Changes Made"
     }
     else {
         $script:DomainList.Remove($DomainBaseContext)
-        Write-LogMessage -type Warning -MSG "Existing Domain Base Context found and removed"
+        Write-LogMessage -type Warning -MSG "`tExisting Domain Base Context found and removed"
 
     }
 }

@@ -123,17 +123,16 @@ Function Write-LogMessage {
             }
             "Warning" {
                 Write-Host $MSG.ToString() -ForegroundColor Yellow
-                $msgToWrite = "[WARNING]`t$Msg"
+                $msgToWrite = "[WARNING]`t`t$Msg"
                 break
             }
             "Error" {
                 Write-Host $MSG.ToString() -ForegroundColor Red
-                $msgToWrite = "[ERROR]`t`t$Msg"
+                $msgToWrite = "[ERROR]`t`t`t$Msg"
                 break
             }
             "ErrorThrow" {
                 $msgToWrite = "[THROW]`t`t$Msg"
-
                 #Error will be thrown manually after use
                 break
             }
@@ -152,7 +151,6 @@ Function Write-LogMessage {
                 break
             }
         }
-
         If ($WriteLog) {
             If (![string]::IsNullOrEmpty($msgToWrite)) {
                 "[$(Get-Date -Format "yyyy-MM-dd hh:mm:ss")]`t$msgToWrite" | Out-File -Append -FilePath $LogFile
@@ -363,7 +361,6 @@ Function Invoke-Rest {
         if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
             IF (![string]::IsNullOrEmpty($(($PSItem.ErrorDetails.Message | ConvertFrom-Json).ErrorCode))) {
                 If (($($PSItem.ErrorDetails.Message | ConvertFrom-Json).ErrorCode -eq "ITATS127E")) {
-
                     Write-LogMessage -Type Error -Msg "Was able to connect to the PVWA successfully, but the account was locked"
                     Write-LogMessage -Type Error -Msg "URI:  $URI"
                     Write-LogMessage -Type Verbose -Msg "Exiting Invoke-Rest"
@@ -387,7 +384,10 @@ Function Invoke-Rest {
         }
         $restResponse = $null
     } catch {
-        Write-LogMessage -Type Error -Msg "`tError Message: $PSItem"
+        $ErrMsg = $PSItem.ErrorDetails.Message |ConvertFrom-Json
+        Write-LogMessage -Type Error -Msg "Error in Invoke-Rest: Method `"$Command`" on `"$URI`""
+        Write-LogMessage -Type Error -Msg "Error Code: $($ErrMsg.ErrorCode)"
+        Write-LogMessage -Type Error -Msg "Error Message: $($ErrMsg.ErrorMessage)"
         Write-LogMessage -Type Verbose $PSItem
         if ($global:SuperVerbose) {
             Write-LogMessage -Type Verbose "URL: `"$($PSItem.Exception.Response.RequestMessage.RequestUri.OriginalString)`""
@@ -1343,12 +1343,12 @@ Function Get-UserSource {
     )
 
     $URL_UserDetail = "$url/api/Users/$($safeMember.memberId)"
-    Write-LogMessage -Type Debug -Msg "Getting member source: $URL_UserDetail"
-    Write-LogMessage -Type Debug -Msg "Using Member: $safeMember"
+    Write-LogMessage -Type Debug -Msg "Getting member source using URL: `"$URL_UserDetail`""
+    Write-LogMessage -Type Debug -Msg "Using Member: `"$safeMember`""
 
     $user = Invoke-Rest -Command GET -Uri $URL_UserDetail -header $logonHeader
     if ($user.source -eq "Cyberark") {
-        Write-LogMessage -Type Debug -Msg "User source is `"CyberArk`", returning vault"
+        Write-LogMessage -Type Debug -Msg "User source is `"CyberArk`", returning `"vault`""
         return "vault"
     } else {
         Write-LogMessage -Type Debug -Msg "User source is `"LDAP`", attempting to find directory"
@@ -1440,8 +1440,8 @@ Function Get-GroupSource {
     )
 
     $URL_Groups = "$url/api/UserGroups?search=$($safeMember.memberName)"
-    Write-LogMessage -Type Debug -Msg "Getting member source: $URL_Groups"
-    Write-LogMessage -Type Debug -Msg "Using Member: $safeMember"
+    Write-LogMessage -Type Debug -Msg "Getting member source using URL: `"$URL_Groups`""
+    Write-LogMessage -Type Debug -Msg "Using Member: `"$safeMember`""
 
     $groups = Invoke-Rest -Command GET -Uri $URL_Groups -header $logonHeader
 
