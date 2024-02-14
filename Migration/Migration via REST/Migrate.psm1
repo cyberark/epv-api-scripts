@@ -610,7 +610,7 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
         #>
         [Parameter(ValueFromPipelineByPropertyName)]
         [hashtable]$DirMap,
-                <#
+        <#
         Name of directory in the destination for vault user
         For PCloud destinations this should be the DirectoryServiceUuid
         #>
@@ -1243,6 +1243,10 @@ Function Set-DomainList {
         $domainJSon
     )
     $script:DomainList = $domainJSon
+}
+
+Function Get-DomainList {
+    return $script:DomainList
 }
 
 
