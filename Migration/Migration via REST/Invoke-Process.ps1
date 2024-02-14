@@ -107,7 +107,7 @@ Function Invoke-UpdateMember {
             return $false
         }
         Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Processing Username Replacement Map for `"$($srcMember.memberName)`""
-        if (![string]::IsNullOrEmpty($ReplaceMap[$($srcMember.memberName)])) {
+        if ($ReplaceMap.ContainsKey($srcMember.memberName)) {
             $srcMember.memberName = $ReplaceMap[$($srcMember.memberName)]
         }
         else {
@@ -134,7 +134,7 @@ Function Invoke-ProcessUser {
     )
     if (![string]::IsNullOrEmpty($ReplaceMap)) {
         Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Processing Username Replacement Map for `"$($srcMember.membername)`""
-        if (![string]::IsNullOrEmpty($ReplaceMap[$($srcMember.memberName)])) {
+        if ($ReplaceMap.ContainsKey($srcMember.memberName)) {
             $srcMember.memberName = $ReplaceMap[$($srcMember.memberName)]
         }
         Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Final Username is `"$($srcMember.membername)`""
@@ -196,25 +196,24 @@ Function Get-SearchIn {
         Write-LogMessage -type Debug -MSG "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" attribute `"seachIn`" succesfully set"
         return $srcMember    
     }
-    elseIF (![string]::IsNullOrEmpty($DirMap[$source])) {
+    elseif ($DirMap.ContainsKey($source)) {
         Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Processing Directory Replacement Map for `"$($srcMember.memberName)`" with source of `"$userSource`""
         $newSearchin = $DirMap[$source]
-        IF ([string]::IsNullOrEmpty($newSearchin)) {
-            Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Source is not `"vault`" and not able to match to a domain"
-            Throw 
-        }
-        Write-LogMessage -type Debug -MSG "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is a user and source matches to a domain, updating `"seachIn`" to `"$newSearchin`""               
-        $srcMember | Add-Member NoteProperty searchIn $newSearchin
-        Write-LogMessage -type Debug -MSG "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" attribute`"seachIn`" succesfully set"
-        return $srcMember 
     }
-    else {
+    elseif (!$DirMap.ContainsKey($source)) {
         Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Source is not `"vault`" and not able to match to a domain"
         Throw 
     }
-
-
+    Write-LogMessage -type Debug -MSG "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is a user and source matches to a domain, updating `"seachIn`" to `"$newSearchin`""               
+    $srcMember | Add-Member NoteProperty searchIn $newSearchin
+    Write-LogMessage -type Debug -MSG "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" attribute`"seachIn`" succesfully set"
+    return $srcMember 
 }
+else {
+    Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Source is not `"vault`" and not able to match to a domain"
+    Throw 
+}
+
 Function Invoke-ProcessGroup {
     [CmdletBinding()]
     param (
@@ -363,7 +362,7 @@ Function Invoke-ProcessSafe {
                     if (![string]::IsNullOrEmpty($CPMOverride)) {
                         $dstSafe = New-Safe -url $dstPVWAURL -logonHeader $dstToken -safe $srcSafe -cpnNameNew $CPMOverride
                     }
-                    elseIf ((![string]::IsNullOrEmpty($CPMOld)) -and (![string]::IsNullOrEmpty($CPMnew))) {
+                    elseif ((![string]::IsNullOrEmpty($CPMOld)) -and (![string]::IsNullOrEmpty($CPMnew))) {
                         $dstSafe = New-Safe -url $dstPVWAURL -logonHeader $dstToken -safe $srcSafe -cpnNameOld $CPMOld -cpnNameNew $CPMnew
                     }
                     else {
