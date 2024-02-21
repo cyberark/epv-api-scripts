@@ -158,7 +158,7 @@ IF (!$HidePerms) {
 }
 
 $SafeMembersList | `
-Select-Object -Property $ReportProps -ExpandProperty permissions -ExcludeProperty * |`
+Select-Object -Property $ReportProps -ExpandProperty permissions |`
 Select-Object -Property $outputProps | `
 Sort-Object -Property username, safename |`
 Export-Csv $ReportPath -NoTypeInformation
