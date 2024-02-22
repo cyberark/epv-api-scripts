@@ -238,7 +238,7 @@ Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\Us
             } elseif ("GROUP" -eq $ownerType) {
                 $owner.MemberType = "Review - Internal Group"
             }
-            If ([string]::IsNullOrEmpty($domainToAdd) -and ($owner.MemberType -in @("User", "Group"))) {
+            If (![string]::IsNullOrEmpty($domainToAdd) -and ($owner.MemberType -in @("User", "Group"))) {
                 $owner.Member = $owner.'Owner Name' + "@" + $domainToAdd
                 Write-LogMessage -type Debug -MSG "Added `"@ + $domainToAdd`" to Member name"
             } else {
