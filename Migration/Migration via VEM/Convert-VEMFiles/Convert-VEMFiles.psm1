@@ -533,7 +533,7 @@ Convert-vemObjectsFile -objectsCSV C:\Temp\Objects.csv -destinationFile C:\Temp\
             Write-LogMessage -type Debug -MSG "Group Objects Found" 
             #export group objects to a new csv
             $groupObjects | Export-Csv "$($destinationFile.replace(".csv","_GroupObjects.csv"))" -NoTypeInformation
-            WWrite-LogMessage -type Info -MSG "Group Objects file written to $($destinationFile.replace(".csv","_GroupObjects.csv"))"
+            Write-LogMessage -type Info -MSG "Group Objects file written to $($destinationFile.replace(".csv","_GroupObjects.csv"))"
         }
  
         $linkObjects = $objects | Where-Object { ($_.Delete -NE "true") -and (($_.ExtraPass1Name) -or ($_.ExtraPass2Name) -or ($_.ExtraPass3Name)) } | Select-Object -Property $linkObjectProperties
