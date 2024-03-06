@@ -149,7 +149,7 @@ $SafeMembersList | ForEach-Object {
 
 IF (!$HidePerms) {
     If ([string]::IsNullOrEmpty($PermList)) {
-        [array]$outputProps = $ReportProps + $(($SafeMembersList.permissions | Get-Member | Where-Object MemberType -EQ "NoteProperty").name)
+        [array]$outputProps = $ReportProps + $($(($SafeMembersList.permissions | Get-Member | Where-Object MemberType -EQ "NoteProperty").name) |Where-Object {$PSItem -notIn $ReportProps})
     } else {
         [array]$outputProps = $ReportProps + $PermList
     } 
