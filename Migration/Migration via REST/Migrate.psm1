@@ -669,7 +669,11 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
     Write-LogMessage -Type Debug "$($ownersToRemove.Count) owners in owners to remove list"
     Write-LogMessage -Type Verbose "$($ownersToRemove|ConvertTo-Json -Depth 9 -Compress)"
 
-    New-Item -ItemType Directory -Force -Path .\LogFiles-Safes\ | Out-Null
+
+    $StartTimeStamp = Get-Date -Format yyyyMMdd-hhmmss
+    New-Item -ItemType Directory -Force -Path .\LogFiles-Safes\$StartTimeStamp\ | Out-Null
+    $baseLogFile = (Get-Item -Path .\LogFiles-Safes\$StartTimeStamp\).FullName
+    
     $safeProgress = @{}
     $safeobjects | ForEach-Object { $safeProgress.($_.id) = @{} }
     $safeProgressSync = [System.Collections.Hashtable]::Synchronized($safeProgress)
@@ -715,7 +719,7 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
             $CPMOverride = $using:CPMOverride
             $syncCopy = $using:safeProgressSync
             $global:safename = $($PSItem.safeName)
-            $global:LOG_FILE_PATH = ".\LogFiles-Safes\$safename.log"
+            $global:LOG_FILE_PATH = "$($baseLogFile)\$safename.log"
 
             Import-Module -Name ".\CyberArk-Migration.psm1" -Force
             . '.\Invoke-Process.ps1'
@@ -959,12 +963,14 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
         $accountobjects[$i].ProcessID = $i + 1
         $i++
     }
-
-    New-Item -ItemType Directory -Force -Path .\LogFiles-Accounts\ | Out-Null
+    $StartTimeStamp = Get-Date -Format yyyyMMdd-hhmmss
+    New-Item -ItemType Directory -Force -Path .\LogFiles-Accounts\$StartTimeStamp\ | Out-Null
+    $baseLogFile = (Get-Item -Path .\LogFiles-Accounts\$StartTimeStamp\).FullName
     $accountProgress = @{}
     $accountobjects | ForEach-Object { $accountProgress.($_.ProcessID) = @{} }
     $accountProgressSync = [System.Collections.Hashtable]::Synchronized($accountProgress)
     Write-LogMessage -Type Debug -MSG "Setup of account object completed. Starting to submit jobs at $(Get-Date -Format "HH:mm:ss")."
+    
     $AccountJob = $accountobjects | ForEach-Object -ThrottleLimit $maxJobCount -AsJob -Parallel {
 
 
@@ -990,7 +996,7 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
         $global:accountID = $($PSItem.id)
         $global:accountName = $($PSItem.name)
         $global:safeName = $($PSItem.safeName)
-        $global:LOG_FILE_PATH = ".\LogFiles-Accounts\$safeName-$accountName-$accountID-.log"
+        $global:LOG_FILE_PATH = "$($using:baseLogFile)\$safeName-$accountName-$accountID.log"
         Import-Module .\CyberArk-Migration.psm1 -Force
 
         #endregion
@@ -1205,7 +1211,6 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
                     $process.Status = "$completed out of $total jobs completed"
                     $process.PercentComplete = $Precent
                     Write-Progress -Id 0 @process
-
                     if ($ProgressDetails.IsPresent) {
                         $param = $accountProgressSync.$_
                         $param.ParentId = 0
@@ -1231,7 +1236,7 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
             $AccountFailed[$i].accountData.FailReason = $AccountFailed[$i].Error
             $i++
         }
-        $AccountFailed.accountData | Where-Object { !$([string]::IsNullOrEmpty($PSItem.FailReason)) } | Export-Csv -Force .\FailedAccounts.csv
+        $AccountFailed.accountData | Export-Csv -Force .\FailedAccounts.csv
         Write-LogMessage -type Error -MSG "Errors found, list outputted to `".\FailedAccounts.csv`""
     }
     $executionTime = $endTime - $startTime

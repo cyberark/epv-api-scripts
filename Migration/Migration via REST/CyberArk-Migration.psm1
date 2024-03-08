@@ -594,7 +594,7 @@ Function Get-Accounts {
     While (-not [string]::IsNullOrEmpty($nextLink)) {
         $GetAccountsResponse = Invoke-Rest -Command Get -Uri $nextLink -Header $logonHeader
         $GetAccountsList += $GetAccountsResponse.value
-        Write-LogMessage -Type verbose -Msg "Found $($GetAccountsList.count) accounts so far"
+        Write-LogMessage -Type Info -Msg "Found $($GetAccountsList.count) accounts so far"
         # Increase the counter
         $counter++
         If (![string]::IsNullOrEmpty($GetAccountsResponse.nextLink)) {
@@ -606,7 +606,7 @@ Function Get-Accounts {
         }
     }
 
-    Write-LogMessage -Type debug -Msg "Completed retriving $($GetAccountsList.count) accounts"
+    Write-LogMessage -Type Info -Msg "Completed retriving $($GetAccountsList.count) accounts"
     [array]$response = $GetAccountsList
     Write-LogMessage -Type Verbose -Msg "Exiting Get-Accounts"
     return $response
