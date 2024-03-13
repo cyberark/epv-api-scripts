@@ -26,9 +26,7 @@ Converts ownsers.csv file for use with the safe management utiliy against Shared
 Creates a new file in the directory specified with only the values that are used in the safe-management.ps1 utility.
 The file that's created can then be used with the CyberArk Safe Management utility to quickly onboard the safes.
 .EXAMPLE
-Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\UsersGroups.csv -destinationFile C:\Temp\safe-management.csv
-.EXAMPLE
-Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\UsersGroups.csv -ManagingCPM CPM_WIN
+Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\UsersGroups.csv -destinationFile C:\Temp\safe-management.csv -newCPM "NewCPM" -oldCPM "PasswordManager" -domainToAdd "lab.local"
 .EXAMPLE
 Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\UsersGroups.csv -destinationFile C:\Temp\safe-management.csv -verbose
 .NOTES
