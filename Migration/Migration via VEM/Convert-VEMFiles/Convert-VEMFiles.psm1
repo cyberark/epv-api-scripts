@@ -27,8 +27,6 @@ Creates a new file in the directory specified with only the values that are used
 The file that's created can then be used with the CyberArk Safe Management utility to quickly onboard the safes.
 .EXAMPLE
 Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\UsersGroups.csv -destinationFile C:\Temp\safe-management.csv -newCPM "NewCPM" -oldCPM "PasswordManager" -domainToAdd "lab.local"
-.EXAMPLE
-Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\UsersGroups.csv -destinationFile C:\Temp\safe-management.csv -verbose
 .NOTES
 - As good practice, check the output file. Manually remove any records that do not need to be imported
 - Built-In users and safes will not be removed from the output file. Remove these manually if needed
