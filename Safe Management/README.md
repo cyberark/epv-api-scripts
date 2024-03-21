@@ -142,6 +142,16 @@ Add a new Auditor member from LDAP to the Safe 'MySafe':
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Members -SafeName "MySafe" -UserName "MyAuditUser" -MemberRole "Auditor" -UserLocation "MyLDAPDomain.com"
 ```
 
+### Add Members Command:
+```powershell
+Safe-Management.ps1 -PVWAURL <string> -AddMembers [-logonToken $token] [-FilePath <string>] [<CommonParameters>]
+```
+
+Adds a list of members from a file:
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -AddMembers -FilePath "C:\Temp\safe-members-sample.csv"
+```
+
 ### Update Members Command:
 ```powershell
 Safe-Management.ps1 -PVWAURL <string> -UpdateMembers [-logonToken $token] [-FilePath <string>] [<CommonParameters>]
