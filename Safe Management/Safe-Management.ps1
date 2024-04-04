@@ -47,6 +47,8 @@ param
     [Parameter(ParameterSetName = 'Add', Mandatory = $true)][switch]$Add,
     # Use this switch to Update Safes
     [Parameter(ParameterSetName = 'Update', Mandatory = $true)][switch]$Update,
+    # Use this switch to Add Safe Members
+    [Parameter(ParameterSetName = 'AddMembers', Mandatory = $true)][switch]$AddMembers,
     # Use this switch to Update Safe Members
     [Parameter(ParameterSetName = 'UpdateMembers', Mandatory = $true)][switch]$UpdateMembers,
     # Use this switch to Delete Safe Members
@@ -75,6 +77,7 @@ param
     # Import File support
     [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = "Enter a file path for bulk safe creation")]
     [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = "Enter a file path for bulk safe update")]
+    [Parameter(ParameterSetName = 'AddMembers', Mandatory = $false, HelpMessage = "Enter a file path for bulk safe membership additions")]
     [Parameter(ParameterSetName = 'UpdateMembers', Mandatory = $false, HelpMessage = "Enter a file path for bulk safe membership update")]
     [Parameter(ParameterSetName = 'DeleteMembers', Mandatory = $false, HelpMessage = "Enter a file path for bulk safe membership deletion")]
     [Parameter(ParameterSetName = 'Delete', Mandatory = $false, HelpMessage = "Enter a file path for bulk safe deletion")]
@@ -1067,7 +1070,7 @@ If (Test-CommandExists Invoke-RestMethod) {
                 Write-LogMessage -Type Error -Msg "Error retrieving safes. Error: $(Join-ExceptionMessage $_.Exception)"
             }
         }
-        { ($_ -eq "Add") -or ($_ -eq "Update") -or ($_ -eq "UpdateMembers") -or ($_ -eq "Delete") -or ($_ -eq "DeleteMembers") } {
+        { ($_ -eq "Add") -or ($_ -eq "Update") -or ($_ -eq "AddMembers")-or ($_ -eq "UpdateMembers") -or ($_ -eq "Delete") -or ($_ -eq "DeleteMembers") } {
             try {
                 if (![string]::IsNullOrEmpty($FilePath)) {
                     # Bulk Import of Safes

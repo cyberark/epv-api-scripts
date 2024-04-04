@@ -26,11 +26,7 @@ Converts ownsers.csv file for use with the safe management utiliy against Shared
 Creates a new file in the directory specified with only the values that are used in the safe-management.ps1 utility.
 The file that's created can then be used with the CyberArk Safe Management utility to quickly onboard the safes.
 .EXAMPLE
-Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\UsersGroups.csv -destinationFile C:\Temp\safe-management.csv
-.EXAMPLE
-Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\UsersGroups.csv -ManagingCPM CPM_WIN
-.EXAMPLE
-Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\UsersGroups.csv -destinationFile C:\Temp\safe-management.csv -verbose
+Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\UsersGroups.csv -destinationFile C:\Temp\safe-management.csv -newCPM "NewCPM" -oldCPM "PasswordManager" -domainToAdd "lab.local"
 .NOTES
 - As good practice, check the output file. Manually remove any records that do not need to be imported
 - Built-In users and safes will not be removed from the output file. Remove these manually if needed
@@ -238,7 +234,7 @@ Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\Us
             } elseif ("GROUP" -eq $ownerType) {
                 $owner.MemberType = "Review - Internal Group"
             }
-            If ([string]::IsNullOrEmpty($domainToAdd) -and ($owner.MemberType -in @("User", "Group"))) {
+            If (![string]::IsNullOrEmpty($domainToAdd) -and ($owner.MemberType -in @("User", "Group"))) {
                 $owner.Member = $owner.'Owner Name' + "@" + $domainToAdd
                 Write-LogMessage -type Debug -MSG "Added `"@ + $domainToAdd`" to Member name"
             } else {
@@ -533,7 +529,7 @@ Convert-vemObjectsFile -objectsCSV C:\Temp\Objects.csv -destinationFile C:\Temp\
             Write-LogMessage -type Debug -MSG "Group Objects Found" 
             #export group objects to a new csv
             $groupObjects | Export-Csv "$($destinationFile.replace(".csv","_GroupObjects.csv"))" -NoTypeInformation
-            WWrite-LogMessage -type Info -MSG "Group Objects file written to $($destinationFile.replace(".csv","_GroupObjects.csv"))"
+            Write-LogMessage -type Info -MSG "Group Objects file written to $($destinationFile.replace(".csv","_GroupObjects.csv"))"
         }
  
         $linkObjects = $objects | Where-Object { ($_.Delete -NE "true") -and (($_.ExtraPass1Name) -or ($_.ExtraPass2Name) -or ($_.ExtraPass3Name)) } | Select-Object -Property $linkObjectProperties
