@@ -26,19 +26,19 @@
  2.1.5  22/05/2023      - Added ability to prevent logoff
  2.1.6  2023-05-22      - Updated Write-LogMessage to force verbose and debug to log file
 ########################################################################### #>
-[CmdletBinding(DefaultParameterSetName = "List")]
+[CmdletBinding(DefaultParameterSetName = 'List')]
 param
 (
-    [Parameter(Mandatory = $true, HelpMessage = "Please enter your PVWA address (For example: https://pvwa.mydomain.com/passwordvault)")]
-    [Alias("url")]
+    [Parameter(Mandatory = $true, HelpMessage = 'Please enter your PVWA address (For example: https://pvwa.mydomain.com/passwordvault)')]
+    [Alias('url')]
     [String]$PVWAURL,
 
-    [Parameter(Mandatory = $false, HelpMessage = "Enter the Authentication type (Default:CyberArk)")]
-    [ValidateSet("cyberark", "ldap", "radius")]
-    [String]$AuthType = "cyberark",
+    [Parameter(Mandatory = $false, HelpMessage = 'Enter the Authentication type (Default:CyberArk)')]
+    [ValidateSet('cyberark', 'ldap', 'radius')]
+    [String]$AuthType = 'cyberark',
 
-    [Parameter(Mandatory = $false, HelpMessage = "Enter the RADIUS OTP")]
-    [ValidateScript({ $AuthType -eq "radius" })]
+    [Parameter(Mandatory = $false, HelpMessage = 'Enter the RADIUS OTP')]
+    [ValidateScript({ $AuthType -eq 'radius' })]
     [String]$OTP,
 		
     # Use this switch to list Safes
@@ -57,72 +57,72 @@ param
     [Parameter(ParameterSetName = 'Members', Mandatory = $true)][switch]$Members,
 		
     # Safe Name
-    [Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "Enter a Safe Name to filter by")]
-    [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = "Enter a Safe Name to create")]
-    [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = "Enter a Safe Name to update")]
-    [Parameter(ParameterSetName = 'Delete', Mandatory = $false, HelpMessage = "Enter a Safe Name to delete")]
-    [Parameter(ParameterSetName = 'Members', Mandatory = $true, HelpMessage = "Enter a Safe Name to add members to")]
+    [Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = 'Enter a Safe Name to filter by')]
+    [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = 'Enter a Safe Name to create')]
+    [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = 'Enter a Safe Name to update')]
+    [Parameter(ParameterSetName = 'Delete', Mandatory = $false, HelpMessage = 'Enter a Safe Name to delete')]
+    [Parameter(ParameterSetName = 'Members', Mandatory = $true, HelpMessage = 'Enter a Safe Name to add members to')]
     [ValidateScript( { $_.Length -le 28 })]
-    [Alias("Safe")]
+    [Alias('Safe')]
     [String]$SafeName,
 	
     # Safe Description
-    [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = "Enter a Safe Description")]
-    [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = "Enter an updated Safe Description")]
-    [Alias("Description")]
+    [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = 'Enter a Safe Description')]
+    [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = 'Enter an updated Safe Description')]
+    [Alias('Description')]
     [String]$SafeDescription,
 	
     # Import File support
-    [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = "Enter a file path for bulk safe creation")]
-    [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = "Enter a file path for bulk safe update")]
-    [Parameter(ParameterSetName = 'UpdateMembers', Mandatory = $false, HelpMessage = "Enter a file path for bulk safe membership update")]
-    [Parameter(ParameterSetName = 'DeleteMembers', Mandatory = $false, HelpMessage = "Enter a file path for bulk safe membership deletion")]
-    [Parameter(ParameterSetName = 'Delete', Mandatory = $false, HelpMessage = "Enter a file path for bulk safe deletion")]
+    [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = 'Enter a file path for bulk safe creation')]
+    [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = 'Enter a file path for bulk safe update')]
+    [Parameter(ParameterSetName = 'UpdateMembers', Mandatory = $false, HelpMessage = 'Enter a file path for bulk safe membership update')]
+    [Parameter(ParameterSetName = 'DeleteMembers', Mandatory = $false, HelpMessage = 'Enter a file path for bulk safe membership deletion')]
+    [Parameter(ParameterSetName = 'Delete', Mandatory = $false, HelpMessage = 'Enter a file path for bulk safe deletion')]
     [ValidateScript( { Test-Path -Path $_ -PathType Leaf -IsValid })]
     [ValidatePattern( '\.csv$' )]
-    [Alias("File")]
+    [Alias('File')]
     [String]$FilePath,
 	
-    [Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = "Enter a file path for report output. Must be CSV")]
+    [Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = 'Enter a file path for report output. Must be CSV')]
     [ValidatePattern( '\.csv$' )]
-    [Alias("Report")]
+    [Alias('Report')]
     [String]$ReportPath,
 
     # Add / Update Safe options
-    [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = "Enter the managing CPM name")]
-    [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = "Enter the updated managing CPM name")]
+    [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = 'Enter the managing CPM name')]
+    [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = 'Enter the updated managing CPM name')]
     [string]$ManagingCPM,
 	
-    [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = "Enter the number of versions retention")]
-    [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = "Enter the updated number of versions retention")]
+    [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = 'Enter the number of versions retention')]
+    [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = 'Enter the updated number of versions retention')]
     [int]$NumVersionRetention = 7,
 	
     # Member Roles 
-    [Parameter(ParameterSetName = 'Members', Mandatory = $false, HelpMessage = "Enter a role for the member to add (Default: EndUser)")]
-    [ValidateSet("Admin", "Auditor", "EndUser", "Owner", "Approver")]
-    [Alias("Role")]
-    [String]$MemberRole = "EndUser",
+    [Parameter(ParameterSetName = 'Members', Mandatory = $false, HelpMessage = 'Enter a role for the member to add (Default: EndUser)')]
+    [ValidateSet('Admin', 'Auditor', 'EndUser', 'Owner', 'Approver')]
+    [Alias('Role')]
+    [String]$MemberRole = 'EndUser',
 	
     # User / Member name 
-    [Parameter(ParameterSetName = 'Members', Mandatory = $false, HelpMessage = "Enter the user name to add as member to the safe")]
+    [Parameter(ParameterSetName = 'Members', Mandatory = $false, HelpMessage = 'Enter the user name to add as member to the safe')]
     [ValidateScript( { $_.Length -le 128 })]
-    [Alias("User")]
+    [Alias('User')]
     [String]$UserName,
 	
     # User / Member Vault Location
-    [Parameter(ParameterSetName = 'Members', Mandatory = $false, HelpMessage = "Enter the vault-integrated LDAP directory name the vault should search for the account. Must match one of the directory names defined in the LDAP Integration page of the PVWA. (Default: Search in Vault)")]
-    [Alias("Location")]
-    [String]$UserLocation = "Vault",
+    [Parameter(ParameterSetName = 'Members', Mandatory = $false, HelpMessage = 'Enter the vault-integrated LDAP directory name the vault should search for the account. Must match one of the directory names defined in the LDAP Integration page of the PVWA. (Default: Search in Vault)')]
+    [Alias('Location')]
+    [String]$UserLocation = 'Vault',
 
-    [Parameter(ParameterSetName = 'Members', Mandatory = $false, HelpMessage = "Output default users in reports")]
-    [Alias("Default")]
+    [Parameter(ParameterSetName = 'Members', Mandatory = $false, HelpMessage = 'Output default users in reports')]
+    [Alias('Default')]
     [switch]$IncludeDefault,
 
-    [Parameter(ParameterSetName = 'UpdateMembers', Mandatory = $false, HelpMessage = "If member does not exist while updating, attempt to add them.")]
+    [Parameter(ParameterSetName = 'UpdateMembers', Mandatory = $false, HelpMessage = 'If member does not exist while updating, attempt to add them.')]
     [Switch]$AddOnUpdate,
 	
     # Support for Threading (Logon Connection Number)
-    [Parameter(Mandatory = $false, HelpMessage = "Enable conncurrent session")]
+    [Parameter(Mandatory = $false, HelpMessage = 'Enable conncurrent session')]
     [switch]$concurrentSession = $false,
 	
     # Use this switch to Disable SSL verification (NOT RECOMMENDED)
@@ -147,32 +147,32 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = "2.1.6"
+$ScriptVersion = '2.1.6'
 
 # ------ SET global parameters ------
 # Set Log file path
-$global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + "-" + $(Get-Date -Format HHmmss)
+$global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + '-' + $(Get-Date -Format HHmmss)
 $global:LOG_FILE_PATH = "$ScriptLocation\SafeManagement_$LOG_DATE.log"
 # Set a global Header Token parameter
-$global:g_LogonHeader = ""
+$global:g_LogonHeader = ''
 # Set a global safes list to improve performance
 $global:g_SafesList = $null
 # Set a global list of all Default sues to ignore
-$global:g_DefaultUsers = @("Master", "Batch", "Backup Users", "Auditors", "Operators", "DR Users", "Notification Engines", "PVWAGWAccounts", "PVWAGWUser", "PVWAAppUser", "PasswordManager")
+$global:g_DefaultUsers = @('Master', 'Batch', 'Backup Users', 'Auditors', 'Operators', 'DR Users', 'Notification Engines', 'PVWAGWAccounts', 'PVWAGWUser', 'PVWAAppUser', 'PasswordManager')
 $global:g_includeDefaultUsers = $IncludeDefault
 # Global URLS
 # -----------
-$URL_PVWAAPI = $PVWAURL + "/api"
-$URL_Authentication = $URL_PVWAAPI + "/auth"
+$URL_PVWAAPI = $PVWAURL + '/api'
+$URL_Authentication = $URL_PVWAAPI + '/auth'
 $URL_Logon = $URL_Authentication + "/$AuthType/Logon"
-$URL_Logoff = $URL_Authentication + "/Logoff"
+$URL_Logoff = $URL_Authentication + '/Logoff'
 
 # URL Methods
 # -----------
-$URL_Safes = $URL_PVWAAPI + "/Safes"
-$URL_SpecificSafe = $URL_Safes + "/{0}"
-$URL_SafeMembers = $URL_SpecificSafe + "/Members"
-$URL_SafeSpecificMember = $URL_SpecificSafe + "/Members/{1}"
+$URL_Safes = $URL_PVWAAPI + '/Safes'
+$URL_SpecificSafe = $URL_Safes + '/{0}'
+$URL_SafeMembers = $URL_SpecificSafe + '/Members'
+$URL_SafeSpecificMember = $URL_SpecificSafe + '/Members/{1}'
 
 #region Functions
 Function Test-CommandExists {
@@ -183,9 +183,11 @@ Function Test-CommandExists {
         if (Get-Command $command) {
             RETURN $true
         }
-    } Catch {
+    }
+    Catch {
         Write-Host "$command does not exist"; RETURN $false
-    } Finally {
+    }
+    Finally {
         $ErrorActionPreference = $oldPreference
     }
 } #end function test-CommandExists
@@ -205,10 +207,11 @@ Function ConvertTo-URL($sText) {
 .PARAMETER sText
 	The text to encode
 #>
-    if ($sText.Trim() -ne "") {
+    if ($sText.Trim() -ne '') {
         Write-LogMessage -Type Debug -Msg "Returning URL Encode of $sText"
         return [URI]::EscapeDataString($sText)
-    } else {
+    }
+    else {
         return $sText
     }
 }
@@ -245,59 +248,62 @@ Function Write-LogMessage {
         [Parameter(Mandatory = $false)]
         [Switch]$Footer,
         [Parameter(Mandatory = $false)]
-        [ValidateSet("Info", "Warning", "Error", "Debug", "Verbose")]
-        [String]$type = "Info",
+        [ValidateSet('Info', 'Warning', 'Error', 'Debug', 'Verbose')]
+        [String]$type = 'Info',
         [Parameter(Mandatory = $false)]
         [String]$LogFile = $LOG_FILE_PATH
     )
     try {
         If ($Header) {
-            "=======================================" | Out-File -Append -FilePath $LOG_FILE_PATH 
-            Write-Host "======================================="
-        } ElseIf ($SubHeader) { 
-            "------------------------------------" | Out-File -Append -FilePath $LOG_FILE_PATH 
-            Write-Host "------------------------------------"
+            '=======================================' | Out-File -Append -FilePath $LOG_FILE_PATH 
+            Write-Host '======================================='
+        }
+        ElseIf ($SubHeader) { 
+            '------------------------------------' | Out-File -Append -FilePath $LOG_FILE_PATH 
+            Write-Host '------------------------------------'
         }
 	
-        $msgToWrite = "[$(Get-Date -Format "yyyy-MM-dd hh:mm:ss")]`t"
+        $msgToWrite = "[$(Get-Date -Format 'yyyy-MM-dd hh:mm:ss')]`t"
         $writeToFile = $true
         # Replace empty message with 'N/A'
         if ([string]::IsNullOrEmpty($Msg)) {
-            $Msg = "N/A" 
+            $Msg = 'N/A' 
         }
         # Mask Passwords
         if ($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))') {
-            $Msg = $Msg.Replace($Matches[2], "****")
+            $Msg = $Msg.Replace($Matches[2], '****')
         }
         # Check the message type
         switch ($type) {
-            "Info" { 
+            'Info' { 
                 Write-Host $MSG.ToString()
                 $msgToWrite += "[INFO]`t$Msg"
             }
-            "Warning" {
+            'Warning' {
                 Write-Host $MSG.ToString() -ForegroundColor DarkYellow
                 $msgToWrite += "[WARNING]`t$Msg"
             }
-            "Error" {
+            'Error' {
                 Write-Host $MSG.ToString() -ForegroundColor Red
                 $msgToWrite += "[ERROR]`t$Msg"
             }
-            "Debug" { 
+            'Debug' { 
                 if ($InDebug -or $InVerbose) {
                     Write-Debug $MSG
-		    $writeToFile = $true
+                    $writeToFile = $true
                     $msgToWrite += "[DEBUG]`t$Msg"		    
-                } else {
+                }
+                else {
                     $writeToFile = $False 
                 }
             }
-            "Verbose" { 
+            'Verbose' { 
                 if ($InVerbose) {
                     Write-Verbose $MSG
-		    $writeToFile = $true
+                    $writeToFile = $true
                     $msgToWrite += "[VERBOSE]`t$Msg"
-                } else {
+                }
+                else {
                     $writeToFile = $False 
                 }
             }
@@ -307,10 +313,11 @@ Function Write-LogMessage {
             $msgToWrite | Out-File -Append -FilePath $LOG_FILE_PATH 
         }
         If ($Footer) { 
-            "=======================================" | Out-File -Append -FilePath $LOG_FILE_PATH 
-            Write-Host "======================================="
+            '=======================================' | Out-File -Append -FilePath $LOG_FILE_PATH 
+            Write-Host '======================================='
         }
-    } catch {
+    }
+    catch {
         Write-Error "Error in writing log: $($_.Exception.Message)" 
     }
 }
@@ -331,7 +338,7 @@ Function Join-ExceptionMessage {
     Begin {
     }
     Process {
-        $msg = "Source:{0}; Message: {1}" -f $e.Source, $e.Message
+        $msg = 'Source:{0}; Message: {1}' -f $e.Source, $e.Message
         while ($e.InnerException) {
             $e = $e.InnerException
             $msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
@@ -370,7 +377,8 @@ Function Get-LogonHeader {
         # ----------------------------------
         If ($concurrentSession) {
             $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password; concurrentSession = $true } | ConvertTo-Json
-        } else {
+        }
+        else {
             $logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password } | ConvertTo-Json
 
         }
@@ -380,17 +388,18 @@ Function Get-LogonHeader {
         } 
         try {
             # Logon
-            $logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json" -TimeoutSec 2700
+            $logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType 'application/json' -TimeoutSec 2700
 			
             # Clear logon body
-            $logonBody = ""
-        } catch {
+            $logonBody = ''
+        }
+        catch {
             Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
         }
 
         $logonHeader = $null
         If ([string]::IsNullOrEmpty($logonToken)) {
-            Throw "Get-LogonHeader: Logon Token is Empty - Cannot login"
+            Throw 'Get-LogonHeader: Logon Token is Empty - Cannot login'
         }
 		
         try {
@@ -399,8 +408,9 @@ Function Get-LogonHeader {
             $logonHeader = @{Authorization = $logonToken }
 
             Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
-        } catch {
-            Throw $(New-Object System.Exception ("Get-LogonHeader: Could not create Logon Headers Dictionary", $_.Exception))
+        }
+        catch {
+            Throw $(New-Object System.Exception ('Get-LogonHeader: Could not create Logon Headers Dictionary', $_.Exception))
         }
     }
 }
@@ -416,12 +426,13 @@ Function Invoke-Logoff {
         # Logoff the session
         # ------------------
         If ($null -ne $g_LogonHeader) {
-            Write-LogMessage -Type Info -Msg "Logoff Session..."
-            Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 | Out-Null
+            Write-LogMessage -Type Info -Msg 'Logoff Session...'
+            Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 | Out-Null
             Set-Variable -Name g_LogonHeader -Value $null -Scope global
         }
-    } catch {
-        Throw $(New-Object System.Exception ("Invoke-Logoff: Failed to logoff session", $_.Exception))
+    }
+    catch {
+        Throw $(New-Object System.Exception ('Invoke-Logoff: Failed to logoff session', $_.Exception))
     }
 }
 
@@ -435,14 +446,14 @@ Function Disable-SSLVerification {
     # Check if to disable SSL verification
     If ($DisableSSLVerify) {
         try {
-            Write-Warning "It is not Recommended to disable SSL verification" -WarningAction Inquire
+            Write-Warning 'It is not Recommended to disable SSL verification' -WarningAction Inquire
             # Using Proxy Default credentials if the Server needs Proxy credentials
             [System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
             # Using TLS 1.2 as security protocol verification
             [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
             # Disable SSL Verification
-            if (-not("DisableCertValidationCallback" -as [type])) {
-                Add-Type -TypeDefinition @"
+            if (-not('DisableCertValidationCallback' -as [type])) {
+                Add-Type -TypeDefinition @'
 using System;
 using System.Net;
 using System.Net.Security;
@@ -458,18 +469,21 @@ public static class DisableCertValidationCallback {
         return new RemoteCertificateValidationCallback(DisableCertValidationCallback.ReturnTrue);
     }
 }
-"@ 
+'@ 
             }
 
             [System.Net.ServicePointManager]::ServerCertificateValidationCallback = [DisableCertValidationCallback]::GetDelegate()
-        } catch {
+        }
+        catch {
             Write-LogMessage -Type Error -Msg "Could not change SSL validation. Error: $(Join-ExceptionMessage $_.Exception)"
         }
-    } Else {
+    }
+    Else {
         try {
-            Write-LogMessage -Type Info -Msg "Setting script to use TLS 1.2"
+            Write-LogMessage -Type Info -Msg 'Setting script to use TLS 1.2'
             [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-        } catch {
+        }
+        catch {
             Write-LogMessage -Type Error -Msg "Could not change SSL setting to use TLS 1.2. Error: $(Join-ExceptionMessage $_.Exception)"
         }
     }
@@ -496,16 +510,16 @@ Get-Safes
 
     try {
         If ($null -eq $g_SafesList) {
-            Write-LogMessage -Type Debug -Msg "Retrieving safes from the vault..."
+            Write-LogMessage -Type Debug -Msg 'Retrieving safes from the vault...'
             $GetSafesList = @()
-            $safes = (Invoke-RestMethod -Uri $URL_Safes -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700)
+            $safes = (Invoke-RestMethod -Uri $URL_Safes -Method GET -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700)
             $GetSafesList += $safes.value
             Write-LogMessage -Type Debug -Msg "Total safes response: $($safes.count)"
             $nextLink = $safes.nextLink
             Write-LogMessage -Type Debug -Msg $nextLink
 				
-            While ($nextLink -ne "" -and $null -ne $nextLink) {
-                $safes = (Invoke-RestMethod -Method Get -Uri $("$PVWAURL/$nextLink") -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700)
+            While ($nextLink -ne '' -and $null -ne $nextLink) {
+                $safes = (Invoke-RestMethod -Method Get -Uri $("$PVWAURL/$nextLink") -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700)
                 $nextLink = $safes.nextLink
                 Write-LogMessage -Type Debug -Msg $nextLink
                 $GetSafesList += $safes.value
@@ -515,8 +529,9 @@ Get-Safes
         }
 		
         return $g_SafesList
-    } catch {
-        Throw $(New-Object System.Exception ("Get-Safes: There was an error retrieving the safes from the Vault.", $_.Exception))
+    }
+    catch {
+        Throw $(New-Object System.Exception ('Get-Safes: There was an error retrieving the safes from the Vault.', $_.Exception))
     }
 
 }
@@ -540,22 +555,24 @@ Get-Safe -safeName "x0-Win-S-Admins"
     $_safe = @()
     try {
         $accSafeURL = $URL_SpecificSafe -f $(ConvertTo-URL $safeName)
-        $_safe += $(Invoke-RestMethod -Uri $accSafeURL -Method "Get" -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue")
+        $_safe += $(Invoke-RestMethod -Uri $accSafeURL -Method 'Get' -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 -ErrorAction 'SilentlyContinue')
         If (![string]::IsNullOrEmpty($_safe.nextLink)) {
             $nextLink = $_safe.nextLink
             While (![string]::IsNullOrEmpty($nextLink)) {
                 $_safeNext = @()
-                $_safeNext += $(Invoke-RestMethod -Uri "$PVWAURL/$nextLink" -Method "Get" -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue")
+                $_safeNext += $(Invoke-RestMethod -Uri "$PVWAURL/$nextLink" -Method 'Get' -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 -ErrorAction 'SilentlyContinue')
                 $_safe += $_safeNext
                 If (![string]::IsNullOrEmpty($_safeNext.nextLink)) {
                     $nextLink = $_safeNext.nextLink
-                } else {
+                }
+                else {
                     $nextLink = $null
                 }
             }
         }
 
-    } catch {
+    }
+    catch {
         Throw $(New-Object System.Exception ("Get-Safe: Error retrieving safe '$safename' details.", $_.Exception))
     }
 	
@@ -583,11 +600,13 @@ Function Test-Safe {
         If ($null -ne $g_SafesList) {
             # Check Cached safes list first
             $chkSafeExists = ($g_SafesList.safename -contains $safename)
-        } Else {
+        }
+        Else {
             # No cache, Get safe details from Vault
             try {
-                $chkSafeExists = $null -ne $(Get-Safe -safeName $safeName -ErrAction "SilentlyContinue")
-            } catch {
+                $chkSafeExists = $null -ne $(Get-Safe -safeName $safeName -ErrAction 'SilentlyContinue')
+            }
+            catch {
                 $chkSafeExists = $false
             }
         }
@@ -597,13 +616,15 @@ Function Test-Safe {
             # Safe exists
             Write-LogMessage -Type Info -MSG "Safe $safeName exists"
             $retResult = $true
-        } Else {
+        }
+        Else {
             # Safe does not exist
             Write-LogMessage -Type Warning -MSG "Safe $safeName does not exist"
             $retResult = $false
         }
-    } catch {
-        Write-LogMessage -Type Error -MSG $_.Exception -ErrorAction "SilentlyContinue"
+    }
+    catch {
+        Write-LogMessage -Type Error -MSG $_.Exception -ErrorAction 'SilentlyContinue'
         $retResult = $false
     }
 	
@@ -641,28 +662,29 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
     )
 
     $createSafeBody = @{
-        "SafeName"                  = "$safename" 
-        "Description"               = "$safeDescription" 
-        "OLACEnabled"               = $enableOLAC 
-        "ManagingCPM"               = "$managingCPM"
-        "NumberOfVersionsRetention" = $numVersionRetention
+        'SafeName'                  = "$safename" 
+        'Description'               = "$safeDescription" 
+        'OLACEnabled'               = $enableOLAC 
+        'ManagingCPM'               = "$managingCPM"
+        'NumberOfVersionsRetention' = $numVersionRetention
     }
 
     If ($numDaysRetention -gt -1) {
-        $createSafeBody.Add("NumberOfDaysRetention", $numDaysRetention)
-        $createSafeBody.Remove("NumberOfVersionsRetention")
+        $createSafeBody.Add('NumberOfDaysRetention', $numDaysRetention)
+        $createSafeBody.Remove('NumberOfVersionsRetention')
     }
 
     try {
         Write-LogMessage -Type Debug -Msg "Adding the safe $safename to the Vault..."
         Write-LogMessage -Type Debug -Msg "Create Safe Body: `n$createSafeBody" 
-        $safeAdd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
+        $safeAdd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700
         # Reset cached Safes list
         #Set-Variable -Name g_SafesList -Value $null -Scope Global
         # Update Safes list to include new safe
         #Get-Safes | out-null
         $g_SafesList += $safeAdd
-    } catch {
+    }
+    catch {
         Throw $(New-Object System.Exception ("New-Safe: Error adding $safename to the Vault.", $_.Exception))
     }
 }
@@ -699,7 +721,8 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     try {
         # Get the current safe details and update when necessary
         $getSafe = Get-Safe -safeName $safeName
-    } catch {
+    }
+    catch {
         Throw $(New-Object System.Exception ("Update-Safe: Error getting current details on safe '$safeName'", $_.Exception))
     }
     $updateDescription = $getSafe.Description
@@ -715,9 +738,10 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
         $updateOLAC = $EnableOLAC
     }
     If (![string]::IsNullOrEmpty($managingCPM) -and $getSafe.ManagingCPM -ne $managingCPM) {
-        If ("NULL" -eq $managingCPM) {
-            $updateManageCPM = ""
-        } else {
+        If ('NULL' -eq $managingCPM) {
+            $updateManageCPM = ''
+        }
+        else {
             $updateManageCPM = $managingCPM
         }
     }
@@ -729,19 +753,20 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     }
 	
     $updateSafeBody = @{
-        "SafeName"                  = "$safeName" 
-        "Description"               = "$updateDescription" 
-        "OLACEnabled"               = $updateOLAC 
-        "ManagingCPM"               = "$updateManageCPM"
-        "NumberOfVersionsRetention" = $updateRetVersions
-        "NumberOfDaysRetention"     = $updateRetDays
+        'SafeName'                  = "$safeName" 
+        'Description'               = "$updateDescription" 
+        'OLACEnabled'               = $updateOLAC 
+        'ManagingCPM'               = "$updateManageCPM"
+        'NumberOfVersionsRetention' = $updateRetVersions
+        'NumberOfDaysRetention'     = $updateRetDays
     } | ConvertTo-Json
 
     try {
         Write-LogMessage -Type Debug -Msg "Updating safe $safename..."
         Write-LogMessage -Type Debug -Msg "Update Safe Body: $updateSafeBody" 
-        $null = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
-    } catch {
+        $null = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700
+    }
+    catch {
         Throw $(New-Object System.Exception ("Update-Safe: Error updating $safeName.", $_.Exception))
     }
 }
@@ -768,8 +793,9 @@ Remove-Safe -safename "x0-Win-S-Admins"
 
     try {
         Write-LogMessage -Type Debug -Msg "Deleting the safe $safename from the Vault..."
-        $null = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Method DELETE -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700
-    } catch {
+        $null = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Method DELETE -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700
+    }
+    catch {
         Throw $(New-Object System.Exception ("Remove-Safe: Error deleting $safename from the Vault.", $_.Exception))
     }
 }
@@ -804,12 +830,12 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
         [switch]$deleteMember,
         [Parameter(Mandatory = $true,
             ValueFromPipelineByPropertyName = $true,
-            HelpMessage = "Which vault-integrated LDAP directory name the vault should search for the account. Must match one of the directory names defined in the LDAP Integration page of the PVWA.",
+            HelpMessage = 'Which vault-integrated LDAP directory name the vault should search for the account. Must match one of the directory names defined in the LDAP Integration page of the PVWA.',
             Position = 0)]
-        $memberSearchInLocation = "Vault",
+        $memberSearchInLocation = 'Vault',
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         #[ValidateSet("User","Group","Role")] # Removed due to causing errors
-        [String]$memberType="User",
+        [String]$memberType = 'User',
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [bool]$permUseAccounts = $false,
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
@@ -890,46 +916,54 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
             If ($updateMember) {
                 Write-LogMessage -Type Debug -Msg "Updating safe membership for $safeMember on $safeName in the vault..."
                 $urlSafeMembers = ($URL_SafeSpecificMember -f $(ConvertTo-URL $safeName), $safeMember)
-                $restMethod = "PUT"
-            } elseif ($deleteMember) {
+                $restMethod = 'PUT'
+            }
+            elseif ($deleteMember) {
                 Write-LogMessage -Type Debug -Msg "Deleting $safeMember from $safeName in the vault..."
                 $urlSafeMembers = ($URL_SafeSpecificMember -f $(ConvertTo-URL $safeName), $safeMember)
-                $restMethod = "DELETE"
-            } else {
+                $restMethod = 'DELETE'
+            }
+            else {
                 # Adding a member
                 Write-LogMessage -Type Debug -Msg "Adding $safeMember located in $memberSearchInLocation to $safeName in the vault..."
                 $urlSafeMembers = ($URL_SafeMembers -f $(ConvertTo-URL $safeName))
-                $restMethod = "POST"
+                $restMethod = 'POST'
             }
-            $null = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorVariable rMethodErr
-        } catch {
-            if ($rMethodErr.message -like "*User or Group is already a member*") {
+            $null = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 -ErrorVariable rMethodErr
+        }
+        catch {
+            if ($rMethodErr.message -like '*User or Group is already a member*') {
                 Write-LogMessage -Type Warning -Msg "The user $safeMember is already a member. Use the update member method instead"
-            } elseif (($rMethodErr.message -like "*User or Group was not found.*") -or ($rMethodErr.message -like "*404*") -or ($rMethodErr.message -like "*hasn't been defined.*") -or ($rMethodErr.message -like "*has not been defined.*")) {   
+            }
+            elseif (($rMethodErr.message -like '*User or Group was not found.*') -or ($rMethodErr.message -like '*404*') -or ($rMethodErr.message -like "*hasn't been defined.*") -or ($rMethodErr.message -like '*has not been defined.*')) {   
 
                 If ($AddOnUpdate) {
                     # Adding a member
                     Write-LogMessage -Type Warning -Msg "User or Group was not found. Attempting to adding $safeMember located in $memberSearchInLocation to $safeName in the vault..."
                     $urlSafeMembers = ($URL_SafeMembers -f $(ConvertTo-URL $safeName))
-                    $restMethod = "POST"
+                    $restMethod = 'POST'
                     try {
-                        $null = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorVariable rMethodErr
-                    } catch {
+                        $null = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 -ErrorVariable rMethodErr
+                    }
+                    catch {
 
                         Write-LogMessage -Type Error -Msg "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:"
-                        Write-LogMessage -Type Error -Msg ("{0} ({1})" -f $rMethodErr.message, $_.Exception.Response.StatusDescription)
+                        Write-LogMessage -Type Error -Msg ('{0} ({1})' -f $rMethodErr.message, $_.Exception.Response.StatusDescription)
                     }
-                } else {
-                    Write-LogMessage -Type Warning -Msg "User or Group was not found. To automatically attempt to add use AddOnUpdate"
-                    Write-LogMessage -Type Debug -Msg "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:"
-                    Write-LogMessage -Type Debug -Msg ("{0} ({1})" -f $rMethodErr.message, $_.Exception.Response.StatusDescription)
                 }
-            } else {
+                else {
+                    Write-LogMessage -Type Warning -Msg 'User or Group was not found. To automatically attempt to add use AddOnUpdate'
+                    Write-LogMessage -Type Debug -Msg "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:"
+                    Write-LogMessage -Type Debug -Msg ('{0} ({1})' -f $rMethodErr.message, $_.Exception.Response.StatusDescription)
+                }
+            }
+            else {
                 Write-LogMessage -Type Error -Msg "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:"
-                Write-LogMessage -Type Error -Msg ("{0} ({1})" -f $rMethodErr.message, $_.Exception.Response.StatusDescription)
+                Write-LogMessage -Type Error -Msg ('{0} ({1})' -f $rMethodErr.message, $_.Exception.Response.StatusDescription)
             }
         }
-    } else {
+    }
+    else {
         Write-LogMessage -Type Info -Msg "Skipping default user $safeMember..."
     }
 }
@@ -954,13 +988,14 @@ Get-SafeMember -safename "Win-Local-Admins"
     $_safeOwners = $null
     try {
         $accSafeMembersURL = $URL_SafeMembers -f $(ConvertTo-URL $safeName)
-        $accSafeMembersURL += "?filter=includePredefinedUsers eq true" 
-        $_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL -Method GET -Headers $g_LogonHeader -ContentType "application/json" -TimeoutSec 2700 -ErrorAction "SilentlyContinue")
+        $accSafeMembersURL += '?filter=includePredefinedUsers eq true' 
+        $_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL -Method GET -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 -ErrorAction 'SilentlyContinue')
         # Remove default users and change UserName to MemberName
-        if (!$g_includeDefaultUsers){
+        if (!$g_includeDefaultUsers) {
             $_safeOwners = $_safeMembers.value | Where-Object { $_.MemberName -NotIn $g_DefaultUsers }
         }
-    } catch {
+    }
+    catch {
         Throw $(New-Object System.Exception ("Get-SafeMembers: There was an error getting the safe $safeName Members.", $_.Exception))
     }
 	
@@ -976,7 +1011,8 @@ Function Convert-ToBool {
     if ([bool]::TryParse($txt, [ref]$retBool)) {
         # parsed to a boolean
         return [System.Convert]::ToBoolean($txt)
-    } else {
+    }
+    else {
         Write-LogMessage -Type Error -Msg "The input ""$txt"" is not in the correct format (true/false), defaulting to False"
         return $false
     }
@@ -985,31 +1021,32 @@ Function Convert-ToBool {
 
 Write-LogMessage -Type Info -MSG "Starting script (v$ScriptVersion)" -Header -LogFile $LOG_FILE_PATH
 if ($InDebug) {
-    Write-LogMessage -Type Info -MSG "Running in Debug Mode" -LogFile $LOG_FILE_PATH 
+    Write-LogMessage -Type Info -MSG 'Running in Debug Mode' -LogFile $LOG_FILE_PATH 
 }
 if ($InVerbose) {
-    Write-LogMessage -Type Info -MSG "Running in Verbose Mode" -LogFile $LOG_FILE_PATH 
+    Write-LogMessage -Type Info -MSG 'Running in Verbose Mode' -LogFile $LOG_FILE_PATH 
 }
-Write-LogMessage -Type Debug -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ", ")" -LogFile $LOG_FILE_PATH
+Write-LogMessage -Type Debug -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ', ')" -LogFile $LOG_FILE_PATH
 
 # Check if Powershell is running in Constrained Language Mode
-If ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
+If ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
     Write-LogMessage -Type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
 	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
 	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
-    Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
+    Write-LogMessage -Type Info -MSG 'Script ended' -Footer -LogFile $LOG_FILE_PATH
     return
 }
 
 If (Test-CommandExists Invoke-RestMethod) {
 
     # Check that the PVWA URL is OK
-    If ($PVWAURL -ne "") {
-        If ($PVWAURL.Substring($PVWAURL.Length - 1) -eq "/") {
+    If ($PVWAURL -ne '') {
+        If ($PVWAURL.Substring($PVWAURL.Length - 1) -eq '/') {
             $PVWAURL = $PVWAURL.Substring(0, $PVWAURL.Length - 1)
         }
-    } else {
-        Write-LogMessage -Type Error -Msg "PVWA URL can not be empty"
+    }
+    else {
+        Write-LogMessage -Type Error -Msg 'PVWA URL can not be empty'
         return
     }
 
@@ -1017,57 +1054,65 @@ If (Test-CommandExists Invoke-RestMethod) {
     try {
         # Get Credentials to Login
         # ------------------------
-        $caption = "Safe Management"
+        $caption = 'Safe Management'
 
         If (![string]::IsNullOrEmpty($logonToken)) {
-            if ($logonToken.GetType().name -eq "String") {
+            if ($logonToken.GetType().name -eq 'String') {
                 $logonHeader = @{Authorization = $logonToken }
                 Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global	
-            } else {
+            }
+            else {
                 Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
             }
-        } elseif ($null -eq $creds) {
-            $msg = "Enter your User name and Password" 
-            $creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
+        }
+        elseif ($null -eq $creds) {
+            $msg = 'Enter your User name and Password' 
+            $creds = $Host.UI.PromptForCredential($caption, $msg, '', '')
             Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
-        } else { 
-            Write-LogMessage -Type Error -Msg "No Credentials were entered"
+        }
+        else { 
+            Write-LogMessage -Type Error -Msg 'No Credentials were entered'
             return
         }
-    } catch {
+    }
+    catch {
         Write-LogMessage -Type Error -Msg "Error Logging on. Error: $(Join-ExceptionMessage $_.Exception)"
         return
     }
     #endregion
 
     switch ($PsCmdlet.ParameterSetName) {
-        "List" {
+        'List' {
             # List all Safes
-            Write-LogMessage -Type Info -Msg "Retrieving Safes..."
+            Write-LogMessage -Type Info -Msg 'Retrieving Safes...'
             $safelist = @()
             try {
                 If (![string]::IsNullOrEmpty($SafeName)) {
                     $safelist += Get-Safe -SafeName $SafeName
-                } else {
+                }
+                else {
                     $safelist += Get-Safe
                 }
                 if ([string]::IsNullOrEmpty($safelist.value)) {
                     $output = $safelist
-                } else {
+                }
+                else {
                     $output = $safelist.value
                 }
                 if ([string]::IsNullOrEmpty($ReportPath)) {
                     $output 
-                } else {
+                }
+                else {
                     $output | Select-Object -Property safeName, description, managingCPM, numberOfVersionsRetention, numberOfDaysRetention, EnableOLAC | ConvertTo-Csv -NoTypeInformation | Out-File $ReportPath
                 }
      
 
-            } catch {
+            }
+            catch {
                 Write-LogMessage -Type Error -Msg "Error retrieving safes. Error: $(Join-ExceptionMessage $_.Exception)"
             }
         }
-        { ($_ -eq "Add") -or ($_ -eq "Update") -or ($_ -eq "UpdateMembers") -or ($_ -eq "Delete") -or ($_ -eq "DeleteMembers") } {
+        { ($_ -eq 'Add') -or ($_ -eq 'Update') -or ($_ -eq 'UpdateMembers') -or ($_ -eq 'Delete') -or ($_ -eq 'DeleteMembers') } {
             try {
                 if (![string]::IsNullOrEmpty($FilePath)) {
                     # Bulk Import of Safes
@@ -1100,26 +1145,33 @@ If (Test-CommandExists Invoke-RestMethod) {
                             }
                             if ([string]::IsNullOrEmpty($parameters.EnableOLAC)) { 
                                 $parameters.Remove('EnableOLAC') 
-                            } Else {
+                            }
+                            Else {
                                 $parameters.EnableOLAC = Convert-ToBool $parameters.EnableOLAC
                             }
-                            If ($Add) {
-                                # If safe doesn't exist, create the new safe
-                                if ((Test-Safe -SafeName $line.safename) -eq $false) {
-                                    Write-LogMessage -Type Info -Msg "Adding the safe $($line.safename)..."
-                                    New-Safe @parameters
-                                } else {
-                                    # Safe exists, would create an error creating it again
-                                    Write-LogMessage -Type Error -Msg "Safe $($line.safename) already exists, to update it use the Update switch"
+                            If ($parameters.keys.count -gt 1) {
+                                If ($Add) {
+                                    # If safe doesn't exist, create the new safe
+                                    if ((Test-Safe -SafeName $line.safename) -eq $false) {
+                                        Write-LogMessage -Type Info -Msg "Adding the safe $($line.safename)..."
+                                        New-Safe @parameters
+                                    }
+                                    else {
+                                        # Safe exists, would create an error creating it again
+                                        Write-LogMessage -Type Error -Msg "Safe $($line.safename) already exists, to update it use the Update switch"
+                                    }
                                 }
-                            } ElseIf ($Update) {
-                                Write-LogMessage -Type Info -Msg "Updating the safe $($line.safename)..."
-                                Update-Safe @parameters
-                            } ElseIf ($Delete) {
-                                Write-LogMessage -Type Info -Msg "Deleting safe $($line.safename)..."
-                                Remove-Safe -safename $parameters.safeName
+                                ElseIf ($Update) {
+                                    Write-LogMessage -Type Info -Msg "Updating the safe $($line.safename)..."
+                                    Update-Safe @parameters
+                                }
+                                ElseIf ($Delete) {
+                                    Write-LogMessage -Type Info -Msg "Deleting safe $($line.safename)..."
+                                    Remove-Safe -safename $parameters.safeName
+                                }
+                            } else {
+                                Write-LogMessage -Type Info -Msg "Safe $($line.safename) has no safe values to add or update, skipping add or update."
                             }
-                            
                             If ($Delete -eq $False) {
                                 If (![string]::IsNullOrEmpty($line.member)) {
                                     # Add permissions to the safe
@@ -1134,11 +1186,13 @@ If (Test-CommandExists Invoke-RestMethod) {
                                         -permCreateFolders $(Convert-ToBool $line.CreateFolders) -permDeleteFolders $(Convert-ToBool $line.DeleteFolders) -permMoveAccountsAndFolders $(Convert-ToBool $line.MoveAccountsAndFolders)
                                 }
                             }
-                        } catch {
+                        }
+                        catch {
                             Write-LogMessage -Type Error -Msg "Error configuring safe '$($line.SafeName)'. Error: $(Join-ExceptionMessage $_.Exception)"
                         }
                     }
-                } else {
+                }
+                else {
                     try {
                         $parameters = @{ 
                             safeName            = $SafeName 
@@ -1160,29 +1214,34 @@ If (Test-CommandExists Invoke-RestMethod) {
                             # Create one Safe
                             Write-LogMessage -Type Info -Msg "Adding the safe $SafeName..."
                             New-Safe @parameters
-                        } ElseIf ($Update) {
+                        }
+                        ElseIf ($Update) {
                             # Update the Safe
                             Write-LogMessage -Type Info -Msg "Updating the safe $SafeName..."
                             Update-Safe @parameters
-                        } ElseIf ($Delete) {
+                        }
+                        ElseIf ($Delete) {
                             # Deleting one Safe
                             Write-LogMessage -Type Info -Msg "Deleting the safe $SafeName..."
                             Remove-Safe -safename $parameters.safeName
                         }
-                    } catch {
+                    }
+                    catch {
                         Write-LogMessage -Type Error -Msg "Error configuring safe '$SafeName'. Error: $(Join-ExceptionMessage $_.Exception)"
                     }
                 }			
-            } catch {
+            }
+            catch {
                 Write-LogMessage -Type Error -Msg "Error configuring safe. Error: $(Join-ExceptionMessage $_.Exception)"
             }
         }
-        "Members" {
+        'Members' {
             try {
                 if ([string]::IsNullOrEmpty($UserName)) {
                     # List all members of a safe
                     Get-SafeMembers -SafeName $SafeName
-                } else {
+                }
+                else {
                     # Add a member to a safe
                     $permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = `
                         $permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafe = $permManageSafeMembers = $permBackupSafe = $permViewAuditLog = `
@@ -1190,23 +1249,23 @@ If (Test-CommandExists Invoke-RestMethod) {
                     [int]$permRequestsAuthorizationLevel = 0
                     Write-LogMessage -Type Verbose -Msg "Adding member '$UserName' to safe $SafeName with Role '$MemberRole'..."
                     switch ($MemberRole) {
-                        "Admin" {
+                        'Admin' {
                             $permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = `
                                 $permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafe = $permManageSafeMembers = $permBackupSafe = `
                                 $permViewAuditLog = $permViewSafeMembers = $permAccessWithoutConfirmation = $permCreateFolders = $permDeleteFolders = $permMoveAccountsAndFolders = $true
                             $permRequestsAuthorizationLevel = 1
                         }
-                        "Auditor" {
+                        'Auditor' {
                             $permListAccounts = $permViewAuditLog = $permViewSafeMembers = $true
                         }
-                        "EndUser" {
+                        'EndUser' {
                             $permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permViewAuditLog = $permViewSafeMembers = $true
                         }
-                        "Approver" {
+                        'Approver' {
                             $permListAccounts = $permViewAuditLog = $permViewSafeMembers = $true
                             $permRequestsAuthorizationLevel = 1
                         }
-                        "Owner" {
+                        'Owner' {
                             $permUseAccounts = $permRetrieveAccounts = $permListAccounts = $permAddAccounts = $permUpdateAccountContent = $permUpdateAccountProperties = $permInitiateCPMManagement = $permSpecifyNextAccountContent = $permRenameAccounts = $permDeleteAccounts = $permUnlockAccounts = $permManageSafeMembers = $permViewAuditLog = $permViewSafeMembers = $permMoveAccountsAndFolders = $true
                             $permRequestsAuthorizationLevel = 1
                         }
@@ -1221,7 +1280,8 @@ If (Test-CommandExists Invoke-RestMethod) {
                         -permRequestsAuthorizationLevel $permRequestsAuthorizationLevel -permAccessWithoutConfirmation $permAccessWithoutConfirmation `
                         -permCreateFolders $permCreateFolders -permDeleteFolders $permDeleteFolders -permMoveAccountsAndFolders $permMoveAccountsAndFolders
                 }
-            } catch {
+            }
+            catch {
                 Write-LogMessage -Type Error -Msg "Error updating Members for safe '$SafeName'. Error: $(Join-ExceptionMessage $_.Exception)"
             }
         }
@@ -1231,17 +1291,20 @@ If (Test-CommandExists Invoke-RestMethod) {
     # ------------------
 
     If (![string]::IsNullOrEmpty($logonToken)) {
-        Write-Host "LogonToken passed, session NOT logged off"
-    } elseif ($DisableLogoff){
-        Write-Host "Logoff has been disabled, session NOT logged off"
-    } else {
+        Write-Host 'LogonToken passed, session NOT logged off'
+    }
+    elseif ($DisableLogoff) {
+        Write-Host 'Logoff has been disabled, session NOT logged off'
+    }
+    else {
         Invoke-Logoff
     }
 
     
-} else {
-    Write-LogMessage -Type Error -Msg "This script requires PowerShell version 3 or above"
+}
+else {
+    Write-LogMessage -Type Error -Msg 'This script requires PowerShell version 3 or above'
 }
 
-Write-LogMessage -Type Info -MSG "Script ended" -Footer -LogFile $LOG_FILE_PATH
+Write-LogMessage -Type Info -MSG 'Script ended' -Footer -LogFile $LOG_FILE_PATH
 return

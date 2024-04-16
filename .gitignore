@@ -24,3 +24,9 @@ Migration/Migration via REST/AccountsForImport.csv
 Migration/Migration via REST/FailedSafes.csv
 ExportOfAccounts.csv
 Migration/Migration via REST/List.csv
+Migration/Migration via EVD/EVD/*
+
+Platforms/Update-Platform.psm1
+Migration/Migration via EVD/MigrationviaEVD/.editorconfig
+Migration/Migration via EVD/MigrationviaEVD/.gitattributes
+Migration/Migration via EVD/MigrationviaEVD/GitVersion.yml

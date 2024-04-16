@@ -691,7 +691,6 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
             $SuperVerbose = $false
         }
         $safeJob = $safeobjects | ForEach-Object -ThrottleLimit $maxJobCount -AsJob -Parallel {
-
             #region Setup for Using
             $global:InDebug = $Using:InDebug
             $global:InVerbose = $Using:InVerbose
@@ -703,7 +702,6 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
             $objectSafesToRemove = $Using:objectSafesToRemove
             $ownersToRemove = $using:ownersToRemove
             $DomainList = $using:DomainList
-
             $CreateSafes = $using:CreateSafes
             $UpdateSafeMembers = $using:UpdateSafeMembers
             $GetUPNFromAD = $Using:GetUPNFromAD
@@ -719,8 +717,7 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
             $CPMOverride = $using:CPMOverride
             $syncCopy = $using:safeProgressSync
             $global:safename = $($PSItem.safeName)
-            $global:LOG_FILE_PATH = "$($baseLogFile)\$safename.log"
-
+            $global:LOG_FILE_PATH = "$($using:baseLogFile)\$safename.log"
             Import-Module -Name ".\CyberArk-Migration.psm1" -Force
             . '.\Invoke-Process.ps1'
             Function Write-LogMessage {
@@ -772,6 +769,12 @@ To get further information about the paramaters use "Get-Help Sync-Safes -full"
                 else {
                     write-LogMessage -Type Verbose -Msg "Final `$SafeStatus $($SafeStatus |Select-Object -Property Id,SafeName,createSkip,Success,UpdateMembersFail | ConvertTo-Json -Depth 1 -Compress)"
                 } 
+                if ($SafeStatus.Success) {
+                    Move-Item -Path $global:LOG_FILE_PATH -Destination $($global:LOG_FILE_PATH.replace("$using:baseLogFile", "$using:baseLogFile\Success\"))
+                }
+                Else {
+                    Move-Item -Path $global:LOG_FILE_PATH -Destination $($global:LOG_FILE_PATH.replace("$using:baseLogFile", "$using:baseLogFile\Failed\"))
+                }
                 $SafeStatus
                 $process.Completed = $true
             }
