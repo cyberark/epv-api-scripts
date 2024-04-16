@@ -25,6 +25,7 @@
  2.1.4  17/03/2023      - Fix for issue #317
  2.1.5  22/05/2023      - Added ability to prevent logoff
  2.1.6  2023-05-22      - Updated Write-LogMessage to force verbose and debug to log file
+ 2.1.7  2024-04-17      - Updated to bypass attempt to add or update safe if no safe details exist
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = 'List')]
 param
@@ -147,7 +148,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = '2.1.6'
+$ScriptVersion = '2.1.7'
 
 # ------ SET global parameters ------
 # Set Log file path
