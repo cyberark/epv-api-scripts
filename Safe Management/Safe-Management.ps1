@@ -138,7 +138,7 @@ param
     $logonToken,
     # Use this switch to create safes when only safe name provided
     [Parameter(Mandatory = $false)]
-    [Switch]$CreateSafeWithNameOnly
+    [Switch]$eeWithNameOnly
 )
 
 # Get Script Location 
@@ -1150,7 +1150,7 @@ If (Test-CommandExists Invoke-RestMethod) {
                             Else {
                                 $parameters.EnableOLAC = Convert-ToBool $parameters.EnableOLAC
                             }
-                            If ($parameters.keys.count -gt 1 or $CreateSafeWithNameOnly) {
+                            If (($parameters.keys.count -gt 1) -or ($CreateSafeWithNameOnly)) {
                                 If ($Add) {
                                     # If safe doesn't exist, create the new safe
                                     if ((Test-Safe -SafeName $line.safename) -eq $false) {
