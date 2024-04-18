@@ -27,7 +27,7 @@
  2.1.6  2023-05-22      - Updated Write-LogMessage to force verbose and debug to log file
  2.1.7  2024-04-17      - Updated to bypass attempt to add or update safe if no safe details exist
  2.1.8  2024-04-18      - Added ability to force Safe Creations
-                   	- Added "AddMember" back
+                   	- Added "AddMembers" back
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = 'List')]
 param
@@ -1117,7 +1117,7 @@ If (Test-CommandExists Invoke-RestMethod) {
                 Write-LogMessage -Type Error -Msg "Error retrieving safes. Error: $(Join-ExceptionMessage $_.Exception)"
             }
         }
-        { ($_ -eq 'Add') -or ($_ -eq 'Update') -or ($_ -eq 'UpdateMembers') -or ($_ -eq 'Delete') -or ($_ -eq 'DeleteMembers') } {
+        { ($_ -eq 'Add') -or ($_ -eq 'AddMembers') -or ($_ -eq 'Update') -or ($_ -eq 'UpdateMembers') -or ($_ -eq 'Delete') -or ($_ -eq 'DeleteMembers') } {
             try {
                 if (![string]::IsNullOrEmpty($FilePath)) {
                     # Bulk Import of Safes
