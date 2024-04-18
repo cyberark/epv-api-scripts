@@ -26,6 +26,7 @@
  2.1.5  22/05/2023      - Added ability to prevent logoff
  2.1.6  2023-05-22      - Updated Write-LogMessage to force verbose and debug to log file
  2.1.7  2024-04-17      - Updated to bypass attempt to add or update safe if no safe details exist
+ 2.1.8  2024-04-18      - Added ability to force Safe Creations
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = 'List')]
 param
@@ -129,16 +130,15 @@ param
     # Use this switch to Disable SSL verification (NOT RECOMMENDED)
     [Parameter(Mandatory = $false)]
     [Switch]$DisableSSLVerify,
-    
     # Use this switch to prevent Invoke-Logoff (NOT RECOMMENDED)
     [Parameter(Mandatory = $false)]
     [Switch]$DisableLogoff,
-
-
     # Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
     [Parameter(Mandatory = $false)]
-    $logonToken
-
+    $logonToken,
+    # Use this switch to create safes when only safe name provided
+    [Parameter(Mandatory = $false)]
+    [Switch]$CreateSafeWithNameOnly
 )
 
 # Get Script Location 
@@ -148,7 +148,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = '2.1.7'
+$ScriptVersion = '2.1.8'
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -1150,7 +1150,7 @@ If (Test-CommandExists Invoke-RestMethod) {
                             Else {
                                 $parameters.EnableOLAC = Convert-ToBool $parameters.EnableOLAC
                             }
-                            If ($parameters.keys.count -gt 1) {
+                            If ($parameters.keys.count -gt 1 or $CreateSafeWithNameOnly) {
                                 If ($Add) {
                                     # If safe doesn't exist, create the new safe
                                     if ((Test-Safe -SafeName $line.safename) -eq $false) {
