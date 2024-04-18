@@ -6,6 +6,7 @@
 - Adding and updating members can be done via a .csv file. See sample files for examples. Supported .csv files can be comma delimited (default) or tab delimited.
 - Supported version: PVWA v12.1 and above.
 - Four modes for **managing the Safes**: [*List*](#list-command), [*Add*](#add-command), [*Update*](#update-command), [*Delete*](#delete-command).
+  - On Add operations if only a safename is provided the safe will not be created unless "CreateSafeWithNameOnly" is also passed.
 - Three modes for **managing Safes Members**: [*Members*](#members-command), [*UpdateMembers*](#update-members-command), [*DeleteMembers*](#delete-members-command)
 
 ## Authentication
@@ -44,7 +45,7 @@ Filter a specific Safe to see its details:
 
 ### Add Command:
 ```powershell
-Safe-Management.ps1 -PVWAURL <string> -Add [-logonToken $token] [-SafeName <string>] [-Description <string>] [-ManagingCPM <string>] [-NumVersionRetention <int>] [-FilePath <string>] [<CommonParameters>]
+Safe-Management.ps1 -PVWAURL <string> -Add [-logonToken $token] [-SafeName <string>] [-Description <string>] [-ManagingCPM <string>] [-NumVersionRetention <int>] [-FilePath <string>] [-CreateSafeWithNameOnly] [<CommonParameters>]
 ```
 
 >*Note:* Using the [*Add*](#add-command) command depends on the .csv file format you use.
@@ -76,10 +77,16 @@ Create a list of Safes from a file:
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-sample.csv"
 ```
 
-Create a list of Safes and add members to it from a file:
+Create a list of Safes, if the file contains at least one addtional value for the safe properties, and add members to it from a file:
 ```powershell
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-details_and_members-sample.csv"
 ```
+
+Create a list of Safes, include those with only SafeName provided, and add members to it from a file:
+```powershell
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-details_and_members-sample.csv -CreateSafeWithNameOnly"
+```
+
 
 ### Update Command:
 ```powershell
@@ -96,7 +103,6 @@ Update the Safe Managing CPM:
 & .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Update -SafeName "MyDMZSafe" -ManagingCPM PassManagerDMZ
 ### To remove a Managing CPM, use "NULL"
 ```
-
 
 Update the description and members of a list of Safes from a file:
 ```powershell
