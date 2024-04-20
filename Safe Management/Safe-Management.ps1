@@ -26,6 +26,8 @@
  2.1.5  22/05/2023      - Added ability to prevent logoff
  2.1.6  2023-05-22      - Updated Write-LogMessage to force verbose and debug to log file
  2.1.7  2024-04-17      - Updated to bypass attempt to add or update safe if no safe details exist
+ 2.1.8  2024-04-18      - Added ability to force Safe Creations
+                   	- Added "AddMembers" back
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = 'List')]
 param
@@ -48,6 +50,8 @@ param
     [Parameter(ParameterSetName = 'Add', Mandatory = $true)][switch]$Add,
     # Use this switch to Update Safes
     [Parameter(ParameterSetName = 'Update', Mandatory = $true)][switch]$Update,
+    # Use this switch to Update Safe Members
+    [Parameter(ParameterSetName = 'AddMembers', Mandatory = $true)][switch]$AddMembers,
     # Use this switch to Update Safe Members
     [Parameter(ParameterSetName = 'UpdateMembers', Mandatory = $true)][switch]$UpdateMembers,
     # Use this switch to Delete Safe Members
@@ -76,6 +80,7 @@ param
     # Import File support
     [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = 'Enter a file path for bulk safe creation')]
     [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = 'Enter a file path for bulk safe update')]
+    [Parameter(ParameterSetName = 'AddMembers', Mandatory = $false, HelpMessage = 'Enter a file path for bulk safe membership update')]
     [Parameter(ParameterSetName = 'UpdateMembers', Mandatory = $false, HelpMessage = 'Enter a file path for bulk safe membership update')]
     [Parameter(ParameterSetName = 'DeleteMembers', Mandatory = $false, HelpMessage = 'Enter a file path for bulk safe membership deletion')]
     [Parameter(ParameterSetName = 'Delete', Mandatory = $false, HelpMessage = 'Enter a file path for bulk safe deletion')]
@@ -129,16 +134,15 @@ param
     # Use this switch to Disable SSL verification (NOT RECOMMENDED)
     [Parameter(Mandatory = $false)]
     [Switch]$DisableSSLVerify,
-    
     # Use this switch to prevent Invoke-Logoff (NOT RECOMMENDED)
     [Parameter(Mandatory = $false)]
     [Switch]$DisableLogoff,
-
-
     # Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
     [Parameter(Mandatory = $false)]
-    $logonToken
-
+    $logonToken,
+    # Use this switch to create safes when only safe name provided
+    [Parameter(Mandatory = $false)]
+    [Switch]$CreateSafeWithNameOnly
 )
 
 # Get Script Location 
@@ -148,7 +152,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = '2.1.7'
+$ScriptVersion = '2.1.8'
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -1113,7 +1117,7 @@ If (Test-CommandExists Invoke-RestMethod) {
                 Write-LogMessage -Type Error -Msg "Error retrieving safes. Error: $(Join-ExceptionMessage $_.Exception)"
             }
         }
-        { ($_ -eq 'Add') -or ($_ -eq 'Update') -or ($_ -eq 'UpdateMembers') -or ($_ -eq 'Delete') -or ($_ -eq 'DeleteMembers') } {
+        { ($_ -eq 'Add') -or ($_ -eq 'AddMembers') -or ($_ -eq 'Update') -or ($_ -eq 'UpdateMembers') -or ($_ -eq 'Delete') -or ($_ -eq 'DeleteMembers') } {
             try {
                 if (![string]::IsNullOrEmpty($FilePath)) {
                     # Bulk Import of Safes
@@ -1150,7 +1154,7 @@ If (Test-CommandExists Invoke-RestMethod) {
                             Else {
                                 $parameters.EnableOLAC = Convert-ToBool $parameters.EnableOLAC
                             }
-                            If ($parameters.keys.count -gt 1) {
+                            If (($parameters.keys.count -gt 1) -or ($CreateSafeWithNameOnly)) {
                                 If ($Add) {
                                     # If safe doesn't exist, create the new safe
                                     if ((Test-Safe -SafeName $line.safename) -eq $false) {
