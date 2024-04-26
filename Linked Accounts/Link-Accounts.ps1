@@ -48,6 +48,8 @@ $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
 # Set Log file path
 $StartTime = $(Get-Date -Format yyyyMMdd) + '-' + $(Get-Date -Format HHmmss)
 $LOG_FILE_PATH = "$ScriptLocation\Link_Accounts_Utility-$StartTime.log"
+=======
+
 
 $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
@@ -168,7 +170,7 @@ A string of the requested PVWA REST version to test
 	}
  catch {
 		# Check the error code returned from the REST call
-		$innerExcp = $_.Exception.InnerException
+		$innerExcp = $PSitem.Exception.InnerException
 		Write-LogMessage -Type Verbose -Msg "Status Code: $($innerExcp.StatusCode); Status Description: $($innerExcp.StatusDescription); REST Error: $($innerExcp.CyberArkErrorMessage)"
 		if ($innerExcp.StatusCode -eq 'NotFound') {
 			return $false
@@ -226,6 +228,7 @@ Function Write-LogMessage {
 		[Switch]$Footer,
 		[Parameter(Mandatory = $false)]
 		[ValidateSet('Info', 'Warning', 'Error', 'Debug', 'Verbose', 'LogOnly')]
+
 		[String]$type = 'Info',
 		[Parameter(Mandatory = $false)]
 		[String]$LogFile = $LOG_FILE_PATH
@@ -416,8 +419,7 @@ Function Invoke-Rest {
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType 'application/json' -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
 		}
-	}
- catch {
+	} catch {
 		if ($ErrAction -match ('\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b')) {
 			Write-LogMessage -Type LogOnly -Msg "Error Message: $PSitem"
 			Write-LogMessage -Type LogOnly -Msg "Exception Message: $($PSitem.Exception.Message)"
@@ -583,6 +585,7 @@ Function Add-AccountLink {
 		$addLinkAccountBodyResult = $(Invoke-Rest -Uri ($URL_LinkAccounts -f $MasterID) -Header $global:g_LogonHeader -Command 'POST' -Body $($linkBody | ConvertTo-Json))
 		If ($null -eq $addLinkAccountBodyResult) {
 			# No accounts onboarded
+
 			throw "There was an error linking account `"$($linkBody.name)`" to account ID `"$($MasterID)`"."
 		}
 		else {
@@ -591,7 +594,6 @@ Function Add-AccountLink {
 		}
 	}
  catch {
-
 		Throw $PSitem
 	}
 	return $retResult
@@ -795,7 +797,6 @@ ForEach ($account in $accountsCSV) {
 					$ExtraPass1Failed++
 				}
 			}
-
 			#If enable account is found link
 			if (![string]::IsNullOrEmpty($account.ExtraPass2Name)) {
 				Try {
@@ -841,7 +842,6 @@ ForEach ($account in $accountsCSV) {
 					Write-LogMessage -Type Error -Msg "$(Join-ExceptionMessage $PSitem)"
 					Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionDetails $PSitem)"
 					$ExtraPass3Failed++ 
-					
 				}
 			}
 		}
@@ -853,6 +853,7 @@ ForEach ($account in $accountsCSV) {
 			Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionDetails $PSItem)"
 		}
 		$counterMaster++
+		
 	}
 }
 
