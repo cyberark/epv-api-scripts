@@ -225,13 +225,13 @@ Function Write-LogMessage {
 		[Parameter(Mandatory = $false)]
 		[Switch]$Footer,
 		[Parameter(Mandatory = $false)]
-		[ValidateSet('Info', 'Warning', 'Error', 'Debug', 'Verbose','LogOnly')]
+		[ValidateSet('Info', 'Warning', 'Error', 'Debug', 'Verbose', 'LogOnly')]
 		[String]$type = 'Info',
 		[Parameter(Mandatory = $false)]
 		[String]$LogFile = $LOG_FILE_PATH
 	)
-	$MSG = Test-Unicode -inputTest $MSG
-	$MSG = Test-Unicode -inputTest $MSG
+	$MSG = Test-Unicode -InputText $MSG
+
 	Try {
 		If ($Header) {
 			'=======================================' | Out-File -Append -FilePath $LogFile
@@ -550,15 +550,7 @@ Function Invoke-Logoff {
 }
 Function Add-AccountLink {
 	param ($linkBody, $MasterID)
-	try {
-
-		$Replace = @{
-			"`u{00a0}" = ''
-		}
-		$Replace.Keys | ForEach-Object {
-			$linkBody = $linkBody.Replace("$($PSitem)", "$($replace[$PSItem])")
-		}
-		
+	try {		
 		$retResult = $false
 
 		$addLinkAccountBodyResult = $(Invoke-Rest -Uri ($URL_LinkAccounts -f $MasterID) -Header $global:g_LogonHeader -Command 'POST' -Body $($linkBody | ConvertTo-Json))
@@ -698,8 +690,8 @@ If ([string]::IsNullOrEmpty($CsvPath)) {
 $delimiter = $((Get-Culture).TextInfo.ListSeparator)
 Write-LogMessage -Type Info -MSG 'Importing accounts to link' -SubHeader
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
-$badAccounts = "BadAccounts.csv"
-$badAccounts = "$("$($($(Get-Item -Path $csvPath).Name).Split(".")[0])")-Bad-$StartTime.$("$($($(Get-Item -Path $csvPath).Name).Split(".")[1])")"
+$badAccounts = 'BadAccounts.csv'
+$badAccounts = "$("$($($(Get-Item -Path $csvPath).Name).Split('.')[0])")-Bad-$StartTime.$("$($($(Get-Item -Path $csvPath).Name).Split('.')[1])")"
 
 $masterCount = @($accountsCSV | Select-Object -Property userName, address, safe -Unique).Count
 Write-LogMessage -Type Info -MSG "Found a total of $masterCount accounts with links" -SubHeader
@@ -729,11 +721,12 @@ ForEach ($account in $accountsCSV) {
 		try {
 			Write-LogMessage -Type Info -Msg "Searching for Master Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`"."
 			$foundMasterAccountID = Find-MasterAccount -accountName $account.userName -accountAddress $account.address -safeName $account.safe
-			if ([string]::IsNullOrEmpty($foundMasterAccountID)) { Throw 'No Master Account Found' }
+			if ([string]::IsNullOrEmpty($foundMasterAccountID))
+			{ Throw 'No Master Account Found' }
 		}
 		catch {
 			Write-LogMessage -Type Error -Msg "Error searching for Master Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`"."
-			Write-LogMessage -Type LogOnly -MSG "Error Message: $(Join-ExceptionMessage $PSitem.Exception)"
+			Write-LogMessage -Type Error -MSG "Error Message: $(Join-ExceptionMessage $PSitem.Exception)"
 			$account | Export-Csv -Append -Path $badAccounts
 			continue
 		}
@@ -744,7 +737,7 @@ ForEach ($account in $accountsCSV) {
 					$addLinkAccountBody = @{
 						'safe'       = $account.ExtraPass1Safe.Trim(); 
 						'name'       = $account.ExtraPass1Name.Trim(); 
-						'folder'     = $account.ExtraPass1Folder.Trim();
+						'folder'     = if ([string]::IsNullOrEmpty($account.ExtraPass1Folder)) { 'Root' } else { $account.ExtraPass1Folder.Trim() };
 						"$extraPass" = '1';
 					}
 					if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID) {
@@ -765,7 +758,7 @@ ForEach ($account in $accountsCSV) {
 					$addLinkAccountBody = @{
 						'safe'       = $account.ExtraPass2Safe.Trim(); 
 						'name'       = $account.ExtraPass2Name.Trim(); 
-						'folder'     = $account.ExtraPass2Folder.Trim();
+						'folder'     = if ([string]::IsNullOrEmpty($account.ExtraPass2Folder)) { 'Root' } else { $account.ExtraPass2Folder.Trim() };
 						"$extraPass" = '2';
 					}
 					if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID) {
@@ -786,7 +779,7 @@ ForEach ($account in $accountsCSV) {
 					$addLinkAccountBody = @{
 						'safe'       = $account.ExtraPass3Safe.Trim(); 
 						'name'       = $account.ExtraPass3Name.Trim(); 
-						'folder'     = $account.ExtraPass3Folder.Trim();
+						'folder'     =  if ([string]::IsNullOrEmpty($account.ExtraPass3Folder)) { 'Root' } else { $account.ExtraPass3Folder.Trim() };
 						"$extraPass" = '3';
 					}
 					if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID) {
