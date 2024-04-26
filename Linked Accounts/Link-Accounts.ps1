@@ -227,6 +227,7 @@ Function Write-LogMessage {
 		[String]$LogFile = $LOG_FILE_PATH
 	)
 	$MSG = Test-Unicode -inputTest $MSG
+	$MSG = Test-Unicode -inputTest $MSG
 	Try {
 		If ($Header) {
 			'=======================================' | Out-File -Append -FilePath $LogFile
