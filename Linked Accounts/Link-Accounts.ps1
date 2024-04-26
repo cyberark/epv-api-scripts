@@ -699,7 +699,7 @@ $delimiter = $((Get-Culture).TextInfo.ListSeparator)
 Write-LogMessage -Type Info -MSG 'Importing accounts to link' -SubHeader
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
 $badAccounts = "BadAccounts.csv"
-$badAccounts = "$("$($($(Get-Item -Path $csv).Name).Split(".")[0])")-Bad-$StartTime.$("$($($(Get-Item -Path $csv).Name).Split(".")[1])")"
+$badAccounts = "$("$($($(Get-Item -Path $csvPath).Name).Split(".")[0])")-Bad-$StartTime.$("$($($(Get-Item -Path $csvPath).Name).Split(".")[1])")"
 
 $masterCount = @($accountsCSV | Select-Object -Property userName, address, safe -Unique).Count
 Write-LogMessage -Type Info -MSG "Found a total of $masterCount accounts with links" -SubHeader
