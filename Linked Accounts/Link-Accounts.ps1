@@ -468,19 +468,19 @@ Function Find-MasterAccount {
 		$GetMasterAccountsResponse = Invoke-Rest -Command Get -Uri $AccountsURLWithFilters -Header $global:g_LogonHeader
 		If (($null -eq $GetMasterAccountsResponse) -or ($GetMasterAccountsResponse.count -eq 0)) {
 			# No accounts found
-			Write-LogMessage -Type Debug -MSG "Account $accountName does not exist"
+			Write-LogMessage -Type Debug -MSG "Account `"$accountName`" does not exist"
 			$result = $null
 		}
 		else {
 			ForEach ($item in $GetMasterAccountsResponse.Value) {
 				if ($item.userName -eq $accountName -and $item.address -eq $accountAddress) {
 					$result = $item.id
-					Write-LogMessage -Type Debug -MSG "Account $accountName with address of $accountAddress in safe $safeName has account ID of $result"
+					Write-LogMessage -Type Debug -MSG "Account `"$accountName`" with address of `"$accountAddress`" in safe `"$safeName`" has account ID of `"$result`""
 					break
 				}
 			}
 			# Account Exists
-			Write-LogMessage -Type Info -MSG "Account $accountName exist"
+			Write-LogMessage -Type Info -MSG "Account `"$accountName`" with address of `"$accountAddress`" in safe `"$safeName`" has account ID of `"$result`""
 		}
 		return $result
 	}
@@ -586,7 +586,7 @@ Function Add-AccountLink {
 			throw "There was an error linking account `"$($linkBody.name)`" to account ID `"$($MasterID)`"."
 		}
 		else {
-			Write-LogMessage -Type Info -MSG "Account  `"$($linkBody.name)`" was successfully linked as ExtraPass$($linkBody.extraPasswordIndex)"
+			Write-LogMessage -Type Info -MSG "Account `"$($linkBody.name)`" was successfully linked as ExtraPass$($linkBody.extraPasswordIndex)"
 			$retResult = $true
 		}
 	}
@@ -758,7 +758,7 @@ ForEach ($account in $accountsCSV) {
 		catch {
 			$bad = $account | Select-Object -Property *, 'Fail'
 			$bad.Fail = $PSitem.Exception.Message
-			$bad | Export-Csv -Append -Path $badAccounts
+			$bad | Export-Csv -Append -NoTypeInformation -Path $badAccounts
 			Write-LogMessage -Type Error -Msg "Error searching for Master Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`"."
 			Write-LogMessage -Type Error -MSG $(Join-ExceptionMessage -e $PSitem) -ErrorAction 'SilentlyContinue'
 			Write-LogMessage -Type LogOnly -MSG $(Join-ExceptionDetails -e $PSitem) -ErrorAction 'SilentlyContinue'
@@ -768,6 +768,13 @@ ForEach ($account in $accountsCSV) {
 			#If logon account is found link
 			if (![string]::IsNullOrEmpty($account.ExtraPass1Name)) {
 				Try {
+					if ([string]::IsNullOrEmpty($account.ExtraPass1Safe)) {
+						Write-LogMessage -Type Error -Msg "ExtraPass1Safe is empty for account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`" and unable to continue."
+						$ExtraPass1Failed++
+						$bad = $account | Select-Object -Property *, 'Fail'
+						$bad.Fail = "ExtraPass1Safe is not populated"
+						$bad | Export-Csv -Append -NoTypeInformation -Path $badAccounts
+					}
 					$addLinkAccountBody = @{
 						'safe'       = $account.ExtraPass1Safe.Trim(); 
 						'name'       = $account.ExtraPass1Name.Trim(); 
@@ -781,7 +788,7 @@ ForEach ($account in $accountsCSV) {
 				Catch {
 					$bad = $account | Select-Object -Property *, 'Fail'
 					$bad.Fail = "$(Join-ExceptionMessage $PSitem)"
-					$bad | Export-Csv -Append -Path $badAccounts
+					$bad | Export-Csv -Append -NoTypeInformation -Path $badAccounts
 					Write-LogMessage -Type Error -Msg "Error adding ExtraPass1 with name of `"$($account.ExtraPass1Name)`" in safe `"$($account.ExtraPass1Safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
 					Write-LogMessage -Type Error -Msg "$(Join-ExceptionMessage $PSitem)"
 					Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionDetails $PSitem)"
@@ -805,7 +812,7 @@ ForEach ($account in $accountsCSV) {
 				Catch {
 					$bad = $account | Select-Object -Property *, 'Fail'
 					$bad.Fail = "$(Join-ExceptionMessage $PSitem)"
-					$bad | Export-Csv -Append -Path $badAccounts
+					$bad | Export-Csv -Append -NoTypeInformation -Path $badAccounts
 					Write-LogMessage -Type Error -Msg "Error adding ExtraPass2 with name of `"$($account.ExtraPass2Name)`" in safe `"$($account.ExtraPass2Safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
 					Write-LogMessage -Type Error -Msg "$(Join-ExceptionMessage $PSitem)"
 					Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionDetails $PSitem)"
@@ -829,7 +836,7 @@ ForEach ($account in $accountsCSV) {
 				Catch {
 					$bad = $account | Select-Object -Property *, 'Fail'
 					$bad.Fail = "$(Join-ExceptionMessage $PSitem)"
-					$bad | Export-Csv -Append -Path $badAccounts
+					$bad | Export-Csv -Append -NoTypeInformation -Path $badAccounts
 					Write-LogMessage -Type Error -Msg "Error adding ExtraPass2 with name of `"$($account.ExtraPass3Name)`" in safe `"$($account.ExtraPass3safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
 					Write-LogMessage -Type Error -Msg "$(Join-ExceptionMessage $PSitem)"
 					Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionDetails $PSitem)"
@@ -841,7 +848,7 @@ ForEach ($account in $accountsCSV) {
 		Catch {
 			$bad = $account | Select-Object -Property *, 'Fail'
 			$bad.Fail = "$(Join-ExceptionMessage $PSitem)"
-			$bad | Export-Csv -Append -Path $badAccounts
+			$bad | Export-Csv -Append -NoTypeInformation -Path $badAccounts
 			Write-LogMessage -Type Error -Msg "Error linking Master Account - Username: `"$($account.userName)`" Address: `"$($account.address)`" Safe: `"$($account.safe)`"" 
 			Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionDetails $PSItem)"
 		}
