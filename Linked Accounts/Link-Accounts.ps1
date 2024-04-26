@@ -46,8 +46,8 @@ param
 $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Set Log file path
-$LOG_DATE = $(Get-Date -Format yyyyMMdd) + '-' + $(Get-Date -Format HHmmss)
-$LOG_FILE_PATH = "$ScriptLocation\Link_Accounts_Utility-$Log_Date.log"
+$StartTime = $(Get-Date -Format yyyyMMdd) + '-' + $(Get-Date -Format HHmmss)
+$LOG_FILE_PATH = "$ScriptLocation\Link_Accounts_Utility-$StartTime.log"
 
 $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
@@ -225,7 +225,7 @@ Function Write-LogMessage {
 		[Parameter(Mandatory = $false)]
 		[Switch]$Footer,
 		[Parameter(Mandatory = $false)]
-		[ValidateSet('Info', 'Warning', 'Error', 'Debug', 'Verbose')]
+		[ValidateSet('Info', 'Warning', 'Error', 'Debug', 'Verbose','LogOnly')]
 		[String]$type = 'Info',
 		[Parameter(Mandatory = $false)]
 		[String]$LogFile = $LOG_FILE_PATH
@@ -256,6 +256,9 @@ Function Write-LogMessage {
 		# Check the message type
 		switch ($type) {
 
+			'LogOnly' {
+				$msgToWrite += "[LogOnly]`t$Msg"
+			}
 			'Info' {
 				Write-Host $MSG.ToString()
 				$msgToWrite += "[INFO]`t$Msg"
@@ -681,17 +684,24 @@ catch {
 }
 #endregion
 
-If (Test-RESTVersion -version '11.7') { $extraPass = 'extraPasswordIndex' } else { $extraPass = 'extraPasswordID' }
+If (Test-RESTVersion -version '11.7') { 
+	$extraPass = 'extraPasswordIndex' 
+}
+else {
+	$extraPass = 'extraPasswordID' 
+}
 
 #region [Read Accounts CSV file and link Accounts]
 If ([string]::IsNullOrEmpty($CsvPath)) {
 	$CsvPath = Open-FileDialog($g_CsvDefaultPath)
 }
 $delimiter = $((Get-Culture).TextInfo.ListSeparator)
+Write-LogMessage -Type Info -MSG 'Importing accounts to link' -SubHeader
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
-$badAccounts = "Bad-$($(Get-Item -Path $csv).Name)"
+$badAccounts = "BadAccounts.csv"
+$badAccounts = "$("$($($(Get-Item -Path $csv).Name).Split(".")[0])")-Bad-$StartTime.$("$($($(Get-Item -Path $csv).Name).Split(".")[1])")"
 
-$masterCount = @($accountsCSV | Select-Object -Property userName, address -Unique).Count
+$masterCount = @($accountsCSV | Select-Object -Property userName, address, safe -Unique).Count
 Write-LogMessage -Type Info -MSG "Found a total of $masterCount accounts with links" -SubHeader
 
 $ExtraPass1Count = @($accountsCSV | Where-Object ExtraPass1Name -NE '' ).count
@@ -717,12 +727,14 @@ ForEach ($account in $accountsCSV) {
 		# Search for Master Account
 		$foundMasterAccountID = $null
 		try {
+			Write-LogMessage -Type Info -Msg "Searching for Master Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`"."
 			$foundMasterAccountID = Find-MasterAccount -accountName $account.userName -accountAddress $account.address -safeName $account.safe
 			if ([string]::IsNullOrEmpty($foundMasterAccountID)) { Throw 'No Master Account Found' }
 		}
 		catch {
 			Write-LogMessage -Type Error -Msg "Error searching for Master Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`"."
-			Write-LogMessage -Type Verbose -MSG "Error Message: $(Join-ExceptionMessage $PSitem.Exception)"
+			Write-LogMessage -Type LogOnly -MSG "Error Message: $(Join-ExceptionMessage $PSitem.Exception)"
+			$account | Export-Csv -Append -Path $badAccounts
 			continue
 		}
 		Try {
@@ -740,8 +752,9 @@ ForEach ($account in $accountsCSV) {
 					}
 				}
 				Catch {
-					Write-LogMessage -Type Error -Msg "Error adding ExtraPass1 with name of `"$($account.ExtraPass1Name)`" in safe `"$($account.ExtraPass1Safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
 					$account | Export-Csv -Append -Path $badAccounts
+					Write-LogMessage -Type Error -Msg "Error adding ExtraPass1 with name of `"$($account.ExtraPass1Name)`" in safe `"$($account.ExtraPass1Safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
+					Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionMessage $PSitem.Exception)"
 					$ExtraPass1Failed++
 				}
 			}
@@ -760,9 +773,10 @@ ForEach ($account in $accountsCSV) {
 					}
 				}
 				Catch {
-					Write-LogMessage -Type Error -Msg "Error adding ExtraPass2 with name of `"$($account.ExtraPass2Name)`" in safe `"$($account.ExtraPass2Safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
-					$ExtraPass2failed++
 					$account | Export-Csv -Append -Path $badAccounts
+					Write-LogMessage -Type Error -Msg "Error adding ExtraPass2 with name of `"$($account.ExtraPass2Name)`" in safe `"$($account.ExtraPass2Safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
+					Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionMessage $PSitem.Exception)"
+					$ExtraPass2failed++
 				}
 			}
 
@@ -780,15 +794,17 @@ ForEach ($account in $accountsCSV) {
 					}
 				}
 				Catch {
-					Write-LogMessage -Type Error -Msg "Error adding ExtraPass2 with name of `"$($account.ExtraPass3Name)`" in safe `"$($account.ExtraPass3safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
-					$ExtraPass3Failed++ 
 					$account | Export-Csv -Append -Path $badAccounts
+					Write-LogMessage -Type Error -Msg "Error adding ExtraPass2 with name of `"$($account.ExtraPass3Name)`" in safe `"$($account.ExtraPass3safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
+					Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionMessage $PSitem.Exception)"
+					$ExtraPass3Failed++ 
+					
 				}
 			}
 		}
 		Catch {
 			Write-LogMessage -Type Error -Msg "Error linking Master Account - Username: `"$($account.userName)`" Address: `"$($account.address)`" Safe: `"$($account.safe)`"" 
-			Write-LogMessage -Type Error -Msg "$(Join-ExceptionMessage $PSitem.Exception)"
+			Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionMessage $PSitem.Exception)"
 			$account | Export-Csv -Append -Path $badAccounts
 		}
 		$counterMaster++
