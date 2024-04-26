@@ -108,6 +108,30 @@ Function ConvertTo-URL($sText) {
 		return $sText
 	}
 }
+Function Test-Unicode {
+	param (
+		[string]
+		$inputText 
+	)
+	IF ([string]::IsNullOrEmpty($inputText)) {
+		Return $inputText
+	}
+	$nonASCII = '[^\x00-\x7F]'
+	if ($inputText -cmatch $nonASCII) {
+		$output = ''
+		$inputText.ToCharArray() | ForEach-Object { 
+			if ($PSItem -cmatch $nonASCII) {
+				$UniCode = "{$(([uint16] [char]$psitem).ToString('X4'))}"
+				$output = "$output$($UniCode)"
+			}
+			else { $output = "$output$($PSitem)" }
+		}
+		return $output
+	}
+	else { 
+		return $inputText
+	}
+}
 
 Function Test-RESTVersion {
 	<#
@@ -202,6 +226,7 @@ Function Write-LogMessage {
 		[Parameter(Mandatory = $false)]
 		[String]$LogFile = $LOG_FILE_PATH
 	)
+	$MSG = Test-Unicode -inputTest $MSG
 	Try {
 		If ($Header) {
 			'=======================================' | Out-File -Append -FilePath $LogFile
