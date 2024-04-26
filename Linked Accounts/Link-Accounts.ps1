@@ -314,16 +314,44 @@ Function Join-ExceptionMessage {
 	The Exception object to format
 #>
 	param(
-		[Exception]$e
+		[System.Management.Automation.ErrorRecord]$e
 	)
 
 	Begin {
+		
 	}
 	Process {
-		$msg = 'Source:{0}; Message: {1}' -f $e.Source, $e.Message
-		while ($e.InnerException) {
-			$e = $e.InnerException
-			$msg += "`n`t->Source:{0}; Message: {1}" -f $e.Source, $e.Message
+		$Exception = $e.Exception
+		$msg = 'Message: {0}' -f $Exception.Message
+		while ($Exception.InnerException) {
+			$Exception = $Exception.InnerException
+			$msg = 'Message: {0}' -f $Exception.Message
+		}
+		return $msg
+	}
+	End {
+	}
+}
+Function Join-ExceptionDetails {
+	<#
+.SYNOPSIS
+	Formats exception messages
+.DESCRIPTION
+	Formats exception messages
+.PARAMETER Exception
+	The Exception object to format
+#>
+	param(
+		[System.Management.Automation.ErrorRecord]$e
+	)
+	Begin {
+	}
+	Process {
+		$Exception = $e.Exception
+		$msg = 'Source:{0}; Message: {1}' -f $Exception.Source, $Exception.Message
+		while ($Exception.InnerException) {
+			$e = $Exception.InnerException
+			$msg += "`n`t->Source:{0}; Message: {1}" -f $Exception.Source, $Exception.Message
 		}
 		return $msg
 	}
@@ -389,17 +417,16 @@ Function Invoke-Rest {
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType 'application/json' -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
 		}
 	}
- catch [System.Net.WebException] {
+ catch {
 		if ($ErrAction -match ('\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b')) {
-			Write-LogMessage -Type Error -Msg "Error Message: $PSitem"
-			Write-LogMessage -Type Error -Msg "Exception Message: $($PSitem.Exception.Message)"
-			Write-LogMessage -Type Error -Msg "Status Code: $($PSitem.Exception.Response.StatusCode.value__)"
-			Write-LogMessage -Type Error -Msg "Status Description: $($PSitem.Exception.Response.StatusDescription)"
+			Write-LogMessage -Type LogOnly -Msg "Error Message: $PSitem"
+			Write-LogMessage -Type LogOnly -Msg "Exception Message: $($PSitem.Exception.Message)"
+			Write-LogMessage -Type LogOnly -Msg "Status Code: $($PSitem.Exception.Response.StatusCode.value__)"
+			If (![string]::IsNullOrEmpty($($PSitem.Exception.Response.StatusDescription))) {
+				Write-LogMessage -Type Error -Msg "Status Description: $($PSitem.Exception.Response.StatusDescription)"
+			}
 		}
 		$restResponse = $null
-	}
- catch {
-		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $PSitem.Exception))
 	}
 	Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $restResponse"
 	return $restResponse
@@ -556,16 +583,16 @@ Function Add-AccountLink {
 		$addLinkAccountBodyResult = $(Invoke-Rest -Uri ($URL_LinkAccounts -f $MasterID) -Header $global:g_LogonHeader -Command 'POST' -Body $($linkBody | ConvertTo-Json))
 		If ($null -eq $addLinkAccountBodyResult) {
 			# No accounts onboarded
-			throw "There was an error linking account $($linkBody.name) to account ID $($MasterID)."
+			throw "There was an error linking account `"$($linkBody.name)`" to account ID `"$($MasterID)`"."
 		}
 		else {
-			Write-LogMessage -Type Info -MSG "Account link $($linkBody.name) was successfully linked as ExtraPass$($linkBody.extraPasswordIndex)"
+			Write-LogMessage -Type Info -MSG "Account  `"$($linkBody.name)`" was successfully linked as ExtraPass$($linkBody.extraPasswordIndex)"
 			$retResult = $true
 		}
 	}
  catch {
-		Write-LogMessage -Type Error -MSG $PSitem.Exception.Message -ErrorAction 'SilentlyContinue'
-		Throw 
+
+		Throw $PSitem
 	}
 	return $retResult
 }
@@ -595,7 +622,8 @@ If ($DisableSSLVerify) {
 	}
  catch {
 		Write-LogMessage -Type Error -MSG 'Could not change SSL validation'
-		Write-LogMessage -Type Error -MSG $PSitem.Exception -ErrorAction 'SilentlyContinue'
+		Write-LogMessage -Type Error -MSG $(Join-ExceptionMessage -e $PSitem) -ErrorAction 'SilentlyContinue'
+		Write-LogMessage -Type LogOnly -MSG $(Join-ExceptionDetails -e $PSitem) -ErrorAction 'SilentlyContinue'
 		return
 	}
 }
@@ -606,7 +634,8 @@ Else {
 	}
  catch {
 		Write-LogMessage -Type Error -MSG 'Could not change SSL settings to use TLS 1.2'
-		Write-LogMessage -Type Error -MSG $PSitem.Exception -ErrorAction 'SilentlyContinue'
+		Write-LogMessage -Type Error -MSG $(Join-ExceptionMessage -e $PSitem)-ErrorAction 'SilentlyContinue'
+		Write-LogMessage -Type LogOnly -MSG $(Join-ExceptionDetails -e $PSitem) -ErrorAction 'SilentlyContinue'
 	}
 }
 
@@ -633,7 +662,8 @@ If (![string]::IsNullOrEmpty($PVWAURL)) {
 	}
  catch {
 		Write-LogMessage -Type Error -MSG 'PVWA URL could not be validated'
-		Write-LogMessage -Type Error -MSG $PSitem.Exception -ErrorAction 'SilentlyContinue'
+		Write-LogMessage -Type Error -MSG $(Join-ExceptionMessage -e $PSitem) -ErrorAction 'SilentlyContinue'
+		Write-LogMessage -Type LogOnly -MSG $(Join-ExceptionDetails -e $PSitem) -ErrorAction 'SilentlyContinue'
 	}
 }
 else {
@@ -671,7 +701,8 @@ try {
 	}
 }
 catch {
-	Write-LogMessage -Type Error -Msg "Error Logging on. Error: $(Join-ExceptionMessage $_.Exception)"
+	Write-LogMessage -Type Error -MSG "Error Logging on. Error: $(Join-ExceptionMessage -e $PSitem)" -ErrorAction 'SilentlyContinue'
+	Write-LogMessage -Type LogOnly -MSG "Error Logging on. Error: $(Join-ExceptionDetails -e $PSitem)" -ErrorAction 'SilentlyContinue'
 	return
 }
 #endregion
@@ -725,9 +756,12 @@ ForEach ($account in $accountsCSV) {
 			{ Throw 'No Master Account Found' }
 		}
 		catch {
+			$bad = $account | Select-Object -Property *, 'Fail'
+			$bad.Fail = $PSitem.Exception.Message
+			$bad | Export-Csv -Append -Path $badAccounts
 			Write-LogMessage -Type Error -Msg "Error searching for Master Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`"."
-			Write-LogMessage -Type Error -MSG "Error Message: $(Join-ExceptionMessage $PSitem.Exception)"
-			$account | Export-Csv -Append -Path $badAccounts
+			Write-LogMessage -Type Error -MSG $(Join-ExceptionMessage -e $PSitem) -ErrorAction 'SilentlyContinue'
+			Write-LogMessage -Type LogOnly -MSG $(Join-ExceptionDetails -e $PSitem) -ErrorAction 'SilentlyContinue'
 			continue
 		}
 		Try {
@@ -745,9 +779,12 @@ ForEach ($account in $accountsCSV) {
 					}
 				}
 				Catch {
-					$account | Export-Csv -Append -Path $badAccounts
+					$bad = $account | Select-Object -Property *, 'Fail'
+					$bad.Fail = "$(Join-ExceptionMessage $PSitem)"
+					$bad | Export-Csv -Append -Path $badAccounts
 					Write-LogMessage -Type Error -Msg "Error adding ExtraPass1 with name of `"$($account.ExtraPass1Name)`" in safe `"$($account.ExtraPass1Safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
-					Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionMessage $PSitem.Exception)"
+					Write-LogMessage -Type Error -Msg "$(Join-ExceptionMessage $PSitem)"
+					Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionDetails $PSitem)"
 					$ExtraPass1Failed++
 				}
 			}
@@ -766,9 +803,12 @@ ForEach ($account in $accountsCSV) {
 					}
 				}
 				Catch {
-					$account | Export-Csv -Append -Path $badAccounts
+					$bad = $account | Select-Object -Property *, 'Fail'
+					$bad.Fail = "$(Join-ExceptionMessage $PSitem)"
+					$bad | Export-Csv -Append -Path $badAccounts
 					Write-LogMessage -Type Error -Msg "Error adding ExtraPass2 with name of `"$($account.ExtraPass2Name)`" in safe `"$($account.ExtraPass2Safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
-					Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionMessage $PSitem.Exception)"
+					Write-LogMessage -Type Error -Msg "$(Join-ExceptionMessage $PSitem)"
+					Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionDetails $PSitem)"
 					$ExtraPass2failed++
 				}
 			}
@@ -779,7 +819,7 @@ ForEach ($account in $accountsCSV) {
 					$addLinkAccountBody = @{
 						'safe'       = $account.ExtraPass3Safe.Trim(); 
 						'name'       = $account.ExtraPass3Name.Trim(); 
-						'folder'     =  if ([string]::IsNullOrEmpty($account.ExtraPass3Folder)) { 'Root' } else { $account.ExtraPass3Folder.Trim() };
+						'folder'     = if ([string]::IsNullOrEmpty($account.ExtraPass3Folder)) { 'Root' } else { $account.ExtraPass3Folder.Trim() };
 						"$extraPass" = '3';
 					}
 					if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID) {
@@ -787,18 +827,23 @@ ForEach ($account in $accountsCSV) {
 					}
 				}
 				Catch {
-					$account | Export-Csv -Append -Path $badAccounts
+					$bad = $account | Select-Object -Property *, 'Fail'
+					$bad.Fail = "$(Join-ExceptionMessage $PSitem)"
+					$bad | Export-Csv -Append -Path $badAccounts
 					Write-LogMessage -Type Error -Msg "Error adding ExtraPass2 with name of `"$($account.ExtraPass3Name)`" in safe `"$($account.ExtraPass3safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
-					Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionMessage $PSitem.Exception)"
+					Write-LogMessage -Type Error -Msg "$(Join-ExceptionMessage $PSitem)"
+					Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionDetails $PSitem)"
 					$ExtraPass3Failed++ 
 					
 				}
 			}
 		}
 		Catch {
+			$bad = $account | Select-Object -Property *, 'Fail'
+			$bad.Fail = "$(Join-ExceptionMessage $PSitem)"
+			$bad | Export-Csv -Append -Path $badAccounts
 			Write-LogMessage -Type Error -Msg "Error linking Master Account - Username: `"$($account.userName)`" Address: `"$($account.address)`" Safe: `"$($account.safe)`"" 
-			Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionMessage $PSitem.Exception)"
-			$account | Export-Csv -Append -Path $badAccounts
+			Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionDetails $PSItem)"
 		}
 		$counterMaster++
 	}
@@ -818,7 +863,7 @@ else {
 }
 
 # Footer
-Write-LogMessage -Type Info -MSG "A total of $counterMaster accounts out of $masterCount accounts had links processed" -Footer
+Write-LogMessage -Type Info -MSG "A total of $counterMaster accounts with links found of $masterCount accounts imported" -Footer
 Write-LogMessage -Type Info -MSG "A total of $ExtraPass1Succes ExtraPass1 links out of $ExtraPass1Count links where created successfully." -Footer
 Write-LogMessage -Type Info -MSG "A total of $ExtraPass2Succes ExtraPass2 links out of $ExtraPass2Count links where created successfully." -Footer
 Write-LogMessage -Type Info -MSG "A total of $ExtraPass3Succes ExtraPass3 links out of $ExtraPass3Count links where created successfully." -Footer
