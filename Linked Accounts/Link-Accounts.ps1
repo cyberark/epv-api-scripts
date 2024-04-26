@@ -439,7 +439,7 @@ Function Get-LogonHeader {
 #>
 	param(
 		[Parameter(Mandatory = $true)]
-		[System.Management.Automation.CredentialAttribute()]$Credentials,
+		[PSCredential] $Credentials,
 		[Parameter(Mandatory = $false)]
 		[string]$RadiusOTP,
 		[Parameter(Mandatory = $false)]
