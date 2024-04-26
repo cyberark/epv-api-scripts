@@ -111,7 +111,9 @@ Function ConvertTo-URL($sText) {
 Function Test-Unicode {
 	param (
 		[string]
-		$inputText 
+		$inputText,
+		[switch]
+		$Remove
 	)
 	IF ([string]::IsNullOrEmpty($inputText)) {
 		Return $inputText
@@ -121,8 +123,10 @@ Function Test-Unicode {
 		$outputText = ''
 		$inputText.ToCharArray() | ForEach-Object { 
 			if ($PSItem -cmatch $nonASCII) {
-				$UniCode = "{$(([uint16] [char]$psitem).ToString('X4'))}"
-				$outputText = "$outputText$($UniCode)"
+				If (!$Remove) {
+					$UniCode = "{$(([uint16] [char]$psitem).ToString('X4'))}"
+					$outputText = "$outputText$($UniCode)"
+				}
 			}
 			else { $outputText = "$outputText$($PSitem)" }
 		}
@@ -377,6 +381,7 @@ Function Invoke-Rest {
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType 'application/json' -TimeoutSec 2700 -ErrorAction $ErrAction
 		}
 		else {
+			$body = Test-Unicode -Remove -inputText $Body
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType 'application/json' -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
 		}
