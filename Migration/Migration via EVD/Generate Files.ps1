@@ -1,21 +1,34 @@
-$ImportRoot = '.\Import\'
+$ImportDirName = "Import"
+$ImportRoot = ".\$ImportDirName\"
 $SafesImportFile = "$ImportRoot\SafesList.csv"
 $ObjectsImportFile = "$ImportRoot\FileList.csv"
 $PropertiesImportFile = "$ImportRoot\ObjectProperties.csv"
 $PoliciesImportFile = "$ImportRoot\Policies.xml"
 
-$ExportRoot = '.\Export\'
-$SafeNamesExportFile = "$ExportRoot\SafeNames.csv"
+$ExportDirName = "Export"
+$ExportRoot = ".\$ExportDirName\"
+$SafesExportFile = "$ExportRoot\Safes.csv"
 $AccountsListExportFile = "$ExportRoot\AccountsList.csv"
 $InUsePropExportFile = "$ExportRoot\InUseProperties.csv"
 $InUsePropUniqueExportFile = "$ExportRoot\InUsePropUnique.csv"
 $AccountsExportFile = "$ExportRoot\Accounts.csv"
 $LinksExportFile = "$ExportRoot\Links.csv"
 
+<# 
+Command to generate EVD Export required
 
+.\exportVaultData.exe  \VaultFile=vault.ini \CredFile=admin.cred \target=File \UseQualifier=All \BundleTransaction=Yes \FilesList=.\CSV\FileList.csv \OwnersList=.\CSV\OwnersList.csv \SafesList=.\CSV\SafesList.csv \GroupsList=.\CSV\GroupsList.csv \UsersList=.\CSV\UsersList.csv \ObjectProperties=.\CSV\ObjectProperties.csv
+ #>
 $PSStyle.Progress.View = 'Classic'
 $progressUpdates = 10000
 $timerStart = Get-Date
+
+IF (!$(Test-Path $ImportRoot)) {
+    New-Item -Path ".\" -Name "$ImportDirName" -ItemType "directory" -ErrorAction SilentlyContinue
+}
+IF (!$(Test-Path $ExportRoot)) {
+    New-Item -Path ".\" -Name "$ExportDirName" -ItemType "directory" -ErrorAction SilentlyContinue
+}
 
 ([wmi]"win32_process.handle=`"$PID`"").setPriority(128) | Out-Null
 
@@ -56,50 +69,64 @@ Write-Host "Completed work with safes to remove at $(Get-Date), starting work on
 $SafesToRemove += $extraSafesToRemove
 $extraSafesToRemove = $null
 
-$SafeFile = Import-Csv $SafesImportFile -Header SafeID, SafeName, LocationID, LocationName, Size, MaxSize, %UsedSize, LastUsed, VirusFree, TextOnly, AccessLocation, SecurityLevel, Delay, FromHour, ToHour, DailyVersions, MonthlyVersions, YearlyVersions, LogRetentionPeriod, ObjectsRetentionPeriod, RequestRetentionPeriod, ShareOptions, ConfirmersCount, ConfirmType, DefaultAccessMarks, DefaultFileCompression, DefaultReadOnly, QuotaOwner, UseFileCategories, RequireReasonToRetrieve, EnforceExlusivePasswords, RequireContentValidation, CreationDate, CreatedBy, NumberOfPasswordVersions
+$SafeFile = Import-Csv $SafesImportFile -Header SafeID, Safe, LocationID, LocationName, Size, MaxSize, %UsedSize, LastUsed, VirusFree, TextOnly, AccessLocation, SecurityLevel, Delay, FromHour, ToHour, DailyVersions, MonthlyVersions, YearlyVersions, LogRetentionPeriod, ObjectsRetentionPeriod, RequestRetentionPeriod, ShareOptions, ConfirmersCount, ConfirmType, DefaultAccessMarks, DefaultFileCompression, DefaultReadOnly, QuotaOwner, UseFileCategories, RequireReasonToRetrieve, EnforceExlusivePasswords, RequireContentValidation, CreationDate, CreatedBy, NumberOfPasswordVersions
 Write-Host "Imported $($SafeFile.Count.ToString('N0')) Safes"
-$SafeNames = $SafeFile | Select-Object -Property SafeID, SafeName | Where-Object { $PSItem.SafeName -notIn $safesToRemove }
+$Safes = $SafeFile | Select-Object -Property SafeID, Safe | Where-Object { $PSItem.Safe -notIn $safesToRemove }
 $SafeFile = $null
-Write-Host "Afrer removing out of scope safes $($SafeNames.Count.ToString('N0')) remain"
-[hashtable]$safeNamesHT = $null
-[hashtable]$safeNamesHT = @{}
-$null = $SafeNames | ForEach-Object {
+Write-Host "Afrer removing out of scope safes $($Safes.Count.ToString('N0')) remain"
+[hashtable]$SafesHT = $null
+[hashtable]$SafesHT = @{}
+$null = $Safes | ForEach-Object {
     Try {
-        $SafeNamesHT.Add($PSitem.SafeID, $PSItem.SafeName) 
+        $SafesHT.Add($PSitem.SafeID, $PSItem.Safe) 
     }
     catch {
         Write-Error "Error on $item"
         Write-Error $PSItem
     }
 }
-$SafeNames | Sort-Object -Property SafeName | Export-Csv $SafeNamesExportFile
-$SafeNames = $null
+$Safes | Sort-Object -Property Safe | Export-Csv $SafesExportFile
+$Safes = $null
 $SafeFile = $null
-Write-Host "Safename hashtable created with $($SafeNamesHT.Count.ToString('N0')) entries"
+Write-Host "Safe hashtable created with $($SafesHT.Count.ToString('N0')) entries"
 Write-Host "Completed work with safes at $(Get-Date), starting work on objects" -ForegroundColor Cyan
 
 Write-Host 'Starting to import objects'
-$AccountsFile = Import-Csv $ObjectsImportFile -Header SafeID, SafeName, Folder, FileID, FileName, InternalName, Size, CreatedBy, CreationDate, LastUsedBy, LastUsedDate, ModificationDate, ModifiedBy, DeletedBy, DeletionDate, LockDate, LockBy, LockedByUserID, Accessed, New, Retrieved, Modified, IsRequestNeeded, ValidationStatus, Type, CompressedSize, LastModifiedDate, LastModifiedBy, LastUsedByHuman, LastUsedHumanDate, LastUsedByComponent, LastUsedComponentDate
+$AccountsFile = Import-Csv $ObjectsImportFile -Header SafeID, Safe, Folder, FileID, FileName, InternalName, Size, CreatedBy, CreationDate, LastUsedBy, LastUsedDate, ModificationDate, ModifiedBy, DeletedBy, DeletionDate, LockDate, LockBy, LockedByUserID, Accessed, New, Retrieved, Modified, IsRequestNeeded, ValidationStatus, Type, CompressedSize, LastModifiedDate, LastModifiedBy, LastUsedByHuman, LastUsedHumanDate, LastUsedByComponent, LastUsedComponentDate
 Write-Host "Imported $($AccountsFile.Count.ToString('N0')) objects"
-$AccountsListTemp = $AccountsFile | Where-Object { '2' -eq $PSitem.Type } | Select-Object -Property SafeID, SafeName, FileID, FileName 
-$AccountsList = $AccountsListTemp |  ForEach-Object { 
-    If ($Null -ne $SafeNamesHT[$($PSitem.SafeID)]) {
-        $PSitem
+$AccountsListTemp = $AccountsFile | Where-Object { '2' -eq $PSitem.Type } | Select-Object -Property SafeID, Safe, FileID, FileName, DeletionDate
+$AccountsList = $AccountsListTemp |  ForEach-Object {
+    IF ([string]::IsNullOrEmpty($PSItem.DeletionDate)) {
+        If ($Null -ne $SafesHT[$($PSitem.SafeID)]) {
+            $PSitem
+        }
+    }
+}
+
+[hashtable]$AccountsListHT = $null
+[hashtable]$AccountsListHT = @{}
+$AccountsList | ForEach-Object {
+    Try {
+        $AccountsListHT.Add("$($PSitem.SafeID)_$($PSItem.FileID)","")
+    }
+    catch {
+        Write-Error "Error on $item"
+        Write-Error $PSItem
     }
 }
 
 $SafesToRemove = $Null
 $AccountsFile = $null
-Write-Host "Afrer removing out of scope safes and file type of file $($AccountsList.Count.ToString('N0')) password objects remain"
+Write-Host "Afrer removing out of scope safes, file type of file, and deleted items,  $($AccountsList.Count.ToString('N0')) password objects remain"
 $AccountsList | Export-Csv $AccountsListExportFile
 
 Write-Host "Completed work with objects at $(Get-Date), starting work on properties" -ForegroundColor Cyan
 
-[string[]]$baseProps = @('PolicyID', 'DeviceType', 'CPMDisabled', 'CPMErrorDetails', 'CPMStatus', 'Description', 'LimitDomainAccess','AccountIDCode')
+[string[]]$baseProps = @('PolicyID', 'DeviceType', 'CPMDisabled', 'CPMErrorDetails', 'CPMStatus', 'Description', 'LimitDomainAccess', 'AccountIDCode')
 [string[]]$ExtraProps = @('ExtraPass1Safe', 'ExtraPass1Folder', 'ExtraPass1Name', 'ExtraPass2Safe', 'ExtraPass2Folder', 'ExtraPass2Name', 'ExtraPass3Safe', 'ExtraPass3Folder', 'ExtraPass3Name')
 [xml]$xml = Get-Content $PoliciesImportFile
 $Nodes = $xml.SelectNodes('//Property')
-[string[]]$InUseProps = $nodes.Name | Select-Object -Unique -CaseInsensitive | Sort-Object
+[string[]]$InUseProps = $nodes.Name | Select-Object -Unique  | Sort-Object
 Write-Host "Completed work with $($(Get-Item $PoliciesImportFile).name) at $(Get-Date), starting work on object properties"
 
 $InUseProps += $baseProps
@@ -112,11 +139,17 @@ Write-Host 'Starting import of objects properties'
 $ObjectFile = Import-Csv $PropertiesImportFile -Header ObjectPropertyId, ObjectPropertyName, SafeId, FileId, ObjectPropertyValue, Options
 Write-Host "Imported $($ObjectFile.Count.ToString('N0')) object properties"
 Write-Host "Import completed at $(Get-Date), dropping all properties in a out of scope safe"
-$InUseProperties = $ObjectFile |  ForEach-Object { 
-    If ($Null -ne $SafeNamesHT[$($PSitem.SafeID)]) {
+$InUsePropertiesSafes = $ObjectFile |  ForEach-Object { 
+    If ($Null -ne $SafesHT[$($PSitem.SafeID)]) {
         $PSitem
     }
 }
+$InUseProperties = $InUsePropertiesSafes |  ForEach-Object { 
+    If ($Null -ne $AccountsListHT["$($PSitem.SafeID)_$($PSItem.FileID)"]) {
+        $PSitem
+    }
+}
+
 $ObjectFile = $null
 Write-Host "After removing object propterties in out of scope safes $($InUseProperties.Count.ToString('N0')) password object properties remain"
 $InUseProperties | Export-Csv $InUsePropExportFile
@@ -144,13 +177,12 @@ $null = $AccountsList | ForEach-Object {
         $item = $PSItem
         $FileName = $PSitem.FileName
         $AccountID = "$($Item.SafeID)_$($Item.FileID)"
-        [PSCustomObject]$AccountPropList = @('SafeName', $(@{Name = 'Name'; Expression = { $FileName } }),$(@{Name = 'AccountIDCode'; Expression = { $AccountID } }))
+        [PSCustomObject]$AccountPropList = @('Safe', $(@{Name = 'Name'; Expression = { $FileName } }), $(@{Name = 'AccountIDCode'; Expression = { $AccountID } }))
         $AccountPropList += [pscustomobject]$InUseUniquePropertiesList
         $AccountObject = $Item | Select-Object -Property $AccountPropList 
         $AccountsHT.Add($AccountID, $AccountObject)
         $AccountID = $null 
         $AccountObject = $null
-
         $progressCount += 1
         IF ($progressCount -gt $($progressUpdates - 1)) {
             $progressCount = 0
@@ -185,7 +217,7 @@ $null = $InUseProperties | ForEach-Object {
         If ($item.ObjectPropertyName -in $InUseUniquePropertiesList ) {
             $AccountID = "$($Item.SafeID)_$($Item.FileID)"
             IF (!$([string]::IsNullOrEmpty($($item.ObjectPropertyValue)))) {
-                $AccountsHT[$AccountID].$($item.ObjectPropertyName) = $($item.ObjectPropertyValue).ToString().replace("`n","")
+                $AccountsHT[$AccountID].$($item.ObjectPropertyName) = $($item.ObjectPropertyValue).ToString()
             }    
         }
         $progressCount += 1
@@ -218,7 +250,7 @@ $Accounts = $null
 Write-Host "Export of accounts to CSV completed at $(Get-Date)"
 
 Write-Host "Starting to find account links at $(Get-Date), removing all extra fields"
-$LinksPrep = $AccountsHT.Values | Where-Object { $PSitem.PSObject.Properties -match 'ExtraPass.*' } | Select-Object -Property @('SafeName', 'Name', 'Username', 'Address', 'ExtraPass1Safe', 'ExtraPass1Folder', 'ExtraPass1Name', 'ExtraPass2Safe', 'ExtraPass2Folder', 'ExtraPass2Name', 'ExtraPass3Safe', 'ExtraPass3Folder', 'ExtraPass3Name')
+$LinksPrep = $AccountsHT.Values | Where-Object { $PSitem.PSObject.Properties -match 'ExtraPass.*' } | Select-Object -Property @('Safe', 'Name', 'Username', 'Address', 'ExtraPass1Safe', 'ExtraPass1Folder', 'ExtraPass1Name', 'ExtraPass2Safe', 'ExtraPass2Folder', 'ExtraPass2Name', 'ExtraPass3Safe', 'ExtraPass3Folder', 'ExtraPass3Name')
 Write-Host "Completed removing all extra fields at $(Get-Date), find accounts with logon accounts"
 $linkLogon = $LinksPrep | Where-Object { ($Null -ne $PSitem.ExtraPass1Safe) -or ($Null -ne $PSitem.ExtraPass1Folder) -or ($Null -ne $PSitem.ExtraPass1Name) }
 Write-Host "Completed finding accounts with logon accounts at $(Get-Date) and found $($linkLogon.count.ToString('N0')) accounts, finding accounts with enable or other linked accounts"
