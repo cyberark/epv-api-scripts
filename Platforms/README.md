@@ -141,7 +141,7 @@ Get-PlatformDetails.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault -Platfor
 
 ## Usage
 ```powershell
-Get-PlatformReport.ps1 [-PVWAURL] <string> [[-AuthType] <string>] [[-CSVPath] <string>] [-ExtendedReport] [-DisableSSLVerify] [<CommonParameters>]
+Get-PlatformReport.ps1 [-PVWAURL] <string> [[-AuthType] <string>] [[-CSVPath] <string>] [-ExtendedReport] [-IncludeInactive] [-DisableSSLVerify] [<CommonParameters>]
 ```
 
 ## Examples
@@ -150,7 +150,7 @@ Printing the report for all Active Platforms on screen:
 Get-PlatformReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault 
 ```
 
-Printing the extended report for all Active Platforms to a .csv file (including all connection components):
+Printing the extended report for all Platforms to a .csv file (including all connection components):
 ```powershell
-Get-PlatformReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault -ExtendedReport -CSVPath "C:\CyberArk\Platforms\Active_Platforms_August-2020.csv"
+Get-PlatformReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault -ExtendedReport -IncludeInactive --CSVPath "C:\CyberArk\Platforms\Active_Platforms_August-2020.csv"
 ```
