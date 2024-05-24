@@ -136,7 +136,8 @@ Get-PlatformDetails.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault -Platfor
 ```
 
 # Platforms Report
-- Creates a report on all Active Platforms and their connection components.
+- Creates a report on all target Platforms and their connection components.
+- Produces a report of active target platforms by default.
 - Supported version: PVWA 11.6 and above.
 
 ## Usage
