@@ -7,7 +7,7 @@
 
 ## Parameters:
 ```powershell
-Install-PSMHealthCheck.ps1  [-Location <String>] [-download] [-stage] [-hostingFile <String>] [-DisableSSLVerify] [-AllowHTTP] [<CommonParameters>]
+Install-PSMHealthCheck.ps1  [-Location <String>] [-download] [-stage] [-CreateSelfSignedCert] [-hostingFile <String>] [-DisableSSLVerify] [-AllowHTTP] [<CommonParameters>]
 
 ```
 - Location <``String``>
