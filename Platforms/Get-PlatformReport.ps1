@@ -570,6 +570,7 @@ try{
 		$output = @()
 		$outputFields = @(
 			"id",`
+   			"PlatformID",`
 			@{Name = 'PlatformName'; Expression = { $_.Name}},`
 			"AllowedSafes",`
    			"Active",`
