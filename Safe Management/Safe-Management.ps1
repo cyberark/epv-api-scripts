@@ -177,7 +177,7 @@ $URL_Logoff = $URL_Authentication + '/Logoff'
 $URL_Safes = $URL_PVWAAPI + '/Safes'
 $URL_SpecificSafe = $URL_Safes + '/{0}'
 $URL_SafeMembers = $URL_SpecificSafe + '/Members'
-$URL_SafeSpecificMember = $URL_SpecificSafe + '/Members/{1}'
+$URL_SafeSpecificMember = $URL_SpecificSafe + '/Members/{1}/'
 
 #region Functions
 Function Test-CommandExists {
