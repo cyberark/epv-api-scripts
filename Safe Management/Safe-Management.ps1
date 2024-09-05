@@ -28,6 +28,7 @@
  2.1.7  2024-04-17      - Updated to bypass attempt to add or update safe if no safe details exist
  2.1.8  2024-04-18      - Added ability to force Safe Creations
                    	- Added "AddMembers" back
+ 2.1.9  2024-09-05      - Fix for selecting members
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = 'List')]
 param
@@ -152,7 +153,7 @@ $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 
 # Script Version
-$ScriptVersion = '2.1.8'
+$ScriptVersion = '2.1.9'
 
 # ------ SET global parameters ------
 # Set Log file path
