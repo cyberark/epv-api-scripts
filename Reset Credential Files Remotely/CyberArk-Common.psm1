@@ -456,35 +456,6 @@ Function Set-PSSessionCred {
     }
 }
 
-Function Invoke-Logon {
-    param(
-        [Parameter(Mandatory = $false)]
-        [PSCredential]$Credentials
-    )
-    # Get Credentials to Login
-    # ------------------------
-    $caption = "Reset Remote Cred File Utility"
-    $msg = "Enter your $AuthType User name and Password"; 
-    if ($null -eq $Credentials) {
-        $Credentials = $Host.UI.PromptForCredential($caption, $msg, "", "")
-    }
-    if ($null -ne $Credentials) {
-        if ($AuthType -eq "radius" -and ![string]::IsNullOrEmpty($OTP)) {
-            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $Credentials -RadiusOTP $OTP)
-        }
-        else {
-            Set-Variable -Scope Global -Force -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $Credentials)
-        }
-        # Verify that we successfully logged on
-        If ($null -eq $g_LogonHeader) { 
-            return # No logon header, end script 
-        }
-    }
-    else { 
-        Write-LogMessage -Type Error -MSG "No Credentials were entered" -Footer
-        return
-    }
-}
 Function Get-LogonHeader {
     # @FUNCTION@ ======================================================================================================================
     # Name...........: Get-LogonHeader
