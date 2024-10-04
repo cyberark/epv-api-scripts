@@ -31,6 +31,10 @@ param
 	# Use this switch to get an extended report
 	[Parameter(Mandatory=$false)]
 	[Switch]$ExtendedReport,
+
+	# Use this switch to get inactive platforms
+	[Parameter(Mandatory=$false)]
+	[Switch]$IncludeInactive,
 	
 	[Parameter(Mandatory=$false,HelpMessage="Path to a CSV file to export data to")]
 	[Alias("path")]
@@ -540,7 +544,11 @@ $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 try{
 	Write-LogMessage -Type Info -Msg "Retrieving active Platform..."
 	# Get the active Platforms
-	$urlActivePlatforms = $URL_TargetPlatforms+"?active eq true"
+	if (-not $IncludeInactive) {
+		$urlActivePlatforms = $URL_TargetPlatforms+"?Filter=active eq true"
+	} else {
+		$urlActivePlatforms = $URL_TargetPlatforms
+	}
 	$activePlatforms = Invoke-Rest -Command Get -Uri $urlActivePlatforms -Header $(Get-LogonHeader -Credentials $creds)
 	If($activePlatforms)
 	{
@@ -562,8 +570,10 @@ try{
 		$output = @()
 		$outputFields = @(
 			"id",`
+   			"PlatformID",`
 			@{Name = 'PlatformName'; Expression = { $_.Name}},`
 			"AllowedSafes",`
+   			"Active",`
 			@{Name = 'PeriodicVerify'; Expression = { $_.CredentialsManagementPolicy.Verification.PerformAutomatic}},`
 			@{Name = 'VerifyEveryXDays'; Expression = {$_.CredentialsManagementPolicy.Verification.RequirePasswordEveryXDays}},`
 			@{Name = 'PeriodicChange'; Expression = {$_.CredentialsManagementPolicy.Change.PerformAutomatic}},`
