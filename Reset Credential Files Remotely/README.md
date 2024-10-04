@@ -17,7 +17,7 @@
 
 ## Parameters:
 ```powershell
-.\Remote-CredFile.ps1 -PVWAURL <string> [[-AuthType <string>] [-OTP <string>] [-PVWACredentials <PSCredential>] [-PSCredentials <PSCredential>] [-AllComponentTypes] [-ComponentType <string>] [-ComponentUser <string>] [-ComponentUserFilter <string>] [-AllServers] [-ConnectedOnly] [-DisconnectedOnly] [-MapFile <string>] [-VaultAddress <string>] [-APIAddress <string>] [-DisableSSLVerify] [-Jobs]]
+.\Remote-CredFile.ps1 -PVWAURL <string> [[-AuthType <string>] [-OTP <string>] [-PVWACredentials <PSCredential>] [-PSCredentials <PSCredential>] [-LogonToken <object>] [-AllComponentTypes] [-ComponentType <string>] [-ComponentUser <string>] [-ComponentUserFilter <string>] [-AllServers] [-ConnectedOnly] [-DisconnectedOnly] [-MapFile <string>] [-VaultAddress <string>] [-APIAddress <string>] [-DisableSSLVerify] [-Jobs]]
 ```
 - PVWAURL
 	- The URL of the PVWA. 
@@ -32,6 +32,9 @@
 - PVWACredentials
     - Credentials to use for the PVWA.
     - Set credentials using ```$cred =  Get-Credential ```
+- LogonToken
+	- The logon token when using Privilege Cloud Shared Services (ISPSS).
+	- To generate Token see https://github.com/cyberark/epv-api-scripts/tree/main/Identity%20Authentication 
 - PSCredentials
     - Use alternate credentials to connect to WinRM
     - Set credentials using ```$PScred =  Get-Credential ```
