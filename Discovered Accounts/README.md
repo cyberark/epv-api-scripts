@@ -95,7 +95,7 @@ Reporting top 100 Enabled, Privileged Discovered Accounts sorted by Username to 
 Get-DiscoveredAccountsReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault -List -OnlyEnabledAccounts -OnlyPrivilegedAccounts -SortBy "UserName" -Limit 100 -CSVPath "C:\CyberArk\DiscoveredAccounts\Enabled_Privileged_August-2020.csv"
 ```
 
-# Delete Pending
+# Remove Pending
 
 > **General**
 > - Uses REST API and can support PCLoud and v12.1 of PVWA and up.
@@ -106,7 +106,7 @@ Get-DiscoveredAccountsReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault
 The script will clear all pending accounts to allow them to be discovered again.
 
 ```powershell
-DeletePending.ps1 -PVWAURL <string> [-AuthType <string>] [-DisableSSLVerify] [-LogonToken <LogonToken>] [<CommonParameters>]
+Remove-Pending.ps1 -PVWAURL <string> [-AuthType <string>] [-DisableSSLVerify] [-LogonToken <LogonToken>] [<CommonParameters>]
 ```
 
 - PVWAURL
