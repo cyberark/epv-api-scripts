@@ -495,7 +495,7 @@ Function Get-LogonHeader {
             Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
         }
         catch {
-            Throw $(New-Object System.Exception ('Get-LogonHeader: Could not create Logon Headers Dictionary', $_.Exception))
+            Throw $(New-Object System.Exception ('Get-LogonHeader: Could not create Logon Header Dictionary', $_.Exception))
         }
     }
 }
@@ -512,7 +512,7 @@ Function Invoke-Logoff {
         # ------------------
         If ($null -ne $g_LogonHeader) {
             Write-LogMessage -Type Info -Msg 'Logoff Session...'
-            Invoke-Rest -Command Post -Uri $URL_Logoff -Headers $g_LogonHeader | Out-Null
+            Invoke-Rest -Command Post -Uri $URL_Logoff -Header $g_LogonHeader | Out-Null
             Set-Variable -Name g_LogonHeader -Value $null -Scope global
         }
     }
@@ -597,14 +597,14 @@ Get-Safes
         If ($null -eq $g_SafesList) {
             Write-LogMessage -Type Debug -Msg 'Retrieving safes from the vault...'
             $GetSafesList = @()
-            $safes = (Invoke-Rest -URI $URL_Safes -Command GET -Headers $g_LogonHeader)
+            $safes = (Invoke-Rest -URI $URL_Safes -Command GET -Header $g_LogonHeader)
             $GetSafesList += $safes.value
             Write-LogMessage -Type Debug -Msg "Total safes response: $($safes.count)"
             $nextLink = $safes.nextLink
             Write-LogMessage -Type Debug -Msg $nextLink
 				
             While ($nextLink -ne '' -and $null -ne $nextLink) {
-                $safes = (Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Headers $g_LogonHeader )
+                $safes = (Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header $g_LogonHeader )
                 $nextLink = $safes.nextLink
                 Write-LogMessage -Type Debug -Msg $nextLink
                 $GetSafesList += $safes.value
@@ -640,12 +640,12 @@ Get-Safe -safeName "x0-Win-S-Admins"
     $_safe = @()
     try {
         $accSafeURL = $URL_SpecificSafe -f $(ConvertTo-URL $safeName)
-        $_safe += $(Invoke-Rest -Uri $accSafeURL -Command 'Get' -Headers $g_LogonHeader -ErrAction 'SilentlyContinue')
+        $_safe += $(Invoke-Rest -Uri $accSafeURL -Command 'Get' -Header $g_LogonHeader -ErrAction 'SilentlyContinue')
         If (![string]::IsNullOrEmpty($_safe.nextLink)) {
             $nextLink = $_safe.nextLink
             While (![string]::IsNullOrEmpty($nextLink)) {
                 $_safeNext = @()
-                $_safeNext += $(Invoke-Rest-Uri "$PVWAURL/$nextLink" -Command 'Get' -Headers $g_LogonHeader -ErrAction 'SilentlyContinue')
+                $_safeNext += $(Invoke-Rest-Uri "$PVWAURL/$nextLink" -Command 'Get' -Header $g_LogonHeader -ErrAction 'SilentlyContinue')
                 $_safe += $_safeNext
                 If (![string]::IsNullOrEmpty($_safeNext.nextLink)) {
                     $nextLink = $_safeNext.nextLink
@@ -762,7 +762,7 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
     try {
         Write-LogMessage -Type Debug -Msg "Adding the safe $safename to the Vault..."
         Write-LogMessage -Type Debug -Msg "Create Safe Body: `n$createSafeBody"
-        $safeAdd = Invoke-Rest -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Command POST -Headers $g_LogonHeader
+        $safeAdd = Invoke-Rest -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Command POST -Header $g_LogonHeader
         # Reset cached Safes list
         #Set-Variable -Name g_SafesList -Value $null -Scope Global
         # Update Safes list to include new safe
@@ -852,7 +852,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     try {
         Write-LogMessage -Type Debug -Msg "Updating safe $safename..."
         Write-LogMessage -Type Debug -Msg "Update Safe Body: $updateSafeBody" \
-        $null = Invoke-Rest -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Command PUT -Headers $g_LogonHeader
+        $null = Invoke-Rest -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Command PUT -Header $g_LogonHeader
     }
     catch {
         Throw $(New-Object System.Exception ("Update-Safe: Error updating $safeName.", $_.Exception))
@@ -881,7 +881,7 @@ Remove-Safe -safename "x0-Win-S-Admins"
 
     try {
         Write-LogMessage -Type Debug -Msg "Deleting the safe $safename from the Vault..."
-        $null = Invoke-Rest -Uri ($URL_SpecificSafe -f $safeName) -Command DELETE -Headers $g_LogonHeader
+        $null = Invoke-Rest -Uri ($URL_SpecificSafe -f $safeName) -Command DELETE -Header $g_LogonHeader
     }
     catch {
         Throw $(New-Object System.Exception ("Remove-Safe: Error deleting $safename from the Vault.", $_.Exception))
@@ -1017,7 +1017,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                 $urlSafeMembers = ($URL_SafeMembers -f $(ConvertTo-URL $safeName))
                 $restMethod = 'POST'
             }
-            $null = Invoke-Rest -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Command $restMethod -Headers $g_LogonHeader -ErrorVariable rMethodErr
+            $null = Invoke-Rest -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Command $restMethod -Header $g_LogonHeader -ErrorVariable rMethodErr
         }
         catch {
             if ($rMethodErr.message -like '*User or Group is already a member*') {
@@ -1031,7 +1031,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                     $urlSafeMembers = ($URL_SafeMembers -f $(ConvertTo-URL $safeName))
                     $restMethod = 'POST'
                     try {
-                        $null = Invoke-Rest -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Command $restMethod -Headers $g_LogonHeader -ErrorVariable $rMethodErr
+                        $null = Invoke-Rest -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Command $restMethod -Header $g_LogonHeader -ErrorVariable $rMethodErr
                     }
                     catch {
 
@@ -1077,7 +1077,7 @@ Get-SafeMember -safename "Win-Local-Admins"
     try {
         $accSafeMembersURL = $URL_SafeMembers -f $(ConvertTo-URL $safeName)
         $accSafeMembersURL += '?filter=includePredefinedUsers eq true' 
-        $_safeMembers = $(Invoke-Rest -Uri $accSafeMembersURL -Command GET -Headers $g_LogonHeader -ErrorAction 'SilentlyContinue')
+        $_safeMembers = $(Invoke-Rest -Uri $accSafeMembersURL -Command GET -Header $g_LogonHeader -ErrorAction 'SilentlyContinue')
         # Remove default users and change UserName to MemberName
         if (!$g_includeDefaultUsers) {
             $_safeOwners = $_safeMembers.value | Where-Object { $_.MemberName -NotIn $g_DefaultUsers }
