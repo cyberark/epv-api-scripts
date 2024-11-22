@@ -198,6 +198,85 @@ Function Test-CommandExists {
     }
 } #end function test-CommandExists
 
+#region REST Functions
+# @FUNCTION@ ======================================================================================================================
+# Name...........: Invoke-Rest
+# Description....: Invoke REST Method
+# Parameters.....: Command method, URI, Header, Body
+# Return Values..: REST response
+# =================================================================================================================================
+Function Invoke-Rest {
+	<# 
+.SYNOPSIS 
+Invoke REST Method
+.DESCRIPTION
+Invoke REST Method
+.PARAMETER Command
+The REST Command method to run (GET, POST, PATCH, DELETE)
+.PARAMETER URI
+The URI to use as REST API
+.PARAMETER Header
+The Header as Dictionary object
+.PARAMETER Body
+(Optional) The REST Body
+.PARAMETER ErrAction
+(Optional) The Error Action to perform in case of error. By default "Continue"
+#>
+	param (
+		[Parameter(Mandatory = $true)]
+		[ValidateSet("GET", "POST", "DELETE", "PATCH")]
+		[String]$Command, 
+		[Parameter(Mandatory = $true)]
+		[ValidateNotNullOrEmpty()] 
+		[String]$URI, 
+		[Parameter(Mandatory = $false)]
+		$Header, 
+		[Parameter(Mandatory = $false)]
+		[String]$Body, 
+		[Parameter(Mandatory = $false)]
+		[ValidateSet("Continue", "Ignore", "Inquire", "SilentlyContinue", "Stop", "Suspend")]
+		[String]$ErrAction = "Continue"
+	)
+
+	If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
+		Throw "This script requires PowerShell version 3 or above"
+	}
+	$restResponse = ""
+	try {
+		if ([string]::IsNullOrEmpty($Body)) {
+			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700 -ErrorAction $ErrAction
+		} else {
+			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
+		}
+	} catch [System.Net.WebException] {
+		if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
+			If ("409" -ne $_.Exception.Response.StatusCode.value__) {
+				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine"
+				Write-LogMessage -Type Error -MSG "SafeName: `"$($global:workAccount.safeName)`" `nUsername: `"$($global:workAccount.userName)`" `nAddress: `"$($global:workAccount.Address)`" `nObject: `"$($global:workAccount.name)`""  
+				Write-LogMessage -Type Error -Msg "Error Message: $_"
+				Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
+				Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
+				Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
+				$restResponse = $null
+				Throw
+			} else {
+				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine"
+				Write-LogMessage -Type Error -Msg "Duplicate Account Name. Assuming account already exists. If Update required run with -update"
+				$restResponse = $null
+			}
+		}
+
+
+	} catch { 
+		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
+	}
+	Write-LogMessage -Type Verbose -Msg "Invoke-REST Response: $restResponse"
+	return $restResponse
+}
+
+
 # @FUNCTION@ ======================================================================================================================
 # Name...........: ConvertTo-URL
 # Description....: HTTP Encode test in URL
@@ -393,9 +472,9 @@ Function Get-LogonHeader {
             $logonBody.Password += ",$RadiusOTP"
         } 
         try {
-            # Logon
-            $logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType 'application/json' -TimeoutSec 2700
-			
+            # Logon		
+            $logonToken = Invoke-Rest   -Command Post -URI $URL_Logon -Body $logonBody -ErrAction 'SilentlyContinue'
+
             # Clear logon body
             $logonBody = ''
         }
@@ -433,7 +512,7 @@ Function Invoke-Logoff {
         # ------------------
         If ($null -ne $g_LogonHeader) {
             Write-LogMessage -Type Info -Msg 'Logoff Session...'
-            Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 | Out-Null
+            Invoke-Rest -Command Post -Uri $URL_Logoff -Headers $g_LogonHeader | Out-Null
             Set-Variable -Name g_LogonHeader -Value $null -Scope global
         }
     }
@@ -518,14 +597,14 @@ Get-Safes
         If ($null -eq $g_SafesList) {
             Write-LogMessage -Type Debug -Msg 'Retrieving safes from the vault...'
             $GetSafesList = @()
-            $safes = (Invoke-RestMethod -Uri $URL_Safes -Method GET -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700)
+            $safes = (Invoke-Rest -URI $URL_Safes -Command GET -Headers $g_LogonHeader)
             $GetSafesList += $safes.value
             Write-LogMessage -Type Debug -Msg "Total safes response: $($safes.count)"
             $nextLink = $safes.nextLink
             Write-LogMessage -Type Debug -Msg $nextLink
 				
             While ($nextLink -ne '' -and $null -ne $nextLink) {
-                $safes = (Invoke-RestMethod -Method Get -Uri $("$PVWAURL/$nextLink") -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700)
+                $safes = (Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Headers $g_LogonHeader )
                 $nextLink = $safes.nextLink
                 Write-LogMessage -Type Debug -Msg $nextLink
                 $GetSafesList += $safes.value
@@ -561,12 +640,12 @@ Get-Safe -safeName "x0-Win-S-Admins"
     $_safe = @()
     try {
         $accSafeURL = $URL_SpecificSafe -f $(ConvertTo-URL $safeName)
-        $_safe += $(Invoke-RestMethod -Uri $accSafeURL -Method 'Get' -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 -ErrorAction 'SilentlyContinue')
+        $_safe += $(Invoke-Rest -Uri $accSafeURL -Command 'Get' -Headers $g_LogonHeader -ErrAction 'SilentlyContinue')
         If (![string]::IsNullOrEmpty($_safe.nextLink)) {
             $nextLink = $_safe.nextLink
             While (![string]::IsNullOrEmpty($nextLink)) {
                 $_safeNext = @()
-                $_safeNext += $(Invoke-RestMethod -Uri "$PVWAURL/$nextLink" -Method 'Get' -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 -ErrorAction 'SilentlyContinue')
+                $_safeNext += $(Invoke-Rest-Uri "$PVWAURL/$nextLink" -Command 'Get' -Headers $g_LogonHeader -ErrAction 'SilentlyContinue')
                 $_safe += $_safeNext
                 If (![string]::IsNullOrEmpty($_safeNext.nextLink)) {
                     $nextLink = $_safeNext.nextLink
@@ -682,8 +761,8 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
 
     try {
         Write-LogMessage -Type Debug -Msg "Adding the safe $safename to the Vault..."
-        Write-LogMessage -Type Debug -Msg "Create Safe Body: `n$createSafeBody" 
-        $safeAdd = Invoke-RestMethod -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700
+        Write-LogMessage -Type Debug -Msg "Create Safe Body: `n$createSafeBody"
+        $safeAdd = Invoke-Rest -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Command POST -Headers $g_LogonHeader
         # Reset cached Safes list
         #Set-Variable -Name g_SafesList -Value $null -Scope Global
         # Update Safes list to include new safe
@@ -763,14 +842,17 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
         'Description'               = "$updateDescription" 
         'OLACEnabled'               = $updateOLAC 
         'ManagingCPM'               = "$updateManageCPM"
-        'NumberOfVersionsRetention' = $updateRetVersions
-        'NumberOfDaysRetention'     = $updateRetDays
-    } | ConvertTo-Json
+    } 
+    if (![sting]::IsNullOrEmpty($updateRetVersions)) {
+        $updateSafeBody.NumberOfVersionsRetention = $updateRetVersions
+    } else {
+        $updateSafeBody.NumberOfDaysRetention = $updateRetDays
+    }
 
     try {
         Write-LogMessage -Type Debug -Msg "Updating safe $safename..."
-        Write-LogMessage -Type Debug -Msg "Update Safe Body: $updateSafeBody" 
-        $null = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700
+        Write-LogMessage -Type Debug -Msg "Update Safe Body: $updateSafeBody" \
+        $null = Invoke-Rest -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Command PUT -Headers $g_LogonHeader
     }
     catch {
         Throw $(New-Object System.Exception ("Update-Safe: Error updating $safeName.", $_.Exception))
@@ -799,7 +881,7 @@ Remove-Safe -safename "x0-Win-S-Admins"
 
     try {
         Write-LogMessage -Type Debug -Msg "Deleting the safe $safename from the Vault..."
-        $null = Invoke-RestMethod -Uri ($URL_SpecificSafe -f $safeName) -Method DELETE -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700
+        $null = Invoke-Rest -Uri ($URL_SpecificSafe -f $safeName) -Command DELETE -Headers $g_LogonHeader
     }
     catch {
         Throw $(New-Object System.Exception ("Remove-Safe: Error deleting $safename from the Vault.", $_.Exception))
@@ -935,7 +1017,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                 $urlSafeMembers = ($URL_SafeMembers -f $(ConvertTo-URL $safeName))
                 $restMethod = 'POST'
             }
-            $null = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 -ErrorVariable rMethodErr
+            $null = Invoke-Rest -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Command $restMethod -Headers $g_LogonHeader -ErrorVariable rMethodErr
         }
         catch {
             if ($rMethodErr.message -like '*User or Group is already a member*') {
@@ -949,7 +1031,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                     $urlSafeMembers = ($URL_SafeMembers -f $(ConvertTo-URL $safeName))
                     $restMethod = 'POST'
                     try {
-                        $null = Invoke-RestMethod -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Method $restMethod -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 -ErrorVariable rMethodErr
+                        $null = Invoke-Rest -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Command $restMethod -Headers $g_LogonHeader -ErrorVariable $rMethodErr
                     }
                     catch {
 
@@ -995,7 +1077,7 @@ Get-SafeMember -safename "Win-Local-Admins"
     try {
         $accSafeMembersURL = $URL_SafeMembers -f $(ConvertTo-URL $safeName)
         $accSafeMembersURL += '?filter=includePredefinedUsers eq true' 
-        $_safeMembers = $(Invoke-RestMethod -Uri $accSafeMembersURL -Method GET -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 -ErrorAction 'SilentlyContinue')
+        $_safeMembers = $(Invoke-Rest -Uri $accSafeMembersURL -Command GET -Headers $g_LogonHeader -ErrorAction 'SilentlyContinue')
         # Remove default users and change UserName to MemberName
         if (!$g_includeDefaultUsers) {
             $_safeOwners = $_safeMembers.value | Where-Object { $_.MemberName -NotIn $g_DefaultUsers }
@@ -1111,8 +1193,6 @@ If (Test-CommandExists Invoke-RestMethod) {
                 else {
                     $output | Select-Object -Property safeName, description, managingCPM, numberOfVersionsRetention, numberOfDaysRetention, EnableOLAC | ConvertTo-Csv -NoTypeInformation | Out-File $ReportPath
                 }
-     
-
             }
             catch {
                 Write-LogMessage -Type Error -Msg "Error retrieving safes. Error: $(Join-ExceptionMessage $_.Exception)"
