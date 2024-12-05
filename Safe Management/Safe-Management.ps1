@@ -142,7 +142,11 @@ param
     $logonToken,
     # Use this switch to create safes when only safe name provided
     [Parameter(Mandatory = $false)]
-    [Switch]$CreateSafeWithNameOnly
+    [Switch]$CreateSafeWithNameOnly,
+    
+	[Parameter(Mandatory = $false, HelpMessage = "Vault Stored Credentials")]
+	[PSCredential]$PVWACredentials
+
 )
 
 # Get Script Location 
@@ -177,7 +181,7 @@ $URL_Logoff = $URL_Authentication + '/Logoff'
 $URL_Safes = $URL_PVWAAPI + '/Safes'
 $URL_SpecificSafe = $URL_Safes + '/{0}'
 $URL_SafeMembers = $URL_SpecificSafe + '/Members'
-$URL_SafeSpecificMember = $URL_SpecificSafe + '/Members/{1}'
+$URL_SafeSpecificMember = $URL_SpecificSafe + '/Members/{1}/'
 
 #region Functions
 Function Test-CommandExists {
@@ -223,7 +227,7 @@ The Header as Dictionary object
 #>
 	param (
 		[Parameter(Mandatory = $true)]
-		[ValidateSet("GET", "POST", "DELETE", "PATCH")]
+		[ValidateSet("GET", "POST", "DELETE", "PATCH", "PUT")]
 		[String]$Command, 
 		[Parameter(Mandatory = $true)]
 		[ValidateNotNullOrEmpty()] 
@@ -231,7 +235,7 @@ The Header as Dictionary object
 		[Parameter(Mandatory = $false)]
 		$Header, 
 		[Parameter(Mandatory = $false)]
-		[String]$Body, 
+		$Body, 
 		[Parameter(Mandatory = $false)]
 		[ValidateSet("Continue", "Ignore", "Inquire", "SilentlyContinue", "Stop", "Suspend")]
 		[String]$ErrAction = "Continue"
@@ -246,28 +250,18 @@ The Header as Dictionary object
 			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -TimeoutSec 2700 -ErrorAction $ErrAction
 		} else {
-			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $Body -TimeoutSec 2700"
+			Write-LogMessage -Type Verbose -Msg "Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType ""application/json"" -Body $($Body|ConvertTo-Json -Compress) -TimeoutSec 2700"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType "application/json" -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
 		}
 	} catch [System.Net.WebException] {
 		if ($ErrAction -match ("\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b")) {
-			If ("409" -ne $_.Exception.Response.StatusCode.value__) {
-				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine"
-				Write-LogMessage -Type Error -MSG "SafeName: `"$($global:workAccount.safeName)`" `nUsername: `"$($global:workAccount.userName)`" `nAddress: `"$($global:workAccount.Address)`" `nObject: `"$($global:workAccount.name)`""  
 				Write-LogMessage -Type Error -Msg "Error Message: $_"
 				Write-LogMessage -Type Error -Msg "Exception Message: $($_.Exception.Message)"
 				Write-LogMessage -Type Error -Msg "Status Code: $($_.Exception.Response.StatusCode.value__)"
 				Write-LogMessage -Type Error -Msg "Status Description: $($_.Exception.Response.StatusDescription)"
 				$restResponse = $null
 				Throw
-			} else {
-				Write-LogMessage -Type Error -Msg "CSV Line: $global:csvLine"
-				Write-LogMessage -Type Error -Msg "Duplicate Account Name. Assuming account already exists. If Update required run with -update"
-				$restResponse = $null
-			}
 		}
-
-
 	} catch { 
 		Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
 	}
@@ -471,7 +465,7 @@ Function Get-LogonHeader {
             $logonBody.Password += ",$RadiusOTP"
         } 
         try {
-            # Logon		
+            # Logon
             $logonToken = Invoke-Rest   -Command Post -URI $URL_Logon -Body $logonBody -ErrAction 'SilentlyContinue'
 
             # Clear logon body
@@ -485,13 +479,13 @@ Function Get-LogonHeader {
         If ([string]::IsNullOrEmpty($logonToken)) {
             Throw 'Get-LogonHeader: Logon Token is Empty - Cannot login'
         }
-		
+
         try {
             # Create a Logon Token Header (This will be used through out all the script)
             # ---------------------------
             $logonHeader = @{Authorization = $logonToken }
 
-            Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
+            Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global
         }
         catch {
             Throw $(New-Object System.Exception ('Get-LogonHeader: Could not create Logon Header Dictionary', $_.Exception))
@@ -500,8 +494,8 @@ Function Get-LogonHeader {
 }
 
 Function Invoke-Logoff {
-    <# 
-.SYNOPSIS 
+    <#
+.SYNOPSIS
 	Invoke-Logoff
 .DESCRIPTION
 	Logoff a PVWA session
@@ -521,8 +515,8 @@ Function Invoke-Logoff {
 }
 
 Function Disable-SSLVerification {
-    <# 
-.SYNOPSIS 
+    <#
+.SYNOPSIS
 	Bypass SSL certificate validations
 .DESCRIPTION
 	Disables the SSL Verification (bypass self signed SSL certificates)
@@ -553,7 +547,7 @@ public static class DisableCertValidationCallback {
         return new RemoteCertificateValidationCallback(DisableCertValidationCallback.ReturnTrue);
     }
 }
-'@ 
+'@
             }
 
             [System.Net.ServicePointManager]::ServerCertificateValidationCallback = [DisableCertValidationCallback]::GetDelegate()
@@ -588,10 +582,7 @@ Get-Safes
 
     [CmdletBinding()]
     [OutputType([String])]
-    Param
-    (
-    )
-
+    Param()
     try {
         If ($null -eq $g_SafesList) {
             Write-LogMessage -Type Debug -Msg 'Retrieving safes from the vault...'
@@ -601,7 +592,6 @@ Get-Safes
             Write-LogMessage -Type Debug -Msg "Total safes response: $($safes.count)"
             $nextLink = $safes.nextLink
             Write-LogMessage -Type Debug -Msg $nextLink
-				
             While ($nextLink -ne '' -and $null -ne $nextLink) {
                 $safes = (Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header $g_LogonHeader )
                 $nextLink = $safes.nextLink
@@ -611,7 +601,6 @@ Get-Safes
             }
             Set-Variable -Name g_SafesList -Value $GetSafesList -Scope Global
         }
-		
         return $g_SafesList
     }
     catch {
@@ -654,7 +643,6 @@ Get-Safe -safeName "x0-Win-S-Admins"
                 }
             }
         }
-
     }
     catch {
         Throw $(New-Object System.Exception ("Get-Safe: Error retrieving safe '$safename' details.", $_.Exception))
@@ -835,23 +823,22 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     If ($null -ne $numDaysRetention -and $numDaysRetention -gt 0 -and $getSafe.NumberOfDaysRetention -ne $numDaysRetention) {
         $updateRetDays = $numDaysRetention
     }
-	
-    $updateSafeBody = @{
+
+    $updateSafeBody = [pscustomobject]@{
         'SafeName'                  = "$safeName" 
         'Description'               = "$updateDescription" 
         'OLACEnabled'               = $updateOLAC 
         'ManagingCPM'               = "$updateManageCPM"
-    } 
-    if (![sting]::IsNullOrEmpty($updateRetVersions)) {
-        $updateSafeBody.NumberOfVersionsRetention = $updateRetVersions
-    } else {
-        $updateSafeBody.NumberOfDaysRetention = $updateRetDays
     }
-
+    if (![string]::IsNullOrEmpty($updateRetVersions) -and $updateRetVersions -gt 0) {
+        $updateSafeBody  |Add-Member -MemberType NoteProperty -Name "NumberOfVersionsRetention" -Value $updateRetVersions
+    } else {
+        $updateSafeBody  |Add-Member -MemberType NoteProperty -Name "NumberOfDaysRetention" -Value $updateRetDays
+    }
     try {
         Write-LogMessage -Type Debug -Msg "Updating safe $safename..."
-        Write-LogMessage -Type Debug -Msg "Update Safe Body: $updateSafeBody" \
-        $null = Invoke-Rest -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Command PUT -Header $g_LogonHeader
+        Write-LogMessage -Type Debug -Msg "Update Safe Body: $updateSafeBody"
+        Invoke-Rest -Uri ($URL_SpecificSafe -f $safeName) -Body $($updateSafeBody |ConvertTo-Json -Compress) -Command PUT -Header $g_LogonHeader | Out-Null
     }
     catch {
         Throw $(New-Object System.Exception ("Update-Safe: Error updating $safeName.", $_.Exception))
@@ -1151,6 +1138,9 @@ If (Test-CommandExists Invoke-RestMethod) {
             else {
                 Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
             }
+        }
+        elseif (![string]::IsNullOrEmpty($PVWACredentials)) {
+            Get-LogonHeader -Credentials $PVWACredentials
         }
         elseif ($null -eq $creds) {
             $msg = 'Enter your User name and Password' 
