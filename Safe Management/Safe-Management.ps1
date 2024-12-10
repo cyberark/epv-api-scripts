@@ -364,14 +364,14 @@ Function Write-LogMessage {
                 Write-Host $MSG.ToString() -ForegroundColor Red
                 $msgToWrite += "[ERROR]`t$Msg"
             }
-            'Debug' { 
+            'Debug' {
                 if ($InDebug -or $InVerbose) {
                     Write-Debug $MSG
                     $writeToFile = $true
-                    $msgToWrite += "[DEBUG]`t$Msg"		    
+                    $msgToWrite += "[DEBUG]`t$Msg"
                 }
                 else {
-                    $writeToFile = $False 
+                    $writeToFile = $False
                 }
             }
             'Verbose' { 
@@ -385,7 +385,6 @@ Function Write-LogMessage {
                 }
             }
         }
-		
         If ($writeToFile) {
             $msgToWrite | Out-File -Append -FilePath $LOG_FILE_PATH 
         }
@@ -443,13 +442,11 @@ Function Get-LogonHeader {
         [Parameter(Mandatory = $false)]
         [boolean]$concurrentSession
     )
-	
     if ([string]::IsNullOrEmpty($g_LogonHeader)) {
         # Disable SSL Verification to contact PVWA
         If ($DisableSSLVerify) {
             Disable-SSLVerification
         }
-		
         # Create the POST Body for the Logon
         # ----------------------------------
         If ($concurrentSession) {
@@ -462,7 +459,7 @@ Function Get-LogonHeader {
         # Check if we need to add RADIUS OTP
         If (![string]::IsNullOrEmpty($RadiusOTP)) {
             $logonBody.Password += ",$RadiusOTP"
-        } 
+        }
         try {
             # Logon
             $logonToken = Invoke-Rest -Command Post -URI $URL_Logon -Body $logonBody -ErrAction 'SilentlyContinue'
@@ -479,20 +476,25 @@ Function Get-LogonHeader {
             Throw 'Get-LogonHeader: Logon Token is Empty - Cannot login'
         }
 
+
         try {
             # Create a Logon Token Header (This will be used through out all the script)
             # ---------------------------
             $logonHeader = @{Authorization = $logonToken }
 
             Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global
+            Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global
         }
         catch {
+            Throw $(New-Object System.Exception ('Get-LogonHeader: Could not create Logon Header Dictionary', $_.Exception))
             Throw $(New-Object System.Exception ('Get-LogonHeader: Could not create Logon Header Dictionary', $_.Exception))
         }
     }
 }
 
 Function Invoke-Logoff {
+    <#
+.SYNOPSIS
     <#
 .SYNOPSIS
 	Invoke-Logoff
@@ -514,6 +516,8 @@ Function Invoke-Logoff {
 }
 
 Function Disable-SSLVerification {
+    <#
+.SYNOPSIS
     <#
 .SYNOPSIS
 	Bypass SSL certificate validations
@@ -546,6 +550,7 @@ public static class DisableCertValidationCallback {
         return new RemoteCertificateValidationCallback(DisableCertValidationCallback.ReturnTrue);
     }
 }
+'@
 '@
             }
 
@@ -582,16 +587,19 @@ Get-Safes
     [CmdletBinding()]
     [OutputType([String])]
     Param()
+    Param()
     try {
         If ($null -eq $g_SafesList) {
             Write-LogMessage -type Debug -MSG 'Retrieving safes from the vault...'
             $GetSafesList = @()
+            $safes = (Invoke-Rest -URI $URL_Safes -Command GET -Header $g_LogonHeader)
             $safes = (Invoke-Rest -URI $URL_Safes -Command GET -Header $g_LogonHeader)
             $GetSafesList += $safes.value
             Write-LogMessage -type Debug -MSG "Total safes response: $($safes.count)"
             $nextLink = $safes.nextLink
             Write-LogMessage -type Debug -MSG $nextLink
             While ($nextLink -ne '' -and $null -ne $nextLink) {
+                $safes = (Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header $g_LogonHeader )
                 $safes = (Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header $g_LogonHeader )
                 $nextLink = $safes.nextLink
                 Write-LogMessage -type Debug -MSG $nextLink
@@ -628,6 +636,7 @@ Get-Safe -safeName "x0-Win-S-Admins"
     try {
         $accSafeURL = $URL_SpecificSafe -f $(ConvertTo-URL $safeName)
         $_safe += $(Invoke-Rest -Uri $accSafeURL -Command 'Get' -Header $g_LogonHeader -ErrAction 'SilentlyContinue')
+        $_safe += $(Invoke-Rest -Uri $accSafeURL -Command 'Get' -Header $g_LogonHeader -ErrAction 'SilentlyContinue')
         If (![string]::IsNullOrEmpty($_safe.nextLink)) {
             $nextLink = $_safe.nextLink
             While (![string]::IsNullOrEmpty($nextLink)) {
@@ -658,13 +667,13 @@ Get-Safe -safeName "x0-Win-S-Admins"
     catch {
         Throw $(New-Object System.Exception ("Get-Safe: Error retrieving safe '$safename' details.", $_.Exception))
     }
-	
+
     return $_safe
 }
 
 Function Test-Safe {
-    <# 
-.SYNOPSIS 
+    <#
+.SYNOPSIS
 	Returns the Safe members
 .DESCRIPTION
 	Returns the Safe members
@@ -673,10 +682,9 @@ Function Test-Safe {
 #>
     param (
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()] 
+        [ValidateNotNullOrEmpty()]
         [String]$safeName
     )
-		
     try {
         $chkSafeExists = $null
         $retResult = $false
@@ -693,7 +701,6 @@ Function Test-Safe {
                 $chkSafeExists = $false
             }
         }
-		
         # Report on safe existence
         If ($chkSafeExists -eq $true) {
             # Safe exists
@@ -710,7 +717,6 @@ Function Test-Safe {
         Write-LogMessage -type Error -MSG $_.Exception -ErrorAction 'SilentlyContinue'
         $retResult = $false
     }
-	
     return $retResult
 }
 
@@ -745,9 +751,9 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
     )
 
     $createSafeBody = @{
-        'SafeName'                  = "$safename" 
-        'Description'               = "$safeDescription" 
-        'OLACEnabled'               = $enableOLAC 
+        'SafeName'                  = "$safename"
+        'Description'               = "$safeDescription"
+        'OLACEnabled'               = $enableOLAC
         'ManagingCPM'               = "$managingCPM"
         'NumberOfVersionsRetention' = $numVersionRetention
     }
@@ -813,7 +819,6 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     $updateManageCPM = $getSafe.ManagingCPM
     $updateRetVersions = $getSafe.NumberOfVersionsRetention
     $updateRetDays = $getSafe.NumberOfDaysRetention
-	
     If (![string]::IsNullOrEmpty($safeDescription) -and $getSafe.Description -ne $safeDescription) {
         $updateDescription = $safeDescription
     }
@@ -996,8 +1001,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                 requestsAuthorizationLevel1            = ($permRequestsAuthorizationLevel -eq 1)
                 requestsAuthorizationLevel2            = ($permRequestsAuthorizationLevel -eq 2)
             }
-        }  
-    
+        }
         try {
             If ($updateMember) {
                 Write-LogMessage -type Debug -MSG "Updating safe membership for $safeMember on $safeName in the vault..."
@@ -1016,6 +1020,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                 $restMethod = 'POST'
             }
             $null = Invoke-Rest -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Command $restMethod -Header $g_LogonHeader -ErrorVariable rMethodErr
+            $null = Invoke-Rest -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Command $restMethod -Header $g_LogonHeader -ErrorVariable rMethodErr
         }
         catch {
             if ($rMethodErr.message -like '*User or Group is already a member*') {
@@ -1029,6 +1034,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                     $urlSafeMembers = ($URL_SafeMembers -f $(ConvertTo-URL $safeName))
                     $restMethod = 'POST'
                     try {
+                        $null = Invoke-Rest -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Command $restMethod -Header $g_LogonHeader -ErrorVariable $rMethodErr
                         $null = Invoke-Rest -Uri $urlSafeMembers -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Command $restMethod -Header $g_LogonHeader -ErrorVariable $rMethodErr
                     }
                     catch {
@@ -1063,9 +1069,9 @@ Returns the permissions of a member on a cyberark safe
 Returns the permissions of a cyberArk safe of all members based on parameters sent to the command.
 
 .EXAMPLE
-Get-SafeMember -safename "Win-Local-Admins" 
+Get-SafeMember -safename "Win-Local-Admins"
 
-#> 
+#>
     param (
         [Parameter(Mandatory = $true)]
         [String]$safeName
@@ -1084,7 +1090,6 @@ Get-SafeMember -safename "Win-Local-Admins"
     catch {
         Throw $(New-Object System.Exception ("Get-SafeMembers: There was an error getting the safe $safeName Members.", $_.Exception))
     }
-	
     return $_safeOwners
 }
 
@@ -1093,7 +1098,6 @@ Function Convert-ToBool {
         [string]$txt
     )
     $retBool = $false
-	
     if ([bool]::TryParse($txt, [ref]$retBool)) {
         # parsed to a boolean
         return [System.Convert]::ToBoolean($txt)
