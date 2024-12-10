@@ -4,17 +4,17 @@
 
  AUTHOR: Jake DeSantis, Carl Anderson, Brian Bors
 
- COMMENT: 
+ COMMENT:
  This script will help in Safe Management tasks
 
  SUPPORTED VERSIONS:
- CyberArk PVWA v12.1 and above  
+ CyberArk PVWA v12.1 and above
  CyberArk Privilege Cloud
 
  VERSION HISTORY:
  1.0 	16/12/2018   	- Initial release
  1.1 	06/02/2019   	- Bug fix
- 1.9 	09/07/2021   	- Added ability to create new members on updates. 
+ 1.9 	09/07/2021   	- Added ability to create new members on updates.
                     	  General Format cleanup according to standards
  2.0 	15/11/2021   	- Working only with 2nd Gen REST API of Safes. Supported version 12.1 and above
  2.0.1 	02/03/2021 	- Fix for v2
@@ -27,7 +27,7 @@
  2.1.6  2023-05-22      - Updated Write-LogMessage to force verbose and debug to log file
  2.1.7  2024-04-17      - Updated to bypass attempt to add or update safe if no safe details exist
  2.1.8  2024-04-18      - Added ability to force Safe Creations
-                   	- Added "AddMembers" back
+                   	    - Added "AddMembers" back
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = 'List')]
 param
@@ -43,7 +43,7 @@ param
     [Parameter(Mandatory = $false, HelpMessage = 'Enter the RADIUS OTP')]
     [ValidateScript({ $AuthType -eq 'radius' })]
     [String]$OTP,
-		
+
     # Use this switch to list Safes
     [Parameter(ParameterSetName = 'List', Mandatory = $true)][switch]$List,
     # Use this switch to Add Safes
@@ -60,7 +60,7 @@ param
     [Parameter(ParameterSetName = 'Delete', Mandatory = $true)][switch]$Delete,
     # Use this switch to Add Safe Members
     [Parameter(ParameterSetName = 'Members', Mandatory = $true)][switch]$Members,
-		
+
     # Safe Name
     [Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = 'Enter a Safe Name to filter by')]
     [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = 'Enter a Safe Name to create')]
@@ -70,13 +70,13 @@ param
     [ValidateScript( { $_.Length -le 28 })]
     [Alias('Safe')]
     [String]$SafeName,
-	
+
     # Safe Description
     [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = 'Enter a Safe Description')]
     [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = 'Enter an updated Safe Description')]
     [Alias('Description')]
     [String]$SafeDescription,
-	
+
     # Import File support
     [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = 'Enter a file path for bulk safe creation')]
     [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = 'Enter a file path for bulk safe update')]
@@ -88,7 +88,7 @@ param
     [ValidatePattern( '\.csv$' )]
     [Alias('File')]
     [String]$FilePath,
-	
+
     [Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = 'Enter a file path for report output. Must be CSV')]
     [ValidatePattern( '\.csv$' )]
     [Alias('Report')]
@@ -98,23 +98,23 @@ param
     [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = 'Enter the managing CPM name')]
     [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = 'Enter the updated managing CPM name')]
     [string]$ManagingCPM,
-	
+
     [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = 'Enter the number of versions retention')]
     [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = 'Enter the updated number of versions retention')]
     [int]$NumVersionRetention = 7,
-	
-    # Member Roles 
+
+    # Member Roles
     [Parameter(ParameterSetName = 'Members', Mandatory = $false, HelpMessage = 'Enter a role for the member to add (Default: EndUser)')]
     [ValidateSet('Admin', 'Auditor', 'EndUser', 'Owner', 'Approver')]
     [Alias('Role')]
     [String]$MemberRole = 'EndUser',
-	
-    # User / Member name 
+
+    # User / Member name
     [Parameter(ParameterSetName = 'Members', Mandatory = $false, HelpMessage = 'Enter the user name to add as member to the safe')]
     [ValidateScript( { $_.Length -le 128 })]
     [Alias('User')]
     [String]$UserName,
-	
+
     # User / Member Vault Location
     [Parameter(ParameterSetName = 'Members', Mandatory = $false, HelpMessage = 'Enter the vault-integrated LDAP directory name the vault should search for the account. Must match one of the directory names defined in the LDAP Integration page of the PVWA. (Default: Search in Vault)')]
     [Alias('Location')]
@@ -126,11 +126,11 @@ param
 
     [Parameter(ParameterSetName = 'UpdateMembers', Mandatory = $false, HelpMessage = 'If member does not exist while updating, attempt to add them.')]
     [Switch]$AddOnUpdate,
-	
+
     # Support for Threading (Logon Connection Number)
     [Parameter(Mandatory = $false, HelpMessage = 'Enable conncurrent session')]
     [switch]$concurrentSession = $false,
-	
+
     # Use this switch to Disable SSL verification (NOT RECOMMENDED)
     [Parameter(Mandatory = $false)]
     [Switch]$DisableSSLVerify,
@@ -149,7 +149,7 @@ param
 
 )
 
-# Get Script Location 
+# Get Script Location
 $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
 # Get Debug / Verbose parameters for Script
 $global:InDebug = $PSBoundParameters.Debug.IsPresent
@@ -192,8 +192,8 @@ $URL_SafeSpecificMember = $URL_SpecificSafe + '/Members/{1}/'
 # Return Values..: REST response
 # =================================================================================================================================
 Function Invoke-Rest {
-    <# 
-.SYNOPSIS 
+    <#
+.SYNOPSIS
 Invoke REST Method
 .DESCRIPTION
 Invoke REST Method
@@ -211,14 +211,14 @@ The Header as Dictionary object
     param (
         [Parameter(Mandatory = $true)]
         [ValidateSet('GET', 'POST', 'DELETE', 'PATCH', 'PUT')]
-        [String]$Command, 
+        [String]$Command,
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()] 
-        [String]$URI, 
+        [ValidateNotNullOrEmpty()]
+        [String]$URI,
         [Parameter(Mandatory = $false)]
-        $Header, 
+        $Header,
         [Parameter(Mandatory = $false)]
-        $Body, 
+        $Body,
         [Parameter(Mandatory = $false)]
         [ValidateSet('Continue', 'Ignore', 'Inquire', 'SilentlyContinue', 'Stop', 'Suspend')]
         [String]$ErrAction = 'Continue'
@@ -260,7 +260,7 @@ The Header as Dictionary object
             Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
         }
     }
-    catch { 
+    catch {
         Write-LogMessage -type Error -MSG "(Invoke-Rest: Error in running $Command on '$URI', $_.Exception)"
         Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
     }
@@ -332,19 +332,19 @@ Function Write-LogMessage {
     )
     try {
         If ($Header) {
-            '=======================================' | Out-File -Append -FilePath $LOG_FILE_PATH 
+            '=======================================' | Out-File -Append -FilePath $LOG_FILE_PATH
             Write-Host '======================================='
         }
-        ElseIf ($SubHeader) { 
-            '------------------------------------' | Out-File -Append -FilePath $LOG_FILE_PATH 
+        ElseIf ($SubHeader) {
+            '------------------------------------' | Out-File -Append -FilePath $LOG_FILE_PATH
             Write-Host '------------------------------------'
         }
-	
+
         $msgToWrite = "[$(Get-Date -Format 'yyyy-MM-dd hh:mm:ss')]`t"
         $writeToFile = $true
         # Replace empty message with 'N/A'
         if ([string]::IsNullOrEmpty($Msg)) {
-            $Msg = 'N/A' 
+            $Msg = 'N/A'
         }
         # Mask Passwords
         if ($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))') {
@@ -352,7 +352,7 @@ Function Write-LogMessage {
         }
         # Check the message type
         switch ($type) {
-            'Info' { 
+            'Info' {
                 Write-Host $MSG.ToString()
                 $msgToWrite += "[INFO]`t$Msg"
             }
@@ -374,27 +374,27 @@ Function Write-LogMessage {
                     $writeToFile = $False
                 }
             }
-            'Verbose' { 
+            'Verbose' {
                 if ($InVerbose) {
                     Write-Verbose $MSG
                     $writeToFile = $true
                     $msgToWrite += "[VERBOSE]`t$Msg"
                 }
                 else {
-                    $writeToFile = $False 
+                    $writeToFile = $False
                 }
             }
         }
         If ($writeToFile) {
-            $msgToWrite | Out-File -Append -FilePath $LOG_FILE_PATH 
+            $msgToWrite | Out-File -Append -FilePath $LOG_FILE_PATH
         }
-        If ($Footer) { 
-            '=======================================' | Out-File -Append -FilePath $LOG_FILE_PATH 
+        If ($Footer) {
+            '=======================================' | Out-File -Append -FilePath $LOG_FILE_PATH
             Write-Host '======================================='
         }
     }
     catch {
-        Write-Error "Error in writing log: $($_.Exception.Message)" 
+        Write-Error "Error in writing log: $($_.Exception.Message)"
     }
 }
 
@@ -426,8 +426,8 @@ Function Join-ExceptionMessage {
 }
 
 Function Get-LogonHeader {
-    <# 
-.SYNOPSIS 
+    <#
+.SYNOPSIS
 	Get-LogonHeader
 .DESCRIPTION
 	Get-LogonHeader
@@ -436,7 +436,7 @@ Function Get-LogonHeader {
 #>
     param(
         [Parameter(Mandatory = $true)]
-        [System.Management.Automation.CredentialAttribute()]$Credentials,
+        [pscredential]$Credentials,
         [Parameter(Mandatory = $false)]
         [string]$RadiusOTP,
         [Parameter(Mandatory = $false)]
@@ -551,7 +551,6 @@ public static class DisableCertValidationCallback {
     }
 }
 '@
-'@
             }
 
             [System.Net.ServicePointManager]::ServerCertificateValidationCallback = [DisableCertValidationCallback]::GetDelegate()
@@ -586,7 +585,6 @@ Get-Safes
 
     [CmdletBinding()]
     [OutputType([String])]
-    Param()
     Param()
     try {
         If ($null -eq $g_SafesList) {
@@ -841,9 +839,9 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     }
 
     $updateSafeBody = [pscustomobject]@{
-        'SafeName'    = "$safeName" 
-        'Description' = "$updateDescription" 
-        'OLACEnabled' = $updateOLAC 
+        'SafeName'    = "$safeName"
+        'Description' = "$updateDescription"
+        'OLACEnabled' = $updateOLAC
         'ManagingCPM' = "$updateManageCPM"
     }
     if (![string]::IsNullOrEmpty($updateRetVersions) -and $updateRetVersions -gt 0) {
@@ -985,7 +983,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                 updateAccountContent                   = $permUpdateAccountContent
                 updateAccountProperties                = $permUpdateAccountProperties
                 initiateCPMAccountManagementOperations = $permInitiateCPMManagement
-                specifyNextAccountContent              = $permSpecifyNextAccountContent 
+                specifyNextAccountContent              = $permSpecifyNextAccountContent
                 renameAccounts                         = $permRenameAccounts
                 deleteAccounts                         = $permDeleteAccounts
                 unlockAccounts                         = $permUnlockAccounts
@@ -1080,7 +1078,7 @@ Get-SafeMember -safename "Win-Local-Admins"
     $_safeOwners = $null
     try {
         $accSafeMembersURL = $URL_SafeMembers -f $(ConvertTo-URL $safeName)
-        $accSafeMembersURL += '?filter=includePredefinedUsers eq true' 
+        $accSafeMembersURL += '?filter=includePredefinedUsers eq true'
         $_safeMembers = $(Invoke-Rest -Uri $accSafeMembersURL -Command GET -Header $g_LogonHeader -ErrorAction 'SilentlyContinue')
         # Remove default users and change UserName to MemberName
         if (!$g_includeDefaultUsers) {
@@ -1111,10 +1109,10 @@ Function Convert-ToBool {
 
 Write-LogMessage -type Info -MSG "Starting script (v$ScriptVersion)" -Header -LogFile $LOG_FILE_PATH
 if ($InDebug) {
-    Write-LogMessage -type Info -MSG 'Running in Debug Mode' -LogFile $LOG_FILE_PATH 
+    Write-LogMessage -type Info -MSG 'Running in Debug Mode' -LogFile $LOG_FILE_PATH
 }
 if ($InVerbose) {
-    Write-LogMessage -type Info -MSG 'Running in Verbose Mode' -LogFile $LOG_FILE_PATH 
+    Write-LogMessage -type Info -MSG 'Running in Verbose Mode' -LogFile $LOG_FILE_PATH
 }
 Write-LogMessage -type Debug -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ', ')" -LogFile $LOG_FILE_PATH
 
@@ -1147,7 +1145,7 @@ try {
     If (![string]::IsNullOrEmpty($logonToken)) {
         if ($logonToken.GetType().name -eq 'String') {
             $logonHeader = @{Authorization = $logonToken }
-            Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global	
+            Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global
         }
         else {
             Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
@@ -1161,7 +1159,7 @@ try {
         $creds = $Host.UI.PromptForCredential($caption, $msg, '', '')
         Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
     }
-    else { 
+    else {
         Write-LogMessage -type Error -MSG 'No Credentials were entered'
         return
     }
@@ -1212,8 +1210,8 @@ switch ($PsCmdlet.ParameterSetName) {
                 ForEach ($line in $sortedList) {
                     try {
                         Write-LogMessage -type Info -MSG "Importing safe $($line.safename) with safe member $($line.member)..."
-                        $parameters = @{ 
-                            safeName            = $line.safename 
+                        $parameters = @{
+                            safeName            = $line.safename
                             safeDescription     = $line.description
                             managingCPM         = $line.ManagingCPM
                             numVersionRetention = $line.numVersionRetention
@@ -1221,19 +1219,19 @@ switch ($PsCmdlet.ParameterSetName) {
                             EnableOLAC          = $line.EnableOLAC
                         }
                         if ([string]::IsNullOrEmpty($parameters.safeDescription)) {
-                            $parameters.Remove('safeDescription') 
+                            $parameters.Remove('safeDescription')
                         }
                         if ([string]::IsNullOrEmpty($parameters.ManagingCPM)) {
-                            $parameters.Remove('managingCPM') 
+                            $parameters.Remove('managingCPM')
                         }
                         if ([string]::IsNullOrEmpty($parameters.numVersionRetention)) {
-                            $parameters.Remove('numVersionRetention') 
+                            $parameters.Remove('numVersionRetention')
                         }
                         if ([string]::IsNullOrEmpty($parameters.numDaysRetention)) {
-                            $parameters.Remove('numDaysRetention') 
+                            $parameters.Remove('numDaysRetention')
                         }
-                        if ([string]::IsNullOrEmpty($parameters.EnableOLAC)) { 
-                            $parameters.Remove('EnableOLAC') 
+                        if ([string]::IsNullOrEmpty($parameters.EnableOLAC)) {
+                            $parameters.Remove('EnableOLAC')
                         }
                         Else {
                             $parameters.EnableOLAC = Convert-ToBool $parameters.EnableOLAC
@@ -1284,8 +1282,8 @@ switch ($PsCmdlet.ParameterSetName) {
             }
             else {
                 try {
-                    $parameters = @{ 
-                        safeName            = $SafeName 
+                    $parameters = @{
+                        safeName            = $SafeName
                         safeDescription     = $SafeDescription
                         managingCPM         = $ManagingCPM
                         numVersionRetention = $NumVersionRetention
@@ -1319,7 +1317,7 @@ switch ($PsCmdlet.ParameterSetName) {
                 catch {
                     Write-LogMessage -type Error -MSG "Error configuring safe '$SafeName'. Error: $(Join-ExceptionMessage $_.Exception)"
                 }
-            }			
+            }
         }
         catch {
             Write-LogMessage -type Error -MSG "Error configuring safe. Error: $(Join-ExceptionMessage $_.Exception)"
@@ -1376,7 +1374,7 @@ switch ($PsCmdlet.ParameterSetName) {
         }
     }
 }
-	
+
 # Logoff the session
 # ------------------
 
