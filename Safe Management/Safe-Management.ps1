@@ -248,20 +248,24 @@ The Header as Dictionary object
     catch [Microsoft.PowerShell.Commands.HttpResponseException] {
         $Details = ($PSItem.ErrorDetails.Message | ConvertFrom-Json)
         If ('SFWS0007' -eq $Details.ErrorCode) {
-            Write-LogMessage -type Error -MSG "$($Details.ErrorMessage)" -Header -Footer
+            Write-LogMessage -type Verbose -MSG "$($Details.ErrorMessage)"
             Throw $PSItem
         }
         elseif ('PASWS013E' -eq $Details.ErrorCode) {
             Write-LogMessage -type Error -MSG "$($Details.ErrorMessage)" -Header -Footer
             exit 5
         }
+        elseif ('SFWS0002' -eq $Details.ErrorCode) {
+            Write-LogMessage -type Warning -MSG "$($Details.ErrorMessage)"
+            Throw "$($Details.ErrorMessage)"
+        }
         Else {
-            Write-LogMessage -type Error -MSG "(Invoke-Rest: Error in running $Command on '$URI', $_.Exception)"
+            Write-LogMessage -type Error -MSG "Invoke-Rest: Error in running $Command on '$URI', $_.Exception"
             Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
         }
     }
     catch {
-        Write-LogMessage -type Error -MSG "(Invoke-Rest: Error in running $Command on '$URI', $_.Exception)"
+        Write-LogMessage -type Error -MSG "Invoke-Rest: Error in running $Command on '$URI', $_.Exception"
         Throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
     }
     Write-LogMessage -type Verbose -MSG "Invoke-REST Response: $restResponse"
@@ -414,6 +418,9 @@ Function Join-ExceptionMessage {
     Begin {
     }
     Process {
+        if ([string]::IsNullOrEmpty($e.Source)) {
+            return $e.Message
+        }
         $msg = 'Source:{0}; Message: {1}' -f $e.Source, $e.Message
         while ($e.InnerException) {
             $e = $e.InnerException
@@ -652,7 +659,7 @@ Get-Safe -safeName "x0-Win-S-Admins"
     }
     catch [Microsoft.PowerShell.Commands.HttpResponseException] {
         If ($_.Exception.Response.StatusCode.value__ -eq 404) {
-            Write-LogMessage -type Warning -MSG "Safe $safeName does not exist"
+            Write-LogMessage -type Verbose -MSG "Safe $safeName does not exist"
             return $null
         }
         else {
@@ -707,7 +714,7 @@ Function Test-Safe {
         }
         Else {
             # Safe does not exist
-            Write-LogMessage -type Warning -MSG "Safe $safeName does not exist"
+            Write-LogMessage -type Verbose -MSG "Safe $safeName does not exist"
             $retResult = $false
         }
     }
@@ -770,6 +777,9 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
         # Update Safes list to include new safe
         #Get-Safes | out-null
         $g_SafesList += $safeAdd
+    }
+    catch [System.Management.Automation.RuntimeException] {
+        Throw
     }
     catch {
         Throw $(New-Object System.Exception ("New-Safe: Error adding $safename to the Vault.", $_.Exception))
@@ -1274,6 +1284,9 @@ switch ($PsCmdlet.ParameterSetName) {
                                     -permCreateFolders $(Convert-ToBool $line.CreateFolders) -permDeleteFolders $(Convert-ToBool $line.DeleteFolders) -permMoveAccountsAndFolders $(Convert-ToBool $line.MoveAccountsAndFolders)
                             }
                         }
+                    }
+                    catch [System.Management.Automation.RuntimeException] {
+                        If ($PSItem.Exception.Message -match 'Safe Name .* has already been defined.') {}
                     }
                     catch {
                         Write-LogMessage -type Error -MSG "Error configuring safe '$($line.SafeName)'. Error: $(Join-ExceptionMessage $_.Exception)"
