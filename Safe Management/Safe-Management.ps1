@@ -668,9 +668,9 @@ Get-Safe -safeName "x0-Win-S-Admins"
             Write-LogMessage -type Error -MSG "Status Description: $($_.Exception.Response.StatusDescription)"
         }
     }
-    # catch {
-    #     Throw $(New-Object System.Exception ("Get-Safe: Error retrieving safe '$safename' details.", $_.Exception))
-    # }
+    catch {
+        Throw $(New-Object System.Exception ("Get-Safe: Error retrieving safe '$safename' details.", $_.Exception))
+    }
 
     return $_safe
 }
