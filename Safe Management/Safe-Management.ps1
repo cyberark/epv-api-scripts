@@ -646,7 +646,7 @@ Get-Safe -safeName "x0-Win-S-Admins"
             $nextLink = $_safe.nextLink
             While (![string]::IsNullOrEmpty($nextLink)) {
                 $_safeNext = @()
-                $_safeNext += $(Invoke-Rest-Uri "$PVWAURL/$nextLink" -Command 'Get' -Header $g_LogonHeader -ErrAction 'SilentlyContinue')
+                $_safeNext += $(Invoke-Rest -Uri "$PVWAURL/$nextLink" -Command 'Get' -Header $g_LogonHeader -ErrAction 'SilentlyContinue')
                 $_safe += $_safeNext
                 If (![string]::IsNullOrEmpty($_safeNext.nextLink)) {
                     $nextLink = $_safeNext.nextLink
@@ -669,9 +669,9 @@ Get-Safe -safeName "x0-Win-S-Admins"
             Write-LogMessage -type Error -MSG "Status Description: $($_.Exception.Response.StatusDescription)"
         }
     }
-    catch {
-        Throw $(New-Object System.Exception ("Get-Safe: Error retrieving safe '$safename' details.", $_.Exception))
-    }
+    # catch {
+    #     Throw $(New-Object System.Exception ("Get-Safe: Error retrieving safe '$safename' details.", $_.Exception))
+    # }
 
     return $_safe
 }
