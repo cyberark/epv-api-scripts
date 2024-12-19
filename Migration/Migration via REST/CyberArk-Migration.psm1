@@ -429,18 +429,18 @@ Function New-SearchCriteria {
         Write-LogMessage -Type Verbose -Msg "Search: `"$sSearch`""
         $retURL += "search=$(Convert-ToURL $sSearch)&"
     }
-    if (![string]::IsNullOrEmpty($sSafeName)) {
+<#     if (![string]::IsNullOrEmpty($sSafeName)) {
         Write-LogMessage -Type Verbose -Msg "Safe: `"$sSafeName`""
         $retURL += "filter=safename eq $(Convert-ToURL $sSafeName)&"
-    }
+    } #>
     if (![string]::IsNullOrEmpty($sSortParam)) {
         Write-LogMessage -Type Verbose -Msg "Sort: `"$sSortParam`""
         $retURL += "sort=$(Convert-ToURL $sSortParam)&"
     }
-    if ($startswith) {
+<#     if ($startswith) {
         Write-LogMessage -Type Verbose -Msg "startswith: `"$sSortParam`""
-        $retURL += "searchtype=startswith"
-    }
+        $retURL += "searchtype=startswith&"
+    } #>
     if ($iLimitPage -gt 0) {
         Write-LogMessage -Type Verbose -Msg "Limit: `"$iLimitPage`""
         $retURL += "limit=$iLimitPage&"
