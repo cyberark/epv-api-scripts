@@ -641,7 +641,6 @@ Get-Safe -safeName "x0-Win-S-Admins"
     try {
         $accSafeURL = $URL_SpecificSafe -f $(ConvertTo-URL $safeName)
         $_safe += $(Invoke-Rest -Uri $accSafeURL -Command 'Get' -Header $g_LogonHeader -ErrAction 'SilentlyContinue')
-        $_safe += $(Invoke-Rest -Uri $accSafeURL -Command 'Get' -Header $g_LogonHeader -ErrAction 'SilentlyContinue')
         If (![string]::IsNullOrEmpty($_safe.nextLink)) {
             $nextLink = $_safe.nextLink
             While (![string]::IsNullOrEmpty($nextLink)) {
