@@ -522,10 +522,18 @@ function Format-Token {
         $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
         $session.Headers = $IdentityHeaders
         $IdentityHeaders = [PSCustomObject]@{
-            User            = $IdentityUserName
-            BaseURI         = $PCloudTenantAPIURL
-            ExternalVersion = $ExternalVersion
-            WebSession      = $session
+            User               = $IdentityUserName
+            BaseURI            = $PCloudTenantAPIURL
+            ApiURI             = "https://$PCloudSubdomain.privilegecloud.cyberark.cloud"
+            ExternalVersion    = $ExternalVersion
+            WebSession         = $session
+            StartTime          = $null
+            ElapsedTime        = $null
+            LastCommand        = $null
+            LastCommandTime    = $null
+            LastCommandResults = $null
+            LastError          = $null
+            LastErrorTime      = $null
         }
         $IdentityHeaders.PSObject.TypeNames.Insert(0, 'psPAS.CyberArk.Vault.Session')
     }
