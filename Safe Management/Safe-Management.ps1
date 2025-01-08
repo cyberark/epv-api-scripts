@@ -226,7 +226,7 @@ The Header as Dictionary object
         [Alias('ErrorAction')]
         [String]$ErrAction = 'Continue'
     )
-
+    Write-LogMessage -type Verbose -MSG 'In Invoke-Rest'
     $restResponse = ''
     try {
         if ([string]::IsNullOrEmpty($Body)) {
@@ -237,6 +237,7 @@ The Header as Dictionary object
             Write-LogMessage -type Verbose -MSG "Invoke-RestMethod -Uri $URI -Method $Command -Header $($Header|ConvertTo-Json -Compress) -ContentType ""application/json"" -Body $($Body|ConvertTo-Json -Compress) -TimeoutSec 2700"
             $restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType 'application/json' -Body $Body -TimeoutSec 2700 -ErrorAction $ErrAction
         }
+        Write-LogMessage -type Verbose -MSG "In Invoke-Rest Response: Invoke-RestMethod completed without error"
     }
     catch [System.Net.WebException] {
         if ($ErrAction -match ('\bContinue\b|\bInquire\b|\bStop\b|\bSuspend\b')) {
@@ -246,6 +247,9 @@ The Header as Dictionary object
             Write-LogMessage -type Error -MSG "Status Description: $($_.Exception.Response.StatusDescription)"
             $restResponse = $null
             Throw
+        Else {
+            Throw $PSItem
+        }
         }
     }
     catch [Microsoft.PowerShell.Commands.HttpResponseException] {
@@ -292,8 +296,8 @@ Function ConvertTo-URL($sText) {
 	The text to encode
 #>
     if ($sText.Trim() -ne '') {
-        Write-LogMessage -type Debug -MSG "Returning URL Encode of $sText"
-        Write-LogMessage -type Debug -MSG "Returning URL Encode of $sText"
+        Write-LogMessage -type Verbose -MSG "Returning URL Encode of $sText"
+        Write-LogMessage -type Verbose -MSG "Returning URL Encode of $sText"
         return [URI]::EscapeDataString($sText)
     }
     else {
@@ -580,52 +584,6 @@ public static class DisableCertValidationCallback {
         }
     }
 }
-
-Function Get-Safes {
-    <#
-.SYNOPSIS
-Lists the cyberark safes that the APIUser has access to
-
-.DESCRIPTION
-Lists the cyberark safes that the APIUser has access to
-
-.EXAMPLE
-Get-Safes
-
-#>
-
-    [CmdletBinding()]
-    [OutputType([String])]
-    Param()
-    try {
-        If ($null -eq $g_SafesList) {
-            Write-LogMessage -type Debug -MSG 'Retrieving safes from the vault...'
-            $GetSafesList = @()
-            $safes = (Invoke-Rest -URI $URL_Safes -Command GET -Header $g_LogonHeader)
-            $safes = (Invoke-Rest -URI $URL_Safes -Command GET -Header $g_LogonHeader)
-            $GetSafesList += $safes.value
-            Write-LogMessage -type Debug -MSG "Total safes response: $($safes.count)"
-            $nextLink = $safes.nextLink
-            Write-LogMessage -type Debug -MSG $nextLink
-				
-            While ($nextLink -ne '' -and $null -ne $nextLink) {
-                $safes = (Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header $g_LogonHeader )
-                $safes = (Invoke-Rest -Command Get -Uri $("$PVWAURL/$nextLink") -Header $g_LogonHeader )
-                $nextLink = $safes.nextLink
-                Write-LogMessage -type Debug -MSG $nextLink
-                $GetSafesList += $safes.value
-                Write-LogMessage -type Debug -MSG "Current safes collected: $($GetSafesList.count)"
-            }
-            Set-Variable -Name g_SafesList -Value $GetSafesList -Scope Global
-        }
-        return $g_SafesList
-    }
-    catch {
-        Throw $(New-Object System.Exception ('Get-Safes: There was an error retrieving the safes from the Vault.', $_.Exception))
-    }
-
-}
-
 Function Get-Safe {
     <#
 .SYNOPSIS
@@ -642,17 +600,19 @@ Get-Safe -safeName "x0-Win-S-Admins"
         [ValidateScript( { $_.Length -le 28 })]
         [String]$safeName
     )
-    Write-LogMessage -type Verbose -MSG "In Get-Safe"
+    Write-LogMessage -type Verbose -MSG 'In Get-Safe'
     $_safe = @()
     try {
         $accSafeURL = $URL_SpecificSafe -f $(ConvertTo-URL $safeName)
+        Write-LogMessage -type Verbose -MSG "In Get-Safe: Invoking REST API to get Safe details: Invoke-Rest -Uri $accSafeURL -Command 'Get' -Header $g_LogonHeader -ErrAction 'SilentlyContinue'"
         $_safe += $(Invoke-Rest -Uri $accSafeURL -Command 'Get' -Header $g_LogonHeader -ErrAction 'SilentlyContinue')
+        Write-LogMessage -type Verbose -MSG "In Get-Safe: Safe details: $($_safe)"
         If (![string]::IsNullOrEmpty($_safe.nextLink)) {
             $nextLink = $_safe.nextLink
             While (![string]::IsNullOrEmpty($nextLink)) {
                 Write-LogMessage -type Verbose -MSG "In Get-Safe: nextLink: $nextLink"
                 $_safeNext = @()
-                $_safeNext += $(Invoke-Rest-Uri "$PVWAURL/$nextLink" -Command 'Get' -Header $g_LogonHeader -ErrAction 'SilentlyContinue')
+                $_safeNext += $(Invoke-Rest -Uri "$PVWAURL/$nextLink" -Command 'Get' -Header $g_LogonHeader -ErrAction 'SilentlyContinue')
                 $_safe += $_safeNext
                 If (![string]::IsNullOrEmpty($_safeNext.nextLink)) {
                     $nextLink = $_safeNext.nextLink
@@ -678,7 +638,7 @@ Get-Safe -safeName "x0-Win-S-Admins"
     catch {
         Throw $(New-Object System.Exception ("Get-Safe: Error retrieving safe '$safename' details.", $_.Exception))
     }
-	Write-LogMessage -type Verbose -MSG "In Get-Safe: Returning count: $($_safe.count)"
+    Write-LogMessage -type Verbose -MSG "In Get-Safe: Returning count: $($_safe.count)"
     return $_safe
 }
 
@@ -783,8 +743,8 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
     }
 
     try {
-        Write-LogMessage -type Debug -MSG "Adding the safe $safename to the Vault..."
-        Write-LogMessage -type Debug -MSG "Create Safe Body: `n$createSafeBody" 
+        Write-LogMessage -type Verbose -MSG "Adding the safe $safename to the Vault..."
+        Write-LogMessage -type Verbose -MSG "Create Safe Body: `n$createSafeBody" 
         $safeAdd = Invoke-Rest -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700
         # Reset cached Safes list
         #Set-Variable -Name g_SafesList -Value $null -Scope Global
@@ -829,7 +789,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [bool]$EnableOLAC
     )
-    Write-LogMessage -type Verbose -MSG "In Update-Safe"
+    Write-LogMessage -type Verbose -MSG 'In Update-Safe'
     try {
         # Get the current safe details and update when necessary
         $getSafe = Get-Safe -SafeName $safeName
@@ -878,8 +838,8 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     }
     try {
         Write-LogMessage -type Verbose -MSG "In Update-Safe: SafeName $safeName : UpdateSafeBody:$updateSafeBody"
-        Write-LogMessage -type Debug -MSG "Updating safe $safename..."
-        Write-LogMessage -type Debug -MSG "Update Safe Body: $updateSafeBody" 
+        Write-LogMessage -type Verbose -MSG "Updating safe $safename..."
+        Write-LogMessage -type Verbose -MSG "Update Safe Body: $updateSafeBody" 
         Invoke-Rest -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 | Out-Null
     }
     catch {
@@ -908,7 +868,7 @@ Remove-Safe -safename "x0-Win-S-Admins"
     )
 
     try {
-        Write-LogMessage -type Debug -MSG "Deleting the safe $safename from the Vault..."
+        Write-LogMessage -type Verbose -MSG "Deleting the safe $safename from the Vault..."
         $null = Invoke-Rest -Uri ($URL_SpecificSafe -f $safeName) -Method DELETE -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700
     }
     catch {
@@ -936,7 +896,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
     Param
     (
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-                [ValidateScript( { Test-Safe -SafeName $_ })]
+        [ValidateScript( { Test-Safe -SafeName $_ })]
         $safename,
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         $safeMember,
@@ -1031,20 +991,20 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
         try {
             If ($updateMember) {
                 Write-LogMessage -type Verbose -MSG 'In Set-SafeMember: in updateMember'
-                Write-LogMessage -type Debug -MSG "Updating safe membership for $safeMember on $safeName in the vault..."
+                Write-LogMessage -type Verbose -MSG "Updating safe membership for $safeMember on $safeName in the vault..."
                 $urlSafeMembers = ($URL_SafeSpecificMember -f $(ConvertTo-URL $safeName), $safeMember)
                 $restMethod = 'PUT'
             }
             elseif ($deleteMember) {
                 Write-LogMessage -type Verbose -MSG 'In Set-SafeMember: in deleteMember'
-                Write-LogMessage -type Debug -MSG "Deleting $safeMember from $safeName in the vault..."
+                Write-LogMessage -type Verbose -MSG "Deleting $safeMember from $safeName in the vault..."
                 $urlSafeMembers = ($URL_SafeSpecificMember -f $(ConvertTo-URL $safeName), $safeMember)
                 $restMethod = 'DELETE'
             }
             else {
                 # Adding a member
                 Write-LogMessage -type Verbose -MSG 'In Set-SafeMember: default'
-                Write-LogMessage -type Debug -MSG "Adding $safeMember located in $memberSearchInLocation to $safeName in the vault..."
+                Write-LogMessage -type Verbose -MSG "Adding $safeMember located in $memberSearchInLocation to $safeName in the vault..."
                 $urlSafeMembers = ($URL_SafeMembers -f $(ConvertTo-URL $safeName))
                 $restMethod = 'POST'
             }
@@ -1076,8 +1036,8 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                 }
                 else {
                     Write-LogMessage -type Warning -MSG 'User or Group was not found. To automatically attempt to add use AddOnUpdate'
-                    Write-LogMessage -type Debug -MSG "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:"
-                    Write-LogMessage -type Debug -MSG ('{0} ({1})' -f $rMethodErr.message, $_.Exception.Response.StatusDescription)
+                    Write-LogMessage -type Verbose -MSG "There was an error setting the membership for $safeMember on $safeName in the Vault. The error was:"
+                    Write-LogMessage -type Verbose -MSG ('{0} ({1})' -f $rMethodErr.message, $_.Exception.Response.StatusDescription)
                 }
             }
             else {
@@ -1147,27 +1107,18 @@ if ($InDebug) {
 if ($InVerbose) {
     Write-LogMessage -type Info -MSG 'Running in Verbose Mode' -LogFile $LOG_FILE_PATH 
 }
-Write-LogMessage -type Debug -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ', ')" -LogFile $LOG_FILE_PATH
+Write-LogMessage -type Verbose -MSG "Running PowerShell version $($PSVersionTable.PSVersion.Major) compatible of versions $($PSVersionTable.PSCompatibleVersions -join ', ')" -LogFile $LOG_FILE_PATH
 
-# Check if Powershell is running in Constrained Language Mode
-If ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
-    Write-LogMessage -type Error -MSG "Powershell is currently running in $($ExecutionContext.SessionState.LanguageMode) mode which limits the use of some API methods used in this script.`
-	PowerShell Constrained Language mode was designed to work with system-wide application control solutions such as CyberArk EPM or Device Guard User Mode Code Integrity (UMCI).`
-	For more information: https://blogs.msdn.microsoft.com/powershell/2017/11/02/powershell-constrained-language-mode/"
-    Write-LogMessage -type Info -MSG 'Script ended' -Footer -LogFile $LOG_FILE_PATH
+# Check that the PVWA URL is OK
+If ($PVWAURL -ne '') {
+    If ($PVWAURL.Substring($PVWAURL.Length - 1) -eq '/') {
+        $PVWAURL = $PVWAURL.Substring(0, $PVWAURL.Length - 1)
+    }
+}
+else {
+    Write-LogMessage -type Error -MSG 'PVWA URL can not be empty'
     return
 }
-
-    # Check that the PVWA URL is OK
-    If ($PVWAURL -ne '') {
-        If ($PVWAURL.Substring($PVWAURL.Length - 1) -eq '/') {
-            $PVWAURL = $PVWAURL.Substring(0, $PVWAURL.Length - 1)
-        }
-    }
-    else {
-        Write-LogMessage -type Error -MSG 'PVWA URL can not be empty'
-        return
-    }
 
 #region [Logon]
 try {
