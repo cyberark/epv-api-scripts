@@ -293,6 +293,7 @@ Function ConvertTo-URL($sText) {
 #>
     if ($sText.Trim() -ne '') {
         Write-LogMessage -type Debug -MSG "Returning URL Encode of $sText"
+        Write-LogMessage -type Debug -MSG "Returning URL Encode of $sText"
         return [URI]::EscapeDataString($sText)
     }
     else {
@@ -1045,6 +1046,8 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                 # Adding a member
                 Write-LogMessage -type Verbose -MSG 'In Set-SafeMember: default'
                 Write-LogMessage -type Debug -MSG "Adding $safeMember located in $memberSearchInLocation to $safeName in the vault..."
+                Write-LogMessage -type Verbose -MSG 'In Set-SafeMember: default'
+                Write-LogMessage -type Debug -MSG "Adding $safeMember located in $memberSearchInLocation to $safeName in the vault..."
                 $urlSafeMembers = ($URL_SafeMembers -f $(ConvertTo-URL $safeName))
                 $restMethod = 'POST'
             }
@@ -1055,11 +1058,14 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
         catch {
             if ($rMethodErr.message -like '*User or Group is already a member*') {
                 Write-LogMessage -type Warning -MSG "The user $safeMember is already a member. Use the update member method instead"
+                Write-LogMessage -type Warning -MSG "The user $safeMember is already a member. Use the update member method instead"
             }
             elseif (($rMethodErr.message -like '*User or Group was not found.*') -or ($rMethodErr.message -like '*404*') -or ($rMethodErr.message -like "*hasn't been defined.*") -or ($rMethodErr.message -like '*has not been defined.*')) {   
 
                 If ($AddOnUpdate) {
                     # Adding a member
+                    Write-LogMessage -type Verbose -MSG 'In Set-SafeMember: AddOnUpdate'
+                    Write-LogMessage -type Warning -MSG "User or Group was not found. Attempting to adding $safeMember located in $memberSearchInLocation to $safeName in the vault..."
                     Write-LogMessage -type Verbose -MSG 'In Set-SafeMember: AddOnUpdate'
                     Write-LogMessage -type Warning -MSG "User or Group was not found. Attempting to adding $safeMember located in $memberSearchInLocation to $safeName in the vault..."
                     $urlSafeMembers = ($URL_SafeMembers -f $(ConvertTo-URL $safeName))
