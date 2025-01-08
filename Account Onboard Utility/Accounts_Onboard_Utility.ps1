@@ -1934,5 +1934,5 @@ else {
 	Invoke-Rest -Uri $URL_Logoff -Header $g_LogonHeader -Command 'Post'
 }
 # Footer
-Write-LogMessage -type Info -MSG "Vaulted $counter out of $rowCount accounts successfully." -Footer
+Write-LogMessage -type Info -MSG "Completed processing $counter out of $rowCount accounts successfully." -Footer
 #endregion
