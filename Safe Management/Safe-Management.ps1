@@ -418,7 +418,7 @@ Function Write-LogMessage {
             }
             'Verbose' {
                 if ($InVerbose -or $VerboseFile) {
-                    $arrMsg = $msg.split(":`t",1)
+                    $arrMsg = $msg.split(":`t",2)
                     if ($arrMsg.Count -gt 1) {
                         $msg = $arrMsg[0].PadRight($pad) + $arrMsg[1]
                     }
@@ -446,7 +446,7 @@ Function Write-LogMessage {
                         Write-Verbose "Current Stack:`t$stack"
                         $msgToWrite += "`n$LogTime"
                         $stackMsg = "CallStack:`t$stack"
-                        $arrstackMsg = $stackMsg.split(":`t",1)
+                        $arrstackMsg = $stackMsg.split(":`t",2)
                         if ($arrMsg.Count -gt 1) {
                             $stackMsg = $arrstackMsg[0].PadRight($pad) + $arrstackMsg[1].trim()
                         }
