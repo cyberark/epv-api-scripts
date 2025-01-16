@@ -1261,6 +1261,7 @@ switch ($PsCmdlet.ParameterSetName) {
                 Write-LogMessage -type Verbose -MSG "Base:`tSorting CSV by Safe Name and Member"
                 $sortedList = $csv | Sort-Object -Property safename, member
                 Write-LogMessage -type Verbose -MSG "Base:`tCSV sorted"
+                Write-LogMessage -type Verbose -MSG "Base:`tOutput of first 3 lines of sorted CSV: $($sortedList[0,2]|ConvertTo-Json -Compress)"
                 # For each line in the csv, import the safe
                 Write-LogMessage -type Verbose -MSG "Base:`tProcessing CSV file"
                 ForEach ($line in $sortedList) {
