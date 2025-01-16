@@ -1221,6 +1221,7 @@ catch {
 
 switch ($PsCmdlet.ParameterSetName) {
     'List' {
+        Write-LogMessage -type Verbose -MSG "Base:`tList"
         # List all Safes
         Write-LogMessage -type Info -MSG 'Retrieving Safes...'
         $safelist = @()
@@ -1249,6 +1250,7 @@ switch ($PsCmdlet.ParameterSetName) {
         }
     }
     { ($_ -eq 'Add') -or ($_ -eq 'AddMembers') -or ($_ -eq 'Update') -or ($_ -eq 'UpdateMembers') -or ($_ -eq 'Delete') -or ($_ -eq 'DeleteMembers') } {
+        Write-LogMessage -type Verbose -MSG "Base:`tAdd/Update/Delete"
         try {
             if (![string]::IsNullOrEmpty($FilePath)) {
                 Write-LogMessage -type Verbose -MSG "Base:`tCSV being used"
@@ -1259,6 +1261,7 @@ switch ($PsCmdlet.ParameterSetName) {
                 Write-LogMessage -type Verbose -MSG "Base:`tSorting CSV by Safe Name and Member"
                 $sortedList = $csv | Sort-Object -Property safename, member
                 # For each line in the csv, import the safe
+                Write-LogMessage -type Verbose -MSG "Base:`tProcessing CSV file"
                 ForEach ($line in $sortedList) {
                     try {
                         $global:lineNumber = $csv.IndexOf($line) + 2
@@ -1339,8 +1342,10 @@ switch ($PsCmdlet.ParameterSetName) {
                         Write-LogMessage -type Error -MSG "Error configuring safe '$($line.SafeName)'. Error: $(Join-ExceptionMessage $_.Exception)"
                     }
                 }
+                Write-LogMessage -type Info -MSG "Base:`tCSV file processed"
             }
             else {
+                write-LogMessage -type Error -MSG "Base:`tNo file path was provided. Processing single action."
                 try {
                     $parameters = @{
                         safeName            = $SafeName
@@ -1384,6 +1389,7 @@ switch ($PsCmdlet.ParameterSetName) {
         }
     }
     'Members' {
+        Write-LogMessage -type Verbose -MSG "Base:`tMembers switch"
         try {
             if ([string]::IsNullOrEmpty($UserName)) {
                 # List all members of a safe
@@ -1428,6 +1434,7 @@ switch ($PsCmdlet.ParameterSetName) {
                     -permRequestsAuthorizationLevel $permRequestsAuthorizationLevel -permAccessWithoutConfirmation $permAccessWithoutConfirmation `
                     -permCreateFolders $permCreateFolders -permDeleteFolders $permDeleteFolders -permMoveAccountsAndFolders $permMoveAccountsAndFolders
             }
+        Write-LogMessage -type Verbose -MSG "Base:`tMembers switch end"
         }
         catch {
             Write-LogMessage -type Error -MSG "Error updating Members for safe '$SafeName'. Error: $(Join-ExceptionMessage $_.Exception)"
