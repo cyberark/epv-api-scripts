@@ -443,13 +443,13 @@ Function Write-LogMessage {
                             return $stack
                         }
                         $stack = Get-CallStack
-                        Write-Verbose "Current Stack:`t$stack"
-                        $msgToWrite += "`n$LogTime"
                         $stackMsg = "CallStack:`t$stack"
                         $arrstackMsg = $stackMsg.split(":`t",2)
                         if ($arrMsg.Count -gt 1) {
                             $stackMsg = $arrstackMsg[0].PadRight($pad) + $arrstackMsg[1].trim()
                         }
+                        Write-Verbose $stackMsg
+                        $msgToWrite += "`n$LogTime"
                         $msgToWrite += "[STACK]`t`t$stackMsg"
                     }
                     if ($InVerbose) {
@@ -1255,11 +1255,12 @@ switch ($PsCmdlet.ParameterSetName) {
             if (![string]::IsNullOrEmpty($FilePath)) {
                 Write-LogMessage -type Verbose -MSG "Base:`tCSV being used"
                 # Bulk Import of Safes
-                $csv = Import-Csv $FilePath
+                [pscustomobject[]]$csv = Import-Csv $FilePath
                 Write-LogMessage -type Verbose -MSG "Base:`tFilePath found and imoported as CSV successfully"
                 # Sort List by Safes
                 Write-LogMessage -type Verbose -MSG "Base:`tSorting CSV by Safe Name and Member"
                 $sortedList = $csv | Sort-Object -Property safename, member
+                Write-LogMessage -type Verbose -MSG "Base:`tCSV sorted"
                 # For each line in the csv, import the safe
                 Write-LogMessage -type Verbose -MSG "Base:`tProcessing CSV file"
                 ForEach ($line in $sortedList) {
