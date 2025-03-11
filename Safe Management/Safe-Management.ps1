@@ -266,7 +266,11 @@ The Header as Dictionary object
                 Throw $PSItem
             }
         }
+        Else {
+            Throw $PSItem
+        }
     }
+
     catch [Microsoft.PowerShell.Commands.HttpResponseException] {
         Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tCaught HttpResponseException"
         $Details = ($PSItem.ErrorDetails.Message | ConvertFrom-Json)
@@ -418,7 +422,7 @@ Function Write-LogMessage {
             }
             'Verbose' {
                 if ($InVerbose -or $VerboseFile) {
-                    $arrMsg = $msg.split(":`t",2)
+                    $arrMsg = $msg.split(":`t", 2)
                     if ($arrMsg.Count -gt 1) {
                         $msg = $arrMsg[0].PadRight($pad) + $arrMsg[1]
                     }
@@ -444,7 +448,7 @@ Function Write-LogMessage {
                         }
                         $stack = Get-CallStack
                         $stackMsg = "CallStack:`t$stack"
-                        $arrstackMsg = $stackMsg.split(":`t",2)
+                        $arrstackMsg = $stackMsg.split(":`t", 2)
                         if ($arrMsg.Count -gt 1) {
                             $stackMsg = $arrstackMsg[0].PadRight($pad) + $arrstackMsg[1].trim()
                         }
@@ -900,15 +904,15 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
         'ManagingCPM' = "$updateManageCPM"
     }
     if (![string]::IsNullOrEmpty($updateRetVersions) -and $updateRetVersions -gt 0) {
-        $updateSafeBody  | Add-Member -MemberType NoteProperty -Name 'NumberOfVersionsRetention' -Value $updateRetVersions
+        $updateSafeBody | Add-Member -MemberType NoteProperty -Name 'NumberOfVersionsRetention' -Value $updateRetVersions
     }
     else {
-        $updateSafeBody  | Add-Member -MemberType NoteProperty -Name 'NumberOfDaysRetention' -Value $updateRetDays
+        $updateSafeBody | Add-Member -MemberType NoteProperty -Name 'NumberOfDaysRetention' -Value $updateRetDays
     }
     try {
         Write-LogMessage -type Verbose -MSG "Update-Safe:`tSafeName $safeName : UpdateSafeBody:$updateSafeBody"
         Write-LogMessage -type Verbose -MSG "Update-Safe:`tUpdating safe $safename..."
-        Write-LogMessage -type Verbose -MSG "Update-Safe:`tUpdate Safe Body: $updateSafeBody" 
+        Write-LogMessage -type Verbose -MSG "Update-Safe:`tUpdate Safe Body: $updateSafeBody"
         Invoke-Rest -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 | Out-Null
     }
     catch {
@@ -1055,7 +1059,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                 requestsAuthorizationLevel1            = ($permRequestsAuthorizationLevel -eq 1)
                 requestsAuthorizationLevel2            = ($permRequestsAuthorizationLevel -eq 2)
             }
-        }  
+        }
         Write-LogMessage -type Verbose -MSG "Set-SafeMember:`tSafeMembersBody: $($SafeMembersBody|ConvertTo-Json -Compress)"
         try {
             If ($updateMember) {
@@ -1075,14 +1079,13 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                 $restMethod = 'POST'
             }
             Write-LogMessage -type Verbose -MSG "Set-SafeMember:`tInvoke-Rest -Method $restMethod -Uri $urlSafeMembers -ContentType 'application/json' -TimeoutSec 2700 -ErrorVariable rMethodErr -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Headers $g_LogonHeader"
-            Invoke-Rest -Method $restMethod -Uri $urlSafeMembers -ContentType 'application/json' -TimeoutSec 2700 -ErrorVariable rMethodErr -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Headers $g_LogonHeader  | Out-Null
-
+            Invoke-Rest -Method $restMethod -Uri $urlSafeMembers -ContentType 'application/json' -TimeoutSec 2700 -ErrorVariable rMethodErr -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Headers $g_LogonHeader | Out-Null
         }
         catch {
             if ($rMethodErr.message -like '*is already a member*') {
                 Write-LogMessage -type Warning -MSG "The user $safeMember is already a member of safe $safeName. Use the update member method instead."
             }
-            elseif (($rMethodErr.message -like '*User or Group was not found.*') -or ($rMethodErr.message -like '*404*') -or ($rMethodErr.message -like "*hasn't been defined.*") -or ($rMethodErr.message -like '*has not been defined.*')) {   
+            elseif (($rMethodErr.message -like '*User or Group was not found.*') -or ($rMethodErr.message -like '*404*') -or ($rMethodErr.message -like "*hasn't been defined.*") -or ($rMethodErr.message -like '*has not been defined.*')) {
 
                 If ($AddOnUpdate) {
                     # Adding a member
@@ -1092,7 +1095,7 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
                     $restMethod = 'POST'
                     try {
                         Write-LogMessage -type Verbose -MSG "Set-SafeMember:`tInvoke-Rest -Method $restMethod -Uri $urlSafeMembers -ContentType 'application/json' -TimeoutSec 2700 -ErrorVariable rMethodErr -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Headers $g_LogonHeader"
-                        Invoke-Rest -Method $restMethod -Uri $urlSafeMembers -ContentType 'application/json' -TimeoutSec 2700 -ErrorVariable rMethodErr -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Headers $g_LogonHeader  | Out-Null
+                        Invoke-Rest -Method $restMethod -Uri $urlSafeMembers -ContentType 'application/json' -TimeoutSec 2700 -ErrorVariable rMethodErr -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Headers $g_LogonHeader | Out-Null
                     }
                     catch {
 
@@ -1166,12 +1169,22 @@ Function Convert-ToBool {
 }
 #endregion
 
+
+
 Write-LogMessage -type Info -MSG "Starting script (v$ScriptVersion)" -Header -LogFile $LOG_FILE_PATH
 if ($InDebug) {
     Write-LogMessage -type Info -MSG 'Running in Debug Mode' -LogFile $LOG_FILE_PATH 
 }
 if ($InVerbose) {
-    Write-LogMessage -type Info -MSG 'Running in Verbose Mode' -LogFile $LOG_FILE_PATH 
+    Write-LogMessage -type Info -MSG 'Running in Verbose Mode' -LogFile $LOG_FILE_PATH
+}
+
+If ($InDebug -or $InVerbose -or $UseVerboseFile) {
+    Write-LogMessage -type Verbose -MSG "Script Location:`t$ScriptLocation"
+    Write-LogMessage -type Verbose -MSG "Script Name:`t$ScriptName"
+    ForEach ($key in $PSboundParameters.Keys) {
+        Write-LogMessage -type Verbose -MSG "BoundParameter:`t$key = $($PSBoundParameters[$key])"
+    }
 }
 
 # Check that the PVWA URL is OK
@@ -1204,7 +1217,7 @@ try {
         Get-LogonHeader -Credentials $PVWACredentials
     }
     elseif ($null -eq $creds) {
-        $msg = 'Enter your User name and Password' 
+        $msg = 'Enter your User name and Password'
         $creds = $Host.UI.PromptForCredential($caption, $msg, '', '')
         Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
     }
@@ -1239,7 +1252,7 @@ switch ($PsCmdlet.ParameterSetName) {
                 $output = $safelist.value
             }
             if ([string]::IsNullOrEmpty($ReportPath)) {
-                $output 
+                $output
             }
             else {
                 $output | Select-Object -Property safeName, description, managingCPM, numberOfVersionsRetention, numberOfDaysRetention, EnableOLAC | ConvertTo-Csv -NoTypeInformation | Out-File $ReportPath
@@ -1436,7 +1449,7 @@ switch ($PsCmdlet.ParameterSetName) {
                     -permRequestsAuthorizationLevel $permRequestsAuthorizationLevel -permAccessWithoutConfirmation $permAccessWithoutConfirmation `
                     -permCreateFolders $permCreateFolders -permDeleteFolders $permDeleteFolders -permMoveAccountsAndFolders $permMoveAccountsAndFolders
             }
-        Write-LogMessage -type Verbose -MSG "Base:`tMembers switch end"
+            Write-LogMessage -type Verbose -MSG "Base:`tMembers switch end"
         }
         catch {
             Write-LogMessage -type Error -MSG "Error updating Members for safe '$SafeName'. Error: $(Join-ExceptionMessage $_.Exception)"
