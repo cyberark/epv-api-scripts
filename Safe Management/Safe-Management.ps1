@@ -262,6 +262,9 @@ The Header as Dictionary object
             Write-LogMessage -type Error -MSG "Status Description: $($_.Exception.Response.StatusDescription)"
             $restResponse = $null
             Throw
+            Else {
+                Throw $PSItem
+            }
         }
         Else {
             Throw $PSItem
@@ -814,7 +817,7 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
 
     try {
         Write-LogMessage -type Verbose -MSG "New-Safe:`tAdding the safe $safename to the Vault..."
-        Write-LogMessage -type Verbose -MSG "New-Safe:`tCreate Safe Body: `n$($createSafeBody|ConvertTo-Json)"
+        Write-LogMessage -type Verbose -MSG "New-Safe:`tCreate Safe Body: `n$($createSafeBody|ConvertTo-Json)" 
         $safeAdd = Invoke-Rest -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700
         # Reset cached Safes list
         #Set-Variable -Name g_SafesList -Value $null -Scope Global
@@ -1077,7 +1080,6 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
             }
             Write-LogMessage -type Verbose -MSG "Set-SafeMember:`tInvoke-Rest -Method $restMethod -Uri $urlSafeMembers -ContentType 'application/json' -TimeoutSec 2700 -ErrorVariable rMethodErr -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Headers $g_LogonHeader"
             Invoke-Rest -Method $restMethod -Uri $urlSafeMembers -ContentType 'application/json' -TimeoutSec 2700 -ErrorVariable rMethodErr -Body ($safeMembersBody | ConvertTo-Json -Depth 5) -Headers $g_LogonHeader | Out-Null
-
         }
         catch {
             if ($rMethodErr.message -like '*is already a member*') {
@@ -1171,7 +1173,7 @@ Function Convert-ToBool {
 
 Write-LogMessage -type Info -MSG "Starting script (v$ScriptVersion)" -Header -LogFile $LOG_FILE_PATH
 if ($InDebug) {
-    Write-LogMessage -type Info -MSG 'Running in Debug Mode' -LogFile $LOG_FILE_PATH
+    Write-LogMessage -type Info -MSG 'Running in Debug Mode' -LogFile $LOG_FILE_PATH 
 }
 if ($InVerbose) {
     Write-LogMessage -type Info -MSG 'Running in Verbose Mode' -LogFile $LOG_FILE_PATH

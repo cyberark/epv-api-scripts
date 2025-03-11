@@ -42,6 +42,13 @@ New-WebApplication -force -Name "RestWin" -Site "Default Web Site" -PhysicalPath
 Set-WebConfigurationProperty -force -PSPath "IIS:\" -Location "Default Web Site/RestWin" -filter "/system.webServer/security/authentication/anonymousAuthentication" -name enabled -value false
 Set-WebConfigurationProperty -force -PSPath "IIS:\" -Location "Default Web Site/RestWin" -filter "/system.webServer/security/authentication/windowsAuthentication" -name enabled -value true
 
+#Create new URL using REST with Certificate Authentication and Windows OS Authentication
+#https://<your machine>/RestCertWin/api/Accounts?AppID=<AppID>&Object=<Object Name>
+New-WebApplication -force -Name "RestCertWin" -Site "Default Web Site" -PhysicalPath $location -ApplicationPool "DefaultAppPool"
+Set-WebConfiguration -force -Location "Default Web Site/RestCertWin" -Filter 'system.webserver/security/access' -Value "Ssl,SslRequireCert"
+Set-WebConfigurationProperty -force -PSPath "IIS:\" -Location "Default Web Site/RestCertWin" -filter "/system.webServer/security/authentication/anonymousAuthentication" -name enabled -value false
+Set-WebConfigurationProperty -force -PSPath "IIS:\" -Location "Default Web Site/RestCertWin" -filter "/system.webServer/security/authentication/windowsAuthentication" -name enabled -value true
+
 #Create new URL using SOAP for Remote Machine Authentication
 #https://<your machine>/AIMWebService/Soap/AIM.asmx
 Copy-Item "$location\v1.1" -Destination "$location\Soap"
@@ -56,3 +63,10 @@ Set-WebConfiguration -force -Location "Default Web Site/AIMWebService/SoapCert" 
 Copy-Item "$location\v1.1" -Destination "$location\SoapWin"
 Set-WebConfigurationProperty -force -PSPath "IIS:\" -Location "Default Web Site/AIMWebService/SoapWin" -filter "/system.webServer/security/authentication/anonymousAuthentication" -name enabled -value false
 Set-WebConfigurationProperty -force -PSPath "IIS:\" -Location "Default Web Site/AIMWebService/SoapWin" -filter "/system.webServer/security/authentication/windowsAuthentication" -name enabled -value true
+
+#Create new URL using SOAP with Certificate and Windows OS Authentication
+#https://<your machine>/AIMWebService/SoapCertWin/AIM.asmx
+Copy-Item "$location\v1.1" -Destination "$location\SoapCertWin"
+Set-WebConfiguration -force -Location "Default Web Site/AIMWebService/SoapCertWin" -Filter 'system.webserver/security/access' -Value "Ssl,SslRequireCert"
+Set-WebConfigurationProperty -force -PSPath "IIS:\" -Location "Default Web Site/AIMWebService/SoapCertWin" -filter "/system.webServer/security/authentication/anonymousAuthentication" -name enabled -value false
+Set-WebConfigurationProperty -force -PSPath "IIS:\" -Location "Default Web Site/AIMWebService/SoapCertWin" -filter "/system.webServer/security/authentication/windowsAuthentication" -name enabled -value true
