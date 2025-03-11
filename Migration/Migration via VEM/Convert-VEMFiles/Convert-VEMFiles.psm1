@@ -258,7 +258,7 @@ Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\Us
         $owners | Where-Object { ($_.internalOwner -eq 'false') -and ($_.internalSafe -eq 'false') } | Select-Object -Unique 'Safename', 'Description', 'ManagingCPM' | Export-Csv -NoTypeInformation $destinationFileSafes
 
         #convert YES/NO to true/false in the destination file
-(Get-Content $destinationFileSafes).Replace('"YES"', '"true"').Replace('"NO"', '"false"') | Set-Content $destinationFileSafes
+        $(Get-Content $destinationFileSafes).Replace('"YES"', '"true"').Replace('"NO"', '"false"') | Set-Content $destinationFileSafes
 
         $owners | Where-Object { ($_.internalOwner -eq 'false') -and ($_.internalSafe -eq 'false') } | Select-Object -Unique 'Safename', 'Member', 'MemberType', 'MemberLocation', 'UseAccounts', 'RetrieveAccounts',
         'ListAccounts', 'AddAccounts', 'UpdateAccountContent',
@@ -267,17 +267,16 @@ Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\Us
         'MoveAccountsAndFolders' | Export-Csv -NoTypeInformation $destinationFile
 
         #convert YES/NO to true/false in the destination file
-(Get-Content $destinationFile).Replace('"YES"', '"true"').Replace('"NO"', '"false"') | Set-Content $destinationFile
+        (Get-Content $destinationFile).Replace('"YES"', '"true"').Replace('"NO"', '"false"') | Set-Content $destinationFile
 
         Write-LogMessage -type Info -MSG "Owners file written to `"$destinationFile`""
         Write-LogMessage -type Info -MSG "Safes file written to `"$destinationFileSafes`""
 
-
         $adminTemp = $owners | Where-Object { ($_.internalOwner -eq 'false') -and ($_.internalSafe -eq 'false') } | Select-Object -Unique 'SafeName'
 
-        [PSCustomObject]$admins = @{}
+        [PSCustomObject[]]$admins = $null
 
-        $adminTemp | ForEach-Object { [PSCustomObject]$adminBase = @{
+        $adminTemp | ForEach-Object { $adminBase = @{
                 safeName                               = $_.SafeName
                 Member                                 = $vaultAdminsReplacement
                 MemberType                             = 'Role'
@@ -305,10 +304,14 @@ Convert-vemOwnersFileSS -ownersCSV C:\Temp\owners.csv -usersGroupsCSV C:\Temp\Us
                 RequestsAuthorizationLevel             = 1
 
             }
-            $admins += $adminBase
+            $admins += [PSCustomObject]$adminBase
         }
-        $admins | Select-Object -Unique | Export-Csv -NoTypeInformation $destinationFileAdmin
-        Write-LogMessage -type Info -MSG "Admins file written to `"$destinationFileAdmin`"" 
+        $admins | Select-Object -Unique 'Safename', 'Member', 'MemberType', 'MemberLocation', 'UseAccounts', 'RetrieveAccounts',
+        'ListAccounts', 'AddAccounts', 'UpdateAccountContent',
+        'UpdateAccountProperties', 'InitiateCPMAccountManagementOperations', 'SpecifyNextAccountContent', 'RenameAccounts', 'DeleteAccounts', 'UnlockAccounts', 'ManageSafe',
+        'ManageSafeMembers', 'BackupSafe', 'ViewAuditLog', 'ViewSafeMembers', 'RequestsAuthorizationLevel', 'AccessWithoutConfirmation', 'CreateFolders', 'DeleteFolders',
+        'MoveAccountsAndFolders' | Export-Csv -NoTypeInformation $destinationFileAdmin
+        Write-LogMessage -type Info -MSG "Admins file written to `"$destinationFileAdmin`""
     }
 }
 
