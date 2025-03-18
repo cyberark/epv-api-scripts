@@ -23,3 +23,7 @@ Migration/Migration via EVD/Import/*
 Migration/Migration via EVD/Export/*
 Migration/Migration via EVD/Projects/*
 
+
+Migration/Migration via VEM/Convert-VEMFiles/Ignore
+*.bad.csv
+*.good.csv

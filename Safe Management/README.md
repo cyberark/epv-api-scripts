@@ -84,7 +84,7 @@ Create a list of Safes, if the file contains at least one addtional value for th
 
 Create a list of Safes, include those with only SafeName provided, and add members to it from a file:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-details_and_members-sample.csv -CreateSafeWithNameOnly"
+& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-details_and_members-sample.csv" -CreateSafeWithNameOnly
 ```
 
 
