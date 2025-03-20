@@ -2,10 +2,10 @@
 > **Note:**The content of the sample_safes.csv is for example only and does not represent real safes
 
 ## Main capabilities
-- This tool supports listing of Safes, adding new Safes and adding new members to Safes.
+- This tool supports reporting of Safes, adding new Safes and adding new members to Safes.
 - Adding and updating members can be done via a .csv file. See sample files for examples. Supported .csv files can be comma delimited (default) or tab delimited.
 - Supported version: PVWA v12.1 and above.
-- Four modes for **managing the Safes**: [*List*](#list-command), [*Add*](#add-command), [*Update*](#update-command), [*Delete*](#delete-command).
+- Four modes for **managing the Safes**: [*Report*](#report-command), [*Add*](#add-command), [*Update*](#update-command), [*Delete*](#delete-command).
   - On Add operations if only a safename is provided the safe will not be created unless "CreateSafeWithNameOnly" is also passed.
 - Three modes for **managing Safes Members**: [*Members*](#members-command), [*UpdateMembers*](#update-members-command), [*DeleteMembers*](#delete-members-command)
 
@@ -15,7 +15,7 @@
 
 - LogonToken
 	- Logon token for using Privileged Cloud Shared Services (ISPSS).
-	- To generate token, see: https://github.com/cyberark/epv-api-scripts/tree/main/Identity%20Authentication 
+	- To generate token, see: https://github.com/cyberark/epv-api-scripts/tree/main/Identity%20Authentication
 
 
 ## CyberArk Privilege Cloud - Shared Services
@@ -24,23 +24,38 @@ If working with CyberArk Privilege Cloud - Shared Services, make sure that "memb
 Examples:
 - "Administrators@lab.local" and not "Administrators"
 - "John.Doe@lab.local" and not "John.Doe"
-  
+
 
 ## Safe Management
 
-### List Command:
+### Report Command:
 ```powershell
-Safe-Management.ps1 -PVWAURL <string> -List [-logonToken $token] [-SafeName <string>] [<CommonParameters>]
+Safe-Management.ps1 -PVWAURL <string> -Report  [-AuthType <string>] [-OTP <string>] [-SafeName <string>] [-OutputPath <string>] [-concurrentSession] [-DisableSSLVerify] [-DisableLogoff] [-logonToken <Object>] [-CreateSafeWithNameOnly] [-PVWACredentials <pscredential>] [-IncludeSystemSafes] [-CPMList <string[]>] [-GetCPMUsers] [-IncludeCallStack] [-UseVerboseFile] [<CommonParameters>]
 ```
 
 List all Safes (based on the current user's permissions):
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -List 
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Report
 ```
 
 Filter a specific Safe to see its details:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -List -SafeName "MySafe"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Report -SafeName "MySafe"
+```
+
+List all Safes (based on the current user's permissions) and output to report:
+```powershell
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Report -OutputPath .\SafeReport.csv
+```
+
+List all Safes (based on the current user's permissions) and stores in a variable:
+```powershell
+$report = .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault"
+```
+
+List all Safes (based on the current user's permissions) and stores in a variable:
+```powershell
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Report -OutputPath .\SafeReport.csv
 ```
 
 ### Add Command:
@@ -59,32 +74,32 @@ Safe-Management.ps1 -PVWAURL <string> -Add [-logonToken $token] [-SafeName <stri
 
 Create a new Safe called 'MySafe':
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -SafeName "MySafe"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -SafeName "MySafe"
 ```
 
 Create a new Safe and add a description to that Safe:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -SafeName "MySafe" -Description "This is My Safe that I Created using REST API"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -SafeName "MySafe" -Description "This is My Safe that I Created using REST API"
 ```
 
 Create a new safe and set the Managing CPM and the number of versions for retention:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -SafeName "MyDMZSafe" -ManagingCPM PassManagerDMZ -NumVersionRetention 5
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -SafeName "MyDMZSafe" -ManagingCPM PassManagerDMZ -NumVersionRetention 5
 ```
 
 Create a list of Safes from a file:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-sample.csv"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-sample.csv"
 ```
 
 Create a list of Safes, if the file contains at least one addtional value for the safe properties, and add members to it from a file:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-details_and_members-sample.csv"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-details_and_members-sample.csv"
 ```
 
 Create a list of Safes, include those with only SafeName provided, and add members to it from a file:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-details_and_members-sample.csv" -CreateSafeWithNameOnly
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Add -FilePath "C:\Temp\safes-details_and_members-sample.csv" -CreateSafeWithNameOnly
 ```
 
 
@@ -95,18 +110,18 @@ Safe-Management.ps1 -PVWAURL <string> -Update [-logonToken $token] [-SafeName <s
 
 Update the safe called 'MySafe' with a new description:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Update -SafeName "MySafe" -Description "This is My updated Safe description that I Created using REST API"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Update -SafeName "MySafe" -Description "This is My updated Safe description that I Created using REST API"
 ```
 
 Update the Safe Managing CPM:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Update -SafeName "MyDMZSafe" -ManagingCPM PassManagerDMZ
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Update -SafeName "MyDMZSafe" -ManagingCPM PassManagerDMZ
 ### To remove a Managing CPM, use "NULL"
 ```
 
 Update the description and members of a list of Safes from a file:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Update -FilePath "C:\Temp\safes-sample.csv"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Update -FilePath "C:\Temp\safes-sample.csv"
 ```
 > **Note**: This command will try to Add the members from the file to the Safe. Any existing member will be skipped (ie: the script will not update its permissions).
 
@@ -118,12 +133,12 @@ Safe-Management.ps1 -PVWAURL <string> -Delete [-logonToken $token] [-SafeName <s
 
 Delete a specific Safe called 'MySafe':
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Delete -SafeName "MySafe"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Delete -SafeName "MySafe"
 ```
 
 Delete a list of Safes from a file:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Delete -FilePath "C:\Temp\safes-sample.csv"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Delete -FilePath "C:\Temp\safes-sample.csv"
 ```
 
 ## Safe Members Management
@@ -135,17 +150,17 @@ Safe-Management.ps1 -PVWAURL <string> -Members -SafeName <string> [-logonToken $
 
 List all members of the Safe named 'MySafe':
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Members -SafeName "MySafe"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Members -SafeName "MySafe"
 ```
 
 Add a new End User (default role) member to the Safe 'MySafe':
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Members -SafeName "MySafe" -UserName "MyUser" -MemberRole "EndUser"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Members -SafeName "MySafe" -UserName "MyUser" -MemberRole "EndUser"
 ```
 
 Add a new Auditor member from LDAP to the Safe 'MySafe':
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Members -SafeName "MySafe" -UserName "MyAuditUser" -MemberRole "Auditor" -UserLocation "MyLDAPDomain.com"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -Members -SafeName "MySafe" -UserName "MyAuditUser" -MemberRole "Auditor" -UserLocation "MyLDAPDomain.com"
 ```
 
 ### Add Members Command:
@@ -155,7 +170,7 @@ Safe-Management.ps1 -PVWAURL <string> -AddMembers [-logonToken $token] [-FilePat
 
 Adds a list of members from a file:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -AddMembers -FilePath "C:\Temp\safe-members-sample.csv"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -AddMembers -FilePath "C:\Temp\safe-members-sample.csv"
 ```
 
 ### Update Members Command:
@@ -165,12 +180,12 @@ Safe-Management.ps1 -PVWAURL <string> -UpdateMembers [-logonToken $token] [-File
 
 Update a list of members from a file:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -UpdateMembers -FilePath "C:\Temp\safe-members-sample.csv"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -UpdateMembers -FilePath "C:\Temp\safe-members-sample.csv"
 ```
 
 Update a list of members from a file and if a member doesn't exist, try to add them:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -UpdateMembers -FilePath "C:\Temp\safe-members-sample.csv" -AddonUpdate
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -UpdateMembers -FilePath "C:\Temp\safe-members-sample.csv" -AddonUpdate
 ```
 
 ### Delete Members Command:
@@ -180,5 +195,15 @@ Safe-Management.ps1 -PVWAURL <string> -DeleteMembers [-logonToken $token] [-File
 
 Delete a list of members from a file:
 ```powershell
-& .\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -DeleteMembers -FilePath "C:\Temp\safe-members-sample.csv"
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -DeleteMembers -FilePath "C:\Temp\safe-members-sample.csv"
 ```
+
+## Troubleshooting:
+The following can be used on all commands\
+Log files with both switches present are required for troubleshooting.
+
+```powershell
+.\Safe-Management.ps1 -PVWAURL "https://myPVWA.myDomain.com/PasswordVault" -AddMembers -FilePath "C:\Temp\safe-members-sample.csv" -IncludeCallStack -UseVerboseFile
+```
+IncludeCallStack adds call stack information to log files\
+UseVerboseFile creates a second log file containing only verbose logs\
