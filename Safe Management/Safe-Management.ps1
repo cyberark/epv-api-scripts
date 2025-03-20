@@ -31,7 +31,7 @@
  2.2.1  2025-01-08      Updates to logging
                         Fixes to Set-SafeMembers
 ########################################################################### #>
-[CmdletBinding(DefaultParameterSetName = 'List')]
+[CmdletBinding(DefaultParameterSetName = 'Report')]
 param
 (
     [Parameter(Mandatory = $true, HelpMessage = 'Please enter your PVWA address (For example: https://pvwa.mydomain.com/passwordvault)')]
@@ -47,24 +47,33 @@ param
     [String]$OTP,
 
     # Use this switch to list Safes
-    [Parameter(ParameterSetName = 'List', Mandatory = $true)][switch]$List,
+    [Parameter(ParameterSetName = 'Report', Mandatory = $true)]
+    [Alias('List')]
+    [switch]$Report,
     # Use this switch to Add Safes
-    [Parameter(ParameterSetName = 'Add', Mandatory = $true)][switch]$Add,
+    [Parameter(ParameterSetName = 'Add', Mandatory = $true)]
+    [switch]$Add,
     # Use this switch to Update Safes
-    [Parameter(ParameterSetName = 'Update', Mandatory = $true)][switch]$Update,
+    [Parameter(ParameterSetName = 'Update', Mandatory = $true)]
+    [switch]$Update,
     # Use this switch to Update Safe Members
-    [Parameter(ParameterSetName = 'AddMembers', Mandatory = $true)][switch]$AddMembers,
+    [Parameter(ParameterSetName = 'AddMembers', Mandatory = $true)]
+    [switch]$AddMembers,
     # Use this switch to Update Safe Members
-    [Parameter(ParameterSetName = 'UpdateMembers', Mandatory = $true)][switch]$UpdateMembers,
+    [Parameter(ParameterSetName = 'UpdateMembers', Mandatory = $true)]
+    [switch]$UpdateMembers,
     # Use this switch to Delete Safe Members
-    [Parameter(ParameterSetName = 'DeleteMembers', Mandatory = $true)][switch]$DeleteMembers,
+    [Parameter(ParameterSetName = 'DeleteMembers', Mandatory = $true)]
+    [switch]$DeleteMembers,
     # Use this switch to Delete Safes
-    [Parameter(ParameterSetName = 'Delete', Mandatory = $true)][switch]$Delete,
+    [Parameter(ParameterSetName = 'Delete', Mandatory = $true)]
+    [switch]$Delete,
     # Use this switch to Add Safe Members
-    [Parameter(ParameterSetName = 'Members', Mandatory = $true)][switch]$Members,
+    [Parameter(ParameterSetName = 'Members', Mandatory = $true)]
+    [switch]$Members,
 
     # Safe Name
-    [Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = 'Enter a Safe Name to filter by')]
+    [Parameter(ParameterSetName = 'Report', Mandatory = $false, HelpMessage = 'Enter a Safe Name to filter by')]
     [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = 'Enter a Safe Name to create')]
     [Parameter(ParameterSetName = 'Update', Mandatory = $false, HelpMessage = 'Enter a Safe Name to update')]
     [Parameter(ParameterSetName = 'Delete', Mandatory = $false, HelpMessage = 'Enter a Safe Name to delete')]
@@ -91,10 +100,10 @@ param
     [Alias('File')]
     [String]$FilePath,
 
-    [Parameter(ParameterSetName = 'List', Mandatory = $false, HelpMessage = 'Enter a file path for report output. Must be CSV')]
+    [Parameter(ParameterSetName = 'Report', Mandatory = $false, HelpMessage = 'Enter a file path for report output. Must be CSV')]
     [ValidatePattern( '\.csv$' )]
-    [Alias('Report')]
-    [String]$ReportPath,
+    [Alias('ReportPath')]
+    [String]$OutputPath,
 
     # Add / Update Safe options
     [Parameter(ParameterSetName = 'Add', Mandatory = $false, HelpMessage = 'Enter the managing CPM name')]
@@ -143,11 +152,23 @@ param
     [Parameter(Mandatory = $false)]
     $logonToken,
     # Use this switch to create safes when only safe name provided
-    [Parameter(Mandatory = $false)]
+    [Parameter(ParameterSetName = 'Add',Mandatory = $false)]
     [Switch]$CreateSafeWithNameOnly,
     # Use this switch to pass PVWA credentials via PSCredential
     [Parameter(Mandatory = $false, HelpMessage = 'Vault Stored Credentials')]
     [PSCredential]$PVWACredentials,
+
+    # Includes system safes on report.
+    [Parameter(Mandatory = $false)]
+    [Switch]$IncludeSystemSafes,
+
+    # A array of strings with the names of CPM servers currently in the environment so they can be excluded from reports
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [String[]]$CPMList = $('PasswordManager', 'PasswordManager1', 'PasswordManager2', 'PasswordManager3', 'PasswordManager4'),
+
+    # Retrieve CPM safes list via system health to be excluded from reports. Requires Vault Admin permissions.
+    [Parameter(Mandatory = $false)]
+    [Switch]$GetCPMUsers,
 
     [Parameter(Mandatory = $false, DontShow, HelpMessage = 'Include Call Stack in Verbose output')]
     [switch]$IncludeCallStack,
@@ -192,6 +213,14 @@ $URL_Safes = $URL_PVWAAPI + '/Safes'
 $URL_SpecificSafe = $URL_Safes + '/{0}/'
 $URL_SafeMembers = $URL_SpecificSafe + '/Members'
 $URL_SafeSpecificMember = $URL_SpecificSafe + '/Members/{1}/'
+
+[String[]]$SystemSafes = @('System', 'VaultInternal', 'Notification Engine', 'SharedAuth_Internal', 'PVWAUserPrefs',
+    'PVWAConfig', 'PVWAReports', 'PVWATaskDefinitions', 'PVWAPrivateUserPrefs', 'PVWAPublicData', 'PVWATicketingSystem',
+    'AccountsFeed', 'PSM', 'xRay', 'PIMSuRecordings', 'xRay_Config', 'AccountsFeedADAccounts', 'AccountsFeedDiscoveryLogs',
+    'PSMSessions', 'PSMLiveSessions', 'PSMUniversalConnectors', 'PSMPConf',
+    'PSMNotifications', 'PSMUnmanagedSessionAccounts', 'PSMRecordings', 'PSMPADBridgeConf', 'PSMPADBUserProfile', 'PSMPADBridgeCustom',
+    'AppProviderConf', 'PasswordManagerTemp', 'PasswordManager_Pending', 'PasswordManagerShared', 'TelemetryConfig')
+
 
 #region Functions
 #region REST Functions
@@ -302,6 +331,47 @@ The Header as Dictionary object
     }
     Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tResponse: $restResponse"
     return $restResponse
+}
+
+Function Get-CPMUsers {
+    [OutputType([System.Boolean])]
+    [CmdletBinding()]
+    [OutputType([String[]])]
+    param([switch]$SuppressCPMWarning)
+    $URL_GetCPMList = "$URL_PVWAAPI/ComponentsMonitoringDetails/CPM/"
+    Try {
+        $CPMList = Invoke-Rest -Method Get -Uri $URL_GetCPMList -Header $g_LogonHeader -ErrorVariable ErrorCPMList
+        IF ([string]::IsNullOrEmpty($CPMList.ComponentsDetails.ComponentUSername)) {
+            If (!$SuppressCPMWarning) {
+                Write-Warning 'Unable to retrieve list of CPM users.' -WarningAction Inquire
+            }
+            return @()
+        }
+        else {
+            Write-LogMessage -type Debug "$($($CPMList.ComponentsDetails.ComponentUSername).count) CPM users found"
+            Write-LogMessage -type Verbose "Get-CPMUsers:`tList of CPM users found: $($($CPMList.ComponentsDetails.ComponentUSername)|ConvertTo-Json -Depth 9 -Compress)"
+            return $($CPMList.ComponentsDetails.ComponentUSername)
+        }
+    }
+    catch [Microsoft.PowerShell.Commands.HttpResponseException] {
+        If ($PSitem.Exception.Response.StatusCode -eq 'Forbidden') {
+            $URL_Verify = "$script:srcPVWAURL/API/Verify/"
+            $ReturnResultUser = Invoke-RestMethod -Method Get -Uri $URL_Verify -Headers $logonToken -ErrorVariable RestErrorUser
+            IF ([string]::IsNullOrEmpty($ReturnResultUser.ServerName) -or [string]::IsNullOrEmpty(!$RestErrorUser)) {
+                If (!$SuppressCPMWarning) {
+                    Write-Warning "Unable to retrieve list of CPM users. Ensure that CPMList parameter has been passed or source CPM is named `"PasswordManager`"" -WarningAction Inquire
+                }
+                return @()
+            }
+            else {
+                Write-Warning "Connected with a account that is not a member of `"vault admins`""
+                If (!$SuppressCPMWarning) {
+                    Write-Warning "Unable to retrieve list of CPM users. Ensure that CPMList parameter has been passed or source CPM is named `"PasswordManager`"" -WarningAction Inquire
+                }
+                return @()
+            }
+        }
+    }
 }
 
 # @FUNCTION@ ======================================================================================================================
@@ -817,7 +887,7 @@ New-Safe -safename "x0-Win-S-Admins" -safeDescription "Safe description goes her
 
     try {
         Write-LogMessage -type Verbose -MSG "New-Safe:`tAdding the safe $safename to the Vault..."
-        Write-LogMessage -type Verbose -MSG "New-Safe:`tCreate Safe Body: `n$($createSafeBody|ConvertTo-Json)" 
+        Write-LogMessage -type Verbose -MSG "New-Safe:`tCreate Safe Body: `n$($createSafeBody|ConvertTo-Json)"
         $safeAdd = Invoke-Rest -Uri $URL_Safes -Body ($createSafeBody | ConvertTo-Json) -Method POST -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700
         # Reset cached Safes list
         #Set-Variable -Name g_SafesList -Value $null -Scope Global
@@ -866,6 +936,7 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     try {
         # Get the current safe details and update when necessary
         $getSafe = Get-Safe -SafeName $safeName
+        $updateSafe = $false
         Write-LogMessage -type Verbose -MSG "Update-Safe:`tSafe details: $getSafe"
     }
     catch {
@@ -877,12 +948,15 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
     $updateRetVersions = $getSafe.NumberOfVersionsRetention
     $updateRetDays = $getSafe.NumberOfDaysRetention
     If (![string]::IsNullOrEmpty($safeDescription) -and $getSafe.Description -ne $safeDescription) {
+        $updateSafe = $true
         $updateDescription = $safeDescription
     }
     If ($getSafe.OLACEnabled -ne $EnableOLAC) {
+        $updateSafe = $true
         $updateOLAC = $EnableOLAC
     }
     If (![string]::IsNullOrEmpty($managingCPM) -and $getSafe.ManagingCPM -ne $managingCPM) {
+        $updateSafe = $true
         If ('NULL' -eq $managingCPM) {
             $updateManageCPM = ''
         }
@@ -890,30 +964,63 @@ Update-Safe -safename "x0-Win-S-Admins" -safeDescription "Updated Safe descripti
             $updateManageCPM = $managingCPM
         }
     }
-    If ($null -ne $numVersionRetention -and $numVersionRetention -gt 0 -and $getSafe.NumberOfVersionsRetention -ne $numVersionRetention) {
-        $updateRetVersions = $numVersionRetention
+    If (![string]::IsNullOrEmpty($getSafe.NumberOfVersionsRetention)) {
+        $ExistingRetention = 'Versions'
     }
-    If ($null -ne $numDaysRetention -and $numDaysRetention -gt 0 -and $getSafe.NumberOfDaysRetention -ne $numDaysRetention) {
+    else {
+        $ExistingRetention = 'Days'
+    }
+    Write-LogMessage -type Verbose -MSG "Update-Safe:`tExisting Retention is $ExistingRetention"
+    If ($ExistingRetention -eq 'Versions' -and $numVersionRetention -gt 0 -and $getSafe.NumberOfVersionsRetention -ne $numVersionRetention) {
+        $updateSafe = $true
+        $updateRetVersions = $numVersionRetention
+        [string]$updateRetDays = $null
+        Write-LogMessage -type Verbose -MSG "Update-Safe:`tRetention updated to $ExistingRetention with $numVersionRetention versions"
+    }
+    elseif ($ExistingRetention -eq 'Versions' -and $numVersionRetention -lt 1 -and $numDaysRetention -gt 0) {
+        $updateSafe = $true
         $updateRetDays = $numDaysRetention
+        [string]$updateRetVersions = $null
+        Write-LogMessage -type Verbose -MSG "Update-Safe:`tRetention updated to $ExistingRetention with $numDaysRetention days"
+    }
+    elseif ($ExistingRetention -eq 'Days' -and $numDaysRetention -gt 0 -and $getSafe.NumberOfDaysRetention -ne $numDaysRetention) {
+        $updateSafe = $true
+        $updateRetDays = $numDaysRetention
+        [string]$updateRetVersions = $null
+        Write-LogMessage -type Verbose -MSG "Update-Safe:`tRetention updated to $ExistingRetention with $numDaysRetention days"
+    }
+    elseif ($ExistingRetention -eq 'Days' -and $numDaysRetention -lt 1 -and $numVersionRetention -gt 0) {
+        $updateSafe = $true
+        $updateRetVersions = $numVersionRetention
+        [string]$updateRetDays = $null
+        Write-LogMessage -type Verbose -MSG "Update-Safe:`tRetention updated to $ExistingRetention with $numVersionRetention versions"
+    }
+    else {
+        Write-LogMessage -type Verbose -MSG "Update-Safe:`tRetention stayed at $ExistingRetention with no changes"
     }
 
-    $updateSafeBody = [pscustomobject]@{
+    if (!$updateSafe) {
+        Write-LogMessage -type Verbose -MSG "Update-Safe:`tNo changes required for safe $safeName"
+        return
+    }
+
+    $updateSafeRequestBody = [pscustomobject]@{
         'SafeName'    = "$safeName"
         'Description' = "$updateDescription"
         'OLACEnabled' = $updateOLAC
         'ManagingCPM' = "$updateManageCPM"
     }
     if (![string]::IsNullOrEmpty($updateRetVersions) -and $updateRetVersions -gt 0) {
-        $updateSafeBody | Add-Member -MemberType NoteProperty -Name 'NumberOfVersionsRetention' -Value $updateRetVersions
+        $updateSafeRequestBody | Add-Member -MemberType NoteProperty -Name 'NumberOfVersionsRetention' -Value $updateRetVersions
     }
     else {
-        $updateSafeBody | Add-Member -MemberType NoteProperty -Name 'NumberOfDaysRetention' -Value $updateRetDays
+        $updateSafeRequestBody | Add-Member -MemberType NoteProperty -Name 'NumberOfDaysRetention' -Value $updateRetDays
     }
     try {
-        Write-LogMessage -type Verbose -MSG "Update-Safe:`tSafeName $safeName : UpdateSafeBody:$updateSafeBody"
-        Write-LogMessage -type Verbose -MSG "Update-Safe:`tUpdating safe $safename..."
-        Write-LogMessage -type Verbose -MSG "Update-Safe:`tUpdate Safe Body: $updateSafeBody"
-        Invoke-Rest -Uri ($URL_SpecificSafe -f $safeName) -Body $updateSafeBody -Method PUT -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 | Out-Null
+        Write-LogMessage -type Verbose -MSG "Update-Safe:`tSafeName $safeName : updateSafeRequestBody:$updateSafeRequestBody"
+        $restResponse = Invoke-Rest -Uri ($URL_SpecificSafe -f $safeName) -Body $($updateSafeRequestBody | ConvertTo-Json -Compress) -Method PUT -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700
+        Write-LogMessage -type Verbose -MSG "Update-Safe:`tSafeName $safeName : restResponse: $restResponse"
+        return
     }
     catch {
         Throw $(New-Object System.Exception ("Update-Safe:`tError updating $safeName.", $_.Exception))
@@ -1173,7 +1280,7 @@ Function Convert-ToBool {
 
 Write-LogMessage -type Info -MSG "Starting script (v$ScriptVersion)" -Header -LogFile $LOG_FILE_PATH
 if ($InDebug) {
-    Write-LogMessage -type Info -MSG 'Running in Debug Mode' -LogFile $LOG_FILE_PATH 
+    Write-LogMessage -type Info -MSG 'Running in Debug Mode' -LogFile $LOG_FILE_PATH
 }
 if ($InVerbose) {
     Write-LogMessage -type Info -MSG 'Running in Verbose Mode' -LogFile $LOG_FILE_PATH
@@ -1233,16 +1340,18 @@ catch {
 #endregion
 
 switch ($PsCmdlet.ParameterSetName) {
-    'List' {
-        Write-LogMessage -type Verbose -MSG "Base:`tList"
-        # List all Safes
+    'Report' {
+        Write-LogMessage -type Verbose -MSG "Base:`tReport"
+        # Report of all Safes
         Write-LogMessage -type Info -MSG 'Retrieving Safes...'
         $safelist = @()
         try {
             If (![string]::IsNullOrEmpty($SafeName)) {
+                Write-LogMessage -type Info -MSG "Safe name passed, retrieving safe $SafeName..."
                 $safelist += Get-Safe -SafeName $SafeName
             }
             else {
+                Write-LogMessage -type Info -MSG 'No safe name passed, retrieving all safes...'
                 $safelist += Get-Safe
             }
             if ([string]::IsNullOrEmpty($safelist.value)) {
@@ -1251,11 +1360,31 @@ switch ($PsCmdlet.ParameterSetName) {
             else {
                 $output = $safelist.value
             }
-            if ([string]::IsNullOrEmpty($ReportPath)) {
+
+            If (!$IncludeSystemSafes) {
+                $cpmUsers = @()
+                $cpmUsers += $CPMList
+                IF ($GetCPMUsers) {
+                    $cpmUsers += Get-CPMUsers
+                }
+                $cpmSafes = @()
+                $cpmUsers | ForEach-Object {
+                    $cpmSafes += "$($PSitem)"
+                    $cpmSafes += "$($PSitem)_Accounts"
+                    $cpmSafes += "$($PSitem)_ADInternal"
+                    $cpmSafes += "$($PSitem)_Info"
+                    $cpmSafes += "$($PSitem)_workspace"
+                }
+                $SafesToRemove = $SystemSafes
+                $SafesToRemove += $cpmSafes
+                $output = $output | Where-Object { $PSItem.SafeName -NotIn $SafesToRemove }
+            }
+
+            if ([string]::IsNullOrEmpty($OutputPath)) {
                 $output
             }
             else {
-                $output | Select-Object -Property safeName, description, managingCPM, numberOfVersionsRetention, numberOfDaysRetention, EnableOLAC | ConvertTo-Csv -NoTypeInformation | Out-File $ReportPath
+                $output | Select-Object -Property safeName, description, managingCPM, numberOfVersionsRetention, numberOfDaysRetention, EnableOLAC | ConvertTo-Csv -NoTypeInformation | Out-File $OutputPath
             }
         }
         catch {
@@ -1287,8 +1416,8 @@ switch ($PsCmdlet.ParameterSetName) {
                                 safeName            = $line.safename
                                 safeDescription     = $line.description
                                 managingCPM         = $line.ManagingCPM
-                                numVersionRetention = $line.numVersionRetention
-                                numDaysRetention    = $line.numDaysRetention
+                                numVersionRetention = If ([string]::IsNullOrEmpty($parameters.numVersionRetention)) { $line.numberOfVersionsRetention } Else { $parameters.numVersionRetention }
+                                numDaysRetention    = If ([string]::IsNullOrEmpty($parameters.numDaysRetention)) { $line.numberOfDaysRetention } Else { $parameters.numDaysRetention }
                                 EnableOLAC          = $line.EnableOLAC
                             }
                             if ([string]::IsNullOrEmpty($parameters.safeDescription)) {
@@ -1333,6 +1462,7 @@ switch ($PsCmdlet.ParameterSetName) {
                             else {
                                 Write-LogMessage -type Info -MSG "Safe $($line.safename) has no safe details to add or update, skipping add or update."
                             }
+                            $parameters = $null
                         }
                         if (-Not $Delete) {
                             If (![string]::IsNullOrEmpty($line.member) -and ![string]::IsNullOrEmpty($line.safename)) {
@@ -1360,7 +1490,7 @@ switch ($PsCmdlet.ParameterSetName) {
                 Write-LogMessage -type Info -MSG "Base:`tCSV file processed"
             }
             else {
-                write-LogMessage -type Error -MSG "Base:`tNo file path was provided. Processing single action."
+                Write-LogMessage -type Error -MSG "Base:`tNo file path was provided. Processing single action."
                 try {
                     $parameters = @{
                         safeName            = $SafeName
