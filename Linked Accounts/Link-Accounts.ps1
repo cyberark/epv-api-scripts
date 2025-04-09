@@ -39,6 +39,9 @@ param
 	[Parameter(Mandatory = $false)]
 	$logonToken,
 
+	[Parameter(Mandatory = $false, HelpMessage = 'Vault Stored Credentials')]
+    [PSCredential]$PVWACredentials,
+
 	[Parameter(Mandatory = $false, DontShow, HelpMessage = 'Include Call Stack in Verbose output')]
 	[switch]$IncludeCallStack,
 
@@ -713,33 +716,35 @@ Write-LogMessage -type Info -MSG 'Getting PVWA Credentials to start Linking acco
 
 #region [Logon]
 try {
-	# Get Credentials to Login
-	# ------------------------
-	$caption = 'Link Accounts'
+    # Get Credentials to Login
+    # ------------------------
+    $caption = 'Safe Management'
 
-	If (![string]::IsNullOrEmpty($logonToken)) {
-		if ($logonToken.GetType().name -eq 'String') {
-			$logonHeader = @{Authorization = $logonToken }
-			Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global
-		}
-		else {
-			Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
-		}
-	}
-	elseif ($null -eq $creds) {
-		$msg = 'Enter your User name and Password'
-		$creds = $Host.UI.PromptForCredential($caption, $msg, '', '')
-		Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
-	}
-	else {
-		Write-LogMessage -type Error -MSG 'No Credentials were entered'
-		return
-	}
+    If (![string]::IsNullOrEmpty($logonToken)) {
+        if ($logonToken.GetType().name -eq 'String') {
+            $logonHeader = @{Authorization = $logonToken }
+            Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global
+        }
+        else {
+            Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
+        }
+    }
+    elseif (![string]::IsNullOrEmpty($PVWACredentials)) {
+        Get-LogonHeader -Credentials $PVWACredentials
+    }
+    elseif ($null -eq $creds) {
+        $msg = 'Enter your User name and Password'
+        $creds = $Host.UI.PromptForCredential($caption, $msg, '', '')
+        Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
+    }
+    else {
+        Write-LogMessage -type Error -MSG 'No Credentials were entered'
+        return
+    }
 }
 catch {
-	Write-LogMessage -type Error -MSG "Error Logging on. Error: $(Join-ExceptionMessage -e $PSitem)" -ErrorAction 'SilentlyContinue'
-	Write-LogMessage -type LogOnly -MSG "Error Logging on. Error: $(Join-ExceptionDetails -e $PSitem)" -ErrorAction 'SilentlyContinue'
-	return
+    Write-LogMessage -type Error -MSG "Error Logging on. Error: $(Join-ExceptionMessage $_.Exception)"
+    return
 }
 #endregion
 
@@ -749,7 +754,7 @@ If ([string]::IsNullOrEmpty($CsvPath)) {
 }
 $delimiter = $((Get-Culture).TextInfo.ListSeparator)
 Write-LogMessage -type Info -MSG 'Importing accounts to link' -SubHeader
-$accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
+[PSCustomObject[]]$accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
 $badAccounts = 'BadAccounts.csv'
 $badAccounts = "$("$($($(Get-Item -Path $csvPath).Name).Split('.')[0])")-Bad-$StartTime.$("$($($(Get-Item -Path $csvPath).Name).Split('.')[1])")"
 
@@ -773,7 +778,6 @@ $ExtraPass2Failed = 0
 $ExtraPass3Succes = 0
 $ExtraPass3Failed = 0
 Write-LogMessage -type Info -MSG "Starting to add links to $masterCount master accounts" -SubHeader
-# Read Account dependencies
 ForEach ($account in $accountsCSV) {
 	if (![string]::IsNullOrEmpty($account)) {
 		# Search for Master Account
