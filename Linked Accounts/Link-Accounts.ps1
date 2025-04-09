@@ -38,7 +38,7 @@ param
 	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
 	[Parameter(Mandatory = $false)]
 	$logonToken
-	
+
 )
 
 
@@ -123,7 +123,7 @@ Function Test-Unicode {
 	$nonASCII = '[^\x00-\x7F]'
 	if ($inputText -cmatch $nonASCII) {
 		$outputText = ''
-		$inputText.ToCharArray() | ForEach-Object { 
+		$inputText.ToCharArray() | ForEach-Object {
 			if ($PSItem -cmatch $nonASCII) {
 				If (!$Remove) {
 					$UniCode = "{$(([uint16] [char]$psitem).ToString('X4'))}"
@@ -134,7 +134,7 @@ Function Test-Unicode {
 		}
 		return $outputText
 	}
-	else { 
+	else {
 		return $inputText
 	}
 }
@@ -249,7 +249,7 @@ Function Write-LogMessage {
 		$writeToFile = $true
 		# Replace empty message with 'N/A'
 		if ([string]::IsNullOrEmpty($Msg)) {
-			$Msg = 'N/A' 
+			$Msg = 'N/A'
   }
 
 		# Mask Passwords
@@ -280,7 +280,7 @@ Function Write-LogMessage {
 					$msgToWrite += "[DEBUG]`t$Msg"
 				}
 				else {
-					$writeToFile = $False 
+					$writeToFile = $False
     }
 			}
 			'Verbose' {
@@ -289,13 +289,13 @@ Function Write-LogMessage {
 					$msgToWrite += "[VERBOSE]`t$Msg"
 				}
 				else {
-					$writeToFile = $False 
+					$writeToFile = $False
     }
 			}
 		}
 
 		If ($writeToFile) {
-			$msgToWrite | Out-File -Append -FilePath $LogFile 
+			$msgToWrite | Out-File -Append -FilePath $LogFile
   }
 		If ($Footer) {
 			'=======================================' | Out-File -Append -FilePath $LogFile
@@ -321,7 +321,7 @@ Function Join-ExceptionMessage {
 	)
 
 	Begin {
-		
+
 	}
 	Process {
 		$Exception = $e.Exception
@@ -453,7 +453,7 @@ Function Add-SearchCriteria {
 	}
 
 	if ($retURL[-1] -eq '&') {
-		$retURL = $retURL.substring(0, $retURL.length - 1) 
+		$retURL = $retURL.substring(0, $retURL.length - 1)
  }
 
 	return $retURL
@@ -492,8 +492,8 @@ Function Find-MasterAccount {
 }
 
 Function Get-LogonHeader {
-	<# 
-.SYNOPSIS 
+	<#
+.SYNOPSIS
 	Get-LogonHeader
 .DESCRIPTION
 	Get-LogonHeader
@@ -508,13 +508,13 @@ Function Get-LogonHeader {
 		[Parameter(Mandatory = $false)]
 		[boolean]$concurrentSession
 	)
-	
+
 	if ([string]::IsNullOrEmpty($g_LogonHeader)) {
 		# Disable SSL Verification to contact PVWA
 		If ($DisableSSLVerify) {
 			Disable-SSLVerification
 		}
-		
+
 		# Create the POST Body for the Logon
 		# ----------------------------------
 		If ($concurrentSession) {
@@ -527,11 +527,11 @@ Function Get-LogonHeader {
 		# Check if we need to add RADIUS OTP
 		If (![string]::IsNullOrEmpty($RadiusOTP)) {
 			$logonBody.Password += ",$RadiusOTP"
-		} 
+		}
 		try {
 			# Logon
 			$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType 'application/json' -TimeoutSec 2700
-			
+
 			# Clear logon body
 			$logonBody = ''
 		}
@@ -543,13 +543,13 @@ Function Get-LogonHeader {
 		If ([string]::IsNullOrEmpty($logonToken)) {
 			Throw 'Get-LogonHeader: Logon Token is Empty - Cannot login'
 		}
-		
+
 		try {
 			# Create a Logon Token Header (This will be used through out all the script)
 			# ---------------------------
 			$logonHeader = @{Authorization = $logonToken }
 
-			Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global		
+			Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global
 		}
 		catch {
 			Throw $(New-Object System.Exception ('Get-LogonHeader: Could not create Logon Headers Dictionary', $PSitem.Exception))
@@ -558,8 +558,8 @@ Function Get-LogonHeader {
 }
 
 Function Invoke-Logoff {
-	<# 
-.SYNOPSIS 
+	<#
+.SYNOPSIS
 	Invoke-Logoff
 .DESCRIPTION
 	Logoff a PVWA session
@@ -579,9 +579,10 @@ Function Invoke-Logoff {
 }
 Function Add-AccountLink {
 	param ($linkBody, $MasterID)
-	try {		
+	try {
 		$retResult = $false
 
+		Write-LogMessage -type Verbose -MSG "Invoke-Rest -Uri ($URL_LinkAccounts -f $MasterID) -Header $global:g_LogonHeader -Command 'POST' -Body $($linkBody | ConvertTo-Json)"
 		$addLinkAccountBodyResult = $(Invoke-Rest -Uri ($URL_LinkAccounts -f $MasterID) -Header $global:g_LogonHeader -Command 'POST' -Body $($linkBody | ConvertTo-Json))
 		If ($null -eq $addLinkAccountBodyResult) {
 			# No accounts onboarded
@@ -686,18 +687,18 @@ try {
 	If (![string]::IsNullOrEmpty($logonToken)) {
 		if ($logonToken.GetType().name -eq 'String') {
 			$logonHeader = @{Authorization = $logonToken }
-			Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global	
+			Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global
 		}
 		else {
 			Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
 		}
 	}
 	elseif ($null -eq $creds) {
-		$msg = 'Enter your User name and Password'; 
+		$msg = 'Enter your User name and Password';
 		$creds = $Host.UI.PromptForCredential($caption, $msg, '', '')
 		Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
 	}
-	else { 
+	else {
 		Write-LogMessage -Type Error -Msg 'No Credentials were entered'
 		return
 	}
@@ -709,11 +710,11 @@ catch {
 }
 #endregion
 
-If (Test-RESTVersion -version '11.7') { 
-	$extraPass = 'extraPasswordIndex' 
+If (Test-RESTVersion -version '11.7') {
+	$extraPass = 'extraPasswordIndex'
 }
 else {
-	$extraPass = 'extraPasswordID' 
+	$extraPass = 'extraPasswordID'
 }
 
 #region [Read Accounts CSV file and link Accounts]
@@ -778,13 +779,13 @@ ForEach ($account in $accountsCSV) {
 						$bad | Export-Csv -Append -NoTypeInformation -Path $badAccounts
 					}
 					$addLinkAccountBody = @{
-						'safe'       = $account.ExtraPass1Safe.Trim(); 
-						'name'       = $account.ExtraPass1Name.Trim(); 
+						'safe'       = $account.ExtraPass1Safe.Trim();
+						'name'       = $account.ExtraPass1Name.Trim();
 						'folder'     = if ([string]::IsNullOrEmpty($account.ExtraPass1Folder)) { 'Root' } else { $account.ExtraPass1Folder.Trim() };
 						"$extraPass" = '1';
 					}
 					if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID) {
-						$ExtraPass1Succes++ 
+						$ExtraPass1Succes++
 					}
 				}
 				Catch {
@@ -801,13 +802,13 @@ ForEach ($account in $accountsCSV) {
 			if (![string]::IsNullOrEmpty($account.ExtraPass2Name)) {
 				Try {
 					$addLinkAccountBody = @{
-						'safe'       = $account.ExtraPass2Safe.Trim(); 
-						'name'       = $account.ExtraPass2Name.Trim(); 
+						'safe'       = $account.ExtraPass2Safe.Trim();
+						'name'       = $account.ExtraPass2Name.Trim();
 						'folder'     = if ([string]::IsNullOrEmpty($account.ExtraPass2Folder)) { 'Root' } else { $account.ExtraPass2Folder.Trim() };
 						"$extraPass" = '2';
 					}
 					if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID) {
-						$ExtraPass2Succes++ 
+						$ExtraPass2Succes++
 					}
 				}
 				Catch {
@@ -825,13 +826,13 @@ ForEach ($account in $accountsCSV) {
 			if (![string]::IsNullOrEmpty($account.ExtraPass3Name)) {
 				Try {
 					$addLinkAccountBody = @{
-						'safe'       = $account.ExtraPass3Safe.Trim(); 
-						'name'       = $account.ExtraPass3Name.Trim(); 
+						'safe'       = $account.ExtraPass3Safe.Trim();
+						'name'       = $account.ExtraPass3Name.Trim();
 						'folder'     = if ([string]::IsNullOrEmpty($account.ExtraPass3Folder)) { 'Root' } else { $account.ExtraPass3Folder.Trim() };
 						"$extraPass" = '3';
 					}
 					if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID) {
-						$ExtraPass3Succes++ 
+						$ExtraPass3Succes++
 					}
 				}
 				Catch {
@@ -841,7 +842,7 @@ ForEach ($account in $accountsCSV) {
 					Write-LogMessage -Type Error -Msg "Error adding ExtraPass2 with name of `"$($account.ExtraPass3Name)`" in safe `"$($account.ExtraPass3safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
 					Write-LogMessage -Type Error -Msg "$(Join-ExceptionMessage $PSitem)"
 					Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionDetails $PSitem)"
-					$ExtraPass3Failed++ 
+					$ExtraPass3Failed++
 				}
 			}
 		}
@@ -849,11 +850,11 @@ ForEach ($account in $accountsCSV) {
 			$bad = $account | Select-Object -Property *, 'Fail'
 			$bad.Fail = "$(Join-ExceptionMessage $PSitem)"
 			$bad | Export-Csv -Append -NoTypeInformation -Path $badAccounts
-			Write-LogMessage -Type Error -Msg "Error linking Master Account - Username: `"$($account.userName)`" Address: `"$($account.address)`" Safe: `"$($account.safe)`"" 
+			Write-LogMessage -Type Error -Msg "Error linking Master Account - Username: `"$($account.userName)`" Address: `"$($account.address)`" Safe: `"$($account.safe)`""
 			Write-LogMessage -Type LogOnly -Msg "$(Join-ExceptionDetails $PSItem)"
 		}
 		$counterMaster++
-		
+
 	}
 }
 
