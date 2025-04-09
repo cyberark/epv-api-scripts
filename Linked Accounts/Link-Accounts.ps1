@@ -54,9 +54,8 @@ $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
 # Set Log file path
 $StartTime = $(Get-Date -Format yyyyMMdd) + '-' + $(Get-Date -Format HHmmss)
 $LOG_FILE_PATH = "$ScriptLocation\Link_Accounts_Utility-$StartTime.log"
-=======
 
-
+$Global:ScriptName = $MyInvocation.MyCommand.Path.Replace("$ScriptLocation\", '')
 $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
 $global:IncludeCallStack = $IncludeCallStack.IsPresent
@@ -164,10 +163,10 @@ A string of the requested PVWA REST version to test
 
 	$retVersionExists = $false
 	try {
-		Write-LogMessage -type debug -MSG "Testing to see if the PVWA is at least in version $version"
+		Write-LogMessage -type Verbose -MSG "Testing to see if the PVWA is at least in version $version"
 		$serverResponse = Invoke-REST -Command GET -URI $URL_Server
 		if ($null -ne $serverResponse) {
-			Write-LogMessage -type debug -MSG "The current PVWA is in version $($serverResponse.ExternalVersion)"
+			Write-LogMessage -type Verbose -MSG "The current PVWA is in version $($serverResponse.ExternalVersion)"
 			If ([version]($serverResponse.InternalVersion) -ge [version]$version) { $retVersionExists = $true }
 		}
 		else {
@@ -306,7 +305,7 @@ Function Write-LogMessage {
 						function Get-CallStack {
 							$stack = ''
 							$excludeItems = @('Write-LogMessage', 'Get-CallStack', '<ScriptBlock>')
-							Get-CallStack | ForEach-Object {
+							Get-PSCallStack | ForEach-Object {
 								If ($PSItem.Command -notin $excludeItems) {
 									$command = $PSitem.Command
 									If ($command -eq $Global:scriptName) {
@@ -469,7 +468,7 @@ The Header as Dictionary object
 	try {
 		if ([string]::IsNullOrEmpty($Body)) {
 			Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tInvoke-RestMethod -Uri $URI -Method $Command -Header $($Header|ConvertTo-Json -Compress) -ContentType $ContentType -TimeoutSec $TimeoutSec"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType $ContentType -TimeoutSec $TimeoutSec -ErrorAction $ErrAction -Verbose:$false -Debug:$false
+			6$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType $ContentType -TimeoutSec $TimeoutSec -ErrorAction $ErrAction -Verbose:$false -Debug:$false
 		}
 		else {
 			Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tInvoke-RestMethod -Uri $URI -Method $Command -Header $($Header|ConvertTo-Json -Compress) -ContentType $ContentType -Body $($Body|ConvertTo-Json -Compress) -TimeoutSec $TimeoutSec"
@@ -524,7 +523,7 @@ The Header as Dictionary object
 		Write-LogMessage -type Error -MSG "Error in running $Command on '$URI', $_.Exception"
 		Throw $(New-Object System.Exception ("Error in running $Command on '$URI'", $_.Exception))
 	}
-	Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tResponse: $restResponse"
+	Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tResponse: $($restResponse|ConvertTo-Json -Compress)"
 	return $restResponse
 }
 Function Add-SearchCriteria {
@@ -559,18 +558,18 @@ Function Find-MasterAccount {
 		$AccountsURLWithFilters = ''
 		$Keywords = "$($accountName) $($accountAddress)"
 		$AccountsURLWithFilters = $(Add-SearchCriteria -sURL $URL_Accounts -sSearch $Keywords -sSafeName $safeName)
-		Write-LogMessage -type Debug -MSG "Accounts Filter: $AccountsURLWithFilters"
+		Write-LogMessage -type Verbose -MSG "Accounts Filter: $AccountsURLWithFilters"
 		$GetMasterAccountsResponse = Invoke-Rest -Command Get -Uri $AccountsURLWithFilters -Header $global:g_LogonHeader
 		If (($null -eq $GetMasterAccountsResponse) -or ($GetMasterAccountsResponse.count -eq 0)) {
 			# No accounts found
-			Write-LogMessage -type Debug -MSG "Account `"$accountName`" does not exist"
+			Write-LogMessage -type Verbose -MSG "Account `"$accountName`" does not exist"
 			$result = $null
 		}
 		else {
 			ForEach ($item in $GetMasterAccountsResponse.Value) {
 				if ($item.userName -eq $accountName -and $item.address -eq $accountAddress) {
 					$result = $item.id
-					Write-LogMessage -type Debug -MSG "Account `"$accountName`" with address of `"$accountAddress`" in safe `"$safeName`" has account ID of `"$result`""
+					Write-LogMessage -type Verbose -MSG "Account `"$accountName`" with address of `"$accountAddress`" in safe `"$safeName`" has account ID of `"$result`""
 					break
 				}
 			}
@@ -709,19 +708,17 @@ If ($DisableSSLVerify) {
 	catch {
 		Write-LogMessage -type Error -MSG 'Could not change SSL validation'
 		Write-LogMessage -type Error -MSG $(Join-ExceptionMessage -e $PSitem) -ErrorAction 'SilentlyContinue'
-		Write-LogMessage -type LogOnly -MSG $(Join-ExceptionDetails -e $PSitem) -ErrorAction 'SilentlyContinue'
 		return
 	}
 }
 Else {
 	try {
-		Write-LogMessage -type Debug -MSG 'Setting script to use TLS 1.2'
+		Write-LogMessage -type Verbose -MSG 'Setting script to use TLS 1.2'
 		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 	}
 	catch {
 		Write-LogMessage -type Error -MSG 'Could not change SSL settings to use TLS 1.2'
 		Write-LogMessage -type Error -MSG $(Join-ExceptionMessage -e $PSitem)-ErrorAction 'SilentlyContinue'
-		Write-LogMessage -type LogOnly -MSG $(Join-ExceptionDetails -e $PSitem) -ErrorAction 'SilentlyContinue'
 	}
 }
 
@@ -733,7 +730,7 @@ If (![string]::IsNullOrEmpty($PVWAURL)) {
 
 	try {
 		# Validate PVWA URL is OK
-		Write-LogMessage -type Debug -MSG "Trying to validate URL: $PVWAURL"
+		Write-LogMessage -type Verbose -MSG "Trying to validate URL: $PVWAURL"
 		Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $PVWAURL -Method 'Head' -TimeoutSec 30 | Out-Null
 	}
 	catch [System.Net.WebException] {
