@@ -145,48 +145,6 @@ Function Test-Unicode {
 		return $inputText
 	}
 }
-
-Function Test-PVWAVersion {
-	<#
-.SYNOPSIS
-Tests if the requested version exists in the PVWA REST API
-.DESCRIPTION
-Tests if the requested version exists in the PVWA REST API
-.PARAMETER Version
-A string of the requested PVWA REST version to test
-#>
-
-	param (
-		[Parameter(Mandatory = $true)]
-		[string]$version
-	)
-
-	$retVersionExists = $false
-	try {
-		Write-LogMessage -type Verbose -MSG "Testing to see if the PVWA is at least in version $version"
-		$serverResponse = Invoke-REST -Command GET -URI $URL_Server
-		if ($null -ne $serverResponse) {
-			Write-LogMessage -type Verbose -MSG "The current PVWA is in version $($serverResponse.ExternalVersion)"
-			If ([version]($serverResponse.InternalVersion) -ge [version]$version) { $retVersionExists = $true }
-		}
-		else {
-			Throw 'An error occurred while testing the PVWA version'
-		}
-
-		return $retVersionExists
-	}
-	catch {
-		# Check the error code returned from the REST call
-		$innerExcp = $PSitem.Exception.InnerException
-		Write-LogMessage -type Verbose -MSG "Status Code: $($innerExcp.StatusCode); Status Description: $($innerExcp.StatusDescription); REST Error: $($innerExcp.CyberArkErrorMessage)"
-		if ($innerExcp.StatusCode -eq 'NotFound') {
-			return $false
-		}
-		else {
-			Throw $(New-Object System.Exception ("Test-RESTVersion: There was an error checking for REST version $version.", $PSitem.Exception))
-		}
-	}
-}
 Function ConvertTo-Date($epochdate) {
 	if (($epochdate).length -gt 10 ) {
 		return (Get-Date -Date '01/01/1970').AddMilliseconds($epochdate)
@@ -674,7 +632,7 @@ Function Add-AccountLink {
 	try {
 		$retResult = $false
 
-		Write-LogMessage -type Verbose -MSG "Invoke-Rest -Uri ($URL_LinkAccounts -f $MasterID) -Header $global:g_LogonHeader -Command 'POST' -Body $($linkBody | ConvertTo-Json)"
+		Write-LogMessage -type Verbose -MSG "Invoke-Rest -Uri ($URL_LinkAccounts -f $MasterID) -Header $global:g_LogonHeader -Command 'POST' -Body $($linkBody | ConvertTo-Json -Compress)"
 		$addLinkAccountBodyResult = $(Invoke-Rest -Uri ($URL_LinkAccounts -f $MasterID) -Header $global:g_LogonHeader -Command 'POST' -Body $($linkBody | ConvertTo-Json))
 		If ($null -eq $addLinkAccountBodyResult) {
 			# No accounts onboarded
@@ -784,16 +742,6 @@ catch {
 	return
 }
 #endregion
-
-If (Test-PVWAVersion -version '11.7') {
-	$extraPass = 'extraPasswordIndex'
-}
-else {
-	$extraPass = 'extraPasswordID'
-}
-
-
-$extraPass = 'extraPasswordIndex'
 
 #region [Read Accounts CSV file and link Accounts]
 If ([string]::IsNullOrEmpty($CsvPath)) {
