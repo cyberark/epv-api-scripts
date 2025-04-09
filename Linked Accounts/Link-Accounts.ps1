@@ -59,6 +59,8 @@ $LOG_FILE_PATH = "$ScriptLocation\Link_Accounts_Utility-$StartTime.log"
 
 $global:InDebug = $PSBoundParameters.Debug.IsPresent
 $global:InVerbose = $PSBoundParameters.Verbose.IsPresent
+$global:IncludeCallStack = $IncludeCallStack.IsPresent
+$global:UseVerboseFile = $UseVerboseFile.IsPresent
 
 # Global URLS
 # -----------
@@ -621,7 +623,7 @@ Function Get-LogonHeader {
 		}
 		try {
 			# Logon
-			$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType 'application/json' -TimeoutSec 2700
+			$logonToken = Invoke-Rest -Method Post -Uri $URL_Logon -Body $logonBody -ContentType 'application/json' -TimeoutSec 2700
 
 			# Clear logon body
 			$logonBody = ''
@@ -660,7 +662,7 @@ Function Invoke-Logoff {
 		# ------------------
 		If ($null -ne $g_LogonHeader) {
 			Write-LogMessage -type Info -MSG 'Logoff Session...'
-			Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 | Out-Null
+			Invoke-Rest -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 | Out-Null
 			Set-Variable -Name g_LogonHeader -Value $null -Scope global
 		}
 	}
@@ -793,6 +795,9 @@ else {
 	$extraPass = 'extraPasswordID'
 }
 
+
+$extraPass = 'extraPasswordIndex'
+
 #region [Read Accounts CSV file and link Accounts]
 If ([string]::IsNullOrEmpty($CsvPath)) {
 	$CsvPath = Open-FileDialog($g_CsvDefaultPath)
@@ -855,10 +860,10 @@ ForEach ($account in $accountsCSV) {
 						$bad | Export-Csv -Append -NoTypeInformation -Path $badAccounts
 					}
 					$addLinkAccountBody = @{
-						'safe'       = $account.ExtraPass1Safe.Trim()
-						'name'       = $account.ExtraPass1Name.Trim()
-						'folder'     = if ([string]::IsNullOrEmpty($account.ExtraPass1Folder)) { 'Root' } else { $account.ExtraPass1Folder.Trim() }
-						"$extraPass" = '1'
+						'safe'               = $account.ExtraPass1Safe.Trim()
+						'name'               = $account.ExtraPass1Name.Trim()
+						'folder'             = if ([string]::IsNullOrEmpty($account.ExtraPass1Folder)) { 'Root' } else { $account.ExtraPass1Folder.Trim() }
+						'extraPasswordIndex' = '1'
 					}
 					if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID) {
 						$ExtraPass1Succes++
@@ -878,10 +883,10 @@ ForEach ($account in $accountsCSV) {
 			if (![string]::IsNullOrEmpty($account.ExtraPass2Name)) {
 				Try {
 					$addLinkAccountBody = @{
-						'safe'       = $account.ExtraPass2Safe.Trim()
-						'name'       = $account.ExtraPass2Name.Trim()
-						'folder'     = if ([string]::IsNullOrEmpty($account.ExtraPass2Folder)) { 'Root' } else { $account.ExtraPass2Folder.Trim() }
-						"$extraPass" = '2'
+						'safe'               = $account.ExtraPass2Safe.Trim()
+						'name'               = $account.ExtraPass2Name.Trim()
+						'folder'             = if ([string]::IsNullOrEmpty($account.ExtraPass2Folder)) { 'Root' } else { $account.ExtraPass2Folder.Trim() }
+						'extraPasswordIndex' = '2'
 					}
 					if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID) {
 						$ExtraPass2Succes++
@@ -902,10 +907,10 @@ ForEach ($account in $accountsCSV) {
 			if (![string]::IsNullOrEmpty($account.ExtraPass3Name)) {
 				Try {
 					$addLinkAccountBody = @{
-						'safe'       = $account.ExtraPass3Safe.Trim()
-						'name'       = $account.ExtraPass3Name.Trim()
-						'folder'     = if ([string]::IsNullOrEmpty($account.ExtraPass3Folder)) { 'Root' } else { $account.ExtraPass3Folder.Trim() }
-						"$extraPass" = '3'
+						'safe'               = $account.ExtraPass3Safe.Trim()
+						'name'               = $account.ExtraPass3Name.Trim()
+						'folder'             = if ([string]::IsNullOrEmpty($account.ExtraPass3Folder)) { 'Root' } else { $account.ExtraPass3Folder.Trim() }
+						'extraPasswordIndex' = '3'
 					}
 					if (Add-AccountLink -linkBody $addLinkAccountBody -MasterID $foundMasterAccountID) {
 						$ExtraPass3Succes++
