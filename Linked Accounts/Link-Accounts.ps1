@@ -567,10 +567,11 @@ Function Invoke-Logoff {
 	try {
 		# Logoff the session
 		# ------------------
-		If ($null -ne $g_LogonHeader) {
+		If (![string]::IsNullOrEmpty($global:g_LogonHeader)) {
 			Write-LogMessage -type Info -MSG 'Logoff Session...'
-			Invoke-Rest -Method Post -Uri $URL_Logoff -Headers $g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 | Out-Null
+			Invoke-Rest -Method Post -Uri $URL_Logoff -Headers $global:g_LogonHeader -ContentType 'application/json' -TimeoutSec 2700 | Out-Null
 			Set-Variable -Name g_LogonHeader -Value $null -Scope global
+			Remove-Variable -Name g_LogonHeader -Scope Global
 		}
 	}
 	catch {
@@ -648,7 +649,7 @@ If (![string]::IsNullOrEmpty($PVWAURL)) {
 	catch {
 		Write-LogMessage -type Error -MSG 'PVWA URL could not be validated'
 		Write-LogMessage -type Error -MSG $(Join-ExceptionMessage -e $PSitem) -ErrorAction 'SilentlyContinue'
-		Write-LogMessage -type LogOnly -MSG $(Join-ExceptionDetails -e $PSitem) -ErrorAction 'SilentlyContinue'
+		Write-LogMessage -type Verbose -MSG $(Join-ExceptionDetails -e $PSitem) -ErrorAction 'SilentlyContinue'
 	}
 }
 else {
@@ -701,8 +702,8 @@ If ([string]::IsNullOrEmpty($CsvPath)) {
 
 Write-LogMessage -type Info -MSG 'Importing accounts to link'
 [PSCustomObject[]]$accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
-$badAccounts = 'BadAccounts.csv'
-$badAccounts = "$("$($($(Get-Item -Path $csvPath).Name).Split('.')[0])")-Bad-$StartTime.$("$($($(Get-Item -Path $csvPath).Name).Split('.')[1])")"
+$badAccounts = "$csvPath.bad.csv"
+Remove-Item $csvPathBad -Force -ErrorAction SilentlyContinue
 
 $masterCount = @($accountsCSV | Select-Object -Property userName, address, safe -Unique).Count
 Write-LogMessage -type Info -MSG "Found a total of $masterCount accounts with links"
@@ -730,7 +731,7 @@ ForEach ($account in $accountsCSV) {
 		$foundMasterAccountID = $null
 		try {
 			Write-LogMessage -type Info -MSG "Searching for Master Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`"."
-			$foundMasterAccountID = Find-MasterAccount -accountName $($account.userName) -accountAddress $($account.userName) -safeName $($account.safe)
+			$foundMasterAccountID = Find-MasterAccount -accountName $($account.userName) -accountAddress $($account.address) -safeName $($account.safe)
 			if ([string]::IsNullOrEmpty($foundMasterAccountID))
 			{ Throw 'No Master Account Found' }
 		}
@@ -740,7 +741,7 @@ ForEach ($account in $accountsCSV) {
 			$bad | Export-Csv -Append -NoTypeInformation -Path $badAccounts
 			Write-LogMessage -type Error -MSG "Error searching for Master Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`"."
 			Write-LogMessage -type Error -MSG $(Join-ExceptionMessage -e $PSitem) -ErrorAction 'SilentlyContinue'
-			Write-LogMessage -type LogOnly -MSG $(Join-ExceptionDetails -e $PSitem) -ErrorAction 'SilentlyContinue'
+			Write-LogMessage -type Verbose -MSG $(Join-ExceptionDetails -e $PSitem) -ErrorAction 'SilentlyContinue'
 			continue
 		}
 		Try {
@@ -770,7 +771,7 @@ ForEach ($account in $accountsCSV) {
 					$bad | Export-Csv -Append -NoTypeInformation -Path $badAccounts
 					Write-LogMessage -type Error -MSG "Error adding ExtraPass1 with name of `"$($account.ExtraPass1Name)`" in safe `"$($account.ExtraPass1Safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
 					Write-LogMessage -type Error -MSG "$(Join-ExceptionMessage $PSitem)"
-					Write-LogMessage -type LogOnly -MSG "$(Join-ExceptionDetails $PSitem)"
+					Write-LogMessage -type Verbose -MSG "$(Join-ExceptionDetails $PSitem)"
 					$ExtraPass1Failed++
 				}
 			}
@@ -793,7 +794,7 @@ ForEach ($account in $accountsCSV) {
 					$bad | Export-Csv -Append -NoTypeInformation -Path $badAccounts
 					Write-LogMessage -type Error -MSG "Error adding ExtraPass2 with name of `"$($account.ExtraPass2Name)`" in safe `"$($account.ExtraPass2Safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
 					Write-LogMessage -type Error -MSG "$(Join-ExceptionMessage $PSitem)"
-					Write-LogMessage -type LogOnly -MSG "$(Join-ExceptionDetails $PSitem)"
+					Write-LogMessage -type Verbose -MSG "$(Join-ExceptionDetails $PSitem)"
 					$ExtraPass2failed++
 				}
 			}
@@ -817,7 +818,7 @@ ForEach ($account in $accountsCSV) {
 					$bad | Export-Csv -Append -NoTypeInformation -Path $badAccounts
 					Write-LogMessage -type Error -MSG "Error adding ExtraPass2 with name of `"$($account.ExtraPass3Name)`" in safe `"$($account.ExtraPass3safe)`" to Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`""
 					Write-LogMessage -type Error -MSG "$(Join-ExceptionMessage $PSitem)"
-					Write-LogMessage -type LogOnly -MSG "$(Join-ExceptionDetails $PSitem)"
+					Write-LogMessage -type Verbose -MSG "$(Join-ExceptionDetails $PSitem)"
 					$ExtraPass3Failed++
 				}
 			}
@@ -827,7 +828,7 @@ ForEach ($account in $accountsCSV) {
 			$bad.Fail = "$(Join-ExceptionMessage $PSitem)"
 			$bad | Export-Csv -Append -NoTypeInformation -Path $badAccounts
 			Write-LogMessage -type Error -MSG "Error linking Master Account - Username: `"$($account.userName)`" Address: `"$($account.address)`" Safe: `"$($account.safe)`""
-			Write-LogMessage -type LogOnly -MSG "$(Join-ExceptionDetails $PSItem)"
+			Write-LogMessage -type Verbose -MSG "$(Join-ExceptionDetails $PSItem)"
 		}
 		$counterMaster++
 
@@ -843,12 +844,15 @@ ForEach ($account in $accountsCSV) {
 If (![string]::IsNullOrEmpty($logonToken)) {
 	Write-Host 'LogonToken passed, session NOT logged off'
 }
+elseIf ($concurrentSession) {
+	Write-Host 'concurrentSession passed, session NOT logged off'
+}
 else {
 	Invoke-Logoff
 }
 
 # Footer
-Write-LogMessage -type Info -MSG "A total of $counterMaster accounts with $masterCount links ofaccounts imported"
+Write-LogMessage -type Info -MSG "A total of $counterMaster accounts with $masterCount links imported"
 Write-LogMessage -type Info -MSG "A total of $ExtraPass1Succes ExtraPass1 links out of $ExtraPass1Count links where created successfully."
 Write-LogMessage -type Info -MSG "A total of $ExtraPass2Succes ExtraPass2 links out of $ExtraPass2Count links where created successfully."
 Write-LogMessage -type Info -MSG "A total of $ExtraPass3Succes ExtraPass3 links out of $ExtraPass3Count links where created successfully."
