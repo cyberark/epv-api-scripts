@@ -1,18 +1,20 @@
-###########################################################################
-#
-# NAME: Account Link Utility
-#
-# AUTHOR:  Assaf Miron, Brian Bors
-#
-# COMMENT:
-# This script will bulk Link Accounts from a CSV file using REST API.
-#
-# SUPPORTED VERSIONS:
-# CyberArk Privilege Cloud
-# CyberArk PVWA v12.1 and above
-#
-#
-###########################################################################
+<# ###########################################################################
+
+NAME: Account Link Utility
+
+AUTHOR: Assaf Miron, Brian Bors
+
+COMMENT:
+This script will bulk Link Accounts from a CSV file using REST API.
+
+SUPPORTED VERSIONS:
+CyberArk Privilege Cloud
+CyberArk PVWA v12.1 and above
+
+VERSION HISTORY:
+1.0 	0000-00-00	Initial version
+1.1 	2025-04-09	New functionality and made add ability to change csv delimiter
+########################################################################### #>
 [CmdletBinding()]
 param
 (
@@ -39,8 +41,12 @@ param
 	[Parameter(Mandatory = $false)]
 	$logonToken,
 
+	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
+	[Parameter(Mandatory = $false)]
+	[string]$delimiter = ',',
+
 	[Parameter(Mandatory = $false, HelpMessage = 'Vault Stored Credentials')]
-    [PSCredential]$PVWACredentials,
+	[PSCredential]$PVWACredentials,
 
 	[Parameter(Mandatory = $false, DontShow, HelpMessage = 'Include Call Stack in Verbose output')]
 	[switch]$IncludeCallStack,
@@ -49,7 +55,6 @@ param
 	[switch]$UseVerboseFile
 
 )
-
 
 # Get Script Location
 $ScriptLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -76,7 +81,6 @@ $URL_Logoff = $URL_Authentication + '/Logoff'
 # -----------
 $URL_Accounts = $URL_PVWAAPI + '/Accounts'
 $URL_LinkAccounts = $URL_PVWAAPI + '/Accounts/{0}/LinkAccount'
-$URL_Server = $URL_PVWAAPI + '/Server'
 
 # Script Defaults
 # ---------------
@@ -86,23 +90,6 @@ $URL_Server = $URL_PVWAAPI + '/Server'
 $g_LogonHeader = ''
 
 #region Functions
-Function Test-CommandExists {
-	Param ($command)
-	$oldPreference = $ErrorActionPreference
-	$ErrorActionPreference = 'stop'
-	try {
-		if (Get-Command $command) {
-			RETURN $true
-		}
-	}
-	Catch {
-		Write-Host "$command does not exist"; RETURN $false
-	}
-	Finally {
-		$ErrorActionPreference = $oldPreference
-	}
-} #end function test-CommandExists
-
 Function ConvertTo-URL($sText) {
 	<#
 .SYNOPSIS
@@ -113,54 +100,13 @@ Function ConvertTo-URL($sText) {
 	The text to encode
 #>
 	if (![string]::IsNullOrEmpty($sText)) {
-		Write-Debug "Returning URL Encode of $sText"
+		Write-LogMessage -type Verbose -MSG "Returning URL Encode of $sText"
 		return [URI]::EscapeDataString($sText)
 	}
 	else {
 		return $sText
 	}
 }
-Function Test-Unicode {
-	param (
-		[string]
-		$inputText,
-		[switch]
-		$Remove
-	)
-	IF ([string]::IsNullOrEmpty($inputText)) {
-		Return $inputText
-	}
-	$nonASCII = '[^\x00-\x7F]'
-	if ($inputText -cmatch $nonASCII) {
-		$outputText = ''
-		$inputText.ToCharArray() | ForEach-Object {
-			if ($PSItem -cmatch $nonASCII) {
-				If (!$Remove) {
-					$UniCode = "{$(([uint16] [char]$psitem).ToString('X4'))}"
-					$outputText = "$outputText$($UniCode)"
-				}
-			}
-			else { $outputText = "$outputText$($PSitem)" }
-		}
-		return $outputText
-	}
-	else {
-		return $inputText
-	}
-}
-Function ConvertTo-Date($epochdate) {
-	if (($epochdate).length -gt 10 ) {
-		return (Get-Date -Date '01/01/1970').AddMilliseconds($epochdate)
-	}
-	else {
-		return (Get-Date -Date '01/01/1970').AddSeconds($epochdate)
-	}
-}
-
-Function ConvertTo-EPOCHDate($inputDate) {
-	return (New-TimeSpan -Start (Get-Date '01/01/1970') -End ($inputDate)).TotalSeconds
-}
-
 
 Function Write-LogMessage {
 	<#
@@ -319,7 +265,6 @@ Function Write-LogMessage {
 	}
 }
 
-
 Function Join-ExceptionMessage {
 	<#
 .SYNOPSIS
@@ -404,7 +349,7 @@ The Header as Dictionary object
 #>
 	param (
 		[Parameter(Mandatory = $true)]
-		[ValidateSet('GET', 'POST', 'DELETE', 'PATCH', 'PUT')]
+		[ValidateSet('GET', 'POST', 'DELETE', 'PATCH', 'PUT','HEAD')]
 		[Alias('Method')]
 		[String]$Command,
 		[Parameter(Mandatory = $true)]
@@ -421,19 +366,21 @@ The Header as Dictionary object
 		[Parameter(Mandatory = $false)]
 		[int]$TimeoutSec = 2700,
 		[Parameter(Mandatory = $false)]
-		[string]$ContentType = 'application/json'
+		[string]$ContentType = 'application/json',
+		[switch]$UseBasicParsing,
+		[switch]$DisableKeepAlive
 
 	)
 	Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tStart"
 	$restResponse = ''
 	try {
 		if ([string]::IsNullOrEmpty($Body)) {
-			Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tInvoke-RestMethod -Uri $URI -Method $Command -Header $($Header|ConvertTo-Json -Compress) -ContentType $ContentType -TimeoutSec $TimeoutSec"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType $ContentType -TimeoutSec $TimeoutSec -ErrorAction $ErrAction -Verbose:$false -Debug:$false
+			Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tInvoke-RestMethod -Uri $URI -Method $Command -Header $($Header|ConvertTo-Json -Compress) -ContentType $ContentType -TimeoutSec $TimeoutSec -UseBasicParsing:$UseBasicParsing -DisableKeepAlive:$DisableKeepAlive"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType $ContentType -TimeoutSec $TimeoutSec -ErrorAction $ErrAction -Verbose:$false -Debug:$false -UseBasicParsing:$UseBasicParsing -DisableKeepAlive:$DisableKeepAlive
 		}
 		else {
-			Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tInvoke-RestMethod -Uri $URI -Method $Command -Header $($Header|ConvertTo-Json -Compress) -ContentType $ContentType -Body $($Body|ConvertTo-Json -Compress) -TimeoutSec $TimeoutSec"
-			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType $ContentType -Body $Body -TimeoutSec $TimeoutSec -ErrorAction $ErrAction -Verbose:$false -Debug:$false
+			Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tInvoke-RestMethod -Uri $URI -Method $Command -Header $($Header|ConvertTo-Json -Compress) -ContentType $ContentType -Body $($Body|ConvertTo-Json -Compress) -TimeoutSec $TimeoutSec -UseBasicParsing:$UseBasicParsing -DisableKeepAlive:$DisableKeepAlive"
+			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType $ContentType -Body $Body -TimeoutSec $TimeoutSec -ErrorAction $ErrAction -Verbose:$false -Debug:$false -UseBasicParsing:$UseBasicParsing -DisableKeepAlive:$DisableKeepAlive
 		}
 		Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tInvoke-RestMethod completed without error"
 	}
@@ -463,7 +410,7 @@ The Header as Dictionary object
 			Throw $PSItem
 		}
 		elseif ('PASWS013E' -eq $Details.ErrorCode) {
-			Write-LogMessage -type Error -MSG "$($Details.ErrorMessage)" -Header -Footer
+			Write-LogMessage -type Error -MSG "$($Details.ErrorMessage)"
 			exit 5
 		}
 		elseif ('SFWS0002' -eq $Details.ErrorCode) {
@@ -636,10 +583,9 @@ Function Add-AccountLink {
 		$retResult = $false
 
 		Write-LogMessage -type Verbose -MSG "Invoke-Rest -Uri ($URL_LinkAccounts -f $MasterID) -Header $global:g_LogonHeader -Command 'POST' -Body $($linkBody | ConvertTo-Json -Compress)"
-		$addLinkAccountBodyResult = $(Invoke-Rest -Uri ($URL_LinkAccounts -f $MasterID) -Header $global:g_LogonHeader -Command 'POST' -Body $($linkBody | ConvertTo-Json))
+		$addLinkAccountBodyResult = $(Invoke-Rest -Uri $($URL_LinkAccounts -f $MasterID) -Header $global:g_LogonHeader -Command 'POST' -Body $($linkBody | ConvertTo-Json))
 		If ($null -eq $addLinkAccountBodyResult) {
 			# No accounts onboarded
-
 			throw "There was an error linking account `"$($linkBody.name)`" to account ID `"$($MasterID)`"."
 		}
 		else {
@@ -692,7 +638,7 @@ If (![string]::IsNullOrEmpty($PVWAURL)) {
 	try {
 		# Validate PVWA URL is OK
 		Write-LogMessage -type Verbose -MSG "Trying to validate URL: $PVWAURL"
-		Invoke-WebRequest -UseBasicParsing -DisableKeepAlive -Uri $PVWAURL -Method 'Head' -TimeoutSec 30 | Out-Null
+		Invoke-Rest -UseBasicParsing -DisableKeepAlive -Uri $PVWAURL -Method 'Head' -TimeoutSec 30 | Out-Null
 	}
 	catch [System.Net.WebException] {
 		If (![string]::IsNullOrEmpty($PSitem.Exception.Response.StatusCode.Value__)) {
@@ -716,35 +662,35 @@ Write-LogMessage -type Info -MSG 'Getting PVWA Credentials to start Linking acco
 
 #region [Logon]
 try {
-    # Get Credentials to Login
-    # ------------------------
-    $caption = 'Safe Management'
+	# Get Credentials to Login
+	# ------------------------
+	$caption = 'Safe Management'
 
-    If (![string]::IsNullOrEmpty($logonToken)) {
-        if ($logonToken.GetType().name -eq 'String') {
-            $logonHeader = @{Authorization = $logonToken }
-            Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global
-        }
-        else {
-            Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
-        }
-    }
-    elseif (![string]::IsNullOrEmpty($PVWACredentials)) {
-        Get-LogonHeader -Credentials $PVWACredentials
-    }
-    elseif ($null -eq $creds) {
-        $msg = 'Enter your User name and Password'
-        $creds = $Host.UI.PromptForCredential($caption, $msg, '', '')
-        Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
-    }
-    else {
-        Write-LogMessage -type Error -MSG 'No Credentials were entered'
-        return
-    }
+	If (![string]::IsNullOrEmpty($logonToken)) {
+		if ($logonToken.GetType().name -eq 'String') {
+			$logonHeader = @{Authorization = $logonToken }
+			Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global
+		}
+		else {
+			Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
+		}
+	}
+	elseif (![string]::IsNullOrEmpty($PVWACredentials)) {
+		Get-LogonHeader -Credentials $PVWACredentials
+	}
+	elseif ($null -eq $creds) {
+		$msg = 'Enter your User name and Password'
+		$creds = $Host.UI.PromptForCredential($caption, $msg, '', '')
+		Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession
+	}
+	else {
+		Write-LogMessage -type Error -MSG 'No Credentials were entered'
+		return
+	}
 }
 catch {
-    Write-LogMessage -type Error -MSG "Error Logging on. Error: $(Join-ExceptionMessage $_.Exception)"
-    return
+	Write-LogMessage -type Error -MSG "Error Logging on. Error: $(Join-ExceptionMessage $_.Exception)"
+	return
 }
 #endregion
 
@@ -752,23 +698,23 @@ catch {
 If ([string]::IsNullOrEmpty($CsvPath)) {
 	$CsvPath = Open-FileDialog($g_CsvDefaultPath)
 }
-$delimiter = $((Get-Culture).TextInfo.ListSeparator)
-Write-LogMessage -type Info -MSG 'Importing accounts to link' -SubHeader
+
+Write-LogMessage -type Info -MSG 'Importing accounts to link'
 [PSCustomObject[]]$accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
 $badAccounts = 'BadAccounts.csv'
 $badAccounts = "$("$($($(Get-Item -Path $csvPath).Name).Split('.')[0])")-Bad-$StartTime.$("$($($(Get-Item -Path $csvPath).Name).Split('.')[1])")"
 
 $masterCount = @($accountsCSV | Select-Object -Property userName, address, safe -Unique).Count
-Write-LogMessage -type Info -MSG "Found a total of $masterCount accounts with links" -SubHeader
+Write-LogMessage -type Info -MSG "Found a total of $masterCount accounts with links"
 
 $ExtraPass1Count = @($accountsCSV | Where-Object ExtraPass1Name -NE '' ).count
-Write-LogMessage -type Info -MSG "A total of $ExtraPass1Count ExtraPass1 accounts found" -SubHeader
+Write-LogMessage -type Info -MSG "A total of $ExtraPass1Count ExtraPass1 accounts found"
 $ExtraPass2Count = @($accountsCSV | Where-Object ExtraPass2Name -NE '' ).count
-Write-LogMessage -type Info -MSG "A total of $ExtraPass2Count ExtraPass2 accounts found" -SubHeader
+Write-LogMessage -type Info -MSG "A total of $ExtraPass2Count ExtraPass2 accounts found"
 $ExtraPass3Count = @($accountsCSV | Where-Object ExtraPass3Name -NE '' ).count
-Write-LogMessage -type Info -MSG "A total of $ExtraPass3Count ExtraPass3 accounts found" -SubHeader
+Write-LogMessage -type Info -MSG "A total of $ExtraPass3Count ExtraPass3 accounts found"
 $linkCount = $ExtraPass1Count + $ExtraPass2Count + $ExtraPass3Count
-Write-LogMessage -type Info -MSG "A total of $linkCount account links found" -SubHeader
+Write-LogMessage -type Info -MSG "A total of $linkCount account links found"
 
 $counterMaster = 0
 $ExtraPass1Succes = 0
@@ -777,14 +723,14 @@ $ExtraPass2Succes = 0
 $ExtraPass2Failed = 0
 $ExtraPass3Succes = 0
 $ExtraPass3Failed = 0
-Write-LogMessage -type Info -MSG "Starting to add links to $masterCount master accounts" -SubHeader
+Write-LogMessage -type Info -MSG "Starting to add links to $masterCount master accounts"
 ForEach ($account in $accountsCSV) {
 	if (![string]::IsNullOrEmpty($account)) {
 		# Search for Master Account
 		$foundMasterAccountID = $null
 		try {
 			Write-LogMessage -type Info -MSG "Searching for Master Account with username `"$($account.userName)`" with address `"$($account.address)`" in safe `"$($account.safe)`"."
-			$foundMasterAccountID = Find-MasterAccount -accountName $account.userName -accountAddress $account.address -safeName $account.safe
+			$foundMasterAccountID = Find-MasterAccount -accountName $($account.userName) -accountAddress $($account.userName) -safeName $($account.safe)
 			if ([string]::IsNullOrEmpty($foundMasterAccountID))
 			{ Throw 'No Master Account Found' }
 		}
@@ -894,7 +840,7 @@ ForEach ($account in $accountsCSV) {
 # Logoff the session
 # ------------------
 
-If ([string]::IsNullOrEmpty($logonToken)) {
+If (![string]::IsNullOrEmpty($logonToken)) {
 	Write-Host 'LogonToken passed, session NOT logged off'
 }
 else {
@@ -902,9 +848,9 @@ else {
 }
 
 # Footer
-Write-LogMessage -type Info -MSG "A total of $counterMaster accounts with links found of $masterCount accounts imported" -Footer
-Write-LogMessage -type Info -MSG "A total of $ExtraPass1Succes ExtraPass1 links out of $ExtraPass1Count links where created successfully." -Footer
-Write-LogMessage -type Info -MSG "A total of $ExtraPass2Succes ExtraPass2 links out of $ExtraPass2Count links where created successfully." -Footer
-Write-LogMessage -type Info -MSG "A total of $ExtraPass3Succes ExtraPass3 links out of $ExtraPass3Count links where created successfully." -Footer
-Write-LogMessage -type Info -MSG "A total of $($ExtraPass1Succes + $ExtraPass2Succes + $ExtraPass3Succes) individual links out of $linkCount links where created successfully." -Footer
+Write-LogMessage -type Info -MSG "A total of $counterMaster accounts with $masterCount links ofaccounts imported"
+Write-LogMessage -type Info -MSG "A total of $ExtraPass1Succes ExtraPass1 links out of $ExtraPass1Count links where created successfully."
+Write-LogMessage -type Info -MSG "A total of $ExtraPass2Succes ExtraPass2 links out of $ExtraPass2Count links where created successfully."
+Write-LogMessage -type Info -MSG "A total of $ExtraPass3Succes ExtraPass3 links out of $ExtraPass3Count links where created successfully."
+Write-LogMessage -type Info -MSG "A total of $($ExtraPass1Succes + $ExtraPass2Succes + $ExtraPass3Succes) individual links out of $linkCount links where created successfully."
 #endregion
