@@ -30,9 +30,9 @@ param
 	[Alias("id")]
 	[string]$PlatformID,
 
-    # Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
-    [Parameter(Mandatory = $false)]
-    $logonToken
+	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
+	[Parameter(Mandatory = $false)]
+	$logonToken
 )
 
 # Global URLS
