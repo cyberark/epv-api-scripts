@@ -543,8 +543,6 @@ $caption = "Platforms Report"
 
 #region [Logon]
 try {
-	# Get Credentials to Login
-	# ------------------------
 	If (![string]::IsNullOrEmpty($logonToken)) {
 		if ($logonToken.GetType().name -eq 'String') {
 			$logonHeader = @{Authorization = $logonToken }
@@ -555,6 +553,8 @@ try {
 		}
 	}
 	elseif ($null -eq $creds) {
+		# Get Credentials to Login
+		# ------------------------
 		$msg = "Enter your PAS User name and Password ($AuthType)";
 		$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 		Get-LogonHeader -Credentials $creds
