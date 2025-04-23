@@ -24,8 +24,8 @@ param
 
 	[Parameter(Mandatory=$false,HelpMessage="Enter the Authentication type (Default:CyberArk)")]
 	[ValidateSet("cyberark","ldap","radius")]
-	[String]$AuthType="cyberark",
-
+	[String]$AuthType="cyberark",	
+	
 	[Parameter(Mandatory=$true,HelpMessage="Enter the platform ID to export")]
 	[Alias("id")]
 	[string]$PlatformID,
