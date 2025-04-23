@@ -24,11 +24,15 @@ param
 
 	[Parameter(Mandatory=$false,HelpMessage="Enter the Authentication type (Default:CyberArk)")]
 	[ValidateSet("cyberark","ldap","radius")]
-	[String]$AuthType="cyberark",	
-	
+	[String]$AuthType="cyberark",
+
 	[Parameter(Mandatory=$true,HelpMessage="Enter the platform ID to export")]
 	[Alias("id")]
-	[string]$PlatformID
+	[string]$PlatformID,
+
+    # Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
+    [Parameter(Mandatory = $false)]
+    $logonToken
 )
 
 # Global URLS
@@ -45,7 +49,6 @@ $URL_PlatformDetails = $URL_PVWAAPI+"/Platforms/{0}"
 # Initialize Script Variables
 # ---------------------------
 $rstusername = $rstpassword = ""
-$logonToken  = ""
 
 #region Functions
 Function Test-CommandExists
@@ -90,41 +93,52 @@ If (Test-CommandExists Invoke-RestMethod)
     }
 
 #region [Logon]
-    # Get Credentials to Login
-    # ------------------------
     $caption = "Get accounts"
-    $msg = "Enter your User name and Password"; 
-    $creds = $Host.UI.PromptForCredential($caption,$msg,"","")
-	if ($null -ne $creds)
-	{
-		$rstusername = $creds.username.Replace('\','');    
-		$rstpassword = $creds.GetNetworkCredential().password
-	}
-	else { exit }
-
-    # Create the POST Body for the Logon
-    # ----------------------------------
-    $logonBody = @{ username=$rstusername;password=$rstpassword }
-    $logonBody = $logonBody | ConvertTo-Json
-	try{
-	    # Logon
-	    $logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json"
-	}
-	catch
-	{
-		Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
-		$logonToken = ""
-	}
-    If ($logonToken -eq "")
-    {
-        Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
-        exit
+	if (![string]::IsNullOrEmpty($logonToken)) {
+        if ($logonToken.GetType().name -eq 'String') {
+            $logonHeader = @{Authorization = $logonToken }
+        }
+        else {
+            $logonHeader = $logonToken
+        }
     }
-	
-    # Create a Logon Token Header (This will be used through out all the script)
-    # ---------------------------
-    $logonHeader =  New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-    $logonHeader.Add("Authorization", $logonToken)
+	else
+	{
+		# Get Credentials to Login
+    	# ------------------------
+		$msg = "Enter your User name and Password";
+		$creds = $Host.UI.PromptForCredential($caption, $msg, "", "")
+		if ($null -ne $creds)
+		{
+			$rstusername = $creds.username.Replace('\', '');
+			$rstpassword = $creds.GetNetworkCredential().password
+		}
+		else { exit }
+
+		# Create the POST Body for the Logon
+		# ----------------------------------
+		$logonBody = @{ username = $rstusername; password = $rstpassword }
+		$logonBody = $logonBody | ConvertTo-Json
+		try{
+			# Logon
+			$logonToken = Invoke-RestMethod -Method Post -Uri $URL_Logon -Body $logonBody -ContentType "application/json"
+		}
+		catch
+		{
+			Write-Host -ForegroundColor Red $_.Exception.Response.StatusDescription
+			$logonToken = ""
+		}
+		If ($logonToken -eq "")
+		{
+			Write-Host -ForegroundColor Red "Logon Token is Empty - Cannot login"
+			exit
+		}
+
+		# Create a Logon Token Header (This will be used through out all the script)
+		# ---------------------------
+		$logonHeader = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+		$logonHeader.Add("Authorization", $logonToken)
+	}
 #endregion
 
 #region Get Platform details
@@ -137,18 +151,24 @@ If (Test-CommandExists Invoke-RestMethod)
 		{
 			Write-verbose $platformDetails
 			Write-Host "$($platformDetails.Details.PolicyName) (ID: $($platformDetails.PlatformID)) is currently $(if($platformDetails.Active) { "Activated" } else { "Inactive" })"
-			Write-Host "Platform details:" 
-			$platformDetails.Details | Select-Object PolicyID, AllowedSafes, AllowManualChange, PerformPeriodicChange, @{Name = 'AllowManualVerification'; Expression = { $_.VFAllowManualVerification}}, @{Name = 'PerformPeriodicVerification'; Expression = { $_.VFPerformPeriodicVerification}}, @{Name = 'AllowManualReconciliation'; Expression = { $_.RCAllowManualReconciliation}}, @{Name = 'PerformAutoReconcileWhenUnsynced'; Expression = { $_.RCAutomaticReconcileWhenUnsynched}}, PasswordLength, MinUpperCase, MinLowerCase, MinDigit, MinSpecial 
-		}		
+			Write-Host "Platform details:"
+			$platformDetails.Details | Select-Object PolicyID, AllowedSafes, AllowManualChange, PerformPeriodicChange, @{Name = 'AllowManualVerification'; Expression = { $_.VFAllowManualVerification}}, @{Name = 'PerformPeriodicVerification'; Expression = { $_.VFPerformPeriodicVerification}}, @{Name = 'AllowManualReconciliation'; Expression = { $_.RCAllowManualReconciliation}}, @{Name = 'PerformAutoReconcileWhenUnsynced'; Expression = { $_.RCAutomaticReconcileWhenUnsynched}}, PasswordLength, MinUpperCase, MinLowerCase, MinDigit, MinSpecial
+		}
 	} catch {
 		Write-Error $_.Exception.Response
 		Write-Error $_.Exception.Response.StatusDescription
 	}
 #endregion
 	# Logoff the session
-    # ------------------
-    Write-Host "Logoff Session..."
-    Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $logonHeader -ContentType "application/json" | Out-Null
+	If (![string]::IsNullOrEmpty($logonToken)) {
+		Write-Host 'LogonToken passed, session NOT logged off'
+	}
+	else {
+		# Logoff the session
+		# ------------------
+		Write-Host "Logoff Session..."
+		Invoke-RestMethod -Method Post -Uri $URL_Logoff -Headers $logonHeader -ContentType "application/json" | Out-Null
+	}
 }
 else
 {
