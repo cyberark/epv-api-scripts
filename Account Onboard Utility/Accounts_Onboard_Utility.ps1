@@ -28,6 +28,7 @@ Updated error output
 2023-06-25 -	Updated to add WideAccountsSearch, NarrowSearch, ignoreAccountName
 2025-01-07 -    Updated to allow automatically not create duplicates, fix bad record handling, formating update
 2025-03-17 -    Updated to allow for verbose output to a file
+2025-04-30 -    Updated to check and correct URL scheme and path for Privilege Cloud
 =======
 
 
@@ -142,7 +143,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = '{0} {1}' -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = '2.6.0'
+$ScriptVersion = '2.6.1'
 
 # Set Log file path
 $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + '-' + $(Get-Date -Format HHmmss)
@@ -155,43 +156,40 @@ $global:UseVerboseFile = $UseVerboseFile.IsPresent
 
 [hashtable]$Global:BadAccountHashTable = @{}
 
-# Global URLS
-# -----------
-$URL_PVWAAPI = $PVWAURL + '/api'
-$URL_Authentication = $URL_PVWAAPI + '/auth'
-$URL_Logon = $URL_Authentication + "/$AuthType/Logon"
-$URL_Logoff = $URL_Authentication + '/Logoff'
-
-# URL Methods
-# -----------
-$URL_Safes = $URL_PVWAAPI + '/Safes'
-$URL_SafeDetails = $URL_Safes + '/{0}'
-$URL_SafeMembers = $URL_SafeDetails + '/Members'
-$URL_Accounts = $URL_PVWAAPI + '/Accounts'
-$URL_AccountsDetails = $URL_Accounts + '/{0}'
-$URL_AccountsPassword = $URL_AccountsDetails + '/Password/Update'
-$URL_PlatformDetails = $URL_PVWAAPI + '/Platforms/{0}'
-
-# Script Defaults
-# ---------------
-$global:g_CsvDefaultPath = $Env:CSIDL_DEFAULT_DOWNLOADS
-
-# Safe Defaults
-# --------------
-$NumberOfDaysRetention = 7
-#$NumberOfVersionsRetention = 0
-
-# Template Safe parameters
-# ------------------------
-$TemplateSafeDetails = ''
-$TemplateSafeMembers = ''
-
-# Initialize Script Variables
-# ---------------------------
-$global:g_LogonHeader = ''
-$global:g_LogAccountName = ''
 
 #region Helper Functions
+function Format-PVWAURL {
+	param (
+		[Parameter()]
+		[string]
+		$PVWAURL
+	)
+	#check url scheme to ensure it's secure and add https if not present
+	IF ($PVWAURL -match '^(?<scheme>https:\/\/|http:\/\/|).*$') {
+		if ('http://' -eq $matches['scheme'] -and $AllowInsecureURL -eq $false) {
+			$PVWAURL = $PVWAURL.Replace('http://', 'https://')
+			Write-LogMessage -type Warning -MSG "Detected inscure scheme in URL `nThe URL was automaticly updated to: $PVWAURL `nPlease ensure you are using the correct scheme in the url"
+		}
+		elseif ([string]::IsNullOrEmpty($matches['scheme'])) {
+			$PVWAURL = "https://$PVWAURL"
+			Write-LogMessage -type Warning -MSG "Detected no scheme in URL `nThe URL was automaticly updated to: $PVWAURL `nPlease ensure you are using the correct scheme in the url"
+		}
+	}
+
+	#check url for improper Privilege Cloud URL and add /PasswordVault/ if not present
+	if ($PVWAURL -match '^(?:https|http):\/\/(?<sub>.*).cyberark.(?<top>cloud|com)\/privilegecloud.*$') {
+		$PVWAURL = "https://$($matches['sub']).privilegecloud.cyberark.$($matches['top'])/PasswordVault/"
+		Write-LogMessage -type Warning -MSG "Detected improperly formated Privilege Cloud URL `nThe URL was automaticly updated to: $PVWAURL `nPlease ensure you are using the correct URL. Pausing for 10 seconds to allow you to copy correct url.`n"
+		Start-Sleep 10
+	}
+	elseif ($PVWAURL -notmatch '^.*PasswordVault(?:\/|)$') {
+		$PVWAURL = "$PVWAURL/PasswordVault/"
+		Write-LogMessage -type Warning -MSG "Detected improperly formated Privileged Access Manager URL `nThe URL was automaticly updated to: $PVWAURL `nPlease ensure you are using the correct URL. Pausing for 10 seconds to allow you to copy correct url.`n"
+		Start-Sleep 10
+	}
+	return $PVWAURL
+}
+
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Test-CommandExists
 # Description....: Tests if a command exists
@@ -215,10 +213,10 @@ The command to test
 			RETURN $true
 		}
 	}
- Catch {
+	catch {
 		Write-Host "$command does not exist"; RETURN $false
 	}
- Finally {
+	Finally {
 		$ErrorActionPreference = $oldPreference
 	}
 } #end function test-CommandExists
@@ -242,7 +240,7 @@ The text to encode
 		Write-LogMessage -type Debug -MSG "Returning URL Encode of $sText"
 		return [URI]::EscapeDataString($sText)
 	}
- else {
+	else {
 		return $sText
 	}
 }
@@ -270,10 +268,10 @@ The text to convert to bool (True / False)
 	if ($txt -match '^y$|^yes$') {
 		$retBool = $true
 	}
- elseif ($txt -match '^n$|^no$') {
+	elseif ($txt -match '^n$|^no$') {
 		$retBool = $false
 	}
- else {
+	else {
 		[bool]::TryParse($txt, [ref]$retBool) | Out-Null
 	}
 
@@ -298,7 +296,7 @@ The text to handle
 	if ($null -ne $sText) {
 		return $sText.Trim()
 	}
-	# Else
+	#else
 	return $sText
 }
 
@@ -418,7 +416,7 @@ Creates a new Account Object
 
 		return $_Account
 	}
- catch {
+	catch {
 		Throw $(New-Object System.Exception ('New-AccountObject: There was an error creating a new account object.', $_.Exception))
 	}
 }
@@ -462,24 +460,24 @@ The Location to open the dialog in
 Function Write-LogMessage {
 	<#
 .SYNOPSIS
-	Method to log a message on screen and in a log file
+Method to log a message on screen and in a log file
 
 .DESCRIPTION
-	Logging The input Message to the Screen and the Log File.
-	The Message Type is presented in colours on the screen based on the type
+Logging The input Message to the Screen and the Log File.
+The Message Type is presented in colours on the screen based on the type
 
 .PARAMETER LogFile
-	The Log File to write to. By default using the LOG_FILE_PATH
+The Log File to write to. By default using the LOG_FILE_PATH
 .PARAMETER MSG
-	The message to log
+The message to log
 .PARAMETER Header
-	Adding a header line before the message
+Adding a header line before the message
 .PARAMETER SubHeader
-	Adding a Sub header line before the message
+Adding a Sub header line before the message
 .PARAMETER Footer
-	Adding a footer line after the message
+Adding a footer line after the message
 .PARAMETER Type
-	The type of the message to log (Info, Warning, Error, Debug)
+The type of the message to log (Info, Warning, Error, Debug)
 #>
 	param(
 		[Parameter(Mandatory = $true)]
@@ -753,7 +751,7 @@ The Header as Dictionary object
 			Throw $PSItem.Exception
 		}
 		Else {
-			Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tError in running $Command on '$URI', $($($Details.Details.ErrorMessage) -Join ";")"
+			Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tError in running $Command on '$URI', $($($Details.Details.ErrorMessage) -Join ';')"
 			Write-LogMessage -type Verbose -MSG "Invoke-Rest:`t$($Details.Details.ErrorMessage)"
 			Throw $($Details.Details.ErrorMessage)
 		}
@@ -795,7 +793,7 @@ The Safe Name to return
 		$accSafeURL = $URL_SafeDetails -f $(ConvertTo-URL $safeName)
 		$_safe = $(Invoke-Rest -Uri $accSafeURL -Header $g_LogonHeader -Command 'Get' -ErrAction $ErrAction)
 	}
- catch {
+	catch {
 		Write-LogMessage -type Error -MSG "Error getting Safe '$safeName' details. Error: $($($($_.ErrorDetails.Message) |ConvertFrom-Json).ErrorMessage)"
 	}
 
@@ -936,7 +934,7 @@ The Safe Name to return its Members
 			$_retSafeOwners += $item
 		}
 	}
- catch {
+	catch {
 		Write-LogMessage -type Error -MSG "Error getting Safe '$safeName' members. Error: $(Join-ExceptionMessage $_.Exception)"
 	}
 
@@ -976,7 +974,7 @@ The Safe Name check if exists
 			return $true
 		}
 	}
- catch {
+	catch {
 		Write-LogMessage -type Error -MSG "Error testing safe '$safeName' existence. Error: $(Join-ExceptionMessage $_.Exception)" -ErrorAction 'SilentlyContinue'
 	}
 }
@@ -1018,7 +1016,7 @@ The Template Safe object (returned from the Get-Safe method). If entered the new
 		$templateSafeObject.SafeName = $safeName
 		$restBody = $templateSafeObject | ConvertTo-Json -Depth 3 -Compress
 	}
- else {
+	else {
 		# Create the Target Safe
 		Write-LogMessage -type Info -MSG "Creating Safe $safeName"
 		$bodySafe = @{ SafeName = $safeName; Description = "$safeName - Created using Accounts Onboard Utility"; OLACEnabled = $false; ManagingCPM = $cpmName; NumberOfDaysRetention = $NumberOfDaysRetention }
@@ -1058,12 +1056,12 @@ Outputs the bad record to a CSV file for correction and processing
 .DESCRIPTION
 Outputs the bad record to a CSV file for correction and processing
 #>
-[CmdletBinding()]
-param (
-	[Parameter()]
-	[string]
-	$ErrorMessage
-)
+	[CmdletBinding()]
+	param (
+		[Parameter()]
+		[string]
+		$ErrorMessage
+	)
 	Try {
 
 		If ($null -ne $ErrorMessage) {
@@ -1124,7 +1122,7 @@ The Good record to output
 		Write-LogMessage -type Debug -MSG 'Outputted good record to CSV'
 		Write-LogMessage -type Verbose -MSG "Good Record:`t$global:workAccount"
 	}
- catch {
+	catch {
 		Write-LogMessage -type Error -MSG "Unable to output good record to file: $csvPathGood"
 		Write-LogMessage -type Verbose -MSG "Good Record:`t$global:workAccount"
 
@@ -1280,7 +1278,7 @@ The Account Safe Name to search in
 			throw "Found $($_retAccount.count) accounts in search - fix duplications"
 		}
 	}
- catch {
+	catch {
 		Throw $(New-Object System.Exception ('Get-Account: Error getting Account.', $_.Exception))
 	}
 
@@ -1332,7 +1330,7 @@ The Account Safe Name to search in
 			return $true
 		}
 	}
- catch {
+	catch {
 		Write-LogMessage -type Error -MSG "Error testing Account '$g_LogAccountName' existence. Error: $(Join-ExceptionMessage $_.Exception)" -ErrorAction 'SilentlyContinue'
 	}
 }
@@ -1377,7 +1375,7 @@ The property to check in the platform
 			Throw 'Platform does not exist or we had an issue'
 		}
 	}
- catch {
+	catch {
 		Write-LogMessage -type Error -MSG "Error checking platform properties. Error: $(Join-ExceptionMessage $_.Exception)"
 	}
 
@@ -1412,7 +1410,7 @@ The REST API Credentials to authenticate
 	If ($concurrentSession) {
 		$logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password; concurrentSession = 'true' } | ConvertTo-Json -Compress
 	}
- else {
+	else {
 		$logonBody = @{ username = $Credentials.username.Replace('\', ''); password = $Credentials.GetNetworkCredential().password } | ConvertTo-Json -Compress
 	}
 	If (![string]::IsNullOrEmpty($RadiusOTP)) {
@@ -1425,7 +1423,7 @@ The REST API Credentials to authenticate
 		# Clear logon body
 		$logonBody = ''
 	}
- catch {
+	catch {
 		Throw $(New-Object System.Exception ("Get-LogonHeader: $($_.Exception.Response.StatusDescription)", $_.Exception))
 	}
 
@@ -1467,7 +1465,7 @@ Tests if the script is running the latest version
 	try {
 		$getScriptContent = (Invoke-WebRequest -UseBasicParsing -Uri $scriptURL).Content
 	}
- catch {
+	catch {
 		Throw $(New-Object System.Exception ("Test-LatestVersion: Couldn't download and check for latest version", $_.Exception))
 	}
 	If ($($getScriptContent -match 'ScriptVersion\s{0,1}=\s{0,1}\"([\d\.]{1,5})\"')) {
@@ -1497,6 +1495,44 @@ Tests if the script is running the latest version
 
 #endregion
 
+
+# Global URLS
+# -----------
+$URL_PVWAURL = Format-PVWAURL($PVWAURL)
+$URL_PVWAAPI = $URL_PVWAURL + '/api'
+$URL_Authentication = $URL_PVWAAPI + '/auth'
+$URL_Logon = $URL_Authentication + "/$AuthType/Logon"
+$URL_Logoff = $URL_Authentication + '/Logoff'
+
+# URL Methods
+# -----------
+$URL_Safes = $URL_PVWAAPI + '/Safes'
+$URL_SafeDetails = $URL_Safes + '/{0}'
+$URL_SafeMembers = $URL_SafeDetails + '/Members'
+$URL_Accounts = $URL_PVWAAPI + '/Accounts'
+$URL_AccountsDetails = $URL_Accounts + '/{0}'
+$URL_AccountsPassword = $URL_AccountsDetails + '/Password/Update'
+$URL_PlatformDetails = $URL_PVWAAPI + '/Platforms/{0}'
+
+# Script Defaults
+# ---------------
+$global:g_CsvDefaultPath = $Env:CSIDL_DEFAULT_DOWNLOADS
+
+# Safe Defaults
+# --------------
+$NumberOfDaysRetention = 7
+#$NumberOfVersionsRetention = 0
+
+# Template Safe parameters
+# ------------------------
+$TemplateSafeDetails = ''
+$TemplateSafeMembers = ''
+
+# Initialize Script Variables
+# ---------------------------
+$global:g_LogonHeader = ''
+$global:g_LogAccountName = ''
+
 # Write the entire script command when running in Verbose mode
 Write-LogMessage -type Verbose -MSG "Base:`t$g_ScriptCommand"
 # Header
@@ -1514,7 +1550,7 @@ If ($DisableSSLVerify) {
 		# Disable SSL Verification
 		[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $DisableSSLVerify }
 	}
- catch {
+	catch {
 		Write-LogMessage -type Error -MSG 'Could not change SSL validation'
 		Write-LogMessage -type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction 'SilentlyContinue'
 		return
@@ -1525,7 +1561,7 @@ Else {
 		Write-LogMessage -type Debug -MSG 'Setting script to use TLS 1.2'
 		[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 	}
- catch {
+	catch {
 		Write-LogMessage -type Error -MSG 'Could not change SSL settings to use TLS 1.2'
 		Write-LogMessage -type Error -MSG (Join-ExceptionMessage $_.Exception) -ErrorAction 'SilentlyContinue'
 	}
@@ -1663,7 +1699,7 @@ $csvPathBad = "$csvPath.bad.csv"
 Remove-Item $csvPathBad -Force -ErrorAction SilentlyContinue
 
 $accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
-$accountsCSV = $accountsCSV |Select-Object -ExcludeProperty ErrorMessage
+$accountsCSV = $accountsCSV | Select-Object -ExcludeProperty ErrorMessage
 $rowCount = $($accountsCSV.Safe.Count)
 $counter = 0
 

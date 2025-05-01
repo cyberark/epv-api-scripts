@@ -1,35 +1,36 @@
 <###########################################################################
 
- NAME: Manage Safes using REST API
+NAME: Manage Safes using REST API
 
- AUTHOR: Jake DeSantis, Carl Anderson, Brian Bors
+AUTHOR: Jake DeSantis, Carl Anderson, Brian Bors
 
- COMMENT:
- This script will help in Safe Management tasks
+COMMENT:
+This script will help in Safe Management tasks
 
- SUPPORTED VERSIONS:
- CyberArk PVWA v12.1 and above
- CyberArk Privilege Cloud
+SUPPORTED VERSIONS:
+CyberArk PVWA v12.1 and above
+CyberArk Privilege Cloud
 
- VERSION HISTORY:
- 1.0 	16/12/2018      Initial release
- 1.1 	06/02/2019      Bug fix
- 1.9 	09/07/2021      Added ability to create new members on updates.
-                        General Format cleanup according to standards
- 2.0 	15/11/2021      Working only with 2nd Gen REST API of Safes. Supported version 12.1 and above
- 2.0.1 	02/03/2021      Fix for v2
- 2.1 	12/04/2021      Added ability to create report of safes
- 2.1.1 	05/02/2022      Updated catch to capture 404 error and allow for attempting to add.
- 2.1.2  16/08/2022      Temp Bug fix for MemberType
- 2.1.3  24/08/2022      Bug fix for updating safe due to changes in APIs in version 12.5
- 2.1.4  17/03/2023      Fix for issue #317
- 2.1.5  22/05/2023      Added ability to prevent logoff
- 2.1.6  2023-05-22      Updated Write-LogMessage to force verbose and debug to log file
- 2.1.7  2024-04-17      Updated to bypass attempt to add or update safe if no safe details exist
- 2.1.8  2024-04-18      Added ability to force Safe Creations
-                        Added "AddMembers" back
- 2.2.1  2025-01-08      Updates to logging
-                        Fixes to Set-SafeMembers
+VERSION HISTORY:
+1.0     16/12/2018      Initial release
+1.1     06/02/2019      Bug fix
+1.9     09/07/2021      Added ability to create new members on updates.
+General Format cleanup according to standards
+2.0     15/11/2021      Working only with 2nd Gen REST API of Safes. Supported version 12.1 and above
+2.0.1   02/03/2021      Fix for v2
+2.1	    12/04/2021      Added ability to create report of safes
+2.1.1	05/02/2022      Updated catch to capture 404 error and allow for attempting to add.
+2.1.2   16/08/2022      Temp Bug fix for MemberType
+2.1.3   24/08/2022      Bug fix for updating safe due to changes in APIs in version 12.5
+2.1.4   17/03/2023      Fix for issue #317
+2.1.5   22/05/2023      Added ability to prevent logoff
+2.1.6   2023-05-22      Updated Write-LogMessage to force verbose and debug to log file
+2.1.7   2024-04-17      Updated to bypass attempt to add or update safe if no safe details exist
+2.1.8   2024-04-18      Added ability to force Safe Creations
+Added "AddMembers" back
+2.2.1   2025-01-08      Updates to logging
+Fixes to Set-SafeMembers
+2.2.3   2025-04-30 -    Updated to check and correct URL scheme and path for Privilege Cloud
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = 'Report')]
 param
@@ -152,7 +153,7 @@ param
     [Parameter(Mandatory = $false)]
     $logonToken,
     # Use this switch to create safes when only safe name provided
-    [Parameter(ParameterSetName = 'Add',Mandatory = $false)]
+    [Parameter(ParameterSetName = 'Add', Mandatory = $false)]
     [Switch]$CreateSafeWithNameOnly,
     # Use this switch to pass PVWA credentials via PSCredential
     [Parameter(Mandatory = $false, HelpMessage = 'Vault Stored Credentials')]
@@ -174,7 +175,10 @@ param
     [switch]$IncludeCallStack,
 
     [Parameter(Mandatory = $false, DontShow)]
-    [switch]$UseVerboseFile
+    [switch]$UseVerboseFile,
+
+    [Parameter(Mandatory = $false, DontShow)]
+    [switch]$AllowInsecureURL
 )
 
 # Get Script Location
@@ -187,7 +191,7 @@ $global:IncludeCallStack = $IncludeCallStack.IsPresent
 $global:UseVerboseFile = $UseVerboseFile.IsPresent
 
 # Script Version
-$ScriptVersion = '2.2.2.a'
+$ScriptVersion = '2.2.3'
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -200,29 +204,41 @@ $global:g_SafesList = $null
 # Set a global list of all Default sues to ignore
 $global:g_DefaultUsers = @('Master', 'Batch', 'Backup Users', 'Auditors', 'Operators', 'DR Users', 'Notification Engines', 'PVWAGWAccounts', 'PVWAGWUser', 'PVWAAppUser', 'PasswordManager')
 $global:g_includeDefaultUsers = $IncludeDefault
-# Global URLS
-# -----------
-$URL_PVWAAPI = $PVWAURL + '/api'
-$URL_Authentication = $URL_PVWAAPI + '/auth'
-$URL_Logon = $URL_Authentication + "/$AuthType/Logon"
-$URL_Logoff = $URL_Authentication + '/Logoff'
-
-# URL Methods
-# -----------
-$URL_Safes = $URL_PVWAAPI + '/Safes'
-$URL_SpecificSafe = $URL_Safes + '/{0}/'
-$URL_SafeMembers = $URL_SpecificSafe + '/Members'
-$URL_SafeSpecificMember = $URL_SpecificSafe + '/Members/{1}/'
-
-[String[]]$SystemSafes = @('System', 'VaultInternal', 'Notification Engine', 'SharedAuth_Internal', 'PVWAUserPrefs',
-    'PVWAConfig', 'PVWAReports', 'PVWATaskDefinitions', 'PVWAPrivateUserPrefs', 'PVWAPublicData', 'PVWATicketingSystem',
-    'AccountsFeed', 'PSM', 'xRay', 'PIMSuRecordings', 'xRay_Config', 'AccountsFeedADAccounts', 'AccountsFeedDiscoveryLogs',
-    'PSMSessions', 'PSMLiveSessions', 'PSMUniversalConnectors', 'PSMPConf',
-    'PSMNotifications', 'PSMUnmanagedSessionAccounts', 'PSMRecordings', 'PSMPADBridgeConf', 'PSMPADBUserProfile', 'PSMPADBridgeCustom',
-    'AppProviderConf', 'PasswordManagerTemp', 'PasswordManager_Pending', 'PasswordManagerShared', 'TelemetryConfig')
-
 
 #region Functions
+
+function Format-PVWAURL {
+    param (
+        [Parameter()]
+        [string]
+        $PVWAURL
+    )
+    #check url scheme to ensure it's secure and add https if not present
+    IF ($PVWAURL -match '^(?<scheme>https:\/\/|http:\/\/|).*$') {
+        if ('http://' -eq $matches['scheme'] -and $AllowInsecureURL -eq $false) {
+            $PVWAURL = $PVWAURL.Replace('http://', 'https://')
+            Write-LogMessage -type Warning -MSG "Detected inscure scheme in URL `nThe URL was automaticly updated to: $PVWAURL `nPlease ensure you are using the correct scheme in the url"
+        }
+        elseif ([string]::IsNullOrEmpty($matches['scheme'])) {
+            $PVWAURL = "https://$PVWAURL"
+            Write-LogMessage -type Warning -MSG "Detected no scheme in URL `nThe URL was automaticly updated to: $PVWAURL `nPlease ensure you are using the correct scheme in the url"
+        }
+    }
+
+    #check url for improper Privilege Cloud URL and add /PasswordVault/ if not present
+    if ($PVWAURL -match '^(?:https|http):\/\/(?<sub>.*).cyberark.(?<top>cloud|com)\/privilegecloud.*$') {
+        $PVWAURL = "https://$($matches['sub']).privilegecloud.cyberark.$($matches['top'])/PasswordVault/"
+        Write-LogMessage -type Warning -MSG "Detected improperly formated Privilege Cloud URL `nThe URL was automaticly updated to: $PVWAURL `nPlease ensure you are using the correct URL. Pausing for 10 seconds to allow you to copy correct url.`n"
+        Start-Sleep 10
+    }
+    elseif ($PVWAURL -notmatch '^.*PasswordVault(?:\/|)$') {
+        $PVWAURL = "$PVWAURL/PasswordVault/"
+        Write-LogMessage -type Warning -MSG "Detected improperly formated Privileged Access Manager URL `nThe URL was automaticly updated to: $PVWAURL `nPlease ensure you are using the correct URL. Pausing for 10 seconds to allow you to copy correct url.`n"
+        Start-Sleep 10
+    }
+    return $PVWAURL
+}
+
 #region REST Functions
 # @FUNCTION@ ======================================================================================================================
 # Name...........: Invoke-Rest
@@ -383,11 +399,11 @@ Function Get-CPMUsers {
 Function ConvertTo-URL($sText) {
     <#
 .SYNOPSIS
-	HTTP Encode test in URL
+HTTP Encode test in URL
 .DESCRIPTION
-	HTTP Encode test in URL
+HTTP Encode test in URL
 .PARAMETER sText
-	The text to encode
+The text to encode
 #>
     if ($sText.Trim() -ne '') {
         Write-LogMessage -type Verbose -MSG "ConvertTo-URL:`tReturning URL Encode of $sText"
@@ -400,24 +416,24 @@ Function ConvertTo-URL($sText) {
 Function Write-LogMessage {
     <#
 .SYNOPSIS
-	Method to log a message on screen and in a log file
+Method to log a message on screen and in a log file
 
 .DESCRIPTION
-	Logging The input Message to the Screen and the Log File.
-	The Message Type is presented in colours on the screen based on the type
+Logging The input Message to the Screen and the Log File.
+The Message Type is presented in colours on the screen based on the type
 
 .PARAMETER LogFile
-	The Log File to write to. By default using the LOG_FILE_PATH
+The Log File to write to. By default using the LOG_FILE_PATH
 .PARAMETER MSG
-	The message to log
+The message to log
 .PARAMETER Header
-	Adding a header line before the message
+Adding a header line before the message
 .PARAMETER SubHeader
-	Adding a Sub header line before the message
+Adding a Sub header line before the message
 .PARAMETER Footer
-	Adding a footer line after the message
+Adding a footer line after the message
 .PARAMETER Type
-	The type of the message to log (Info, Warning, Error, Debug)
+The type of the message to log (Info, Warning, Error, Debug)
 #>
     param(
         [Parameter(Mandatory = $true)]
@@ -557,11 +573,11 @@ Function Write-LogMessage {
 Function Join-ExceptionMessage {
     <#
 .SYNOPSIS
-	Formats exception messages
+Formats exception messages
 .DESCRIPTION
-	Formats exception messages
+Formats exception messages
 .PARAMETER Exception
-	The Exception object to format
+The Exception object to format
 #>
     param(
         [Exception]$e
@@ -587,11 +603,11 @@ Function Join-ExceptionMessage {
 Function Get-LogonHeader {
     <#
 .SYNOPSIS
-	Get-LogonHeader
+Get-LogonHeader
 .DESCRIPTION
-	Get-LogonHeader
+Get-LogonHeader
 .PARAMETER Credentials
-	The REST API Credentials to authenticate
+The REST API Credentials to authenticate
 #>
     param(
         [Parameter(Mandatory = $true)]
@@ -654,11 +670,11 @@ Function Get-LogonHeader {
 Function Invoke-Logoff {
     <#
 .SYNOPSIS
-    <#
+<#
 .SYNOPSIS
-	Invoke-Logoff
+Invoke-Logoff
 .DESCRIPTION
-	Logoff a PVWA session
+Logoff a PVWA session
 #>
     try {
         # Logoff the session
@@ -677,11 +693,11 @@ Function Invoke-Logoff {
 Function Disable-SSLVerification {
     <#
 .SYNOPSIS
-    <#
+<#
 .SYNOPSIS
-	Bypass SSL certificate validations
+Bypass SSL certificate validations
 .DESCRIPTION
-	Disables the SSL Verification (bypass self signed SSL certificates)
+Disables the SSL Verification (bypass self signed SSL certificates)
 #>
     # Check if to disable SSL verification
     If ($DisableSSLVerify) {
@@ -700,14 +716,14 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 public static class DisableCertValidationCallback {
-    public static bool ReturnTrue(object sender,
-        X509Certificate certificate,
-        X509Chain chain,
-        SslPolicyErrors sslPolicyErrors) { return true; }
+public static bool ReturnTrue(object sender,
+X509Certificate certificate,
+X509Chain chain,
+SslPolicyErrors sslPolicyErrors) { return true; }
 
-    public static RemoteCertificateValidationCallback GetDelegate() {
-        return new RemoteCertificateValidationCallback(DisableCertValidationCallback.ReturnTrue);
-    }
+public static RemoteCertificateValidationCallback GetDelegate() {
+return new RemoteCertificateValidationCallback(DisableCertValidationCallback.ReturnTrue);
+}
 }
 '@
             }
@@ -788,11 +804,11 @@ Get-Safe -safeName "x0-Win-S-Admins"
 Function Test-Safe {
     <#
 .SYNOPSIS
-	Returns the Safe members
+Returns the Safe members
 .DESCRIPTION
-	Returns the Safe members
+Returns the Safe members
 .PARAMETER SafeName
-	The Safe Name check if exists
+The Safe Name check if exists
 #>
     param (
         [Parameter(Mandatory = $true)]
@@ -1276,6 +1292,27 @@ Function Convert-ToBool {
 }
 #endregion
 
+# Global URLS
+# -----------
+$URL_PVWAURL = Format-PVWAURL($PVWAURL)
+$URL_PVWAAPI = $URL_PVWAURL + '/api'
+$URL_Authentication = $URL_PVWAAPI + '/auth'
+$URL_Logon = $URL_Authentication + "/$AuthType/Logon"
+$URL_Logoff = $URL_Authentication + '/Logoff'
+
+# URL Methods
+# -----------
+$URL_Safes = $URL_PVWAAPI + '/Safes'
+$URL_SpecificSafe = $URL_Safes + '/{0}/'
+$URL_SafeMembers = $URL_SpecificSafe + '/Members'
+$URL_SafeSpecificMember = $URL_SpecificSafe + '/Members/{1}/'
+
+[String[]]$SystemSafes = @('System', 'VaultInternal', 'Notification Engine', 'SharedAuth_Internal', 'PVWAUserPrefs',
+    'PVWAConfig', 'PVWAReports', 'PVWATaskDefinitions', 'PVWAPrivateUserPrefs', 'PVWAPublicData', 'PVWATicketingSystem',
+    'AccountsFeed', 'PSM', 'xRay', 'PIMSuRecordings', 'xRay_Config', 'AccountsFeedADAccounts', 'AccountsFeedDiscoveryLogs',
+    'PSMSessions', 'PSMLiveSessions', 'PSMUniversalConnectors', 'PSMPConf',
+    'PSMNotifications', 'PSMUnmanagedSessionAccounts', 'PSMRecordings', 'PSMPADBridgeConf', 'PSMPADBUserProfile', 'PSMPADBridgeCustom',
+    'AppProviderConf', 'PasswordManagerTemp', 'PasswordManager_Pending', 'PasswordManagerShared', 'TelemetryConfig')
 
 
 Write-LogMessage -type Info -MSG "Starting script (v$ScriptVersion)" -Header -LogFile $LOG_FILE_PATH
