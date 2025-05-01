@@ -38,7 +38,11 @@ param
 	
 	[Parameter(Mandatory=$false,HelpMessage="Path to a CSV file to export data to")]
 	[Alias("path")]
-	[string]$CSVPath
+	[string]$CSVPath,
+
+	# Use this parameter to pass a pre-existing authorization token. If passed the token is NOT logged off
+	[Parameter(Mandatory = $false)]
+	$logonToken
 )
 
 # Get Script Location 
@@ -536,9 +540,35 @@ else
 # Get Credentials to Login
 # ------------------------
 $caption = "Platforms Report"
-$msg = "Enter your PAS User name and Password ($AuthType)"; 
-$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
 
+#region [Logon]
+try {
+	If (![string]::IsNullOrEmpty($logonToken)) {
+		if ($logonToken.GetType().name -eq 'String') {
+			$logonHeader = @{Authorization = $logonToken }
+			Set-Variable -Name g_LogonHeader -Value $logonHeader -Scope global
+		}
+		else {
+			Set-Variable -Name g_LogonHeader -Value $logonToken -Scope global
+		}
+	}
+	elseif ($null -eq $creds) {
+		# Get Credentials to Login
+		# ------------------------
+		$msg = "Enter your PAS User name and Password ($AuthType)";
+		$creds = $Host.UI.PromptForCredential($caption,$msg,"","")
+		Get-LogonHeader -Credentials $creds
+	}
+	else {
+		Write-LogMessage -type Error -MSG 'No Credentials were entered'
+		return
+	}
+}
+catch {
+	Write-LogMessage -type Error -MSG "Error Logging on. Error: $(Join-ExceptionMessage $_.Exception)"
+	return
+}
+#endregion
 
 #region Get all active Platforms
 try{
@@ -549,7 +579,7 @@ try{
 	} else {
 		$urlActivePlatforms = $URL_TargetPlatforms
 	}
-	$activePlatforms = Invoke-Rest -Command Get -Uri $urlActivePlatforms -Header $(Get-LogonHeader -Credentials $creds)
+	$activePlatforms = Invoke-Rest -Command Get -Uri $urlActivePlatforms -Header $g_LogonHeader
 	If($activePlatforms)
 	{
 		Write-LogMessage -Type Info -Msg "Found $($activePlatforms.Total) active Platforms"
@@ -557,7 +587,7 @@ try{
 		Write-LogMessage -Type Debug -Msg "Getting Platfroms PSM Connectors information"
 		ForEach($platform in $activePlatforms.Platforms)
 		{
-			$psmServerTargetInfo = Invoke-REST -Command Get -Uri ($URL_TargetPlatformPSMConnectors -f $platform.id) -Header (Get-LogonHeader -Credentials $creds)
+			$psmServerTargetInfo = Invoke-REST -Command Get -Uri ($URL_TargetPlatformPSMConnectors -f $platform.id) -Header $g_LogonHeader
 			if($null -ne $platform.PrivilegedSessionManagement)
 			{
 				$platform.PrivilegedSessionManagement | Add-Member -NotePropertyName PSMConnectors -NotePropertyValue $psmServerTargetInfo.PSMConnectors
@@ -612,4 +642,9 @@ try{
 }
 #endregion
 # Logoff the session
-Run-Logoff
+If (![string]::IsNullOrEmpty($logonToken)) {
+	Write-Host 'LogonToken passed, session NOT logged off'
+}
+else {
+	Run-Logoff
+}

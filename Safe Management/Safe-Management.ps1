@@ -1453,8 +1453,8 @@ switch ($PsCmdlet.ParameterSetName) {
                                 safeName            = $line.safename
                                 safeDescription     = $line.description
                                 managingCPM         = $line.ManagingCPM
-                                numVersionRetention = If ([string]::IsNullOrEmpty($parameters.numVersionRetention)) { $line.numberOfVersionsRetention } Else { $parameters.numVersionRetention }
-                                numDaysRetention    = If ([string]::IsNullOrEmpty($parameters.numDaysRetention)) { $line.numberOfDaysRetention } Else { $parameters.numDaysRetention }
+                                numVersionRetention = $line.numberOfVersionsRetention
+                                numDaysRetention    = $line.numDaysRetention
                                 EnableOLAC          = $line.EnableOLAC
                             }
                             if ([string]::IsNullOrEmpty($parameters.safeDescription)) {
