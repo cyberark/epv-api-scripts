@@ -34,7 +34,7 @@ Import-ConnectionComponents.ps1 -PVWAURL "https://MySubDomain.privilegecloud.cyb
 
 ## Usage
 ```powershell
-Import-ConnectionComponents.ps1 -PVConfiguration <string> [-Output <string> <CommonParameters>]
+Convert-ConnectionComponents.ps1 -PVConfiguration <string> [-Output <string> <CommonParameters>]
 ```
 ## Examples
 ```powershell
