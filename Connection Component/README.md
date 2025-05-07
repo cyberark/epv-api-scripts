@@ -1,5 +1,6 @@
 > **General**
-> - These scripts use REST API and can support v10.4 of PVWA and up.
+> - These scripts use REST API and can support Privilege Cloud and PAM - Self-Hosted v10.4 and up.
+
 
 # Import Connection Component
 ## Main capabilities
@@ -7,18 +8,23 @@
 
 ## Usage
 ```powershell
-Import-ConnectionComponents.ps1 -PVWAURL <string> -ConnectionComponentZipPath <string> -ConnectionComponentFolderPath <string> [<CommonParameters>]
+Import-ConnectionComponents.ps1 -PVWAURL <string> [-LogonToken <object>] -ConnectionComponentZipPath <string> -ConnectionComponentFolderPath <string>  [<CommonParameters>]
 ```
 
 ## Examples
 Importing a single Connection component:
 ```powershell
-Import-ConnectionComponents.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault -ConnectionComponentZipPath C:\Temp\SampleConnectionComponent.zip
+Import-ConnectionComponents.ps1 -PVWAURL "https://PAS.mydomain.com/PasswordVault" -ConnectionComponentZipPath C:\Temp\SampleConnectionComponent.zip
 ```
 
 Importing all Connection Components in a folder:
 ```powershell
-Import-ConnectionComponents.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault -ConnectionComponentFolderPath C:\Temp\DownloadedConnectionComponents\
+Import-ConnectionComponents.ps1 -PVWAURL "https://PAS.mydomain.com/PasswordVault" -ConnectionComponentFolderPath C:\Temp\DownloadedConnectionComponents\
+```
+
+Importing a single Connection component into Privilege Cloud:
+```powershell
+Import-ConnectionComponents.ps1 -PVWAURL "https://MySubDomain.privilegecloud.cyberark.cloud/PasswordVault/" -logonToken $LogonToken -ConnectionComponentZipPath C:\Temp\SampleConnectionComponent.zip
 ```
 
 # Convert Connection Component
