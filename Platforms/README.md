@@ -91,21 +91,7 @@ Export-Import-Platform.ps1 -ImportFile -PVWAURL https://PAS.mydomain.com/Passwor
 
 # Import Connection Component
 
-## Usage
-```powershell
-Import-ConnectionComponents.ps1 -PVWAURL <string> -ConnectionComponentZipPath <string> -ConnectionComponentFolderPath <string> [<CommonParameters>]
-```
-
-## Examples
-Importing a single Connection component:
-```powershell
-Import-ConnectionComponents.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault -ConnectionComponentZipPath C:\Temp\SampleConnectionComponent.zip
-```
-
-Importing all Connection Components in a folder:
-```powershell
-Import-ConnectionComponents.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault -ConnectionComponentFolderPath C:\Temp\DownloadedConnectionComponents\
-```
+Moved to folder named "Connection Component"
 
 # Import Platform and Connection Component
 ## Main capabilities
@@ -148,7 +134,7 @@ Get-PlatformReport.ps1 [-PVWAURL] <string> [[-AuthType] <string>] [[-CSVPath] <s
 ## Examples
 Printing the report for all Active Platforms on screen:
 ```powershell
-Get-PlatformReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault 
+Get-PlatformReport.ps1 -PVWAURL https://PAS.mydomain.com/PasswordVault
 ```
 
 Printing the extended report for all Platforms to a .csv file (including all connection components):
