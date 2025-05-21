@@ -36,7 +36,7 @@ Fixes to Set-SafeMembers
 param
 (
     [Parameter(Mandatory = $true, HelpMessage = 'Please enter your PVWA address (For example: https://pvwa.mydomain.com/passwordvault)')]
-    [Alias('url')]
+    [Alias('url', 'PCloudURL')]
     [String]$PVWAURL,
 
     [Parameter(Mandatory = $false, HelpMessage = 'Enter the Authentication type (Default:CyberArk)')]
@@ -207,6 +207,7 @@ $global:g_includeDefaultUsers = $IncludeDefault
 
 #region Functions
 
+
 function Format-PVWAURL {
     param (
         [Parameter()]
@@ -226,7 +227,7 @@ function Format-PVWAURL {
     }
 
     #check url for improper Privilege Cloud URL and add /PasswordVault/ if not present
-    if ($PVWAURL -match '^(?:https|http):\/\/(?<sub>.*).cyberark.(?<top>cloud|com)\/privilegecloud.*$') {
+    if ($PVWAURL -match '^(?:https|http):\/\/(?<sub>.*).cyberark.(?<top>cloud|com)/privilegecloud/.*$') {
         $PVWAURL = "https://$($matches['sub']).privilegecloud.cyberark.$($matches['top'])/PasswordVault/"
         Write-LogMessage -type Warning -MSG "Detected improperly formated Privilege Cloud URL `nThe URL was automaticly updated to: $PVWAURL `nPlease ensure you are using the correct URL. Pausing for 10 seconds to allow you to copy correct url.`n"
         Start-Sleep 10
@@ -238,6 +239,132 @@ function Format-PVWAURL {
     }
     return $PVWAURL
 }
+function Get-IdentityURL {
+    [CmdletBinding()]
+    param (
+        [Parameter(
+            Mandatory = $true,
+            HelpMessage = 'Base URL of the CyberArk Identity platform',
+            ValueFromPipelineByPropertyName = $true)]
+        [string]$PCloudURL,
+        [Parameter(ValueFromRemainingArguments = $true,
+            DontShow = $true)]
+        $CatchAll
+    )
+    Begin {
+        $PSBoundParameters.Remove('CatchAll') | Out-Null
+        $PCloudURL -match '^(?:https|http):\/\/(?<sub>.*).privilegecloud.cyberark.(?<top>cloud|com)\/PasswordVault.*$' | Out-Null
+        $PCloudBaseURL = "https://$($matches['sub']).cyberark.$($matches['top'])"
+    }
+    Process {
+        If ($PSVersionTable.PSVersion.Major -gt 5) {
+            $IdentityBaseURL = $(Invoke-WebRequest $PCloudBaseURL -WebSession $Script:websession.value).BaseResponse.RequestMessage.RequestUri.Host
+        }
+        Else {
+            $IdentityBaseURL = $(Invoke-WebRequest $PCloudBaseURL -WebSession $Script:websession.value).BaseResponse.ResponseURI.Host
+        }
+    }
+    end {
+        # Return the Identity URL
+        $IdentityURL = "https://$IdentityBaseURL"
+        return $IdentityURL
+    }
+}
+
+function Get-IdentityRole {
+    [CmdletBinding(DefaultParameterSetName = 'RoleName')]
+    param (
+        [Parameter(ValueFromRemainingArguments, DontShow)]
+        $CatchAll,
+
+        [Alias('url')]
+        [string]
+        $IdentityURL,
+
+        [Alias('header')]
+        $LogonToken,
+        [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'roleName')]
+        [Alias('role')]
+        [string]
+        $roleName,
+        [switch]
+        $IDOnly,
+        [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'AllRoles')]
+        [switch]
+        $AllRoles
+    )
+
+    Begin {
+        $PSBoundParameters.Remove('CatchAll') | Out-Null
+    }
+
+    Process {
+        if ($AllRoles) {
+            $query = [PSCustomObject]@{ script = 'SELECT Role.Name, Role.ID FROM Role' }
+            $result = Invoke-Rest -Uri "$IdentityURL/Redrock/Query" -Method POST -Body ($query | ConvertTo-Json -Depth 99)
+            return $result.result.results.Row | Select-Object -Property Name, ID
+        }
+
+        Write-LogMessage -type Verbose -MSG "Attempting to locate Identity Role named `"$roleName`""
+        $roles = [PSCustomObject]@{
+            '_or' = [PSCustomObject]@{
+                '_ID' = [PSCustomObject]@{ '_like' = $roleName }
+            },
+            [PSCustomObject]@{
+                'Name' = [PSCustomObject]@{
+                    '_like' = [PSCustomObject]@{
+                        value      = $roleName
+                        ignoreCase = 'true'
+                    }
+                }
+            }
+        }
+
+        $rolequery = [PSCustomObject]@{
+            'roles' = ($roles | ConvertTo-Json -Depth 99 -Compress)
+            'Args'  = [PSCustomObject]@{
+                'PageNumber' = 1
+                'PageSize'   = 100000
+                'Limit'      = 100000
+                'SortBy'     = ''
+                'Caching'    = -1
+            }
+        }
+
+        Write-LogMessage -type Verbose -MSG 'Gathering Directories'
+        $dirResult = Invoke-Rest -Uri "$IdentityURL/Core/GetDirectoryServices" -Method Get -Header $LogonToken
+
+        if ($dirResult.Success -and $dirResult.result.Count -ne 0) {
+            Write-LogMessage -type Verbose -MSG "Located $($dirResult.result.Count) Directories"
+            Write-LogMessage -type Verbose -MSG "Directory results: $($dirResult.result.Results.Row)"
+            [string[]]$DirID = $dirResult.result.Results.Row | Where-Object { $_.Service -eq 'CDS' } | Select-Object -ExpandProperty directoryServiceUuid
+            $rolequery | Add-Member -Type NoteProperty -Name 'directoryServices' -Value $DirID -Force
+        }
+
+        $result = Invoke-Rest -Uri "$IdentityURL/UserMgmt/DirectoryServiceQuery" -Method POST -Body ($rolequery | ConvertTo-Json -Depth 99)
+
+        if (!$result.Success) {
+            Write-LogMessage -type Error -MSG $result.Message
+            return
+        }
+
+        if ($result.Result.roles.Results.Count -eq 0) {
+            Write-LogMessage -type Warning -MSG 'No role found'
+            return
+        }
+        else {
+            if ($IDOnly) {
+                Write-LogMessage -type Verbose -MSG "Returning ID of role `"$roleName`""
+                return $result.Result.roles.Results.Row._ID
+            }
+            else {
+                Write-LogMessage -type Verbose -MSG "Returning all information about role `"$roleName`""
+                return $result.Result.roles.Results.Row
+            }
+        }
+    }
+}
+
 
 #region REST Functions
 # @FUNCTION@ ======================================================================================================================
@@ -272,7 +399,7 @@ The Header as Dictionary object
         [ValidateNotNullOrEmpty()]
         [String]$URI,
         [Parameter(Mandatory = $false)]
-        [Alias('Headers')]
+        [Alias('Headers', 'LogonToken')]
         $Header,
         [Parameter(Mandatory = $false)]
         $Body,
@@ -1152,6 +1279,20 @@ Set-SafeMember -safename "Win-Local-Admins" -safeMember "Administrator" -memberS
         [bool]$permMoveAccountsAndFolders = $false
     )
 
+    If ($Global:IdentityURL) {
+        IF ($memberType -eq 'Role') {
+            Write-LogMessage -type Verbose -MSG "Set-SafeMember:`tIdentityURL is set and type is role. Using Identity URL to get the correct case for the safe member"
+            $safeMemberUpadated = $(Get-IdentityRole -roleName $safeMember -ErrorAction Stop).Name
+            If ([string]::IsNullOrEmpty($safeMemberUpadated)) {
+                Write-LogMessage -type Warning -MSG "Set-SafeMember:`tIdentityURL is set and type is role, howevr unable to locate role $safeMember. Attempting to use current name of $safeMember"
+            }
+            else {
+                $safeMember = $safeMemberUpadated
+                Write-LogMessage -type Verbose -MSG "Set-SafeMember:`tSafeMember: $safeMember is a role, updating to $safeMemberUpadated"
+            }
+        }
+    }
+
     If ($safeMember -NotIn $g_DefaultUsers) {
         $SafeMembersBody = @{
             MemberName               = "$safeMember"
@@ -1340,6 +1481,14 @@ If ($PVWAURL -ne '') {
 else {
     Write-LogMessage -type Error -MSG 'PVWA URL can not be empty'
     return
+}
+
+If ($PVWAURL -match '^(?:https|http):\/\/(?<sub>.*).privilegecloud.cyberark.(?<top>cloud|com)\/PasswordVault.*$') {
+
+    Write-LogMessage -type Verbose -MSG "Base`tPcloudURL found: $global:PCloudURL"
+    $PSDefaultParameterValues['*:LogonToken'] = $logonToken
+    $PSDefaultParameterValues['*:PVWAURL'] = $PCloudURL
+    $PSDefaultParameterValues['*:IdentityURL'] = Get-IdentityURL $PCloudURL
 }
 
 #region [Logon]
