@@ -20,7 +20,7 @@ Function Invoke-ProcessSafe {
             Log               = @()
             Error             = @()
         }
-        
+
         Function Write-LogMessage {
             param(
                 [String]$MSG,
@@ -39,7 +39,7 @@ Function Invoke-ProcessSafe {
         If ($safename -in $objectSafesToRemove) {
             Write-LogMessage -Type Info -Msg "Safe `"$($safename)`" is in the excluded safes list and will be skipped"
             $SafeStatus.success = $true
-            write-LogMessage -Type Verbose -Msg "Final `$SafeStatus $($SafeStatus | ConvertTo-Json -Compress)"
+            write-LogMessage -Type Verbose -Msg "Final `$SafeStatus $($SafeStatus | ConvertTo-Json -Compress -Depth 9)"
             continue
         }
         Write-LogMessage -Type Debug -Msg "Getting source safe `"$safename`""
@@ -145,7 +145,7 @@ Function Invoke-ProcessSafe {
                                     $srcMember.membername = $($($srcMember.membername).Split("@"))[0]
                                     $srcMember.memberType = "Role"
                                     $null = New-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember
-                                    
+
                                     Write-LogMessage -Type Info -Msg "[$($safememberCount)] Safe Member $($srcMember.MemberType)  `"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`" succesfully"
                                 }
                             } elseif ($srcMember.memberType -eq "User") {
@@ -164,7 +164,7 @@ Function Invoke-ProcessSafe {
                                 }
                                 Write-LogMessage -Type Info -Msg "[$($safememberCount)] Attempting to add user `"$($srcMember.membername)`" to safe `"$($dstsafe.safename)`""
                                 $null = New-SafeMember -url $dstPVWAURL -logonHeader $dstToken -safe $safename -safemember $srcMember
-                                
+
                                 Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member User`"$($srcMember.membername)`" added  to safe `"$($dstsafe.safename)`""
                             } elseif ($srcMember.memberType -eq "Group") {
                                 Write-LogMessage -Type Debug -Msg "[$($safememberCount)] Safe Member `"$($srcMember.membername)`" is a group, attempting to find source"

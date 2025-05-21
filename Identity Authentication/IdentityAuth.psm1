@@ -505,7 +505,7 @@ function Get-OAuthCreds {
         "grant_type"    = "client_credentials"
         "client_id"     = $($OAuthCreds.GetNetworkCredential().UserName)
         "client_secret" = $($OAuthCreds.GetNetworkCredential().Password)
-    } 
+    }
     Return $($(Invoke-RestMethod "$IdaptiveBasePlatformURL/oauth2/platformtoken/" -Method 'POST' -Body $body).access_token)
 }
 

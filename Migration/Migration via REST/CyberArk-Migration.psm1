@@ -1208,7 +1208,7 @@ Function New-Account {
     )
     $URL_NewAccount = "$url/api/Accounts/"
     Write-LogMessage -Type Debug -MSG "Entering New-Account"
-    Write-LogMessage -Type Verbose -MSG "Recieved the following for new account: `n$($account | ConvertTo-Json)"
+    Write-LogMessage -Type Verbose -MSG "Recieved the following for new account: `n$($account | ConvertTo-Json -Depth 9 -Compress)"
     Try {
         If ($allowEmpty) {
             $result = Invoke-Rest -Command Post -Uri $URL_NewAccount -header $logonHeader -Body $($account | ConvertTo-Json -Compress)

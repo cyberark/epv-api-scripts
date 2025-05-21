@@ -698,11 +698,11 @@ The Header as Dictionary object
 	$restResponse = ''
 	try {
 		if ([string]::IsNullOrEmpty($Body)) {
-			Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tInvoke-RestMethod -Uri $URI -Method $Command -Header $($Header|ConvertTo-Json -Compress) -ContentType $ContentType -TimeoutSec $TimeoutSec"
+			Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tInvoke-RestMethod -Uri $URI -Method $Command -Header $($Header|ConvertTo-Json -Depth 99 -Compress ) -ContentType $ContentType -TimeoutSec $TimeoutSec"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType $ContentType -TimeoutSec $TimeoutSec -ErrorAction $ErrAction -Verbose:$false -Debug:$false
 		}
 		else {
-			Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tInvoke-RestMethod -Uri $URI -Method $Command -Header $($Header|ConvertTo-Json -Compress) -ContentType $ContentType -Body $($Body|ConvertTo-Json -Compress) -TimeoutSec $TimeoutSec"
+			Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tInvoke-RestMethod -Uri $URI -Method $Command -Header $($Header|ConvertTo-Json -Depth 99 -Compress) -ContentType $ContentType -Body $($Body|ConvertTo-Json -Compress) -TimeoutSec $TimeoutSec"
 			$restResponse = Invoke-RestMethod -Uri $URI -Method $Command -Header $Header -ContentType $ContentType -Body $Body -TimeoutSec $TimeoutSec -ErrorAction $ErrAction -Verbose:$false -Debug:$false
 		}
 		Write-LogMessage -type Verbose -MSG "Invoke-Rest:`tInvoke-RestMethod completed without error"
@@ -1777,14 +1777,14 @@ ForEach ($account in $accountsCSV) {
 						Write-LogMessage -type Verbose -MSG "Base:`tAccount '$g_LogAccountName' exists"
 						# Get Existing Account Details
 						Write-LogMessage -type Verbose -MSG "Base:`tRetrived $($objAccount.userName) from the CSV"
-						Write-LogMessage -type Verbose -MSG "Base:`tOutput of  $($objAccount.userName) from the CSV in JSON: $($objAccount|ConvertTo-Json -Depth 5)"
+						Write-LogMessage -type Verbose -MSG "Base:`tOutput of  $($objAccount.userName) from the CSV in JSON: $($objAccount|ConvertTo-Json -Depth 5 -Compress)"
 						$s_Account = $(Get-Account -safeName $objAccount.safeName -accountName $objAccount.userName -accountAddress $objAccount.Address -accountObjectName $objAccount.name)
 						If ($s_Account.Count -gt 1) {
 							Throw "Too many accounts for '$g_LogAccountName' in safe $($objAccount.safeName)"
 						}
 						Write-LogMessage -type Verbose -MSG "Base:`tRetrived $($objAccount.userName) from Safe $($objAccount.safeName)"
 						Write-LogMessage -type Verbose -MSG "Base:`tRAW format: $s_Account"
-						Write-LogMessage -type Verbose -MSG "Base:`tConverted to JSON: $($s_Account|ConvertTo-Json -Depth 5)"
+						Write-LogMessage -type Verbose -MSG "Base:`tConverted to JSON: $($s_Account|ConvertTo-Json -Depth 5 -Compress)"
 						If ($Update) {
 							$updateChange = $false
 							$s_AccountBody = @()
