@@ -29,7 +29,7 @@ Function Get-IdentityHeader {
         [pscredential]$OAuthCreds,
         #The URL of the tenant. you can find it if you go to Identity Admin Portal > Settings > Customization > Tenant URL.
         [Parameter(
-            Mandatory = $true,
+            Mandatory = $false,
             HelpMessage = "Identity Tenant URL")]
         [string]$IdentityTenantURL,
         #Use this switch to output the token in a format that PSPas can consume directly.
@@ -41,7 +41,11 @@ Function Get-IdentityHeader {
         [Parameter(
             Mandatory = $false,
             HelpMessage = "Subdomain of the privileged cloud environment")]
-        [string]$PCloudSubdomain
+        [string]$PCloudSubdomain,
+        [Parameter(
+            Mandatory = $false,
+            HelpMessage = 'URL of the privileged cloud environment')]
+        [string]$PCloudURL
     )
     $ScriptFullPath = Get-Location
     $LOG_FILE_PATH = "$ScriptFullPath\IdentityAuth.log"
@@ -51,13 +55,24 @@ Function Get-IdentityHeader {
 
     #Platform Identity API
 
+    if ([string]::IsNullOrEmpty("$PCloudURL$IdentityTenantURL")) {
+        Write-LogMessage -type Error -MSG "You must provide either PCloudURL or IdentityTenantURL"
+        return
+    }
+
+    IF ($PCloudURL -and [string]::IsNullOrEmpty($IdentityTenantURL)) {
+        $IdentityTenantURL = Get-IdentityURL -PCloudURL $PCloudURL
+    }
+
+    IF ($PCloudURL) {
+        $IdentityTenantURL = Get-IdentityURL -PCloudURL $PCloudURL
+    }
+
     if ($IdentityTenantURL -match "https://") {
         $IdaptiveBasePlatformURL = $IdentityTenantURL
     } Else {
         $IdaptiveBasePlatformURL = "https://$IdentityTenantURL"
     }
-
-    $PCloudTenantAPIURL = "https://$PCloudSubdomain.privilegecloud.cyberark.cloud/PasswordVault/"
 
     Write-LogMessage -type "Verbose" -MSG "URL used : $($IdaptiveBasePlatformURL|ConvertTo-Json -Depth 9)"
 
@@ -505,7 +520,7 @@ function Get-OAuthCreds {
         "grant_type"    = "client_credentials"
         "client_id"     = $($OAuthCreds.GetNetworkCredential().UserName)
         "client_secret" = $($OAuthCreds.GetNetworkCredential().Password)
-    } 
+    }
     Return $($(Invoke-RestMethod "$IdaptiveBasePlatformURL/oauth2/platformtoken/" -Method 'POST' -Body $body).access_token)
 }
 
@@ -538,4 +553,35 @@ function Format-Token {
         $IdentityHeaders.PSObject.TypeNames.Insert(0, 'psPAS.CyberArk.Vault.Session')
     }
     Return $IdentityHeaders
+}
+function Get-IdentityURL {
+    [CmdletBinding()]
+    param (
+        [Parameter(
+            Mandatory = $true,
+            HelpMessage = 'Base URL of the CyberArk Identity platform',
+            ValueFromPipelineByPropertyName = $true)]
+        [string]$PCloudURL,
+        [Parameter(ValueFromRemainingArguments = $true,
+            DontShow = $true)]
+        $CatchAll
+    )
+    Begin {
+        $PSBoundParameters.Remove('CatchAll') | Out-Null
+        $PCloudURL -match '^(?:https|http):\/\/(?<sub>.*).privilegecloud.cyberark.(?<top>cloud|com)\/PasswordVault.*$' | Out-Null
+        $PCloudBaseURL = "https://$($matches['sub']).cyberark.$($matches['top'])"
+    }
+    Process {
+        If ($PSVersionTable.PSVersion.Major -gt 5) {
+            $IdentityBaseURL = $(Invoke-WebRequest $PCloudBaseURL -WebSession $global:websession.value).BaseResponse.RequestMessage.RequestUri.Host
+        }
+        Else {
+            $IdentityBaseURL = $(Invoke-WebRequest $PCloudBaseURL -WebSession $global:websession.value).BaseResponse.ResponseURI.Host
+        }
+    }
+    end {
+        # Return the Identity URL
+        $IdentityURL = "https://$IdentityBaseURL"
+        return $IdentityURL
+    }
 }
