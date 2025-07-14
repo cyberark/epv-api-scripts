@@ -918,7 +918,7 @@ Function Get-IdentityHeader {
     Write-LogMessage -type 'Verbose' -MSG "SessionId : $($SessionId |ConvertTo-Json -Depth 9 -Compress)"
     $AnswerToResponse = Invoke-Challenge $IdentityResponse -UPCreds $UPCreds -PCloudIdentityURL $IdentityTenantURL
     If ($AnswerToResponse.success) {
-        $identityHeaders = Format-Token($AnswerToResponse.Result.Token)
+        $identityHeaders = Format-Token($AnswerToResponse.Result.Token.trim())
         Write-LogMessage -type 'Verbose' -MSG "IdentityHeaders - $($IdentityHeaders |ConvertTo-Json -Depth 9 -Compress)"
         Write-LogMessage -type 'Info' -MSG 'Identity Token Set Successfully'
         $PSDefaultParameterValues['*:LogonToken'] = $identityHeaders
