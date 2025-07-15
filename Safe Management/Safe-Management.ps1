@@ -227,10 +227,12 @@ function Format-PVWAURL {
         }
 
         #check url for improper Privilege Cloud URL and add /PasswordVault/ if not present
-        if ($PVWAURL -match '^(?:https|http):\/\/(?<sub>.*).cyberark.(?<top>cloud|com)\/(privilegecloud|passwordvault)(\/?)$') {
+        if ($PVWAURL -match 'https://.*.privilegecloud.cyberark.(cloud|com)/passwordvault/') {
+            Write-LogMessage -type Verbose -MSG 'Detected properly formatted Privilege Cloud URL.'
+        }
+        elseif ($PVWAURL -match '^(?:https|http):\/\/(?<sub>.*)(.privilegecloud?).cyberark.(?<top>cloud|com)\/(privilegecloud|passwordvault)(\/?)$') {
             $PVWAURL = "https://$($matches['sub']).privilegecloud.cyberark.$($matches['top'])/PasswordVault/"
             Write-LogMessage -type Warning -MSG "Detected improperly formated Privilege Cloud URL `nThe URL was automaticly updated to: $PVWAURL `nPlease ensure you are using the correct URL. Pausing for 10 seconds to allow you to copy correct url.`n"
-            Start-Sleep 10
         }
         elseif ($PVWAURL -notmatch '^.*PasswordVault(?:\/|)$') {
             $PVWAURL = "$PVWAURL/PasswordVault/"
@@ -243,6 +245,46 @@ function Format-PVWAURL {
         Write-LogMessage -type Warning -MSG "Error formatting PVWA URL, no changes will be made and it may not work: $PVWAURL"
     }
     return $PVWAURL
+}
+
+function Remove-SensitiveData {
+    [CmdletBinding()]
+    param (
+        # Parameter help description
+        [Alias('MSG', 'value', 'string')]
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string]
+        $message
+    )
+    begin {
+        $cleanedMessage = $message
+    }
+    process {
+        if ($global:LogSensitiveData -eq $true) {
+            # Allows sensitive data to be logged this is useful for debugging authentication issues
+            return $message
+        }
+        # List of fields that contain sensitive data to check for
+        $checkFor = @('password', 'secret', 'NewCredentials', 'access_token', 'client_secret', 'auth', 'Authorization', 'Answer', 'Token')
+        # Check for sensitive data in the message that is escaped with quotes or double quotes
+        $checkFor | ForEach-Object {
+            if ($cleanedMessage -imatch "[{\\""']{2,}\s{0,}$PSitem\s{0,}[\\""']{2,}\s{0,}[:=][\\""']{2,}\s{0,}(?<Sensitive>.*?)\s{0,}[\\""']{2,}(?=[,:;])") {
+                $cleanedMessage = $cleanedMessage.Replace($Matches['Sensitive'], '****')
+            }
+            # Check for sensitive data in the message that is not escaped with quotes or double quotes
+            elseif ($cleanedMessage -imatch "[""']{1,}\s{0,}$PSitem\s{0,}[""']{1,}\s{0,}[:=][""']{1,}\s{0,}(?<Sensitive>.*?)\s{0,}[""']{1,}") {
+                $cleanedMessage = $cleanedMessage.Replace($Matches['Sensitive'], '****')
+            }
+            # Check for Sensitive data in pure JSON without quotes
+            elseif ( $cleanedMessage -imatch "(?:\s{0,}$PSitem\s{0,}[:=])\s{0,}(?<Sensitive>.*?)(?=; |: )") {
+                $cleanedMessage = $cleanedMessage.Replace($Matches['Sensitive'], '****')
+            }
+        }
+    }
+    end {
+        # Return the modified string
+        return $cleanedMessage
+    }
 }
 
 #region REST Functions
@@ -311,12 +353,17 @@ The Header as Dictionary object
             if ($PSitem.Exception.response.StatusCode.value__ -eq 401) {
                 Write-LogMessage -type Error -MSG 'Recieved error 401 - Unauthorized access'
                 Write-LogMessage -type Error -MSG '**** Existing script ****' -Footer -Header
-                exit
+                exit 5
             }
             elseif ($PSitem.Exception.response.StatusCode.value__ -eq 403) {
                 Write-LogMessage -type Error -MSG 'Recieved error 403 - Forbidden access'
                 Write-LogMessage -type Error -MSG '**** Existing script ****' -Footer -Header
-                exit
+                exit 5
+            }
+            elseif ($PSItem.Exception -match 'The remote name could not be resolved:') {
+                Write-LogMessage -type Error -MSG 'Recieved error - The remote name could not be resolved'
+                Write-LogMessage -type Error -MSG '**** Existing script ****' -Footer -Header
+                exit 1
             }
             else {
                 throw $(New-Object System.Exception ("Invoke-Rest: Error in running $Command on '$URI'", $_.Exception))
@@ -497,9 +544,7 @@ The type of the message to log (Info, Warning, Error, Debug)
             $Msg = 'N/A'
         }
         # Mask Passwords
-        if ($Msg -match '((?:"password"|"secret"|"NewCredentials")\s{0,}["\:=]{1,}\s{0,}["]{0,})(?=([\w!@#$%^&*()-\\\/]+))') {
-            $Msg = $Msg.Replace($Matches[2], '****')
-        }
+        $Msg = Remove-SensitiveData -Msg $Msg
         # Check the message type
         switch ($type) {
             'Info' {
@@ -1346,7 +1391,12 @@ if ($InDebug -or $InVerbose -or $UseVerboseFile) {
     Write-LogMessage -type Verbose -MSG "Script Location:`t$ScriptLocation"
     Write-LogMessage -type Verbose -MSG "Script Name:`t$ScriptName"
     foreach ($key in $PSboundParameters.Keys) {
-        Write-LogMessage -type Verbose -MSG "BoundParameter:`t$key = $($PSBoundParameters[$key])"
+        if ($($PSboundParameters[$key]) -is  [System.Collections.IEnumerable]) {
+            Write-LogMessage -type Verbose -MSG "BoundParameter:`t$key = $($PSBoundParameters[$key] | ConvertTo-Json -Compress)"
+        } else {
+                    Write-LogMessage -type Verbose -MSG "BoundParameter:`t$key = $($PSBoundParameters[$key])"
+        }
+
     }
 }
 
