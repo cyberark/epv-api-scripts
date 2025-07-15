@@ -568,7 +568,7 @@ function Get-IdentityURL {
     )
     Begin {
         $PSBoundParameters.Remove('CatchAll') | Out-Null
-        $PCloudURL -match '^(?:https|http):\/\/(?<sub>.*).privilegecloud.cyberark.(?<top>cloud|com)\/PasswordVault.*$' | Out-Null
+        $PCloudURL -match '^(?:https|http):\/\/(?<sub>.*).cyberark.(?<top>cloud|com)\/(privilegecloud|passwordvault)(\/?)$' | Out-Null
         $PCloudBaseURL = "https://$($matches['sub']).cyberark.$($matches['top'])"
     }
     Process {

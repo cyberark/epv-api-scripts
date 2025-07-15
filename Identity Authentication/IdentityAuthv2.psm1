@@ -25,7 +25,7 @@ function Get-IdentityURL {
     )
     Begin {
         $PSBoundParameters.Remove('CatchAll') | Out-Null
-        $PCloudURL -match '^(?:https|http):\/\/(?<sub>.*).privilegecloud.cyberark.(?<top>cloud|com)\/PasswordVault.*$' | Out-Null
+        $PCloudURL -match '^(?:https|http):\/\/(?<sub>.*)(.privilegecloud?).cyberark.(?<top>cloud|com)\/(privilegecloud|passwordvault)(\/?)$' | Out-Null
         $PCloudBaseURL = "https://$($matches['sub']).cyberark.$($matches['top'])"
     }
     Process {
@@ -40,62 +40,6 @@ function Get-IdentityURL {
         # Return the Identity URL
         $IdentityURL = "https://$IdentityBaseURL"
         return $IdentityURL
-    }
-}
-Function Get-PCLoudLogonHeader {
-    [CmdletBinding()]
-    param (
-        [Parameter(ValueFromRemainingArguments, DontShow)]
-        $CatchAll,
-        #The Username that will log into the system. It just needs the username, we will ask for PW, Push etc when doing the authentication.
-        [Parameter(
-            ParameterSetName = 'IdentityUserName',
-            Mandatory = $true,
-            HelpMessage = 'User to authenticate into the platform')]
-        [Alias('Username')]
-        [string]$IdentityUserName,
-        #Username and Password to use when prompted for user password. Replaces the parameter IdentityUserName
-        [Parameter(
-            ParameterSetName = 'UPCreds',
-            Mandatory = $true,
-            HelpMessage = 'Credentials to pass if option is UP')]
-        [Alias('PVWACreds', 'IdentityCreds', 'Creds')]
-        [pscredential]$UPCreds,
-        #Username and shared secret to use when connecting via OAuth. Replaces the parameter IdentityUserName
-        [Parameter(
-            ParameterSetName = 'OAuthCreds',
-            Mandatory = $true,
-            HelpMessage = 'Credentials to pass if option is UP')]
-        [pscredential]$OAuthCreds,
-        #The Subdomain assigned to the privileged cloud environment.
-        [Parameter(
-            Mandatory = $false,
-            HelpMessage = 'URL privileged cloud environment')]
-        [string]$PCloudURL
-    )
-    Begin {
-        $PSBoundParameters.Remove('CatchAll') | Out-Null
-        $PCloudURL = Format-PVWAURL -PCloudURL $PCloudURL
-        $PCloudIdentityURL = Get-IdentityURL -PCloudURL $PCloudURL
-    }
-
-    Process {
-        switch ($PSCmdlet.ParameterSetName) {
-            'OAuthCreds' {
-                $OAuthToken = Get-IdentityOAuthToken -PCloudIdentityURL $PCloudIdentityURL -UPCreds $UPCreds -OAuthCreds $OAuthCreds
-                #Creating the header for the request to the Identity URL
-                $BearerToken = "Bearer $($OAuthToken.access_token)"
-            }
-            'UPCreds' {
-                $Token = Get-IdentityAuthToken -IdentityTenantURL $PCloudIdentityURL -UPCreds $UPCreds
-                $BearerToken = "$($Token.Authorization)"
-            }
-            'IdentityUserName' {
-                $Token = Get-IdentityAuthToken -IdentityTenantURL $PCloudIdentityURL -IdentityUserName $IdentityUserName
-                $BearerToken = "$($Token.Authorization)"
-            }
-        }
-        return $BearerToken
     }
 }
 Function Write-LogMessage {
@@ -902,26 +846,65 @@ Function Get-IdentityHeader {
         [Parameter(
             Mandatory = $false,
             HelpMessage = 'URL of the privileged cloud environment')]
-        [string]$PCloudURL
+        [string]$PCloudURL,
+        [Parameter(
+            DontShow = $true,
+            Mandatory = $false,
+            HelpMessage = 'Use customized URL for the Identity Tenant and PCloud environment',
+            ParameterSetName = 'UseCustomURL')]
+        [switch]$UseCustomURL,
+        [Parameter(
+            DontShow = $true,
+            Mandatory = $true,
+            ParameterSetName = 'UseCustomURL',
+            HelpMessage = 'Custom URL for the Identity Tenant and PCloud environment')]
+        [string]$IdentityURLOverride,
+        [Parameter(
+            DontShow = $true,
+            Mandatory = $true,
+            ParameterSetName = 'UseCustomURL',
+            HelpMessage = 'Custom URL for the PCloud environment')]
+        [string]$PCloudURLOverride
     )
+
+
+    IF ($UseCustomURL) {
+        # If UseCustomURL is set, override the IdentityTenantURL and PCloudURL with the provided custom URLs
+        $IdentityTenantURL = $IdentityURLOverride
+        $PCloudURL = $PCloudURLOverride
+        Write-LogMessage -type 'Verbose' -MSG "Using custom URLs: IdentityTenantURL: $IdentityTenantURL, PCloudURL: $PCloudURL"
+    }
+    else {
+        if ([string]::IsNullOrEmpty("$PCloudURL$IdentityTenantURL")) {
+            Write-LogMessage -type Error -MSG 'You must provide either PCloudURL or IdentityTenantURL'
+            return
+        }
+        IF ($PCloudURL -and [string]::IsNullOrEmpty($IdentityTenantURL)) {
+            $IdentityTenantURL = Get-IdentityURL -PCloudURL $PCloudURL
+        }
+    }
     $global:WebSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
     $global:websession.headers.Add('OobIdPAuth', $true)
     $global:WebSession.Headers.Add('X-IDAP-NATIVE-CLIENT', 'true')
     $PSDefaultParameterValues['*:PVWAURL'] = $PCloudURL
+    $PSDefaultParameterValues['*:IdentityURL'] = $IdentityTenantURL
 
-    if ([string]::IsNullOrEmpty("$PCloudURL$IdentityTenantURL")) {
-        Write-LogMessage -type Error -MSG "You must provide either PCloudURL or IdentityTenantURL"
-        return
-    }
-
-    IF ($PCloudURL -and [string]::IsNullOrEmpty($IdentityTenantURL)) {
-        $IdentityTenantURL = Get-IdentityURL -PCloudURL $PCloudURL
-        $PSDefaultParameterValues['*:IdentityURL'] = $IdentityTenantURL
-    }
     Write-LogMessage -type 'Verbose' -MSG "Base URL used : $IdentityTenantURL"
     $IdentityBasePlatformSecURL = "$IdentityTenantURL/Security"
     $startPlatformAPIAuth = "$IdentityBasePlatformSecURL/StartAuthentication"
-    if ('UPCreds' -eq $PSCmdlet.ParameterSetName) {
+    iF ('OAuthCreds' -eq $PSCmdlet.ParameterSetName) {
+        Write-LogMessage -type 'Verbose' -MSG 'OAuthCreds Passed'
+        $OAuthToken = Get-IdentityOAuthToken -PCloudIdentityURL $IdentityTenantURL -UPCreds $UPCreds -OAuthCreds $OAuthCreds
+        #Creating the header for the request to the Identity URL
+        $identityHeaders = Format-Token($($OAuthToken.access_token))
+        Write-LogMessage -type 'Verbose' -MSG "IdentityHeaders - $($IdentityHeaders |ConvertTo-Json -Depth 9 -Compress)"
+        Write-LogMessage -type 'Info' -MSG 'Identity Token Set Successfully'
+        $PSDefaultParameterValues['*:LogonToken'] = $identityHeaders
+        $global:WebSession.Headers.Add('Authorization', "$($identityHeaders.Authorization)")
+        Set-Variable -Name PSDefaultParameterValues -Scope 2 -Value $PSDefaultParameterValues
+        return $identityHeaders
+    }
+    ElseIf ('UPCreds' -eq $PSCmdlet.ParameterSetName) {
         $IdentityUserName = $UPCreds.UserName
     }
     $startPlatformAPIBody = [PSCustomObject]@{
@@ -935,7 +918,7 @@ Function Get-IdentityHeader {
     Write-LogMessage -type 'Verbose' -MSG "SessionId : $($SessionId |ConvertTo-Json -Depth 9 -Compress)"
     $AnswerToResponse = Invoke-Challenge $IdentityResponse -UPCreds $UPCreds -PCloudIdentityURL $IdentityTenantURL
     If ($AnswerToResponse.success) {
-        $identityHeaders = Format-Token($AnswerToResponse.Result.Token)
+        $identityHeaders = Format-Token($AnswerToResponse.Result.Token.trim())
         Write-LogMessage -type 'Verbose' -MSG "IdentityHeaders - $($IdentityHeaders |ConvertTo-Json -Depth 9 -Compress)"
         Write-LogMessage -type 'Info' -MSG 'Identity Token Set Successfully'
         $PSDefaultParameterValues['*:LogonToken'] = $identityHeaders
