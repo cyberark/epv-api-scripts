@@ -47,7 +47,7 @@ Function Get-CPMUsers {
     [OutputType([System.Boolean])]
     [CmdletBinding()]
     [OutputType([String[]])]
-    param([switch]$SuppressCPMWarning)    
+    param([switch]$SuppressCPMWarning)
     $URL_GetCPMList = "$script:srcPVWAURL/API/ComponentsMonitoringDetails/CPM/"
     Try {
         $CPMList = Invoke-RestMethod -Method Get -Uri $URL_GetCPMList -Headers $Script:srcToken -ErrorVariable ErrorCPMList
@@ -567,7 +567,7 @@ Switch to prevent running in powershell job
     Initialize-Function
     Test-SessionsValid
     Test-AccountList
-    $global:DomainList = $script:DomainList 
+    $global:DomainList = $script:DomainList
     #region Safe Work
 
     $cpmUsers = Get-CPMUsers -SuppressCPMWarning:$SuppressCPMWarning
@@ -708,7 +708,7 @@ Switch to prevent running in powershell job
                 }
                 else {
                     Write-LogMessage -type Verbose -MSG "Final `$SafeStatus $($SafeStatus |Select-Object -Property Id,SafeName,createSkip,Success,UpdateMembersFail | ConvertTo-Json -Depth 1 -Compress)"
-                } 
+                }
                 $SafeStatus
                 $process.Completed = $true
             }
@@ -759,7 +759,7 @@ Switch to prevent running in powershell job
                     $i++
                 }
             }
-            
+
             $SafeFailed.SafeData | Export-Csv .\FailedSafes.csv
         }
         Write-LogMessage -type Info "Safes succesfully processed: $($SafeSuccess.success.count)"
@@ -987,6 +987,11 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
                 Write-LogMessage -type Debug -MSG 'Found source account'
                 Write-LogMessage -type Verbose -MSG "Source account: $($srcAccount |ConvertTo-Json -Compress)"
                 Write-LogMessage -type Debug -MSG "Searching for destination account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`""
+                If([string]::IsNullOrEmpty($srcAccount.userName) -or [string]::IsNullOrEmpty($srcAccount.address)) {
+                    Write-LogMessage -type Error -MSG "Source account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`" is missing username or address. Skipping account."
+                    $AccountStatus.success = $false
+                    continue
+                }
                 [array]$dstAccountArray = Get-Accounts -url $dstPVWAURL -logonHeader $dstToken -safename $($srcAccount.safeName) -keywords "$($srcAccount.userName) $($srcAccount.address)" -startswith $true
                 if ((0 -ne $($dstAccountArray.count))) {
                     Write-LogMessage -type Verbose -MSG "Results array from destination: $($dstAccountArray | ConvertTo-Json -Compress)"
@@ -1180,7 +1185,7 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
             [array]$AccountFailed.accountData | Add-Member -MemberType NoteProperty -Name FailReason -Value $null -Force
             $i = 0
             foreach ($id in $AccountFailed) {
-                $AccountFailed[$i].accountData.FailReason = $AccountFailed[$i].Error 
+                $AccountFailed[$i].accountData.FailReason = $AccountFailed[$i].Error
                 $i++
             }
             $AccountFailed.accountData | Export-Csv -Force .\FailedAccounts.csv
@@ -1199,7 +1204,7 @@ Function Set-DomainList {
 }
 
 
-Function New-DomainList 
+Function New-DomainList
 (
     [Parameter(Mandatory)]
     $DomainName,
@@ -1209,7 +1214,7 @@ Function New-DomainList
     [hashtable]$script:DomainList = @{}
     $script:DomainList.add($DomainBaseContext, $DomainName)
 }
-Function New-DomainEntry 
+Function New-DomainEntry
 (
     [Parameter(Mandatory)]
     $DomainName,
@@ -1230,7 +1235,7 @@ Function New-DomainEntry
     }
 }
 
-Function Remove-DomainEntry 
+Function Remove-DomainEntry
 (
     [Parameter(Mandatory)]
     $DomainName,
