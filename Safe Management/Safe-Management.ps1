@@ -191,7 +191,7 @@ $global:IncludeCallStack = $IncludeCallStack.IsPresent
 $global:UseVerboseFile = $UseVerboseFile.IsPresent
 
 # Script Version
-$ScriptVersion = '2.2.4'
+$ScriptVersion = '2.2.5'
 
 # ------ SET global parameters ------
 # Set Log file path
