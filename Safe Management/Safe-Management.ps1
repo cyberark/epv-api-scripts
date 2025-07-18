@@ -191,7 +191,7 @@ $global:IncludeCallStack = $IncludeCallStack.IsPresent
 $global:UseVerboseFile = $UseVerboseFile.IsPresent
 
 # Script Version
-$ScriptVersion = '2.2.4'
+$ScriptVersion = '2.2.5'
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -276,7 +276,7 @@ function Remove-SensitiveData {
                 $cleanedMessage = $cleanedMessage.Replace($Matches['Sensitive'], '****')
             }
             # Check for Sensitive data in pure JSON without quotes
-            elseif ( $cleanedMessage -imatch "(?:\s{0,}$PSitem\s{0,}[:=])\s{0,}(?<Sensitive>.*?)(?=; |: )") {
+            elseif ( $cleanedMessage -imatch "(?:\s{0,}token\s{0,}[:=])\s{0,}(?<Sensitive>.*?)(?=; |:|,|}|\))") {
                 $cleanedMessage = $cleanedMessage.Replace($Matches['Sensitive'], '****')
             }
         }
