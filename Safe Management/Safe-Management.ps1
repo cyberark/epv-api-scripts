@@ -30,7 +30,9 @@ General Format cleanup according to standards
 Added "AddMembers" back
 2.2.1   2025-01-08      Updates to logging
 Fixes to Set-SafeMembers
-2.2.3   2025-04-30 -    Updated to check and correct URL scheme and path for Privilege Cloud
+2.2.3   2025-04-30      Updated to check and correct URL scheme and path for Privilege Cloud
+2.2.4   2025-07-18      Add the ability to mask sensitive data in log messages
+2.2.6   2025-08-07      Updated to mask sensitive data in log messages
 ########################################################################### #>
 [CmdletBinding(DefaultParameterSetName = 'Report')]
 param
@@ -191,7 +193,7 @@ $global:IncludeCallStack = $IncludeCallStack.IsPresent
 $global:UseVerboseFile = $UseVerboseFile.IsPresent
 
 # Script Version
-$ScriptVersion = '2.2.5'
+$ScriptVersion = '2.2.6'
 
 # ------ SET global parameters ------
 # Set Log file path
@@ -276,7 +278,7 @@ function Remove-SensitiveData {
                 $cleanedMessage = $cleanedMessage.Replace($Matches['Sensitive'], '****')
             }
             # Check for Sensitive data in pure JSON without quotes
-            elseif ( $cleanedMessage -imatch "(?:\s{0,}token\s{0,}[:=])\s{0,}(?<Sensitive>.*?)(?=; |:|,|}|\))") {
+            elseif ( $cleanedMessage -imatch "(?:\s{0,}$PSitem\s{0,}[:=])\s{0,}(?<Sensitive>.*?)(?=; |:|,|}|\))") {
                 $cleanedMessage = $cleanedMessage.Replace($Matches['Sensitive'], '****')
             }
         }
