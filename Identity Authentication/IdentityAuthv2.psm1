@@ -722,6 +722,10 @@ Function Invoke-Challenge {
         }
         Write-LogMessage -type 'Verbose' -MSG "SAML authentication completed with status: $($status.result.State)"
         Return $status
+    } elseif ($($IdaptiveResponse.Result.IdpRedirectUrl)) {
+        Write-LogMessage -type 'Error' -MSG 'No IdpRedirectShortUrl found. Cannot continue with SAML authentication.'
+        # It appears that setting "OobIdPAuth=true" in the header is no longer supported. Will leave logic here for future reference incase the functionality returns.
+        Break
     }
     $j = 1
     ForEach ($challenge in $IdaptiveResponse.Result.Challenges) {
