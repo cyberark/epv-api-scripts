@@ -31,18 +31,6 @@
 	# Disable SSL verification (not recommended)
 	.\Invoke-BulkAccountActions.ps1 -PVWAURL "https://pvwa.example.com/PasswordVault" -AccountsAction Verify -DisableSSLVerify
 
-.EXAMPLE
-	# Only include accounts with CPM disabled
-	.\Invoke-BulkAccountActions.ps1 -PVWAURL "https://pvwa.example.com/PasswordVault" -AccountsAction Verify -CPMDisabled
-
-.EXAMPLE
-	# Only include accounts where previous action failed
-	.\Invoke-BulkAccountActions.ps1 -PVWAURL "https://pvwa.example.com/PasswordVault" -AccountsAction Change -FailedOnly
-
-	.EXAMPLE
-	# Only include accounts with CPM disabled or where previous action failed
-	.\Invoke-BulkAccountActions.ps1 -PVWAURL "https://pvwa.example.com/PasswordVault" -AccountsAction Verify -CPMDisabled  -FailedOnly
-
 .NOTES
 	Author: Assaf Miron
 	CyberArk PVWA v10.4+
