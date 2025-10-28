@@ -1186,7 +1186,7 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
             [array]$AccountFailed.accountData | Add-Member -MemberType NoteProperty -Name FailReason -Value $null -Force
             $i = 0
             foreach ($id in $AccountFailed) {
-                $AccountFailed[$i].accountData.FailReason = $AccountFailed[$i].Error |ConvertFrom-Json
+                $AccountFailed[$i].accountData.FailReason = [string]$AccountFailed[$i].Error
                 $i++
             }
             $AccountFailed.accountData | Export-Csv -Force .\FailedAccounts.csv
