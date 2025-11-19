@@ -50,7 +50,7 @@ $PSBoundParameters.GetEnumerator() | ForEach-Object { $ScriptParameters += ("-{0
 $global:g_ScriptCommand = '{0} {1}' -f $ScriptFullPath, $($ScriptParameters -join ' ')
 
 # Script Version
-$ScriptVersion = '1.0.0'
+$ScriptVersion = '1.0.1'
 
 # Set Log file path
 $global:LOG_DATE = $(Get-Date -Format yyyyMMdd) + '-' + $(Get-Date -Format HHmmss)
@@ -518,10 +518,10 @@ else {
 		$creds = $Host.UI.PromptForCredential($caption, $msg, '', '')
 	}
 	if ($AuthType -eq 'radius' -and ![string]::IsNullOrEmpty($OTP)) {
-		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession -RadiusOTP $OTP )
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $true -RadiusOTP $OTP )
 	}
 	else {
-		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $concurrentSession)
+		Set-Variable -Scope Global -Name g_LogonHeader -Value $(Get-LogonHeader -Credentials $creds -concurrentSession $true)
 	}
 	# Verify that we successfully logged on
 	If ($null -eq $g_LogonHeader) {
