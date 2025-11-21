@@ -49,8 +49,6 @@ This document provides a practical introduction to using the CyberArk Privilege 
 - **API URL (Gen 2):** `https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/`
 - **API URL (Gen 1):** `https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/WebServices/`
 
-> Use the Gen 3 `/api/` endpoint for new integrations.
-
 ## Return Codes
 | Code | Meaning |
 |------|---------|
