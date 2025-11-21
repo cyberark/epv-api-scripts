@@ -1,4 +1,4 @@
-# CyberArk Privilege Cloud ISPSS REST API Basic Guide
+# CyberArk Privilege Cloud ISPSS REST API Basic Guide v1
 
 This document provides a practical introduction to using the CyberArk Privilege Cloud REST API for common account management tasks. It is designed for new users and developers who want to automate Privilege Cloud operations.
 
