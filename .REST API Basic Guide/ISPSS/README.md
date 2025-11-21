@@ -68,6 +68,19 @@ For more information use the following link:
     - [Generate MFA Caching SSH Key](#generate-mfa-caching-ssh-key)
     - [Delete MFA Caching SSH Key](#delete-mfa-caching-ssh-key)
     - [Delete All MFA Caching SSH Keys](#delete-all-mfa-caching-ssh-keys)
+  - [Additional Examples in Other Languages](#additional-examples-in-other-languages)
+    - [Python Examples](#python-examples)
+      - [Authentication (Python)](#authentication-python)
+      - [Add Account (Python)](#add-account-python)
+      - [Get All Accounts (Python)](#get-all-accounts-python)
+      - [Get Account (Python)](#get-account-python)
+      - [Delete Account (Python)](#delete-account-python)
+    - [Shell Script Examples (Bash/cURL)](#shell-script-examples-bashcurl)
+      - [Authentication (Shell)](#authentication-shell)
+      - [Add Account (Shell)](#add-account-shell)
+      - [Get All Accounts (Shell)](#get-all-accounts-shell)
+      - [Get Account (Shell)](#get-account-shell)
+      - [Delete Account (Shell)](#delete-account-shell)
 
 ---
 
@@ -794,6 +807,284 @@ if ($response.StatusCode -eq 204) {
 } else {
     Write-Host "Unexpected response: $($response.StatusCode)"
 }
+```
+
+---
+
+## Additional Examples in Other Languages
+
+### Python Examples
+
+#### Authentication (Python)
+
+**Important: Privilege Cloud Authentication Requirements**
+
+Privilege Cloud authentication requires Identity authentication (MFA, OAuth, etc.). There is no simple username/password endpoint for Privilege Cloud.
+
+In production, you must create a Python function to handle token generation through CyberArk Identity, which supports:
+- Multi-factor authentication (MFA)
+- OAuth client credentials
+- External Identity Provider authentication
+- Other Identity authentication mechanisms
+
+For actual implementation guidance, refer to:
+- https://docs.cyberark.com/privilege-cloud-shared-services/latest/en/content/developer/developer-home.htm#AuthenticatetoCyberArkIdentitySecurityPlatformSharedServices
+
+**Conceptual Production Pattern:**
+
+Using a mock module name (does not exist):
+```python
+from cyberark_identity_auth import get_identity_token
+
+headers = get_identity_token(
+    pcloud_url="https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault",
+    username="user@company.com"
+)
+# This would handle Identity authentication, MFA challenges, OAuth, etc.
+```
+
+The mock module would return headers in this format (like `$header` in PowerShell):
+```python
+headers = {
+    "Authorization": "<token_from_identity_authentication>",
+    "X-IDAP-NATIVE-CLIENT": "true",
+    "Content-Type": "application/json"
+}
+```
+
+
+#### Add Account (Python)
+```python
+import requests
+
+# Assumes 'headers' is already set from authentication
+
+add_account_url = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts"
+account_data = {
+    "name": "MyAccount",
+    "address": "server01.example.com",
+    "userName": "administrator",
+    "platformId": "WinDomain",
+    "safeName": "WindowsServers",
+    "secretType": "password",
+    "secret": "MySecretPassword123!",
+    "platformAccountProperties": {
+        "LogonDomain": "example.com"
+    }
+}
+
+response = requests.post(add_account_url, headers=headers, json=account_data)
+if response.status_code == 201:
+    print("Account created successfully")
+    account = response.json()
+    print(f"Account ID: {account['id']}")
+else:
+    print(f"Error: {response.status_code} - {response.text}")
+```
+#### Get All Accounts (Python)
+```python
+import requests
+
+# Assumes 'headers' is already set from authentication
+
+# Get all accounts (default limit is 50)
+get_accounts_url = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts"
+
+response = requests.get(get_accounts_url, headers=headers)
+if response.status_code == 200:
+    accounts = response.json()
+    print(f"Total accounts returned: {accounts['count']}")
+    print("\nAccounts:")
+    for account in accounts['value']:
+        print(f"- {account['name']} ({account['address']}) - {account['userName']}")
+else:
+    print(f"Error: {response.status_code} - {response.text}")
+```
+
+#### Get Account (Python)
+```python
+import requests
+
+# Assumes 'headers' is already set from authentication
+
+# Get specific account by ID
+account_id = "your_account_id"
+get_account_url = f"https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts/{account_id}"
+
+headers = {
+    "Authorization": token
+}
+
+response = requests.get(get_account_url, headers=headers)
+if response.status_code == 200:
+    account = response.json()
+    print(f"Account Name: {account['name']}")
+    print(f"Address: {account['address']}")
+    print(f"Username: {account['userName']}")
+else:
+    print(f"Error: {response.status_code} - {response.text}")
+
+# Get all accounts with search
+search_url = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts?search=administrator&limit=50"
+response = requests.get(search_url, headers=headers)
+if response.status_code == 200:
+    accounts = response.json()
+    print(f"Found {accounts['count']} accounts")
+    for account in accounts['value']:
+        print(f"- {account['name']} ({account['address']})")
+```
+
+#### Delete Account (Python)
+```python
+import requests
+
+# Assumes 'headers' is already set from authentication
+
+# Delete account by ID
+account_id = "your_account_id"
+delete_url = f"https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts/{account_id}"
+
+response = requests.delete(delete_url, headers=headers)
+if response.status_code == 204:
+    print("Account deleted successfully")
+elif response.status_code == 404:
+    print("Account not found")
+else:
+    print(f"Error: {response.status_code} - {response.text}")
+```
+
+---
+
+### Shell Script Examples (Bash/cURL)
+
+#### Authentication (Shell)
+
+**Important: Privilege Cloud Authentication Requirements**
+
+Privilege Cloud authentication requires Identity authentication (MFA, OAuth, etc.). There is no simple username/password endpoint for Privilege Cloud.
+
+In production, you must create a shell script/function to handle token generation through CyberArk Identity, which supports:
+- Multi-factor authentication (MFA)
+- OAuth client credentials
+- External Identity Provider authentication
+- Other Identity authentication mechanisms
+
+For actual implementation guidance, refer to:
+- https://docs.cyberark.com/privilege-cloud-shared-services/latest/en/content/developer/developer-home.htm#AuthenticatetoCyberArkIdentitySecurityPlatformSharedServices
+
+
+**Conceptual Production Pattern:**
+
+Using a mock script name (does not exist):
+```bash
+source ./cyberark_identity_auth.sh
+get_identity_token "<subdomain>" "user@company.com"
+# This would handle Identity auth, MFA, OAuth, etc.
+
+TOKEN=$CYBERARK_TOKEN  # Token returned by function
+export TOKEN
+export BASE_URL="https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault"
+```
+
+The mock script would set `TOKEN` in this format (like `$header.Authorization` in PowerShell):
+```bash
+TOKEN="<token_from_identity_authentication>"
+# You would also need to include X-IDAP-NATIVE-CLIENT header in requests
+```
+
+Variables that would be set by the authentication module:
+```bash
+SUBDOMAIN="<subdomain>"
+BASE_URL="https://${SUBDOMAIN}.privilegecloud.cyberark.cloud/PasswordVault"
+TOKEN="<your_token_from_identity_authentication>"
+
+export TOKEN
+export BASE_URL
+```
+
+
+#### Add Account (Shell)
+```bash
+#!/bin/bash
+
+# Assumes TOKEN and BASE_URL are already set from authentication
+curl -X POST "${BASE_URL}/API/Accounts" \
+  -H "Authorization: ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "MyAccount",
+    "address": "server01.example.com",
+    "userName": "administrator",
+    "platformId": "WinDomain",
+    "safeName": "WindowsServers",
+    "secretType": "password",
+    "secret": "MySecretPassword123!",
+    "platformAccountProperties": {
+      "LogonDomain": "example.com"
+    }
+  }' | jq '.'
+
+echo "Account created successfully"
+```
+
+#### Get All Accounts (Shell)
+```bash
+#!/bin/bash
+
+# Assumes TOKEN and BASE_URL are already set from authentication
+
+# Get all accounts (default limit is 50)
+echo "Getting all accounts..."
+curl -s -X GET "${BASE_URL}/API/Accounts" \
+  -H "Authorization: ${TOKEN}" | jq '{count: .count, accounts: .value[] | {name, address, userName}}'
+```
+
+#### Get Account (Shell)
+```bash
+#!/bin/bash
+
+# Assumes TOKEN and BASE_URL are already set from authentication
+
+ACCOUNT_ID="your_account_id"
+
+# Get specific account by ID
+echo "Getting account ${ACCOUNT_ID}..."
+curl -s -X GET "${BASE_URL}/API/Accounts/${ACCOUNT_ID}" \
+  -H "Authorization: ${TOKEN}" | jq '.'
+
+# Get all accounts with search and limit
+echo -e "\nSearching for accounts..."
+curl -s -X GET "${BASE_URL}/API/Accounts?search=administrator&limit=50" \
+  -H "Authorization: ${TOKEN}" | jq '.value[] | {name, address, userName}'
+
+# Get accounts from specific safe
+SAFE_NAME="WindowsServers"
+echo -e "\nGetting accounts from safe ${SAFE_NAME}..."
+curl -s -X GET "${BASE_URL}/API/Accounts?filter=safeName%20eq%20${SAFE_NAME}" \
+  -H "Authorization: ${TOKEN}" | jq '.value[] | {name, safeName}'
+```
+
+#### Delete Account (Shell)
+```bash
+#!/bin/bash
+
+# Assumes TOKEN and BASE_URL are already set from authentication
+
+ACCOUNT_ID="your_account_id"
+
+# Delete account
+echo "Deleting account ${ACCOUNT_ID}..."
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+  "${BASE_URL}/API/Accounts/${ACCOUNT_ID}" \
+  -H "Authorization: ${TOKEN}")
+
+if [ "${HTTP_CODE}" -eq 204 ]; then
+  echo "Account deleted successfully"
+elif [ "${HTTP_CODE}" -eq 404 ]; then
+  echo "Account not found"
+else
+  echo "Error: HTTP ${HTTP_CODE}"
+fi
 ```
 
 ---
