@@ -9,7 +9,8 @@ For more information use the following link:
 ---
 
 ## Table of Contents
-- [CyberArk Privilege Cloud ISPSS REST API Basic Guide](#cyberark-privilege-cloud-ispss-rest-api-basic-guide)
+
+- [CyberArk Privilege Cloud ISPSS REST API Basic Guide v1](#cyberark-privilege-cloud-ispss-rest-api-basic-guide-v1)
   - [Table of Contents](#table-of-contents)
   - [API Overview](#api-overview)
   - [Best Practices](#best-practices)
@@ -71,11 +72,13 @@ For more information use the following link:
 ---
 
 ## API Overview
+
 - CyberArk Privilege Cloud provides a RESTful API for automating and integrating privileged account management tasks.
 - Each object (such as accounts) has its own URL path.
 - The API can be accessed from any tool or language that supports HTTPS requests.
 
 ## Best Practices
+
 - Always check the response code and handle errors (e.g., 401, 403, 429).
 - If a error is received be sure to check for PCloud specific error embedded in the response
 - Use HTTPS and keep your session token secure.
@@ -85,17 +88,20 @@ For more information use the following link:
 ---
 
 ## Authentication & Authorization
+
 - All API calls (except Logon) require an `Authorization` header with a session token.
 - Obtain a session token by authenticating with the Logon API.
 - Include the token in the `Authorization` header for all subsequent requests.
 
 ## API URL Structure
+
 - **Portal URL:** `https://<subdomain>.cyberark.cloud/privilegecloud/`
 - **API URL (Gen 1):** `https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/WebServices/`
 - **API URL (Gen 2):** `https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/`
 - **API URL (Gen 3):** `https://<subdomain>.privilegecloud.cyberark.cloud/api/`
 
 ## Return Codes
+
 | Code | Meaning |
 |------|---------|
 | 200  | Success |
@@ -118,11 +124,13 @@ Before making any API calls, you must obtain a session token.
 One option is to use IdentityAuth.psm1. It is located at `https://github.com/cyberark/epv-api-scripts/tree/main/Identity%20Authentication`
 
 ### Import the CyberArk Identity Authentication module
+
 ```powershell
 Import-Module .\IdentityAuth.psm1
 ```
 
 ### Option 1: OAuth authentication with client credentials
+
 ```powershell
 # Create credential object with OAuth client ID and secret
 $OAuthCreds = Get-Credential
@@ -136,6 +144,7 @@ $header = Get-IdentityHeader -PCloudURL "https://<subdomain>.privilegecloud.cybe
 ```
 
 ### Option 2: Interactive authentication with username prompt
+
 Accounts that are using a external identity provider are currently not supported by the module
 
 ```powershell
@@ -145,7 +154,9 @@ $header = Get-IdentityHeader -PCloudURL "https://<subdomain>.privilegecloud.cybe
 ```
 
 ### Option 3: Username and password credentials
+
 MFA responses are still require if configured
+
 ```powershell
 $UPCreds = Get-Credential
 # When prompted, enter your username and password
@@ -160,6 +171,7 @@ $header = Get-IdentityHeader -PCloudURL "https://<subdomain>.privilegecloud.cybe
 ### Get Accounts
 
 #### Get all accounts (default limit is 50)
+
 ```powershell
 $getAccountsParams = @{
     Uri     = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts"
@@ -172,6 +184,7 @@ $response.count # Total number of accounts returned
 ```
 
 #### Get a specific account by ID
+
 ```powershell
 $getAccountParams = @{
     Uri     = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts/{accountId}/"
@@ -183,6 +196,7 @@ $account
 ```
 
 #### Get accounts with pagination (limit and offset)
+
 ```powershell
 $limit = 100
 $offset = 0
@@ -196,6 +210,7 @@ $response.value
 ```
 
 #### Get accounts with sorting (by userName ascending)
+
 ```powershell
 $getAccountsParams = @{
     Uri     = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts?sort=userName asc"
@@ -209,6 +224,7 @@ $response.value
 ### Search and Filter Accounts
 
 #### Search for accounts by keyword (default searchType is "contains")
+
 ```powershell
 $search = 'administrator'
 $getAccountsSearchParams = @{
@@ -221,6 +237,7 @@ $searchResponse.value # Filtered list of accounts
 ```
 
 #### Search with multiple keywords (space-separated)
+
 ```powershell
 $search = 'Windows admin'
 $getAccountsSearchParams = @{
@@ -233,6 +250,7 @@ $searchResponse.value
 ```
 
 #### Search with searchType "startswith"
+
 ```powershell
 $search = 'prod'
 $searchType = 'startswith'
@@ -246,6 +264,7 @@ $searchResponse.value
 ```
 
 #### Get accounts from a specific Safe using filter
+
 ```powershell
 $safeName = 'WindowsServers'
 $getAccountsParams = @{
@@ -258,6 +277,7 @@ $response.value
 ```
 
 #### Get accounts modified after a specific time (Unix timestamp in milliseconds)
+
 ```powershell
 $timestamp = 1640995200000 # Example: Jan 1, 2022
 $getAccountsParams = @{
@@ -270,6 +290,7 @@ $response.value
 ```
 
 #### Get accounts using saved filters
+
 ```powershell
 $getAccountsParams = @{
     Uri     = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts?savedFilter=PolicyFailures"
@@ -281,6 +302,7 @@ $response.value
 ```
 
 #### Combine multiple filters (Safe name AND modification time)
+
 ```powershell
 $safeName = 'WindowsServers'
 $timestamp = 1640995200000
@@ -294,6 +316,7 @@ $response.value
 ```
 
 #### Combine search with filter and pagination
+
 ```powershell
 $search = 'admin'
 $safeName = 'WindowsServers'
@@ -310,6 +333,7 @@ $searchResponse.value
 ### Account Actions
 
 #### Add Account
+
 ```powershell
 $addAccountParams = @{
     Uri         = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts"
@@ -342,6 +366,7 @@ $response
 ```
 
 #### Update Account Details
+
 ```powershell
 $updateAccountParams = @{
     Uri         = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts/{accountId}/"
@@ -359,6 +384,7 @@ $response
 ```
 
 #### Delete Account
+
 ```powershell
 $deleteAccountParams = @{
     Uri     = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts/{accountId}/"
@@ -377,6 +403,7 @@ if ($response.StatusCode -eq 204) {
 #### Linked Accounts
 
 ##### Link an Account
+
 ```powershell
 $linkAccountParams = @{
     Uri         = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts/{accountId}/LinkAccount/"
@@ -395,6 +422,7 @@ Write-Host "Logon account linked successfully."
 ```
 
 ##### Unlink an Account
+
 ```powershell
 $unlinkAccountParams = @{
     Uri         = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts/{accountId}/LinkAccount/{extraPasswordIndex}"
@@ -413,6 +441,7 @@ if ($response.StatusCode -eq 204) {
 #### Password Management
 
 ##### Change Credentials Immediately
+
 ```powershell
 $changeNowParams = @{
     Uri     = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts/{accountId}/Change/"
@@ -425,6 +454,7 @@ $response
 ```
 
 ##### Set Next Password
+
 ```powershell
 $setNextPasswordParams = @{
     Uri     = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts/{accountId}/SetNextPassword/"
@@ -441,6 +471,7 @@ $response
 ```
 
 ##### Change Credentials in Vault
+
 ```powershell
 $changeInVaultParams = @{
     Uri     = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/Accounts/{accountId}/Password/Update/"
@@ -460,6 +491,7 @@ $response
 ## Safe Management
 
 ### Add Safe
+
 ```powershell
 $addSafeParams = @{
     Uri         = "https://<subdomain>.privilegecloud.cyberark.cloud/api/Safes"
@@ -480,6 +512,7 @@ $response
 ```
 
 ### Update Safe
+
 ```powershell
 $changeSafeParams = @{
     Uri         = "https://<subdomain>.privilegecloud.cyberark.cloud/api/Safes/{SafeUrlId}/"
@@ -498,6 +531,7 @@ $response
 ```
 
 ### Remove Safe
+
 ```powershell
 $removeSafeParams = @{
     Uri     = "https://<subdomain>.privilegecloud.cyberark.cloud/api/Safes/{SafeUrlId}/"
@@ -518,6 +552,7 @@ if ($response.StatusCode -eq 204) {
 ## Safe Member Management
 
 ### Add Safe Member
+
 ```powershell
 $addSafeMemberParams = @{
     Uri         = "https://<subdomain>.privilegecloud.cyberark.cloud/api/Safes/{safeId}/Members"
@@ -538,6 +573,7 @@ $response
 ```
 
 ### Change Safe Member Permissions
+
 ```powershell
 $changeSafeMemberParams = @{
     Uri         = "https://<subdomain>.privilegecloud.cyberark.cloud/api/Safes/{safeId}/Members/{memberName}/"
@@ -576,6 +612,7 @@ $response
 ```
 
 ### Remove Safe Member
+
 ```powershell
 $removeSafeMemberParams = @{
     Uri     = "https://<subdomain>.privilegecloud.cyberark.cloud/api/Safes/{safeId}/Members/{memberName}/"
@@ -596,6 +633,7 @@ if ($response.StatusCode -eq 204) {
 ## System Health and Monitoring
 
 ### Get System Health Summary
+
 ```powershell
 $systemHealthSummaryParams = @{
     Uri     = "https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/ComponentsMonitoringSummary"
@@ -607,6 +645,7 @@ $response
 ```
 
 ### Get System Health
+
 ```powershell
 $ComponentId = 'SessionManagement' # PVWA, SessionManagement, CPM, AIM
 $systemHealthParams = @{
@@ -619,6 +658,7 @@ $response
 ```
 
 ### Get User Licenses Report
+
 ```powershell
 # Get Privilege Cloud user license usage information
 $licensesParams = @{
@@ -642,6 +682,7 @@ $response.licensesData.licencesElements | ForEach-Object {
 ## Access Request Management
 
 ### Get Incoming Requests
+
 ```powershell
 # Get requests waiting for approval
 $incomingRequestsParams = @{
@@ -654,6 +695,7 @@ $response # Returns list of requests awaiting your approval
 ```
 
 ### Confirm Request
+
 ```powershell
 # Approve an access request
 $confirmRequestParams = @{
@@ -670,6 +712,7 @@ Write-Host "Request confirmed successfully."
 ```
 
 ### Reject Request
+
 ```powershell
 # Reject an access request
 $rejectRequestParams = @{
@@ -690,6 +733,7 @@ Write-Host "Request rejected."
 ## SSH Key Management
 
 ### Generate MFA Caching SSH Key
+
 ```powershell
 # Generate an MFA caching SSH key for PSM for SSH connections
 $generateSSHKeyParams = @{
@@ -717,6 +761,7 @@ $response.value | ForEach-Object {
 ```
 
 ### Delete MFA Caching SSH Key
+
 ```powershell
 # Delete your MFA caching SSH key
 $deleteSSHKeyParams = @{
@@ -734,6 +779,7 @@ if ($response.StatusCode -eq 204) {
 ```
 
 ### Delete All MFA Caching SSH Keys
+
 ```powershell
 # Delete all MFA caching SSH keys for all users (requires Reset Users' Passwords permission)
 $clearCacheParams = @{
