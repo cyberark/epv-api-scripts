@@ -45,7 +45,7 @@ This document provides a practical introduction to using the CyberArk Privilege 
 
 ## API URL Structure
 - **Portal URL:** `https://<subdomain>.cyberark.cloud/privilegecloud/`
-- **API URL (Gen 1):** `https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/WebServices`
+- **API URL (Gen 1):** `https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/WebServices/`
 - **API URL (Gen 2):** `https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/`
 - **API URL (Gen 3):** `https://<subdomain>.privilegecloud.cyberark.cloud/api/`
 
