@@ -1,4 +1,4 @@
-# CyberArk Privilege Cloud ISPSS REST API Basic Guide
+# CyberArk Privilege Cloud ISPSS REST API Cookbook
 
 This document provides a practical introduction to using the CyberArk Privilege Cloud REST API with PowerShell for common account management tasks.
 
