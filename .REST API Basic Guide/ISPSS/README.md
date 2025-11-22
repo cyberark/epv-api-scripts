@@ -1,13 +1,16 @@
 # CyberArk Privilege Cloud ISPSS REST API Basic Guide
 
-This document provides a practical introduction to using the CyberArk Privilege Cloud REST API for common account management tasks. It is designed for new users and developers who want to automate Privilege Cloud operations.
+This document provides a practical introduction to using the CyberArk Privilege Cloud REST API with PowerShell for common account management tasks.
 
-For more information use the following link:
+It is designed for new users and developers who are familiar with PowerShell and want to automate Privilege Cloud operations.
 
- `https://docs.cyberark.com/privilege-cloud-shared-services/latest/en/content/webservices/implementing%20privileged%20account%20security%20web%20services%20.htm`
+For more information use the following links:
+
+ [Documentation about using the CyberArk Rest API](https://docs.cyberark.com/privilege-cloud-shared-services/latest/en/content/webservices/implementing%20privileged%20account%20security%20web%20services%20.htm)
+
+ [Documentation about using PowerShell](https://learn.microsoft.com/en-us/powershell/scripting/overview)
 
 ---
-
 
 ## API Overview
 
@@ -18,9 +21,8 @@ For more information use the following link:
 ## Best Practices
 
 - Always check the response code and handle errors (e.g., 401, 403, 429).
-- If a error is received be sure to check for PCloud specific error embedded in the response
+- If a error is received be sure to check for a PCloud specific error in the response
 - Use HTTPS and keep your session token secure.
-- Implement retry logic for 429 (Too Many Requests) errors.
 - Refer to the official [CyberArk Documentation](https://docs.cyberark.com/privilege-cloud-shared-services/latest/en/content/webservices/implementing%20privileged%20account%20security%20web%20services%20.htm) for full API details and updates.
 
 ---
@@ -55,41 +57,38 @@ For more information use the following link:
 ---
 
 
-## List of Examples
+# List of Examples
 
 
-
-  - [Authentication Example](#authentication-example)
-    - [Import the CyberArk Identity Authentication module](#import-the-cyberark-identity-authentication-module)
-    - [Option 1: OAuth authentication with client credentials](#option-1-oauth-authentication-with-client-credentials)
-    - [Option 2: Interactive authentication with username prompt](#option-2-interactive-authentication-with-username-prompt)
-    - [Option 3: Username and password credentials](#option-3-username-and-password-credentials)
-  - [Account Management](#account-management)
-    - [Get Accounts](#get-accounts)
-      - [Get all accounts (default limit is 50)](#get-all-accounts-default-limit-is-50)
-      - [Get a specific account by ID](#get-a-specific-account-by-id)
-      - [Get accounts with pagination (limit and offset)](#get-accounts-with-pagination-limit-and-offset)
-      - [Get accounts with sorting (by userName ascending)](#get-accounts-with-sorting-by-username-ascending)
-    - [Search and Filter Accounts](#search-and-filter-accounts)
-      - [Search for accounts by keyword (default searchType is "contains")](#search-for-accounts-by-keyword-default-searchtype-is-contains)
-      - [Search with multiple keywords (space-separated)](#search-with-multiple-keywords-space-separated)
+  - [Authentication](#authentication)
+    - [Importing the CyberArk Identity Authentication module](#importing-the-cyberark-identity-authentication-module)
+    - [OAuth authentication with client credentials](#oauth-authentication-with-client-credentials)
+    - [Interactive authentication with username prompt](#interactive-authentication-with-username-prompt)
+    - [Semi-interactive authentication using username and password passed using PSCredentials](#semi-interactive-authentication-using-username-and-password-passed-using-pscredentials)
+  - [Get Accounts](#get-accounts)
+    - [Get all accounts](#get-all-accounts)
+    - [Get a specific account by ID](#get-a-specific-account-by-id)
+    - [Get accounts with pagination](#get-accounts-with-pagination)
+    - [Get accounts with sorting](#get-accounts-with-sorting)
+    - [How to get accounts using filter and search](#how-to-get-accounts-using-filter-and-search)
+      - [Search for accounts by keyword](#search-for-accounts-by-keyword)
+      - [Search with multiple keywords](#search-with-multiple-keywords)
       - [Search with searchType "startswith"](#search-with-searchtype-startswith)
       - [Get accounts from a specific Safe using filter](#get-accounts-from-a-specific-safe-using-filter)
-      - [Get accounts modified after a specific time (Unix timestamp in milliseconds)](#get-accounts-modified-after-a-specific-time-unix-timestamp-in-milliseconds)
+      - [Get accounts modified after a specific time](#get-accounts-modified-after-a-specific-time)
       - [Get accounts using saved filters](#get-accounts-using-saved-filters)
-      - [Combine multiple filters (Safe name AND modification time)](#combine-multiple-filters-safe-name-and-modification-time)
+      - [Combine multiple filters](#combine-multiple-filters)
       - [Combine search with filter and pagination](#combine-search-with-filter-and-pagination)
-    - [Account Actions](#account-actions)
-      - [Add Account](#add-account)
-      - [Update Account Details](#update-account-details)
-      - [Delete Account](#delete-account)
-      - [Linked Accounts](#linked-accounts)
-        - [Link an Account](#link-an-account)
-        - [Unlink an Account](#unlink-an-account)
-      - [Password Management](#password-management)
-        - [Change Credentials Immediately](#change-credentials-immediately)
-        - [Set Next Password](#set-next-password)
-        - [Change Credentials in Vault](#change-credentials-in-vault)
+  - [Account Actions](#account-actions)
+    - [Add Account](#add-account)
+    - [Update Account Details](#update-account-details)
+    - [Delete Account](#delete-account)
+    - [Link an Account](#link-an-account)
+    - [Unlink an Account](#unlink-an-account)
+  - [Password Management](#password-management)
+    - [Change Credentials Immediately](#change-credentials-immediately)
+    - [Set Next Password](#set-next-password)
+    - [Change Credentials in Vault](#change-credentials-in-vault)
   - [Safe Management](#safe-management)
     - [Add Safe](#add-safe)
     - [Update Safe](#update-safe)
@@ -109,36 +108,35 @@ For more information use the following link:
   - [SSH Key Management](#ssh-key-management)
     - [Generate MFA Caching SSH Key](#generate-mfa-caching-ssh-key)
     - [Delete MFA Caching SSH Key](#delete-mfa-caching-ssh-key)
-    - [Delete All MFA Caching SSH Keys](#delete-all-mfa-caching-ssh-keys)
+    - [Delete All MFA Caching SSH Keys For All Users](#delete-all-mfa-caching-ssh-keys-for-all-users)
   - [Additional Examples in Other Languages](#additional-examples-in-other-languages)
     - [Python Examples](#python-examples)
       - [Authentication (Python)](#authentication-python)
       - [Add Account (Python)](#add-account-python)
       - [Get All Accounts (Python)](#get-all-accounts-python)
-      - [Get Account (Python)](#get-account-python)
+      - [Get a specific account by ID (Python)](#get-a-specific-account-by-id-python)
       - [Delete Account (Python)](#delete-account-python)
     - [Shell Script Examples (Bash/cURL)](#shell-script-examples-bashcurl)
       - [Authentication (Shell)](#authentication-shell)
       - [Add Account (Shell)](#add-account-shell)
       - [Get All Accounts (Shell)](#get-all-accounts-shell)
-      - [Get Account (Shell)](#get-account-shell)
+      - [Get a specific account by ID (Shell)](#get-a-specific-account-by-id-shell)
       - [Delete Account (Shell)](#delete-account-shell)
 
 ---
 
-## Authentication Example
+## Authentication
 
 Before making any API calls, you must obtain a session token.
 
 One option is to use IdentityAuth.psm1. It is located at `https://github.com/cyberark/epv-api-scripts/tree/main/Identity%20Authentication`
 
-### Import the CyberArk Identity Authentication module
-
+### Importing the CyberArk Identity Authentication module
 ```powershell
 Import-Module .\IdentityAuth.psm1
 ```
 
-### Option 1: OAuth authentication with client credentials
+### OAuth authentication with client credentials
 
 ```powershell
 # Create credential object with OAuth client ID and secret
@@ -152,7 +150,7 @@ $header = Get-IdentityHeader -PCloudURL "https://<subdomain>.privilegecloud.cybe
 # $header is a hashtable with the required Authorization and X-IDAP-NATIVE-CLIENT headers
 ```
 
-### Option 2: Interactive authentication with username prompt
+### Interactive authentication with username prompt
 
 Accounts that are using a external identity provider are currently not supported by the module
 
@@ -162,7 +160,7 @@ $header = Get-IdentityHeader -PCloudURL "https://<subdomain>.privilegecloud.cybe
 # You will be prompted to complete MFA challenges (Push, SMS, etc.)
 ```
 
-### Option 3: Username and password credentials
+### Semi-interactive authentication using username and password passed using PSCredentials
 
 MFA responses are still require if configured
 
@@ -175,11 +173,9 @@ $header = Get-IdentityHeader -PCloudURL "https://<subdomain>.privilegecloud.cybe
 # You will be prompted to complete MFA challenges (Push, SMS, etc.)
 ```
 
-## Account Management
+## Get Accounts
 
-### Get Accounts
-
-#### Get all accounts (default limit is 50)
+### Get all accounts
 
 ```powershell
 $getAccountsParams = @{
@@ -192,7 +188,7 @@ $response.value # List of accounts
 $response.count # Total number of accounts returned
 ```
 
-#### Get a specific account by ID
+### Get a specific account by ID
 
 ```powershell
 $getAccountParams = @{
@@ -204,7 +200,7 @@ $account = Invoke-RestMethod @getAccountParams
 $account
 ```
 
-#### Get accounts with pagination (limit and offset)
+### Get accounts with pagination
 
 ```powershell
 $limit = 100
@@ -218,7 +214,7 @@ $response = Invoke-RestMethod @getAccountsParams
 $response.value
 ```
 
-#### Get accounts with sorting (by userName ascending)
+### Get accounts with sorting
 
 ```powershell
 $getAccountsParams = @{
@@ -230,9 +226,9 @@ $response = Invoke-RestMethod @getAccountsParams
 $response.value
 ```
 
-### Search and Filter Accounts
+### How to get accounts using filter and search
 
-#### Search for accounts by keyword (default searchType is "contains")
+#### Search for accounts by keyword
 
 ```powershell
 $search = 'administrator'
@@ -242,10 +238,10 @@ $getAccountsSearchParams = @{
     Method  = 'Get'
 }
 $searchResponse = Invoke-RestMethod @getAccountsSearchParams
-$searchResponse.value # Filtered list of accounts
+$searchResponse.value
 ```
 
-#### Search with multiple keywords (space-separated)
+#### Search with multiple keywords
 
 ```powershell
 $search = 'Windows admin'
@@ -285,7 +281,7 @@ $response = Invoke-RestMethod @getAccountsParams
 $response.value
 ```
 
-#### Get accounts modified after a specific time (Unix timestamp in milliseconds)
+#### Get accounts modified after a specific time
 
 ```powershell
 $timestamp = 1640995200000 # Example: Jan 1, 2022
@@ -310,7 +306,7 @@ $response = Invoke-RestMethod @getAccountsParams
 $response.value
 ```
 
-#### Combine multiple filters (Safe name AND modification time)
+#### Combine multiple filters
 
 ```powershell
 $safeName = 'WindowsServers'
@@ -339,9 +335,9 @@ $searchResponse = Invoke-RestMethod @getAccountsSearchParams
 $searchResponse.value
 ```
 
-### Account Actions
+## Account Actions
 
-#### Add Account
+### Add Account
 
 ```powershell
 $addAccountParams = @{
@@ -374,7 +370,7 @@ $response = Invoke-RestMethod @addAccountParams
 $response
 ```
 
-#### Update Account Details
+### Update Account Details
 
 ```powershell
 $updateAccountParams = @{
@@ -392,7 +388,7 @@ $response = Invoke-RestMethod @updateAccountParams
 $response
 ```
 
-#### Delete Account
+### Delete Account
 
 ```powershell
 $deleteAccountParams = @{
@@ -409,9 +405,7 @@ if ($response.StatusCode -eq 204) {
 }
 ```
 
-#### Linked Accounts
-
-##### Link an Account
+### Link an Account
 
 ```powershell
 $linkAccountParams = @{
@@ -430,7 +424,7 @@ $response = Invoke-RestMethod @linkAccountParams
 Write-Host "Logon account linked successfully."
 ```
 
-##### Unlink an Account
+### Unlink an Account
 
 ```powershell
 $unlinkAccountParams = @{
@@ -447,9 +441,9 @@ if ($response.StatusCode -eq 204) {
 }
 ```
 
-#### Password Management
+## Password Management
 
-##### Change Credentials Immediately
+### Change Credentials Immediately
 
 ```powershell
 $changeNowParams = @{
@@ -462,7 +456,7 @@ $response = Invoke-RestMethod @changeNowParams
 $response
 ```
 
-##### Set Next Password
+### Set Next Password
 
 ```powershell
 $setNextPasswordParams = @{
@@ -479,7 +473,7 @@ $response = Invoke-RestMethod @setNextPasswordParams
 $response
 ```
 
-##### Change Credentials in Vault
+### Change Credentials in Vault
 
 ```powershell
 $changeInVaultParams = @{
@@ -787,7 +781,7 @@ if ($response.StatusCode -eq 204) {
 }
 ```
 
-### Delete All MFA Caching SSH Keys
+### Delete All MFA Caching SSH Keys For All Users
 
 ```powershell
 # Delete all MFA caching SSH keys for all users (requires Reset Users' Passwords permission)
@@ -896,7 +890,7 @@ else:
     print(f"Error: {response.status_code} - {response.text}")
 ```
 
-#### Get Account (Python)
+#### Get a specific account by ID (Python)
 ```python
 import requests
 
@@ -1033,7 +1027,7 @@ curl -s -X GET "${BASE_URL}/API/Accounts" \
   -H "Authorization: ${TOKEN}" | jq '{count: .count, accounts: .value[] | {name, address, userName}}'
 ```
 
-#### Get Account (Shell)
+#### Get a specific account by ID (Shell)
 ```bash
 #!/bin/bash
 
