@@ -8,16 +8,58 @@ For more information use the following link:
 
 ---
 
-## Table of Contents
 
-- [CyberArk Privilege Cloud ISPSS REST API Basic Guide](#cyberark-privilege-cloud-ispss-rest-api-basic-guide)
-  - [Table of Contents](#table-of-contents)
-  - [API Overview](#api-overview)
-  - [Best Practices](#best-practices)
-  - [Authentication \& Authorization](#authentication--authorization)
-  - [API URL Structure](#api-url-structure)
-  - [Return Codes](#return-codes)
-  - [Getting the $header Value (Authentication Example)](#getting-the-header-value-authentication-example)
+## API Overview
+
+- CyberArk Privilege Cloud provides a RESTful API for automating and integrating privileged account management tasks.
+- Each object (such as accounts) has its own URL path.
+- The API can be accessed from any tool or language that supports HTTPS requests.
+
+## Best Practices
+
+- Always check the response code and handle errors (e.g., 401, 403, 429).
+- If a error is received be sure to check for PCloud specific error embedded in the response
+- Use HTTPS and keep your session token secure.
+- Implement retry logic for 429 (Too Many Requests) errors.
+- Refer to the official [CyberArk Documentation](https://docs.cyberark.com/privilege-cloud-shared-services/latest/en/content/webservices/implementing%20privileged%20account%20security%20web%20services%20.htm) for full API details and updates.
+
+---
+
+## Authentication & Authorization
+
+- All API calls require an `Authorization` header with a session token.
+- For guidance on retrieving a session token, refer to: [Authenticate to CyberArk Identity Security Platform Shared Services](https://docs.cyberark.com/privilege-cloud-shared-services/latest/en/content/developer/developer-home.htm#AuthenticatetoCyberArkIdentitySecurityPlatformSharedServices)
+
+## API URL Structure
+
+- **Portal URL:** `https://<subdomain>.cyberark.cloud/privilegecloud/`
+- **API URL (Gen 1):** `https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/WebServices/`
+- **API URL (Gen 2):** `https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/`
+- **API URL (Gen 3):** `https://<subdomain>.privilegecloud.cyberark.cloud/api/`
+
+## Return Codes
+
+| Code | Meaning |
+|------|---------|
+| 200  | Success |
+| 201  | Created |
+| 204  | No Content (e.g., after DELETE) |
+| 400  | Bad Request |
+| 401  | Unauthorized |
+| 403  | Forbidden |
+| 404  | Not Found |
+| 409  | Conflict |
+| 429  | Too Many Requests (rate limiting) |
+| 500  | Internal Server Error |
+
+---
+
+
+## List of Examples
+
+
+
+  - [Authentication Example](#authentication-example)
     - [Import the CyberArk Identity Authentication module](#import-the-cyberark-identity-authentication-module)
     - [Option 1: OAuth authentication with client credentials](#option-1-oauth-authentication-with-client-credentials)
     - [Option 2: Interactive authentication with username prompt](#option-2-interactive-authentication-with-username-prompt)
@@ -84,53 +126,7 @@ For more information use the following link:
 
 ---
 
-## API Overview
-
-- CyberArk Privilege Cloud provides a RESTful API for automating and integrating privileged account management tasks.
-- Each object (such as accounts) has its own URL path.
-- The API can be accessed from any tool or language that supports HTTPS requests.
-
-## Best Practices
-
-- Always check the response code and handle errors (e.g., 401, 403, 429).
-- If a error is received be sure to check for PCloud specific error embedded in the response
-- Use HTTPS and keep your session token secure.
-- Implement retry logic for 429 (Too Many Requests) errors.
-- Refer to the [official CyberArk documentation](https://docs.cyberark.com/privilege-cloud-shared-services/latest/en/content/webservices/implementing%20privileged%20account%20security%20web%20services%20.htm) for full API details and updates.
-
----
-
-## Authentication & Authorization
-
-- All API calls (except Logon) require an `Authorization` header with a session token.
-- Obtain a session token by authenticating with the Logon API.
-- Include the token in the `Authorization` header for all subsequent requests.
-
-## API URL Structure
-
-- **Portal URL:** `https://<subdomain>.cyberark.cloud/privilegecloud/`
-- **API URL (Gen 1):** `https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/WebServices/`
-- **API URL (Gen 2):** `https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault/API/`
-- **API URL (Gen 3):** `https://<subdomain>.privilegecloud.cyberark.cloud/api/`
-
-## Return Codes
-
-| Code | Meaning |
-|------|---------|
-| 200  | Success |
-| 201  | Created |
-| 204  | No Content (e.g., after DELETE) |
-| 400  | Bad Request |
-| 401  | Unauthorized |
-| 403  | Forbidden |
-| 404  | Not Found |
-| 409  | Conflict |
-| 429  | Too Many Requests (rate limiting) |
-| 500  | Internal Server Error |
-
----
-
-## Getting the $header Value (Authentication Example)
+## Authentication Example
 
 Before making any API calls, you must obtain a session token.
 
@@ -827,8 +823,7 @@ In production, you must create a Python function to handle token generation thro
 - External Identity Provider authentication
 - Other Identity authentication mechanisms
 
-For actual implementation guidance, refer to:
-- https://docs.cyberark.com/privilege-cloud-shared-services/latest/en/content/developer/developer-home.htm#AuthenticatetoCyberArkIdentitySecurityPlatformSharedServices
+For actual implementation guidance, refer to: [Authenticate to CyberArk Identity Security Platform Shared Services](https://docs.cyberark.com/privilege-cloud-shared-services/latest/en/content/developer/developer-home.htm#AuthenticatetoCyberArkIdentitySecurityPlatformSharedServices)
 
 **Conceptual Production Pattern:**
 
@@ -969,8 +964,7 @@ In production, you must create a shell script/function to handle token generatio
 - External Identity Provider authentication
 - Other Identity authentication mechanisms
 
-For actual implementation guidance, refer to:
-- https://docs.cyberark.com/privilege-cloud-shared-services/latest/en/content/developer/developer-home.htm#AuthenticatetoCyberArkIdentitySecurityPlatformSharedServices
+For actual implementation guidance, refer to: [Authenticate to CyberArk Identity Security Platform Shared Services](https://docs.cyberark.com/privilege-cloud-shared-services/latest/en/content/developer/developer-home.htm#AuthenticatetoCyberArkIdentitySecurityPlatformSharedServices)
 
 
 **Conceptual Production Pattern:**
