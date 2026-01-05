@@ -240,4 +240,3 @@ For issues specific to this legacy version:
 ---
 
 **Recommendation:** For all new implementations, use the modern Export-CyberArkApplications.ps1 and Import-CyberArkApplications.ps1 scripts located in the parent directory.
-
