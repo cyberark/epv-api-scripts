@@ -987,11 +987,12 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
                 Write-LogMessage -type Debug -MSG 'Found source account'
                 Write-LogMessage -type Verbose -MSG "Source account: $($srcAccount |ConvertTo-Json -Compress)"
                 Write-LogMessage -type Debug -MSG "Searching for destination account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`""
-                If([string]::IsNullOrEmpty($srcAccount.userName) -or [string]::IsNullOrEmpty($srcAccount.address)) {
-                    Write-LogMessage -type Error -MSG "Source account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`" is missing username or address. Skipping account."
-                    $AccountStatus.success = $false
-                    continue
-                }
+                # Removing and testing due to change in behavior REST API
+                # If([string]::IsNullOrEmpty($srcAccount.userName) -or [string]::IsNullOrEmpty($srcAccount.address)) {
+                #     Write-LogMessage -type Error -MSG "Source account with username `"$($srcAccount.userName)`" and address `"$($srcAccount.address)`" in safe `"$($srcAccount.safeName)`" is missing username or address. Skipping account."
+                #     $AccountStatus.success = $false
+                #     continue
+                # }
                 [array]$dstAccountArray = Get-Accounts -url $dstPVWAURL -logonHeader $dstToken -safename $($srcAccount.safeName) -keywords "$($srcAccount.userName) $($srcAccount.address)" -startswith $true
                 if ((0 -ne $($dstAccountArray.count))) {
                     Write-LogMessage -type Verbose -MSG "Results array from destination: $($dstAccountArray | ConvertTo-Json -Compress)"
@@ -1185,7 +1186,7 @@ To get further information about the paramaters use "Get-Help Sync-Accounts -ful
             [array]$AccountFailed.accountData | Add-Member -MemberType NoteProperty -Name FailReason -Value $null -Force
             $i = 0
             foreach ($id in $AccountFailed) {
-                $AccountFailed[$i].accountData.FailReason = $AccountFailed[$i].Error
+                $AccountFailed[$i].accountData.FailReason = [string]$AccountFailed[$i].Error
                 $i++
             }
             $AccountFailed.accountData | Export-Csv -Force .\FailedAccounts.csv
