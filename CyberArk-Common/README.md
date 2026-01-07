@@ -1,7 +1,7 @@
 # EPV-API-Common PowerShell Module
 
 [![PowerShell Version](https://img.shields.io/badge/PowerShell-7.4%2B-blue.svg)](https://github.com/PowerShell/PowerShell)
-[![Version](https://img.shields.io/badge/Version-0.1.2--Alpha-green.svg)]()
+[![Version](https://img.shields.io/badge/Version-0.1.6--Alpha-green.svg)]()
 [![License](https://img.shields.io/badge/License-CyberArk-blue.svg)]()
 
 ## Overview
