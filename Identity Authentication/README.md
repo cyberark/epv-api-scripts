@@ -5,7 +5,6 @@
 **PowerShell Compatibility:** 5.1+ (IdentityAuth.psm1) | 7.0+ (IdentityAuth7.psm1)
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B%20%7C%207.0%2B-blue)](https://github.com/PowerShell/PowerShell)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](../../LICENSE)
 
 PowerShell module for authenticating to CyberArk Identity Security Platform with support for OAuth, MFA, and OOBAUTHPIN (SAML+PIN) flows.
 
@@ -341,4 +340,5 @@ For issues and feature requests, please open an issue in the GitHub repository.
 
 **Last Updated:** 2026-01-28
 **Version:** 2.0.0
+
 
