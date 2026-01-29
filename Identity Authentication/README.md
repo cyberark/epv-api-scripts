@@ -328,15 +328,8 @@ $headers = Get-IdentityHeader -OAuthCreds $creds -PCloudURL $PCloudURL
 
 ## Documentation
 
-- [Architecture Design](Documentation/ARCHITECTURE-DESIGN.md) - Detailed architecture and flow diagrams
-- [Developer Guide](Documentation/DEVELOPER-GUIDE.md) - Contributing and development setup
-- [Migration Guide](Documentation/MIGRATION-GUIDE.md) - Migrating from v1 module
-
----
-
-## License
-
-Apache License 2.0 - See [LICENSE](../../LICENSE) for details
+- [Architecture Design](ARCHITECTURE-DESIGN.md) - Detailed architecture and flow diagrams
+- [Developer Guide](DEVELOPER-GUIDE.md) - Contributing and development setup
 
 ---
 
@@ -348,3 +341,4 @@ For issues and feature requests, please open an issue in the GitHub repository.
 
 **Last Updated:** 2026-01-28
 **Version:** 2.0.0
+
