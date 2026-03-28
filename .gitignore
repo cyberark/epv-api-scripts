@@ -2,6 +2,7 @@
 .vscode/launch.json
 .creds
 *.log
+.local/*
 
 *Vault.ini
 .vscode/settings.json
@@ -28,3 +29,4 @@ Migration/Migration via VEM/Convert-VEMFiles/Ignore
 *.bad.csv
 *.good.csv
 .github/copilot-instructions.md
+
