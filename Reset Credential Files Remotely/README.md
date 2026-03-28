@@ -1,85 +1,166 @@
-# Remote-CredFile
+# Reset Credential Files Remotely
 
-> **Note:** The content of the 'map.csv' file is for example only and does not represent real components.
+Remotely regenerates CyberArk component credential files and synchronises the new password
+in the Vault — without requiring an operator to log on to each component server manually.
 
-## Main capabilities
-- This script will attempt to regenerate the remote Applicative Cred File and Sync it in the Vault.
-- This tool uses REST API.
-- Ensure that both 'Remote-CredFile.ps1' and 'CyberArk-Common.psm1' are in the same location.
-- This tool connects to Windows Server using WinRM. If WinRM needs to be enabled, you can use following resources for assistance:
-    - https://github.com/ansible/ansible/blob/devel/examples/scripts/ConfigureRemotingForAnsible.ps1
-    - https://docs.microsoft.com/en-us/troubleshoot/windows-server/remote/how-to-enable-windows-remote-shell
-- The tool currently does not work on components installed on Linux servers.
-    - This will be implemented in a future release
-- The tool allows override of IP Address, Component Types, and Operating System.
-- The tool requires administrative access to the server.
-    - By default connections are made using the credentials of the user running the script.
+> **Note:** `map.csv` contains example data only and does not represent real components.
 
-## Parameters:
+---
+
+## Scripts
+
+| Script | Purpose | Run on |
+| --- | --- | --- |
+| `Invoke-CredFileReset.ps1` | **Main script** — orchestrates credential resets across component servers | Orchestrating machine |
+| `Reset-ComponentCredential.ps1` | Helper functions loaded into remote PSSessions (not run directly) | Loaded automatically |
+| `Test-RemoteConnectivity.ps1` | Pre-flight check — tests WinRM connectivity from orchestrating machine to targets | Orchestrating machine |
+| `Test-WinRMConfiguration.ps1` | Diagnoses WinRM configuration on a component server | Target server (locally) |
+
+---
+
+## Requirements
+
+- PowerShell 5.1 or later on the orchestrating machine
+- WinRM (TCP 5985) access from the orchestrating machine to each component server
+- CyberArk Vault Administrator or equivalent REST API permissions on the PVWA
+- Local Administrator rights on each component server (via WinRM)
+- `Invoke-CredFileReset.ps1` and `Reset-ComponentCredential.ps1` must be in the same directory
+
+---
+
+## Recommended Workflow
+
+### Step 1 — Pre-flight: check WinRM on the target servers
+
+Run `Test-WinRMConfiguration.ps1` **locally on each component server** to verify WinRM is
+configured correctly before attempting a remote credential reset:
+
 ```powershell
-.\Remote-CredFile.ps1 -PVWAURL <string> [[-AuthType <string>] [-OTP <string>] [-PVWACredentials <PSCredential>] [-PSCredentials <PSCredential>] [-LogonToken <object>] [-AllComponentTypes] [-ComponentType <string>] [-ComponentUser <string>] [-ComponentUserFilter <string>] [-AllServers] [-ConnectedOnly] [-DisconnectedOnly] [-MapFile <string>] [-VaultAddress <string>] [-APIAddress <string>] [-DisableSSLVerify] [-Jobs]]
+# Read-only inspection
+.\Test-WinRMConfiguration.ps1
+
+# Check and fix issues (prompts before each fix)
+.\Test-WinRMConfiguration.ps1 -Fix
+
+# Preview fixes without applying
+.\Test-WinRMConfiguration.ps1 -Fix -WhatIf
 ```
-- PVWAURL
-	- The URL of the PVWA. 
-	- Note that the URL needs to include 'PasswordVault', for example: "https://myPVWA.myDomain.com/PasswordVault"
-	- If PVWAs credentials are supposed to be reset during the process, do NOT use a load balancer address. Connect directly to the PVWA to prevent script failure due to stopping the PVWA by using the script.
-- AuthType
-	- Authentication types for logon. 
-	- Available values: _CyberArk, LDAP, RADIUS_
-	- Default value: _CyberArk_
-- OTP
-    - One-time-password, in case you use RADIUS authentication
-- PVWACredentials
-    - Credentials to use for the PVWA.
-    - Set credentials using ```$cred =  Get-Credential ```
-- LogonToken
-	- The logon token when using Privilege Cloud Shared Services (ISPSS).
-	- To generate Token see https://github.com/cyberark/epv-api-scripts/tree/main/Identity%20Authentication 
-- PSCredentials
-    - Use alternate credentials to connect to WinRM
-    - Set credentials using ```$PScred =  Get-Credential ```
-- AllComponentTypes
-    - Select all component types
-- ComponentType <`String`>
-    - Select specified component type
-    - Acceptably values are "CPM", "PSM", "PVWA", "CP", "AAM Credential Provider", "PSM/PSMP".
-- ComponentUser
-    - Select specified component Users.
-    - Enclose the users in quotes and separe them by comma ","
-    - Example: "PSMApp_b4e7e2d,PSMApp_fg453fdsf".
-- ComponentUserFilter
-    - Select component Users based on a `-like` search filter.
-    - Examples: "PasswordManager", "Pass*", "*Manager"
-- AllServers
-    - Select all servers of selected component types.
-- DisconnectedOnly
-    - Select only servers that are currently disconnected.
-- ConnectedOnly
-    - Select only servers that are currently connected.
-- MapFile
-    - Override parameters received from the PVWA System Health page
-    - To use the file, enter the "Component User" to match the Component User found on the System Health Page.
-        - IP address, Component Type, and OS can be set via the file.
-        - Components users will be bypassed if the IP Address in the mapping file is set to 255.255.255.255. 
-    - This file must be used with Privileged Cloud environments.
-- VaultAddress
-    - Resets the vault address within the 'vault.ini' file.
-    - Whatever is provided will be set in the file. The new address(es) must be surrounded by double quotes.
-    - Examples: 
-        - ``-vaultaddress "192.168.8.1,192.168.8.2"`` 
-        - or ``-vaultaddress "vault.lab.local"``
-- ApiAddress
-    - Resets the API Address in the 'vault.ini' file. 
-    - What ever is provided will be set in the file. The new address(es) must be surrounded by double quotes 
-    - Examples: 
-        - ``-apiAddress "https://pvwa.lab.local/passwordvault"`` 
-        - or ``-apiAddress "https://pvwa.lab.local/passwordvault,https://pvwa2.lab.local/passwordvault"``
-- DisableSSLVerify
-	**(NOT RECOMMENDED)**
-	- Disable the SSL certificate verification.
-	- Use only if your PVWA environment doesn't include a valid SSL certificate.
-- Jobs <`Switch`>
-    - Submit actions to reset credentials as PowerShell Jobs to allow for parallel processing.
-- Tries
-    - Select how many attempts are made to complete work before failing.
-    - Default: 5.
+
+### Step 2 — Pre-flight: verify connectivity from the orchestrating machine
+
+Run `Test-RemoteConnectivity.ps1` **from the orchestrating machine** to confirm it can reach
+each component server over WinRM:
+
+```powershell
+# Test one or more servers (Kerberos — domain account, no explicit credential needed)
+.\Test-RemoteConnectivity.ps1 -ComputerName 'cpm01.lab.local', 'psm01.lab.local'
+
+# Test with explicit credentials (workgroup / untrusted domain)
+$cred = Get-Credential
+.\Test-RemoteConnectivity.ps1 -ComputerName '192.168.1.50' -Credential $cred
+
+# Auto-fix TrustedHosts if needed
+.\Test-RemoteConnectivity.ps1 -ComputerName '192.168.1.50' -Credential $cred -Fix
+```
+
+### Step 3 — Reset credentials
+
+Run `Invoke-CredFileReset.ps1` **from the orchestrating machine**:
+
+```powershell
+# Interactive — prompted for credentials, select components via menu
+.\Invoke-CredFileReset.ps1 -PVWAURL 'https://pvwa.lab.local/PasswordVault'
+
+# Non-interactive — reset all CPM servers in serial
+$cred = Get-Credential
+.\Invoke-CredFileReset.ps1 -PVWAURL 'https://pvwa.lab.local/PasswordVault' `
+    -PVWACredentials $cred -ComponentType CPM -AllServers
+
+# Parallel reset from Remote SSH (must supply explicit WinRM credentials)
+$pvwaCred   = Get-Credential -Message 'PVWA credentials'
+$remoteCred = Get-Credential -Message 'WinRM credentials (use DOMAIN\user)'
+.\Invoke-CredFileReset.ps1 -PVWAURL 'https://pvwa.lab.local/PasswordVault' `
+    -PVWACredentials $pvwaCred -RemoteCredential $remoteCred -Jobs
+
+# Reset only disconnected components using a pre-existing logon token
+.\Invoke-CredFileReset.ps1 -PVWAURL 'https://pvwa.lab.local/PasswordVault' `
+    -LogonToken $token -DisconnectedOnly
+```
+
+---
+
+## Invoke-CredFileReset.ps1 Parameters
+
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `PVWAURL` | Yes | PVWA base URL. Example: `https://pvwa.lab.local/PasswordVault` |
+| `AuthType` | No | Authentication type: `cyberark` (default), `ldap`, `radius` |
+| `OTP` | No | RADIUS one-time password. Only valid with `-AuthType radius` |
+| `PVWACredentials` | No | PSCredential for PVWA REST API. Prompted if not provided |
+| `LogonToken` | No | Pre-existing PVWA logon token (string or header hashtable) |
+| `DisableSSLVerify` | No | Disable SSL certificate validation (NOT recommended) |
+| `Jobs` | No | Process component servers in parallel using background jobs |
+| `AllComponentTypes` | No | Process all component types without prompting |
+| `AllServers` | No | Process all servers of the selected type without prompting |
+| `DisconnectedOnly` | No | Only process servers currently disconnected from the Vault |
+| `ConnectedOnly` | No | Only process servers currently connected to the Vault |
+| `targetServer` | No | Process only this server (IP or hostname) |
+| `ComponentType` | No | Process only this type: `CPM`, `PSM`, `PVWA`, `CP`, `AAM Credential Provider`, `PSM/PSMP` |
+| `ComponentUsers` | No | Comma-separated list of specific component usernames to process |
+| `ComponentUserFilter` | No | Wildcard filter for component usernames (e.g. `PasswordManager*`) |
+| `MapFile` | No | Path to a CSV file that overrides IP, type, or OS per component user |
+| `OldDomain` | No | Domain suffix to replace in resolved FQDNs (used with `-NewDomain`) |
+| `NewDomain` | No | Replacement domain suffix (used with `-OldDomain`) |
+| `VaultAddress` | No | New Vault address to write into the component's `vault.ini` |
+| `ApiAddress` | No | New API/DR Vault address to write into the component's `vault.ini` |
+| `RemoteCredential` | No | PSCredential for WinRM connections. Required from Remote SSH sessions |
+| `Tries` | No | Maximum service-start attempts after reset. Default: `5` |
+
+### Get-Help
+
+```powershell
+Get-Help .\Invoke-CredFileReset.ps1 -Full
+Get-Help .\Test-RemoteConnectivity.ps1 -Full
+Get-Help .\Test-WinRMConfiguration.ps1 -Full
+```
+
+---
+
+## map.csv — Component Override File
+
+The `map.csv` file lets you override data returned by the PVWA System Health API — useful
+when the PVWA reports wrong IP addresses, or to exclude components, or to correct component
+type/OS classification.
+
+**CSV columns:**
+
+| Column | Description |
+| --- | --- |
+| `ComponentUser` | The component username as shown on the PVWA System Health page |
+| `IP Address` | Override the IP address. Set to `255.255.255.255` to skip this component |
+| `Component Type` | Override the component type (e.g. `CPM`, `PSM`) |
+| `OS` | Override the OS: `Windows` or `Linux` |
+
+Example `map.csv`:
+
+```csv
+ComponentUser,IP Address,Component Type,OS
+PasswordManager_abc,10.0.1.50,CPM,Windows
+PSMApp_xyz,255.255.255.255,,
+PSMPApp_linux01,,PSM,Linux
+```
+
+Privilege Cloud environments typically require a `map.csv` because the PVWA System Health
+page does not expose component IP addresses directly.
+
+---
+
+## WinRM Authentication Notes
+
+- **Domain accounts (Kerberos):** No `TrustedHosts` configuration needed. Use a domain account
+  in `-RemoteCredential` when running from a Remote SSH session (SSH cannot delegate Kerberos
+  tickets, so an explicit credential is required).
+- **Local accounts (NTLM):** Require the target to be added to `TrustedHosts` on the
+  orchestrating machine. Use `Test-RemoteConnectivity.ps1 -Fix` to add entries.
+- **PVWA self-protection:** When the PVWA's own component user is included in the reset scope,
+  the script automatically skips the PVWA to prevent locking out the REST API session in use.
