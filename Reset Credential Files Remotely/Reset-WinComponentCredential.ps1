@@ -15,18 +15,18 @@
     machine in Invoke-CredFileReset.ps1.
 
     Functions provided:
-      Write-LogMessage          — Console and file logging with type-based colour coding
-      Join-ExceptionMessage     — Formats an exception chain into a single readable string
-      Get-FileVersion           — Reads ProductVersion from a file's VersionInfo
-      Get-ServiceInstallPath    — Reads a service's executable path from the Windows registry
-      Find-WinComponents        — Discovers installed CyberArk components on the local machine
-      Stop-ServiceProcess       — Force-kills a service and its underlying process via CIM
-      New-RandomPassword        — Generates a cryptographically random password
-      Convert-SecureString      — Converts a SecureString to a plain-text string
-      Start-ComponentService    — Starts a Windows service with configurable retry logic
-      Stop-ComponentService     — Stops a Windows service with force-kill fallback
-      Reset-WinCredFile         — Invokes CreateCredFile.exe to regenerate credential files
-      Reset-VaultFile           — Updates Vault or API address entries in vault.ini
+      Write-LogMessage           -  Console and file logging with type-based colour coding
+      Join-ExceptionMessage      -  Formats an exception chain into a single readable string
+      Get-FileVersion            -  Reads ProductVersion from a file's VersionInfo
+      Get-ServiceInstallPath     -  Reads a service's executable path from the Windows registry
+      Find-WinComponents         -  Discovers installed CyberArk components on the local machine
+      Stop-ServiceProcess        -  Force-kills a service and its underlying process via CIM
+      New-RandomPassword         -  Generates a cryptographically random password
+      Convert-SecureString       -  Converts a SecureString to a plain-text string
+      Start-ComponentService     -  Starts a Windows service with configurable retry logic
+      Stop-ComponentService      -  Stops a Windows service with force-kill fallback
+      Reset-WinCredFile          -  Invokes CreateCredFile.exe to regenerate credential files
+      Reset-VaultFile            -  Updates Vault or API address entries in vault.ini
 
 .NOTES
     Version:    1.0
@@ -40,11 +40,99 @@
 
     Change Log:
     2020-09-13  Initial version
-    2026-03-27  Refactored — extracted from CyberArk-Common.psm1 into a standalone script
+    2026-03-27  Refactored  -  extracted from CyberArk-Common.psm1 into a standalone script
                 compatible with Invoke-Command -FilePath remote loading
 #>
 
 #Requires -Version 5.1
+
+#region Component Definitions
+
+# Windows service names for each component type.
+# Passed to Start-ComponentService / Stop-ComponentService.
+$Script:CpmServices  = @('CyberArk Password Manager', 'CyberArk Central Policy Manager Scanner')
+$Script:PvwaServices = @('CyberArk Scheduled Tasks', 'W3SVC', 'IISADMIN')
+$Script:PsmServices  = @('*Privileged Session Manager')
+$Script:AamServices  = @('CyberArk Application Password Provider')
+
+# Log file paths relative to each component's install directory.
+# Keyed by component type → log file name → path (relative to install dir, or absolute).
+# Used by Get-ComponentLog to resolve log file names to full paths on the remote machine.
+# Absolute paths (PVWA temp logs) are passed as-is by [System.IO.Path]::Combine.
+# Source: https://community.cyberark.com/s/article/Where-do-I-find-the-logs
+$Script:LogPaths = @{
+    PSM  = @{
+        'PSMConsole.log' = 'Logs\PSMConsole.log'
+        'PSMTrace.log'   = 'Logs\PSMTrace.log'
+    }
+    CPM  = @{
+        'PMConsole.log'      = 'Logs\PMConsole.log'
+        'PMTrace.log'        = 'Logs\PMTrace.log'
+        'pm.log'             = 'Logs\pm.log'
+        'pm_error.log'       = 'Logs\pm_error.log'
+        'CACPMScanner.log'   = 'Logs\CACPMScanner.log'
+        'Casos.Activity.log' = 'Logs\Casos.Activity.log'
+        'Casos.Debug.log'    = 'Logs\Casos.Debug.log'
+        'Casos.Error.log'    = 'Logs\Casos.Error.log'
+    }
+    PVWA = @{
+        # Logs written to Windows temp by the ASP.NET app pool
+        'CyberArk.WebApplication.log' = 'C:\Windows\Temp\pvwa\CyberArk.WebApplication.log'
+        'CyberArk.WebTasksEngine.log' = 'C:\Windows\Temp\pvwa\CyberArk.WebTasksEngine.log'
+        'PVWA.App.Log'                = 'C:\Windows\Temp\pvwa\PVWA.App.Log'
+        'Cyberark.Reports.log'        = 'C:\Windows\Temp\pvwa\Cyberark.Reports.log'
+        # Logs written by the Windows service under the install directory
+        'CyberArk.WebConsole.log'     = 'Services\Logs\CyberArk.WebConsole.log'
+        'CyberArk.WebTasksService.log'= 'Services\Logs\CyberArk.WebTasksService.log'
+    }
+    AIM  = @{
+        'APPConsole.log' = 'Logs\APPConsole.log'
+        'APPTrace.log'   = 'Logs\APPTrace.log'
+        'APPAudit.log'   = 'Logs\APPAudit.log'
+    }
+}
+
+# CreateCredFile.exe command templates, keyed by component type and version band.
+#   {0} = CyberArk username   (read from the existing cred file)
+#   {1} = new plaintext password
+$Script:CredCommands = @{
+    AIM  = @{
+        Legacy           = '.\CreateCredFile.exe AppProviderUser.cred Password /AppType AppPrv /IpAddress /Hostname /Username {0} /Password {1}'
+        v12              = '.\CreateCredFile.exe AppProviderUser.cred Password /AppType AppPrv /IpAddress /Hostname /EntropyFile /DPAPIMachineProtection /Username {0} /Password {1}'
+        VersionThreshold = [version]'12.0'
+    }
+    CPM  = @{
+        Legacy           = '.\CreateCredFile.exe user.ini Password /AppType CPM /IpAddress /Hostname /Username {0} /Password {1}'
+        v12              = '.\CreateCredFile.exe user.ini Password /AppType CPM /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Username {0} /Password {1}'
+        VersionThreshold = [version]'12.1'
+    }
+    PSM  = @{
+        App = @{
+            Legacy           = '.\CreateCredFile.exe psmapp.cred Password /AppType PSMApp /IpAddress /Hostname /Username {0} /Password {1}'
+            v12              = '.\CreateCredFile.exe psmapp.cred Password /AppType PSMApp /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Username {0} /Password {1}'
+            VersionThreshold = [version]'12.1'
+        }
+        GW  = @{
+            Legacy           = '.\CreateCredFile.exe psmgw.cred Password /AppType PSMApp /IpAddress /Hostname /Username {0} /Password {1}'
+            v12              = '.\CreateCredFile.exe psmgw.cred Password /AppType PSMApp /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Username {0} /Password {1}'
+            VersionThreshold = [version]'12.1'
+        }
+    }
+    PVWA = @{
+        App = @{
+            Legacy           = '.\CreateCredFile.exe ..\CredFiles\appuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath "C:\Windows\System32\inetsrv\w3wp.exe" /Username {0} /Password {1}'
+            v12              = '.\CreateCredFile.exe ..\CredFiles\appuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath "C:\Windows\System32\inetsrv\w3wp.exe" /EntropyFile /DPAPIMachineProtection /Username {0} /Password {1}'
+            VersionThreshold = [version]'12.1'
+        }
+        GW  = @{
+            Legacy           = '.\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath "C:\Windows\System32\inetsrv\w3wp.exe" /Username {0} /Password {1}'
+            v12              = '.\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath "C:\Windows\System32\inetsrv\w3wp.exe" /EntropyFile /DPAPIMachineProtection /Username {0} /Password {1}'
+            VersionThreshold = [version]'12.1'
+        }
+    }
+}
+
+#endregion
 
 Function Write-LogMessage {
     <#
@@ -630,7 +718,148 @@ function Stop-ComponentService {
     }
 }
 
+Function Test-TargetWinRM {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$server,
+        [Parameter(Mandatory = $false)]
+        [PSCredential]$Credential
+    )
+    Write-LogMessage -type Verbose -MSG "In Test-TargetWinRM"
+    Write-LogMessage -type Verbose -MSG "Parameter passed for `'server`' is `"$server`""
+
+    try {
+        $testSession = New-PSLogon -server $server -Credential $Credential
+        Remove-PSSession -Session $testSession
+        Write-LogMessage -type Verbose -MSG "Test-TargetWinRM completed Successfully"
+        Return $true
+    }
+    catch {
+        Write-LogMessage -type Verbose -MSG "Test-TargetWinRM failed to connect"
+        Return $false
+    }
+    Finally {
+        Write-LogMessage -type Verbose -MSG "Existing Test-TargetWinRM"
+    }
+}
+
+function New-PSLogon {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$server,
+        [Parameter(Mandatory = $false)]
+        [PSCredential]$Credential
+    )
+    # SSL session option: skip cert checks  -  component servers typically use self-signed certs
+    $psoptions    = New-PSSessionOption -MaxConnectionRetryCount 2
+    $psoptionsSSL = New-PSSessionOption -MaxConnectionRetryCount 2 -SkipCACheck -SkipCNCheck -SkipRevocationCheck
+
+    Write-LogMessage -type Verbose -MSG "In New-PSLogon"
+    Write-LogMessage -type Verbose -MSG "Parameter passed for `'server`' is `"$server`""
+
+    Try {
+        $effectiveCred = if ($null -ne $Credential) { $Credential } else { $Script:RemoteCredential }
+
+        # Non-SSL only mode  -  skip SSL attempt entirely
+        if ($Script:WinRMUseNonSSL) {
+            Write-LogMessage -type Verbose -MSG "WinRMUseNonSSL set: connecting directly via non-SSL (HTTP, port 5985) to $server"
+            $plainParams = @{
+                ComputerName  = $server
+                SessionOption = $psoptions
+                ErrorAction   = 'SilentlyContinue'
+                ErrorVariable = 'psSessionError'
+            }
+            if ($null -ne $effectiveCred) {
+                Write-LogMessage -type Verbose -MSG "Using explicit credentials for $($effectiveCred.username)"
+                $plainParams['Credential'] = $effectiveCred
+            }
+            else {
+                Write-LogMessage -type Verbose -MSG "Using implicit (Kerberos) credentials"
+            }
+            $psSession = New-PSSession @plainParams
+            if ($null -eq $psSession) {
+                $reason = if ($psSessionError.Count -gt 0) { $psSessionError[0].Exception.Message } else { 'Unknown reason' }
+                Write-LogMessage -type Error -MSG "Error creating non-SSL PSSession to $server : $reason"
+                Throw "No PSSession (non-SSL required)"
+            }
+            Write-LogMessage -type Verbose -MSG "Connected to $server via non-SSL WinRM"
+        }
+        else {
+            # Try SSL first (HTTPS, port 5986)
+            Write-LogMessage -type Verbose -MSG "Attempting SSL (HTTPS, port 5986) connection to $server"
+            $sslParams = @{
+                ComputerName  = $server
+                UseSSL        = $true
+                SessionOption = $psoptionsSSL
+                ErrorAction   = 'SilentlyContinue'
+                ErrorVariable = 'psSessionError'
+            }
+            if ($null -ne $effectiveCred) {
+                Write-LogMessage -type Verbose -MSG "Using explicit credentials for $($effectiveCred.username)"
+                $sslParams['Credential'] = $effectiveCred
+            }
+            else {
+                Write-LogMessage -type Verbose -MSG "Using implicit (Kerberos) credentials"
+            }
+            $psSession = New-PSSession @sslParams
+
+            if ($null -eq $psSession) {
+                $sslReason = if ($psSessionError.Count -gt 0) { $psSessionError[0].Exception.Message } else { 'No HTTPS listener on port 5986' }
+                Write-LogMessage -type Verbose -MSG "SSL connection to $server failed: $sslReason"
+
+                if ($Script:WinRMUseSSL) {
+                    Write-LogMessage -type Error -MSG "Error creating SSL PSSession to $server : $sslReason"
+                    Throw "No PSSession (SSL required)"
+                }
+
+                # Fall back to non-SSL (HTTP, port 5985)
+                Write-LogMessage -type Verbose -MSG "Falling back to non-SSL (HTTP, port 5985) connection to $server"
+                $plainParams = @{
+                    ComputerName  = $server
+                    SessionOption = $psoptions
+                    ErrorAction   = 'SilentlyContinue'
+                    ErrorVariable = 'psSessionError'
+                }
+                if ($null -ne $effectiveCred) {
+                    $plainParams['Credential'] = $effectiveCred
+                }
+                $psSession = New-PSSession @plainParams
+
+                if ($null -eq $psSession) {
+                    $reason = if ($psSessionError.Count -gt 0) { $psSessionError[0].Exception.Message } else { 'Unknown reason' }
+                    Write-LogMessage -type Error -MSG "Error creating PSSession to $server : $reason"
+                    Throw "No PSSession"
+                }
+                Write-LogMessage -type Info -MSG "Connected to $server via non-SSL WinRM (HTTPS unavailable)"
+            }
+            else {
+                Write-LogMessage -type Verbose -MSG "Connected to $server via SSL WinRM"
+            }
+        }
+
+        Write-LogMessage -type Verbose -MSG "Created Session successfully"
+        IF (![string]::IsNullOrEmpty($Script:PrePSSession)) {
+            Write-LogMessage -type Verbose -MSG "Inside PrePSSession"
+            Invoke-Command -Session $psSession -ScriptBlock $Script:PrePSSession -ErrorAction SilentlyContinue
+            Write-LogMessage -type Verbose -MSG "Completed PrePSSession"
+        }
+        return $psSession
+    }
+    Catch {
+        Write-LogMessage -type Verbose -MSG "Catch in New-PSLogon"
+        Write-LogMessage -type Verbose -MSG "$_"
+        Throw "No PSSession"
+    }
+    Finally {
+        Write-LogMessage -type Verbose -MSG "Existing New-PSLogon"
+    }
+}
+
 function Reset-WinCredFile {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingConvertToSecureStringWithPlainText', '',
+        Justification = 'Password is generated internally by New-RandomPassword and immediately consumed by Convert-SecureString; never sourced from user input.')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '',
+        Justification = 'CreateCredFile.exe must be invoked via Invoke-Expression inside the remote PSSession to capture its stdout/stderr; the command string is built from a fixed template with username and a server-generated password only.')]
     param (
         [Parameter(Mandatory = $true)]
         [string]$Server,
@@ -722,7 +951,9 @@ function Reset-WinCredFile {
         $createCredDir = "$installLocation\$($comp.createCredDir)"
 
         Write-LogMessage -type Verbose -MSG "Updating $component $file credential file"
-        Invoke-Command -Session $session -ScriptBlock { Set-Location -Path ($args[0]); } -ArgumentList $createCredDir
+        Write-LogMessage -type Verbose -MSG "Setting working directory to: $createCredDir"
+        $remoteWorkDir = Invoke-Command -Session $session -ScriptBlock { Set-Location -Path ($args[0]); (Get-Location).Path } -ArgumentList $createCredDir
+        Write-LogMessage -type Verbose -MSG "Remote working directory confirmed: $remoteWorkDir"
         $userItem = Invoke-Command -Session $session -ScriptBlock { ((Select-String -Path "$($args[1])\$($args[0])" -Pattern "username=").Line).split("=")[1] } -ArgumentList $file, $dir
         If ([string]::IsNullOrEmpty($userItem)) {
             Write-LogMessage -type Error -MSG "Unable to determine username for $($comp.componentName) credential file '$file' on $server. Manual intervention required."
@@ -737,13 +968,38 @@ function Reset-WinCredFile {
         Write-LogMessage -type Verbose -MSG "Backed up $component credential files"
 
         $command = $comp.CreateCredCommand -f $userItem, $(Convert-SecureString($tempPassword))
+        $commandMasked = $comp.CreateCredCommand -f $userItem, '****'
 
-        Invoke-Command -Session $session -ScriptBlock { Invoke-Expression $args[0]; } -ArgumentList $command -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
+        # PSM: set OpenSSL env vars required for CreateCredFile.exe to function correctly
+        if ($component -eq "PSM") {
+            $opensslConf    = "$installLocation\Components\openssl32.cnf"
+            $opensslModules = "$installLocation\Components\ossl-modules32"
+            Write-LogMessage -type Verbose -MSG "Setting PSM OpenSSL environment variables in remote session"
+            Write-LogMessage -type Verbose -MSG "OPENSSL_CONF    = $opensslConf"
+            Write-LogMessage -type Verbose -MSG "OPENSSL_MODULES = $opensslModules"
+            Invoke-Command -Session $session -ScriptBlock {
+                $env:OPENSSL_CONF    = $args[0]
+                $env:OPENSSL_MODULES = $args[1]
+            } -ArgumentList $opensslConf, $opensslModules
+        }
+
+        Write-LogMessage -type Verbose -MSG "Running CreateCredFile for $($comp.componentName) on $server"
+        Write-LogMessage -type Verbose -MSG "Working directory: $remoteWorkDir"
+        Write-LogMessage -type Verbose -MSG "Command: $commandMasked"
+        $credOutput = Invoke-Command -Session $session -ScriptBlock { Invoke-Expression $args[0] 2>&1 } -ArgumentList $command -ErrorAction SilentlyContinue -ErrorVariable invokeResultApp
         Remove-Variable command
+        Write-LogMessage -type Verbose -MSG "CreateCredFile output: $($credOutput -join ' | ')"
         If ($invokeResultApp[0].TargetObject -ne "Command ended successfully") {
             Invoke-Command -Session $session -ScriptBlock { Rename-Item "$($args[2])\$($args[0]).$($args[1])" -NewName "$($args[0])" -Force } -ArgumentList $file, $tag, $dir | Out-Null
             Invoke-Command -Session $session -ScriptBlock { Rename-Item "$($args[2])\$($args[0]).entropy.$($args[1])" -NewName "$($args[0]).entropy" -Force -ErrorAction SilentlyContinue } -ArgumentList $file, $tag, $dir | Out-Null
             Write-LogMessage -type Error -MSG "Error resetting credential file on $server : $($invokeResultApp[0].TargetObject)"
+            if ($null -ne $credOutput) {
+                Write-LogMessage -type Error -MSG "CreateCredFile output: $($credOutput -join ' | ')"
+            }
+            if ($null -ne $invokeResultApp -and $invokeResultApp.Count -gt 0) {
+                Write-LogMessage -type Error -MSG "Error exception: $($invokeResultApp[0].Exception.Message)"
+                Write-LogMessage -type Error -MSG "Error category: $($invokeResultApp[0].CategoryInfo.Category)"
+            }
             Throw "Error resetting credential file on $server"
         }
         else {
@@ -817,7 +1073,6 @@ function Reset-VaultFile {
     foreach ($comp in $CompFiles) {
 
         $component = $comp.type
-        $file = $comp.CredFiles
         $vaultDir = "$installLocation\$($comp.vaultdir)"
         $vaultFile = "$vaultdir\vault.ini"
 
@@ -829,9 +1084,7 @@ function Reset-VaultFile {
         Write-LogMessage -type Verbose -MSG "Backed up existing $component vault.ini file"
 
         try {
-            $regex = '(^ADDRESS=.*)'
-            Invoke-Command -Session $session -ScriptBlock { $file = $args[0]; $regex = $args[1] } -ArgumentList $vaultFile, $regex
-            Invoke-Command -Session $session -ScriptBlock { (Get-Content $file) -replace $regex, "ADDRESS=$($args[0])" | Set-Content $file } -ArgumentList $vaultaddress
+            Invoke-Command -Session $session -ScriptBlock { (Get-Content $args[0]) -replace '(^ADDRESS=.*)', "ADDRESS=$($args[1])" | Set-Content $args[0] } -ArgumentList $vaultFile, $vaultaddress
             Write-LogMessage -type Verbose -MSG "$component vault.ini updated successfully"
             Invoke-Command -Session $session -ScriptBlock { Remove-Item "$($args[0]).$($args[1])" -Force } -ArgumentList $vaultFile, $tag
         }
@@ -846,9 +1099,7 @@ function Reset-VaultFile {
             Invoke-Command -Session $session -ScriptBlock { Copy-Item $($args[0]) -Destination "$($args[0]).$($args[1])" -Force } -ArgumentList $vaultFile, $tag
             Write-LogMessage -type Verbose -MSG "Backed up existing $component vault.ini file"
             try {
-                $regex = '(^Addresses=.*)'
-                Invoke-Command -Session $session -ScriptBlock { $file = $args[0]; $regex = $args[1] } -ArgumentList $vaultFile, $regex
-                Invoke-Command -Session $session -ScriptBlock { (Get-Content $file) -replace $regex, "Addresses=$($args[0])" | Set-Content $file } -ArgumentList $apiAddress
+                Invoke-Command -Session $session -ScriptBlock { (Get-Content $args[0]) -replace '(^Addresses=.*)', "Addresses=$($args[1])" | Set-Content $args[0] } -ArgumentList $vaultFile, $apiAddress
                 Write-LogMessage -type Verbose -MSG "$component vault.ini updated successfully"
                 Invoke-Command -Session $session -ScriptBlock { Remove-Item "$($args[0]).$($args[1])" -Force } -ArgumentList $vaultFile, $tag
             }
@@ -859,5 +1110,136 @@ function Reset-VaultFile {
             }
             Write-LogMessage -type Success -MSG "Update of vault API in vault.ini on `"$server`" completed successfully"
         }
+    }
+}
+
+function Get-ComponentLog {
+    <#
+.SYNOPSIS
+    Retrieves log file content from a remote CyberArk component server.
+.DESCRIPTION
+    Discovers the component install path on the remote machine via Find-WinComponents,
+    then reads the last N lines of the requested log. Runs on the orchestrating
+    machine; uses an existing PSSession for all remote file access.
+.PARAMETER Server
+    Hostname or IP of the remote server (used for display only).
+.PARAMETER Session
+    An open PSSession to the remote component server.
+.PARAMETER ComponentType
+    The component type key: PSM, CPM, PVWA, AIM, or 'AAM Credential Provider'.
+    If omitted, all installed components are auto-detected and logged.
+.PARAMETER LogName
+    The exact log file name to retrieve, or 'All' to retrieve every log defined for
+    the component type. Default: All.
+    PSM  logs : PSMConsole.log, PSMTrace.log
+    CPM  logs : PMConsole.log, PMTrace.log, pm.log, pm_error.log, CACPMScanner.log,
+                Casos.Activity.log, Casos.Debug.log, Casos.Error.log
+    PVWA logs : CyberArk.WebApplication.log, CyberArk.WebTasksEngine.log,
+                PVWA.App.Log, Cyberark.Reports.log,
+                CyberArk.WebConsole.log, CyberArk.WebTasksService.log
+    AIM  logs : APPConsole.log, APPTrace.log, APPAudit.log
+.PARAMETER Tail
+    Number of lines from the end of each log file to retrieve. Default: 50.
+#>
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Server,
+
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.Runspaces.PSSession]$Session,
+
+        [Parameter(Mandatory = $false)]
+        [string]$ComponentType,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('All',
+            'PSMConsole.log', 'PSMTrace.log',
+            'PMConsole.log', 'PMTrace.log', 'pm.log', 'pm_error.log',
+            'CACPMScanner.log', 'Casos.Activity.log', 'Casos.Debug.log', 'Casos.Error.log',
+            'CyberArk.WebApplication.log', 'CyberArk.WebTasksEngine.log',
+            'PVWA.App.Log', 'Cyberark.Reports.log',
+            'CyberArk.WebConsole.log', 'CyberArk.WebTasksService.log',
+            'APPConsole.log', 'APPTrace.log', 'APPAudit.log')]
+        [string]$LogName = 'All',
+
+        [Parameter(Mandatory = $false)]
+        [int]$Tail = 50
+    )
+
+    # Normalise caller-facing component name to the key used in $Script:LogPaths
+    $typeKey = switch ($ComponentType) {
+        'PSM'                     { 'PSM';  break }
+        'CPM'                     { 'CPM';  break }
+        'PVWA'                    { 'PVWA'; break }
+        'AIM'                     { 'AIM';  break }
+        'AAM Credential Provider' { 'AIM';  break }
+        default                   { $ComponentType }
+    }
+
+    # Auto-detect when no type was supplied
+    if ([string]::IsNullOrEmpty($typeKey)) {
+        $detected = Invoke-Command -Session $Session -ScriptBlock { Find-WinComponents 'All' }
+        if ($null -eq $detected -or $detected.Count -eq 0) {
+            Write-LogMessage -type Warning -MSG "No CyberArk components detected on $Server"
+            return
+        }
+        foreach ($det in $detected) {
+            Get-ComponentLog -Server $Server -Session $Session -ComponentType $det.Name -LogName $LogName -Tail $Tail
+        }
+        return
+    }
+
+    $logDefs = $Script:LogPaths[$typeKey]
+    if ($null -eq $logDefs) {
+        Write-LogMessage -type Warning -MSG "No log paths defined for component type '$typeKey' on $Server"
+        return
+    }
+
+    # Build the list of relative paths to retrieve
+    $relPaths = @()
+    if ($LogName -eq 'All') {
+        $relPaths += $logDefs.Values | Where-Object { -not [string]::IsNullOrEmpty($_) }
+    }
+    else {
+        if ($logDefs.ContainsKey($LogName)) {
+            $relPaths += $logDefs[$LogName]
+        }
+        else {
+            Write-LogMessage -type Warning -MSG "Log '$LogName' is not defined for component type '$typeKey' on $Server"
+            return
+        }
+    }
+
+    # Resolve the install path on the remote machine
+    $compInfo = Invoke-Command -Session $Session -ScriptBlock { Find-WinComponents $args[0] } -ArgumentList $typeKey
+    if ($null -eq $compInfo -or [string]::IsNullOrEmpty($compInfo.Path)) {
+        Write-LogMessage -type Warning -MSG "Cannot determine install path for $typeKey on $Server  -  skipping log retrieval"
+        return
+    }
+
+    foreach ($relPath in $relPaths) {
+        $fullPath = [System.IO.Path]::Combine($compInfo.Path, $relPath)
+        Write-LogMessage -type Info -MSG "Last $Tail lines of $fullPath on $Server" -Header
+        # param() + -ArgumentList is intentional: this scriptblock is also loaded into remote
+        # PSSessions via Invoke-Command -FilePath, so $using: cannot be used here — PowerShell
+        # would attempt to resolve $using: references at file-load time when $fullPath is not
+        # yet defined, causing a runtime error. PSUseUsingScopeModifierInNewRunspaces is a
+        # false positive when -ArgumentList is used to pass variables explicitly.
+        $lines = Invoke-Command -Session $Session -ScriptBlock {
+            param($p, $t)
+            try {
+                if (Test-Path -LiteralPath $p) {
+                    Get-Content -Path $p -Tail $t -ErrorAction Stop
+                }
+                else {
+                    "Log file not found: $p"
+                }
+            }
+            catch {
+                "Error reading log: $($_.Exception.Message)"
+            }
+        } -ArgumentList $fullPath, $Tail
+        $lines | ForEach-Object { Write-Host $_ }
+        Write-LogMessage -type Info -MSG '' -Footer
     }
 }
