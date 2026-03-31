@@ -12,7 +12,7 @@
       Step 2  WinRM listeners (HTTP/HTTPS, ports, addresses)
       Step 3  Authentication methods (Kerberos, Negotiate, NTLM, Basic, Certificate)
       Step 4  AllowUnencrypted setting (informational for HTTP listeners)
-      Step 5  Inbound firewall rules for ports 5985 (WinRM HTTP) and 5986 (WinRM HTTPS)
+      Step 5  Inbound firewall rules for ports 5986 (WinRM HTTPS, preferred by Invoke-CredFileReset.ps1) and 5985 (WinRM HTTP, fallback)
       Step 6  Local group membership (Administrators and Remote Management Users)
       Step 7  Network profile — Public profile blocks WinRM by default
       Step 8  Local TrustedHosts setting (informational — client-side)
@@ -28,11 +28,15 @@
 .PARAMETER Fix
     Attempt to remediate fixable findings:
       - Start WinRM service and set it to Automatic startup
-      - Run Enable-PSRemoting to create missing listeners
+      - Run Enable-PSRemoting to create missing HTTP (port 5985) listeners
       - Enable Windows Remote Management inbound firewall rules
     Each fix requires ShouldProcess confirmation.
     Use -WhatIf to preview what would change without applying anything.
     Must be run as local Administrator to apply fixes.
+
+    Note: -Fix does NOT create a WinRM HTTPS (port 5986) listener. HTTPS requires a
+    valid certificate to be bound to the WinRM HTTPS listener. To configure HTTPS manually:
+      winrm create winrm/config/Listener?Address=*+Transport=HTTPS @{Hostname="<fqdn>";CertificateThumbprint="<thumbprint>"}
 
 .EXAMPLE
     # Read-only inspection of local WinRM configuration

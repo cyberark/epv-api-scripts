@@ -12,7 +12,9 @@
       5. Sync the new password to the Vault via the PVWA REST API
 
     All PVWA REST communication originates from the orchestrating machine only.
-    Component servers require only WinRM (TCP 5985) access from the orchestrating machine.
+    WinRM connections to component servers try HTTPS (TCP 5986) first and fall back to HTTP
+    (TCP 5985) if no HTTPS listener is present, unless -WinRMUseSSL is specified. HTTPS
+    connections do not require TrustedHosts configuration on the orchestrating machine.
 
     Supports interactive selection menus (console fallback when running via Remote SSH).
     Supports serial processing (default) or parallel processing (-Jobs).
@@ -42,7 +44,7 @@
 
 .PARAMETER Jobs
     Process all selected component servers in parallel using PowerShell background jobs.
-    Default (without this switch) is serial processing — one server at a time with live output.
+    Default (without this switch) is serial processing  -  one server at a time with live output.
     Use -Jobs for large deployments with many components to process simultaneously.
 
 .PARAMETER AllComponentTypes
@@ -89,16 +91,66 @@
 
 .PARAMETER RemoteCredential
     PSCredential used for WinRM connections to component servers.
-    Required when running from a Remote SSH session (SSH cannot delegate Kerberos tickets).
-    Use a DOMAIN account (e.g. LAB\Admin) — domain accounts use Kerberos and require no
-    TrustedHosts configuration. Local accounts require TrustedHosts to be configured.
+    Provide explicit credentials when:
+      - Running from a Remote SSH session (SSH cannot delegate Kerberos tickets)
+      - Connecting to workgroup machines (no domain Kerberos available)
+      - Connecting to machines in untrusted domains
+    For domain-joined targets from a domain-joined orchestrating machine, leave this empty
+    and implicit Kerberos authentication is used automatically.
+    Prefer a domain account (DOMAIN\user)  -  domain accounts authenticate via Kerberos and
+    work without TrustedHosts configuration. Local accounts authenticate via NTLM and
+    require the target to be in TrustedHosts unless the connection uses SSL (port 5986).
+    Note: SSL (HTTPS, port 5986) connections do not require TrustedHosts regardless of
+    account type. Non-SSL (HTTP, port 5985) connections with local/NTLM accounts require
+    TrustedHosts to be configured on the orchestrating machine.
+
+.PARAMETER WinRMUseSSL
+    Require SSL (HTTPS, port 5986) for all WinRM connections to component servers.
+    By default the script tries SSL first and falls back to HTTP (port 5985) if no HTTPS
+    listener is found. Use this switch to enforce SSL-only and prevent unencrypted fallback.
+    SSL connections do not require TrustedHosts configuration regardless of credential type.
+    Cannot be combined with -WinRMUseNonSSL.
+
+.PARAMETER WinRMUseNonSSL
+    Force non-SSL (HTTP, port 5985) for all WinRM connections to component servers.
+    Skips the SSL (HTTPS, port 5986) attempt entirely and connects directly via HTTP.
+    Use when component servers have no WinRM HTTPS listener configured.
+    Note: Non-SSL connections with local/NTLM accounts require the target to be listed in
+    WSMan:\localhost\Client\TrustedHosts. Domain (Kerberos) accounts do not require this.
+    Cannot be combined with -WinRMUseSSL.
+
+.PARAMETER ShowLogs
+    After resetting each component (serial mode only), open a fresh WinRM connection to the
+    server and display the last -LogTail lines of the component log. Useful for confirming
+    the component came back up cleanly without manually SSHing to each server.
+
+.PARAMETER LogTail
+    Number of lines to show from the end of the log file when -ShowLogs is used.
+    Default: 30.
+
+.PARAMETER LogName
+    The exact log file name to retrieve when -ShowLogs is used, or 'All' to retrieve every
+    log defined for the component type. Default: All.
+    PSM  logs : PSMConsole.log, PSMTrace.log
+    CPM  logs : PMConsole.log, PMTrace.log, pm.log, pm_error.log, CACPMScanner.log,
+                Casos.Activity.log, Casos.Debug.log, Casos.Error.log
+    PVWA logs : CyberArk.WebApplication.log, CyberArk.WebTasksEngine.log,
+                PVWA.App.Log, Cyberark.Reports.log,
+                CyberArk.WebConsole.log, CyberArk.WebTasksService.log
+    AIM  logs : APPConsole.log, APPTrace.log, APPAudit.log
 
 .PARAMETER Tries
     Maximum number of attempts to start component services after credential reset.
     Default: 5
 
 .EXAMPLE
-    # Interactive — prompted for PVWA credentials, select components via menu
+    # Use SSL-only WinRM (no HTTP fallback)
+    $cred = Get-Credential
+    .\Invoke-CredFileReset.ps1 -PVWAURL 'https://pvwa.lab.local/PasswordVault' `
+        -PVWACredentials $cred -WinRMUseSSL -AllServers
+
+.EXAMPLE
+    # Interactive  -  prompted for PVWA credentials, select components via menu
     .\Invoke-CredFileReset.ps1 -PVWAURL 'https://pvwa.lab.local/PasswordVault'
 
 .EXAMPLE
@@ -132,7 +184,7 @@
     Requires:   PowerShell 5.1+
                 WinRM (TCP 5985) access from orchestrating machine to component servers
                 CyberArk Vault Administrator or equivalent REST API permissions
-                Reset-ComponentCredential.ps1 in the same directory
+                Reset-WinComponentCredential.ps1 and Reset-LinuxComponentCredential.ps1 in the same directory
 
     Change Log:
     2020-09-13  Initial version
@@ -215,6 +267,44 @@ param(
 	[Parameter(Mandatory = $false, HelpMessage = 'Credentials for WinRM connections to remote component servers (for workgroups or untrusted domains)')]
 	[PSCredential]$RemoteCredential,
 
+	[Parameter(Mandatory = $false, HelpMessage = 'Require SSL (HTTPS/port 5986) for all WinRM connections. Without this switch the script tries SSL first and falls back to non-SSL.')]
+	[Switch]$WinRMUseSSL,
+
+	[Parameter(Mandatory = $false, HelpMessage = 'Force non-SSL (HTTP/port 5985) for all WinRM connections. Skips the SSL attempt entirely.')]
+	[Switch]$WinRMUseNonSSL,
+
+	[Parameter(Mandatory = $false, HelpMessage = 'After each serial reset, display the last N lines of the component log')]
+	[Switch]$ShowLogs,
+
+	[Parameter(Mandatory = $false, HelpMessage = 'Number of log lines to display when -ShowLogs is used')]
+	[int]$LogTail = 30,
+
+	[Parameter(Mandatory = $false, HelpMessage = 'Log file name to display when -ShowLogs is used, or All for every log defined for the component type. Tab-completes to logs valid for the selected -ComponentType.')]
+	[ArgumentCompleter({
+		param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameters)
+		$logMap = @{
+			CPM                       = @('PMConsole.log', 'PMTrace.log', 'pm.log', 'pm_error.log',
+			                              'CACPMScanner.log', 'Casos.Activity.log', 'Casos.Debug.log', 'Casos.Error.log')
+			PSM                       = @('PSMConsole.log', 'PSMTrace.log')
+			'PSM/PSMP'                = @('PSMConsole.log', 'PSMTrace.log')
+			PVWA                      = @('CyberArk.WebApplication.log', 'CyberArk.WebTasksEngine.log',
+			                              'PVWA.App.Log', 'Cyberark.Reports.log',
+			                              'CyberArk.WebConsole.log', 'CyberArk.WebTasksService.log')
+			CP                        = @('APPConsole.log', 'APPTrace.log', 'APPAudit.log')
+			'AAM Credential Provider' = @('APPConsole.log', 'APPTrace.log', 'APPAudit.log')
+		}
+		$candidates = @('All')
+		$ct = $fakeBoundParameters['ComponentType']
+		if ($null -ne $ct -and $logMap.ContainsKey($ct)) {
+			$candidates += $logMap[$ct]
+		} else {
+			$candidates += $logMap.Values | ForEach-Object { $_ } | Select-Object -Unique
+		}
+		$candidates | Where-Object { $_ -like "$wordToComplete*" } |
+			ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_) }
+	})]
+	[String]$LogName = 'All',
+
 	[Parameter(Mandatory = $false, HelpMessage = 'Amount of attempts')]
 	[int]$tries = 5
 )
@@ -244,48 +334,14 @@ $Script:AuthType = $AuthType
 #endregion
 
 #region Script Variables
-$Script:CpmServices = @("CyberArk Password Manager", "CyberArk Central Policy Manager Scanner")
-$Script:PvwaServices = @("CyberArk Scheduled Tasks", "W3SVC", "IISADMIN")
-$Script:PsmServices = @("*Privileged Session Manager")
-$Script:AamServices = @("CyberArk Application Password Provider")
-
-#Credential file creation commands, keyed by component type and version band
-$Script:CredCommands = @{
-    AIM  = @{
-        Legacy           = ".\CreateCredFile.exe AppProviderUser.cred Password /AppType AppPrv /IpAddress /Hostname /Username {0} /Password {1}"
-        v12              = ".\CreateCredFile.exe AppProviderUser.cred Password /AppType AppPrv /IpAddress /Hostname /EntropyFile /DPAPIMachineProtection /Username {0} /Password {1}"
-        VersionThreshold = [version]'12.0'
-    }
-    CPM  = @{
-        Legacy           = ".\CreateCredFile.exe user.ini Password /AppType CPM /IpAddress /Hostname /Username {0} /Password {1}"
-        v12              = ".\CreateCredFile.exe user.ini Password /AppType CPM /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Username {0} /Password {1}"
-        VersionThreshold = [version]'12.1'
-    }
-    PSM  = @{
-        App = @{
-            Legacy           = ".\CreateCredFile.exe psmapp.cred Password /AppType PSMApp /IpAddress /Hostname /Username {0} /Password {1}"
-            v12              = ".\CreateCredFile.exe psmapp.cred Password /AppType PSMApp /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Username {0} /Password {1}"
-            VersionThreshold = [version]'12.1'
-        }
-        GW  = @{
-            Legacy           = ".\CreateCredFile.exe psmgw.cred Password /AppType PSMApp /IpAddress /Hostname /Username {0} /Password {1}"
-            v12              = ".\CreateCredFile.exe psmgw.cred Password /AppType PSMApp /EntropyFile /DPAPIMachineProtection /IpAddress /Hostname /Username {0} /Password {1}"
-            VersionThreshold = [version]'12.1'
-        }
-    }
-    PVWA = @{
-        App = @{
-            Legacy           = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /Username {0} /Password {1}"
-            v12              = ".\CreateCredFile.exe ..\CredFiles\appuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Username {0} /Password {1}"
-            VersionThreshold = [version]'12.1'
-        }
-        GW  = @{
-            Legacy           = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /Username {0} /Password {1}"
-            v12              = ".\CreateCredFile.exe ..\CredFiles\gwuser.ini Password /AppType PVWAApp /IpAddress /Hostname /ExePath `"C:\Windows\System32\inetsrv\w3wp.exe`" /EntropyFile /DPAPIMachineProtection /Username {0} /Password {1}"
-            VersionThreshold = [version]'12.1'
-        }
-    }
+if ($WinRMUseSSL -and $WinRMUseNonSSL) {
+	Write-Error '-WinRMUseSSL and -WinRMUseNonSSL are mutually exclusive. Specify only one.'
+	return
 }
+$Script:WinRMUseSSL = $WinRMUseSSL.IsPresent
+$Script:WinRMUseNonSSL = $WinRMUseNonSSL.IsPresent
+# $Script:CredCommands, $Script:CpmServices, $Script:PvwaServices, $Script:PsmServices,
+# and $Script:AamServices are defined in Reset-WinComponentCredential.ps1 (loaded below via dot-source).
 
 $Script:PrePSSession = { $env:PSModulePath = "C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules;" }
 #endregion
@@ -306,30 +362,52 @@ $URL_HealthDetails = $URL_PVWAAPI + "/ComponentsMonitoringDetails/{0}"
 
 #region Functions
 
-. "$PSScriptRoot\Reset-ComponentCredential.ps1"
+. "$PSScriptRoot\Reset-WinComponentCredential.ps1"
 
-Function Test-CommandExists {
+function Show-ComponentLog {
     <#
 .SYNOPSIS
-Tests if a command exists
+    Opens a fresh WinRM session to a component server and displays its log tail.
 .DESCRIPTION
-Tests if a command exists
-.PARAMETER Command
-The command to test
+    Called after a serial credential reset to let the operator verify the component
+    started successfully. Connects, loads helper functions, calls Get-ComponentLog,
+    then disconnects. Failures are non-fatal  -  a warning is written and processing continues.
 #>
-    Param ($command)
-    $oldPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'stop'
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Server,
+        [Parameter(Mandatory = $true)]
+        [string]$ComponentType,
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('All',
+            'PSMConsole.log', 'PSMTrace.log',
+            'PMConsole.log', 'PMTrace.log', 'pm.log', 'pm_error.log',
+            'CACPMScanner.log', 'Casos.Activity.log', 'Casos.Debug.log', 'Casos.Error.log',
+            'CyberArk.WebApplication.log', 'CyberArk.WebTasksEngine.log',
+            'PVWA.App.Log', 'Cyberark.Reports.log',
+            'CyberArk.WebConsole.log', 'CyberArk.WebTasksService.log',
+            'APPConsole.log', 'APPTrace.log', 'APPAudit.log')]
+        [string]$LogName = 'All',
+        [Parameter(Mandatory = $false)]
+        [int]$Tail = 30,
+        [Parameter(Mandatory = $false)]
+        [PSCredential]$Credential
+    )
+    $logSession = $null
     try {
-        if (Get-Command $command) {
-            RETURN $true
+        Write-LogMessage -type Info -MSG "Retrieving $LogName log from $Server" -Header
+        $logSession = New-PSLogon -server $Server -Credential $Credential
+        Invoke-Command -Session $logSession -FilePath "$ScriptLocation\Reset-WinComponentCredential.ps1"
+        Get-ComponentLog -Server $Server -Session $logSession -ComponentType $ComponentType -LogName $LogName -Tail $Tail
+        Write-LogMessage -type Info -MSG "End of log output" -Footer
+    }
+    catch {
+        Write-LogMessage -type Warning -MSG "Could not retrieve logs from $Server : $($_.Exception.Message)"
+    }
+    finally {
+        if ($null -ne $logSession) {
+            Remove-PSSession $logSession -ErrorAction SilentlyContinue
         }
-    }
-    Catch {
-        Write-Host "$command does not exist"; RETURN $false
-    }
-    Finally {
-        $ErrorActionPreference = $oldPreference
     }
 }
 
@@ -366,9 +444,6 @@ The Header as Dictionary object
         [String]$ErrAction = "Continue"
     )
 
-    If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
-        Throw "This script requires PowerShell version 3 or above"
-    }
     $restResponse = ""
     try {
         if ([string]::IsNullOrEmpty($Body)) {
@@ -536,7 +611,7 @@ function Reset-Credentials {
     $pvwaIP   = try { ([System.Net.Dns]::GetHostAddresses($pvwaHost)  | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -First 1).IPAddressToString } catch { $pvwaHost }
     $serverIP = try { ([System.Net.Dns]::GetHostAddresses($serverHost) | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -First 1).IPAddressToString } catch { $serverHost }
     If ($pvwaIP -eq $serverIP -or $pvwaHost -eq $serverHost) {
-        Write-LogMessage -type Warning -MSG "Skipping PVWA on $server — it is the PVWA this script is connected to. Resetting it would drop the REST session." -Footer
+        Write-LogMessage -type Warning -MSG "Skipping PVWA on $server  -  it is the PVWA this script is connected to. Resetting it would drop the REST session." -Footer
         return
     }
     Try {
@@ -608,7 +683,7 @@ function Reset-WinComponent {
                         Write-LogMessage -type Verbose -MSG "Got Session"
                         Write-LogMessage -type Verbose -MSG "Connected to host: $(Invoke-Command -Session $session -ScriptBlock{[System.Net.Dns]::GetHostName()})"
                         Write-LogMessage -type Verbose -MSG "Connected as user: $(Invoke-Command -Session $session -ScriptBlock{whoami.exe})"
-                        Invoke-Command -Session $session -FilePath "$ScriptLocation\Reset-ComponentCredential.ps1"
+                        Invoke-Command -Session $session -FilePath "$ScriptLocation\Reset-WinComponentCredential.ps1"
                         Write-LogMessage -type Verbose -MSG "Loaded remote functions into session"
                     }
                 }
@@ -660,7 +735,10 @@ function Reset-WinComponent {
             }
         }
         catch {
-            Write-LogMessage -type Error -MSG "Error during update of $componentName on `"$server`""
+            Write-LogMessage -type Error -MSG "Error during update of $componentName on `"$server`": $($_.Exception.Message)"
+            if ($null -ne $_.Exception.InnerException) {
+                Write-LogMessage -type Error -MSG "Inner exception: $($_.Exception.InnerException.Message)"
+            }
             Throw
         }
         Finally {
@@ -741,76 +819,6 @@ Function Get-ComponentDetails {
     }
 }
 
-Function Test-TargetWinRM {
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$server,
-        [Parameter(Mandatory = $false)]
-        [PSCredential]$Credential
-    )
-    Write-LogMessage -type Verbose -MSG "In Test-TargetWinRM"
-    Write-LogMessage -type Verbose -MSG "Parameter passed for `'server`' is `"$server`""
-
-    try {
-        $testSession = New-PSLogon -server $server -Credential $Credential
-        Remove-PSSession -Session $testSession
-        Write-LogMessage -type Verbose -MSG "Test-TargetWinRM completed Successfully"
-        Return $true
-    }
-    catch {
-        Write-LogMessage -type Verbose -MSG "Test-TargetWinRM failed to connect"
-        Return $false
-    }
-    Finally {
-        Write-LogMessage -type Verbose -MSG "Existing Test-TargetWinRM"
-    }
-}
-
-function New-PSLogon {
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$server,
-        [Parameter(Mandatory = $false)]
-        [PSCredential]$Credential
-    )
-    $psoptions = New-PSSessionOption -MaxConnectionRetryCount 2
-
-    Write-LogMessage -type Verbose -MSG "In New-PSLogon"
-    Write-LogMessage -type Verbose -MSG "Parameter passed for `'server`' is `"$server`""
-
-    Try {
-        $effectiveCred = if ($null -ne $Credential) { $Credential } else { $Script:RemoteCredential }
-        If ($null -ne $effectiveCred) {
-            Write-LogMessage -type Verbose -MSG "Connecting to $server with explicit credentials for $($effectiveCred.username)"
-            $psSession = New-PSSession $server -Credential $effectiveCred -SessionOption $psoptions -ErrorAction SilentlyContinue -ErrorVariable psSessionError
-        }
-        else {
-            Write-LogMessage -type Verbose -MSG "Connecting to $server using implicit (Kerberos) credentials"
-            $psSession = New-PSSession $server -SessionOption $psoptions -ErrorAction SilentlyContinue -ErrorVariable psSessionError
-        }
-        if ([string]::IsNullOrEmpty($psSession)) {
-            $reason = if ($psSessionError.Count -gt 0) { $psSessionError[0].Exception.Message } else { 'Unknown reason' }
-            Write-LogMessage -type Error -MSG "Error creating PSSession to $server : $reason"
-            Throw "No PSSession"
-        }
-        Write-LogMessage -type Verbose -MSG "Created Session successfully"
-        IF (![string]::IsNullOrEmpty($Script:PrePSSession)) {
-            Write-LogMessage -type Verbose -MSG "Inside PrePSSession"
-            Invoke-Command -Session $psSession -ScriptBlock $Script:PrePSSession -ErrorAction SilentlyContinue
-            Write-LogMessage -type Verbose -MSG "Completed PrePSSession"
-        }
-        return $psSession
-    }
-    Catch {
-        Write-LogMessage -type Verbose -MSG "Catch in New-PSLogon"
-        Write-LogMessage -type Verbose -MSG "$_"
-        Throw "No PSSession"
-    }
-    Finally {
-        Write-LogMessage -type Verbose -MSG "Existing New-PSLogon"
-    }
-}
-
 function Invoke-SelectionMenu {
     <#
 .SYNOPSIS
@@ -835,14 +843,15 @@ function Invoke-SelectionMenu {
         [Parameter(Mandatory = $true)]
         [string[]]$DisplayProperties
     )
-    # In Remote SSH sessions, Out-GridView hangs instead of throwing — detect and skip it
+    # In Remote SSH sessions, Out-GridView hangs instead of throwing  -  detect and skip it
     $isRemoteSession = ($null -ne $env:SSH_CLIENT -or $null -ne $env:SSH_TTY -or -not [System.Environment]::UserInteractive)
     if (-not $isRemoteSession) {
         try {
             return $Items | Out-GridView -OutputMode Multiple -Title $Title -ErrorAction Stop
         }
         catch {
-            # GUI unavailable (HostException, InvalidOperationException, etc.) — fall through to console menu
+            # GUI unavailable (HostException, InvalidOperationException, etc.)  -  fall through to console menu
+            Write-Verbose "Out-GridView unavailable ($($_.Exception.GetType().Name)). Falling back to console menu."
         }
     }
     # Build column widths for alignment
@@ -870,12 +879,6 @@ function Invoke-SelectionMenu {
 }
 
 #endregion
-
-# Verify Invoke-RestMethod is available
-If ((Test-CommandExists Invoke-RestMethod) -eq $false) {
-    Write-LogMessage -Type Error -MSG "This script requires PowerShell version 3 or above"
-    return
-}
 
 If ($DisableSSLVerify) {
 	try {
@@ -967,18 +970,36 @@ else {
 #endregion
 
 #region Pre-flight Checks
-Write-LogMessage -type Info -MSG 'Running pre-flight checks' -Header
+Write-LogMessage -type Info -MSG "Running pre-flight checks (script v$ScriptVersion)" -Header
 
 # Check: TrustedHosts advisory when using explicit WinRM credentials
+# SSL (HTTPS) connections authenticate the server via certificate and do not require TrustedHosts.
 if ($null -ne $RemoteCredential) {
-	$script:preFlight_TrustedHosts = (Get-Item 'WSMan:\localhost\Client\TrustedHosts' -ErrorAction SilentlyContinue).Value
-	if ([string]::IsNullOrEmpty($script:preFlight_TrustedHosts)) {
-		Write-LogMessage -type Warning -MSG "-RemoteCredential provided but TrustedHosts is empty. All WinRM connections with explicit credentials will fail with 'Access Denied'."
-		Write-LogMessage -type Warning -MSG "Fix (run once as admin on this machine): Set-Item WSMan:\localhost\Client\TrustedHosts -Value '*' -Force"
-		Write-LogMessage -type Warning -MSG "Or for specific hosts:  Set-Item WSMan:\localhost\Client\TrustedHosts -Value 'server1,server2' -Force"
+	if ($WinRMUseSSL) {
+		Write-LogMessage -type Info -MSG "-WinRMUseSSL set: WinRM will use HTTPS (port 5986) only. TrustedHosts is not required for SSL connections."
+		$script:preFlight_TrustedHosts = $null
 	}
-	elseif ($script:preFlight_TrustedHosts -ne '*') {
-		Write-LogMessage -type Info -MSG "-RemoteCredential provided. TrustedHosts: $($script:preFlight_TrustedHosts) — verify all target servers are covered."
+	elseif ($WinRMUseNonSSL) {
+		Write-LogMessage -type Info -MSG "-WinRMUseNonSSL set: WinRM will use HTTP (port 5985) only. SSL attempt will be skipped."
+		$script:preFlight_TrustedHosts = (Get-Item 'WSMan:\localhost\Client\TrustedHosts' -ErrorAction SilentlyContinue).Value
+		if ([string]::IsNullOrEmpty($script:preFlight_TrustedHosts)) {
+			Write-LogMessage -type Warning -MSG "-WinRMUseNonSSL with -RemoteCredential: non-SSL connections with NTLM/local accounts require TrustedHosts. Currently empty."
+			Write-LogMessage -type Warning -MSG "Fix: Set-Item WSMan:\localhost\Client\TrustedHosts -Value '*' -Force  (or list specific hosts)"
+		}
+		elseif ($script:preFlight_TrustedHosts -ne '*') {
+			Write-LogMessage -type Info -MSG "-RemoteCredential provided. TrustedHosts: $($script:preFlight_TrustedHosts)  -  verify it covers all target servers."
+		}
+	}
+	else {
+		$script:preFlight_TrustedHosts = (Get-Item 'WSMan:\localhost\Client\TrustedHosts' -ErrorAction SilentlyContinue).Value
+		if ([string]::IsNullOrEmpty($script:preFlight_TrustedHosts)) {
+			Write-LogMessage -type Warning -MSG "-RemoteCredential provided. WinRM will try SSL (port 5986) first  -  SSL connections do not need TrustedHosts."
+			Write-LogMessage -type Warning -MSG "If SSL is unavailable, fallback to non-SSL (port 5985) requires TrustedHosts. Currently empty."
+			Write-LogMessage -type Warning -MSG "Fix: Set-Item WSMan:\localhost\Client\TrustedHosts -Value '*' -Force  (or list specific hosts)"
+		}
+		elseif ($script:preFlight_TrustedHosts -ne '*') {
+			Write-LogMessage -type Info -MSG "-RemoteCredential provided. TrustedHosts: $($script:preFlight_TrustedHosts)  -  SSL connections won't need this; verify it covers any servers without a WinRM HTTPS listener."
+		}
 	}
 }
 else {
@@ -1100,7 +1121,6 @@ $credCommands = $Script:CredCommands
 $logonHeader = $Script:LogonHeader
 $fn_WriteLogMessage = ${function:Write-LogMessage}
 $fn_JoinExceptionMessage = ${function:Join-ExceptionMessage}
-$fn_TestCommandExists = ${function:Test-CommandExists}
 $fn_InvokeRest = ${function:Invoke-Rest}
 $fn_SetUserPassword = ${function:Set-UserPassword}
 $fn_ResetCredentials = ${function:Reset-Credentials}
@@ -1152,10 +1172,17 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 			}
 			else {
 				Reset-Credentials -ComponentType $target.'Component Type' -Server $fqdn -OS $target.os -vault $vaultAddress -apiAddress $apiAddress -tries $tries -Credential $RemoteCredential
+				if ($ShowLogs) {
+					Show-ComponentLog -Server $fqdn -ComponentType $target.'Component Type' -LogName $LogName -Tail $LogTail -Credential $RemoteCredential
+				}
 			}
 		}
 		Catch {
 			$FailureList += $target
+			Write-LogMessage -type Error -MSG "Failed processing `"$($target.'Component User')`" on `"$fqdn`": $($_.Exception.Message)"
+			if ($ShowLogs) {
+				Show-ComponentLog -Server $fqdn -ComponentType $target.'Component Type' -LogName $LogName -Tail $LogTail -Credential $RemoteCredential
+			}
 		}
 	}
 	else {
@@ -1170,13 +1197,21 @@ foreach ($target in $targetComponents | Sort-Object $comp.'Component Type') {
 				$Script:LogonHeader = $using:logonHeader
 				$Script:LOG_FILE_PATH = $using:LOG_FILE_PATH
 				$Script:RemoteCredential = $using:RemoteCredential
+				$Script:WinRMUseSSL = $using:WinRMUseSSL
+				$Script:WinRMUseNonSSL = $using:WinRMUseNonSSL
 				$Script:CredCommands = $using:credCommands
+				$ScriptLocation = $using:ScriptLocation
 
-				. "$using:ScriptLocation\Reset-ComponentCredential.ps1"
+				# Reconstruct URL variables  -  these are computed at the top of the parent script
+				# but are not in scope inside a background job.
+				$Script:URL_UserSearch        = $Script:PVWAURL + '/api/Users?filter=componentUser&search={0}'
+				$Script:URL_UserResetPassword = $Script:PVWAURL + '/api/Users/{0}/ResetPassword'
+				$Script:URL_Activate          = $Script:PVWAURL + '/api/Users/{0}/Activate'
+
+				. "$using:ScriptLocation\Reset-WinComponentCredential.ps1"
 
 				${function:Write-LogMessage} = $using:fn_WriteLogMessage
 				${function:Join-ExceptionMessage} = $using:fn_JoinExceptionMessage
-				${function:Test-CommandExists} = $using:fn_TestCommandExists
 				${function:Invoke-Rest} = $using:fn_InvokeRest
 				${function:Set-UserPassword} = $using:fn_SetUserPassword
 				${function:Reset-Credentials} = $using:fn_ResetCredentials
