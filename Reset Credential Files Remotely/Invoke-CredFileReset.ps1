@@ -182,7 +182,7 @@
                 Assaf Miron <assaf.miron@cyberark.com>
 
     Requires:   PowerShell 5.1+
-                WinRM (TCP 5985) access from orchestrating machine to component servers
+                WinRM access (TCP 5985 or 5986) from orchestrating machine to component servers
                 CyberArk Vault Administrator or equivalent REST API permissions
                 Reset-WinComponentCredential.ps1 and Reset-LinuxComponentCredential.ps1 in the same directory
 
