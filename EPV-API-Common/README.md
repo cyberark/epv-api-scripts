@@ -1,7 +1,7 @@
 # EPV-API-Common PowerShell Module
 
 [![PowerShell Version](https://img.shields.io/badge/PowerShell-7.4%2B-blue.svg)](https://github.com/PowerShell/PowerShell)
-[![Version](https://img.shields.io/badge/Version-0.1.2--Alpha-green.svg)]()
+[![Version](https://img.shields.io/badge/Version-0.1.7.1--Alpha-green.svg)]()
 [![License](https://img.shields.io/badge/License-CyberArk-blue.svg)]()
 
 ## Overview
@@ -335,5 +335,6 @@ This module is maintained by CyberArk. For issues, feature requests, or contribu
 This module is provided by CyberArk. Please refer to your CyberArk license agreement for usage terms and conditions.
 
 ---
+
 
 **Note**: This module requires PowerShell 7.4+ and is designed for CyberArk administrators and developers working with CyberArk APIs. Always follow your organization's security policies when using privileged access management tools.

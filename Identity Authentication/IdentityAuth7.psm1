@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    IdentityAuth - CyberArk Identity Authentication Module
+    IdentityAuth7 - CyberArk Identity Authentication Module
 
 .DESCRIPTION
     Authentication module for CyberArk Identity Security Platform Shared Services (ISPSS).
@@ -9,10 +9,10 @@
 .NOTES
     Version:        2.0.0
     Generated:      2026-01-28 23:44:30
-    Build Process:  Combined from source files in G:\epv-api-scripts\Identity Authentication\v2-Modernized\PS5.1/
+    Build Process:  Combined from source files in G:\epv-api-scripts\Identity Authentication\v2-Modernized\PS7/
 #>
 
-#Requires -Version 5.1
+#Requires -Version 7.0
 
 # Set strict mode
 Set-StrictMode -Version Latest
@@ -21,18 +21,497 @@ Set-StrictMode -Version Latest
 $script:CurrentSession = $null
 
 
-# Region: Private - ConvertFrom-SessionToHeaders
-#Requires -Version 5.1
+# Region: Class - ChallengeInfo
+#Requires -Version 7.0
 <#
 .SYNOPSIS
-    Convert session hashtable to authorization headers
+    Challenge information class
 
 .DESCRIPTION
-    Extracts token from session hashtable and constructs authorization headers
+    Represents an authentication challenge with multiple mechanism options
+#>
+
+class ChallengeInfo {
+    [string]$ChallengeId
+    [array]$Mechanisms
+    [string]$Type
+    [hashtable]$Metadata = @{}
+
+    # Constructor
+    ChallengeInfo([PSCustomObject]$Challenge) {
+        $this.ChallengeId = $Challenge.ChallengeId ?? [guid]::NewGuid().ToString()
+        $this.Mechanisms = $Challenge.Mechanisms ?? @()
+        $this.Type = $Challenge.Type ?? 'Unknown'
+    }
+
+    # Get mechanism by name
+    [PSCustomObject] GetMechanismByName([string]$Name) {
+        return $this.Mechanisms | Where-Object { $_.Name -eq $Name } | Select-Object -First 1
+    }
+
+    # Check if challenge has multiple mechanisms
+    [bool] HasMultipleMechanisms() {
+        return $this.Mechanisms.Count -gt 1
+    }
+}
+
+# EndRegion: Class - ChallengeInfo
+
+
+# Region: Class - IdentityAuthResponse
+#Requires -Version 7.0
+<#
+.SYNOPSIS
+    Identity authentication response class
+
+.DESCRIPTION
+    Represents a response from Identity authentication APIs
+#>
+
+class IdentityAuthResponse {
+    [bool]$Success
+    [string]$Message
+    [PSCustomObject]$Result
+    [hashtable]$ErrorInfo
+    [int]$StatusCode
+    [datetime]$Timestamp = [datetime]::Now
+
+    # Constructor
+    IdentityAuthResponse([PSCustomObject]$ApiResponse) {
+        $this.Success = $ApiResponse.success ?? $false
+        $this.Message = $ApiResponse.Message ?? ''
+        $this.Result = $ApiResponse.Result
+        $this.ErrorInfo = @{}
+        $this.StatusCode = 200
+    }
+
+    # Extract token from response
+    [string] ToToken() {
+        if ($this.Success -and $this.Result.Token) {
+            return $this.Result.Token
+        }
+        return $null
+    }
+
+    # Check if response contains challenges
+    [bool] HasChallenges() {
+        return $null -ne $this.Result.Challenges -and $this.Result.Challenges.Count -gt 0
+    }
+}
+
+# EndRegion: Class - IdentityAuthResponse
+
+
+# Region: Class - IdentitySession
+#Requires -Version 7.0
+<#
+.SYNOPSIS
+    Identity session class
+
+.DESCRIPTION
+    Represents an active Identity authentication session with full lifecycle management
+#>
+
+class IdentitySession {
+    # Core authentication data
+    [string]$Token
+    [datetime]$TokenExpiry
+    [string]$IdentityURL
+    [string]$PCloudURL
+
+    # User and session metadata
+    [string]$Username
+    [string]$SessionId
+    [AuthenticationMechanism]$AuthMethod
+
+    # Optional stored credentials (OAuth only for auto-refresh)
+    [PSCredential]$StoredCredentials
+
+    # Additional metadata
+    [hashtable]$Metadata = @{
+        CreatedAt = [datetime]::Now
+        LastRefreshed = [datetime]::Now
+        RefreshCount = 0
+        PCloudVersion = $null
+        TenantId = $null
+        RefreshToken = $null
+    }
+
+    # Default constructor
+    IdentitySession() { }
+
+    # Constructor from hashtable
+    IdentitySession([hashtable]$Properties) {
+        $this.Token = $Properties.Token
+        $this.TokenExpiry = $Properties.TokenExpiry
+        $this.IdentityURL = $Properties.IdentityURL
+        $this.PCloudURL = $Properties.PCloudURL ?? ''
+        $this.Username = $Properties.Username
+        $this.SessionId = $Properties.SessionId ?? ''
+        $this.AuthMethod = $Properties.AuthMethod
+        $this.StoredCredentials = $Properties.StoredCredentials ?? $null
+    }
+
+    # Check if token is expired
+    [bool] IsExpired() {
+        return (Get-Date) -gt $this.TokenExpiry
+    }
+
+    # Check if token is expiring soon
+    [bool] IsExpiringSoon([int]$ThresholdSeconds = 60) {
+        $expiryThreshold = (Get-Date).AddSeconds($ThresholdSeconds)
+        return $this.TokenExpiry -lt $expiryThreshold
+    }
+
+    # Refresh OAuth token
+    [void] Refresh() {
+        if ($this.AuthMethod -eq [AuthenticationMechanism]::OAuth) {
+            if ($null -ne $this.StoredCredentials) {
+                Write-Verbose "Auto-refreshing OAuth token"
+
+                $ClientId = $this.StoredCredentials.UserName
+                $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($this.StoredCredentials.Password)
+                $ClientSecret = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
+
+                try {
+                    $body = "grant_type=client_credentials&client_id=$ClientId&client_secret=$ClientSecret"
+                    $oauthParams = @{
+                        Uri = "$($this.IdentityURL)/OAuth2/Token/$ClientId"
+                        Method = 'Post'
+                        ContentType = 'application/x-www-form-urlencoded'
+                        Body = $body
+                        ErrorAction = 'Stop'
+                    }
+                    $response = Invoke-RestMethod @oauthParams
+
+                    $this.Token = $response.access_token
+                    $this.TokenExpiry = (Get-Date).AddSeconds($response.expires_in)
+                    $this.Metadata.LastRefreshed = Get-Date
+                    $this.Metadata.RefreshCount++
+
+                    Write-Verbose "OAuth token refreshed successfully (Refresh count: $($this.Metadata.RefreshCount))"
+                } catch {
+                    throw "Failed to refresh OAuth token: $($_.Exception.Message)"
+                } finally {
+                    if ($bstr) {
+                        [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+                    }
+                    $ClientSecret = $null
+                }
+            } else {
+                throw "Cannot refresh: OAuth credentials not stored in session"
+            }
+        } else {
+            throw "Cannot auto-refresh: AuthMethod '$($this.AuthMethod)' requires manual user interaction"
+        }
+    }
+
+    # Get authorization header
+    [hashtable] GetAuthHeader() {
+        if ($this.IsExpired()) {
+            throw "Token expired. Re-authentication required."
+        }
+        return @{
+            'Authorization' = "Bearer $($this.Token)"
+            'X-IDAP-NATIVE-CLIENT' = 'true'
+        }
+    }
+
+    # Dispose and logout
+    [void] Dispose() {
+        Write-Verbose "Disposing Identity session for user: $($this.Username)"
+
+        # Call logout endpoint
+        try {
+            $logoutUrl = "$($this.IdentityURL)/Security/logout"
+            $logoutParams = @{
+                Uri = $logoutUrl
+                Method = 'Post'
+                Headers = $this.GetAuthHeader()
+                ErrorAction = 'SilentlyContinue'
+            }
+            Invoke-RestMethod @logoutParams | Out-Null
+            Write-Verbose "Logout API call successful"
+        } catch {
+            Write-Verbose "Logout API call failed: $($_.Exception.Message)"
+        }
+
+        # Clear sensitive data
+        $this.Token = $null
+        $this.StoredCredentials = $null
+        $this.SessionId = $null
+        Write-Verbose "Session disposed"
+    }
+}
+
+# EndRegion: Class - IdentitySession
+
+
+# Region: Class - MechanismInfo
+#Requires -Version 7.0
+<#
+.SYNOPSIS
+    Mechanism information class
+
+.DESCRIPTION
+    Represents a single authentication mechanism option
+#>
+
+class MechanismInfo {
+    [string]$MechanismId
+    [string]$Name
+    [string]$AnswerType
+    [string]$PromptMechChosen
+    [hashtable]$Properties = @{}
+
+    # Constructor
+    MechanismInfo([PSCustomObject]$Mechanism) {
+        $this.MechanismId = $Mechanism.MechanismId
+        $this.Name = $Mechanism.Name
+        $this.AnswerType = $Mechanism.AnswerType
+        $this.PromptMechChosen = $Mechanism.PromptMechChosen ?? $Mechanism.PromptSelectMech
+    }
+
+    # Check if mechanism requires user input
+    [bool] RequiresUserInput() {
+        return $this.AnswerType -eq 'Text'
+    }
+
+    # Check if mechanism is out-of-band (push notification)
+    [bool] IsOOB() {
+        return $this.AnswerType -like '*Oob*'
+    }
+}
+
+# EndRegion: Class - MechanismInfo
+
+
+# Region: Class - SessionManager
+#Requires -Version 7.0
+<#
+.SYNOPSIS
+    Session manager class
+
+.DESCRIPTION
+    Manages the current Identity session lifecycle
+#>
+
+class SessionManager {
+    hidden [IdentitySession]$CurrentSession
+
+    # Get current session
+    [IdentitySession] GetSession() {
+        return $this.CurrentSession
+    }
+
+    # Set current session
+    [void] SetSession([IdentitySession]$Session) {
+        $this.CurrentSession = $Session
+        Write-Verbose "Session set for user: $($Session.Username)"
+    }
+
+    # Clear current session
+    [void] ClearSession([bool]$Logout = $true) {
+        if ($this.HasActiveSession()) {
+            if ($Logout) {
+                $this.CurrentSession.Dispose()
+            }
+            $this.CurrentSession = $null
+            Write-Verbose "Session cleared"
+        }
+    }
+
+    # Check if there's an active session
+    [bool] HasActiveSession() {
+        return $null -ne $this.CurrentSession -and -not $this.CurrentSession.IsExpired()
+    }
+
+    # Refresh token if needed
+    [bool] RefreshIfNeeded() {
+        if ($this.HasActiveSession() -and $this.CurrentSession.IsExpiringSoon()) {
+            try {
+                $this.CurrentSession.Refresh()
+                return $true
+            } catch {
+                Write-Verbose "Failed to refresh session: $($_.Exception.Message)"
+                return $false
+            }
+        }
+        return $false
+    }
+}
+
+# EndRegion: Class - SessionManager
+
+
+# Region: Class - TokenValidator
+#Requires -Version 7.0
+<#
+.SYNOPSIS
+    Token validator class
+
+.DESCRIPTION
+    Validates Identity tokens and extracts claims
+#>
+
+class TokenValidator {
+    # Validate token format (basic JWT structure check)
+    static [bool] ValidateFormat([string]$Token) {
+        if ([string]::IsNullOrEmpty($Token)) {
+            return $false
+        }
+
+        # JWT tokens have 3 parts separated by dots
+        $parts = $Token.Split('.')
+        return $parts.Count -eq 3
+    }
+
+    # Validate token expiry
+    static [bool] ValidateExpiry([datetime]$Expiry) {
+        return (Get-Date) -lt $Expiry
+    }
+
+    # Get token claims (simplified - basic Base64 decode of payload)
+    static [hashtable] GetTokenClaims([string]$Token) {
+        try {
+            $parts = $Token.Split('.')
+            if ($parts.Count -ne 3) {
+                return @{ Error = 'Invalid token format' }
+            }
+
+            # Decode payload (second part)
+            $payload = $parts[1]
+            # Add padding if needed
+            while ($payload.Length % 4 -ne 0) {
+                $payload += '='
+            }
+
+            $payloadBytes = [Convert]::FromBase64String($payload)
+            $payloadJson = [System.Text.Encoding]::UTF8.GetString($payloadBytes)
+            $claims = $payloadJson | ConvertFrom-Json
+
+            return @{
+                Subject = $claims.sub
+                Issuer = $claims.iss
+                Audience = $claims.aud
+                IssuedAt = $claims.iat
+                Expiry = $claims.exp
+            }
+        } catch {
+            return @{ Error = $_.Exception.Message }
+        }
+    }
+}
+
+# EndRegion: Class - TokenValidator
+
+
+# Region: Enum - AuthenticationMechanism
+#Requires -Version 7.0
+<#
+.SYNOPSIS
+    Authentication mechanism enumeration
+
+.DESCRIPTION
+    Defines supported authentication mechanisms for CyberArk Identity
+#>
+
+enum AuthenticationMechanism {
+    UP = 1                      # Username/Password
+    OAuth = 2                   # OAuth client credentials
+    EmailOTP = 3                # Email one-time password
+    SMSOTP = 4                  # SMS one-time password
+    PushNotification = 5        # Push notification to device
+    SAML_Deprecated = 6         # Legacy SAML (deprecated)
+    OOBAUTHPIN = 7              # Out-of-band authentication PIN
+    PhoneCall = 8               # Phone call verification
+    SecurityQuestions = 9       # Security questions
+}
+
+# EndRegion: Enum - AuthenticationMechanism
+
+
+# Region: Enum - ChallengeType
+#Requires -Version 7.0
+<#
+.SYNOPSIS
+    Challenge type enumeration
+
+.DESCRIPTION
+    Defines types of authentication challenges from Identity API
+#>
+
+enum ChallengeType {
+    Text = 1                    # Text-based answer (password, OTP, etc.)
+    StartTextOob = 2            # Start text-based out-of-band (push notification)
+    StartOob = 3                # Start out-of-band authentication
+    Poll = 4                    # Poll for OOB completion
+    Answer = 5                  # Submit answer to challenge
+    SAML = 6                    # SAML redirect
+}
+
+# EndRegion: Enum - ChallengeType
+
+
+# Region: Enum - MechanismType
+#Requires -Version 7.0
+<#
+.SYNOPSIS
+    Mechanism type enumeration
+
+.DESCRIPTION
+    Defines specific mechanism types returned by Identity API
+#>
+
+enum MechanismType {
+    UP = 1                      # Username/Password
+    OTP = 2                     # One-time password
+    EMAIL = 3                   # Email verification
+    SMS = 4                     # SMS verification
+    PF = 5                      # Push notification (PushFactor)
+    OATH = 6                    # OATH token
+    RADIUS = 7                  # RADIUS authentication
+    SQ = 8                      # Security questions
+    SAML = 9                    # SAML
+}
+
+# EndRegion: Enum - MechanismType
+
+
+# Region: Enum - SessionState
+#Requires -Version 7.0
+<#
+.SYNOPSIS
+    Session state enumeration
+
+.DESCRIPTION
+    Defines possible states of an Identity authentication session
+#>
+
+enum SessionState {
+    NotAuthenticated = 0        # No active session
+    Authenticating = 1          # Authentication in progress
+    Authenticated = 2           # Successfully authenticated
+    Expired = 3                 # Token expired
+    RefreshRequired = 4         # Token needs refresh
+    Invalid = 5                 # Session is invalid
+}
+
+# EndRegion: Enum - SessionState
+
+
+# Region: Private - ConvertFrom-SessionToHeaders
+#Requires -Version 7.0
+<#
+.SYNOPSIS
+    Convert IdentitySession object to authorization headers
+
+.DESCRIPTION
+    Extracts token from IdentitySession class instance and constructs authorization headers
     with X-IDAP-NATIVE-CLIENT header for Privilege Cloud APIs.
 
 .PARAMETER Session
-    Session hashtable containing Token and other metadata
+    IdentitySession object containing Token and other metadata
 
 .OUTPUTS
     Hashtable with Authorization and X-IDAP-NATIVE-CLIENT headers
@@ -48,27 +527,23 @@ function ConvertFrom-SessionToHeaders {
     [OutputType([hashtable])]
     param(
         [Parameter(Mandatory)]
-        [hashtable]$Session
+        [IdentitySession]$Session
     )
 
     Write-Verbose "Converting session to headers"
 
-    # PS5.1: Check expiry manually (no IsExpired() method)
-    if ($Session.TokenExpiry -and ((Get-Date) -gt $Session.TokenExpiry)) {
+    if ($Session.IsExpired()) {
         throw "Session token has expired. Please re-authenticate."
     }
 
-    return @{
-        'Authorization'        = "Bearer $($Session.Token)"
-        'X-IDAP-NATIVE-CLIENT' = 'true'
-    }
+    return $Session.GetAuthHeader()
 }
 
 # EndRegion: Private - ConvertFrom-SessionToHeaders
 
 
 # Region: Private - Format-Token
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Formats Identity API token response into authorization headers
@@ -97,18 +572,12 @@ function Format-Token {
         [object]$Token
     )
 
-    # PS5.1: No ternary operator
-    if ($Token -is [string]) {
-        $tokenString = $Token
-    }
-    else {
-        $tokenString = $Token.ToString()
-    }
+    $tokenString = $Token -is [string] ? $Token : $Token.ToString()
 
     Write-Verbose "Formatting token for authorization header"
 
     return @{
-        'Authorization'        = "Bearer $tokenString"
+        'Authorization' = "Bearer $tokenString"
         'X-IDAP-NATIVE-CLIENT' = 'true'
     }
 }
@@ -117,7 +586,7 @@ function Format-Token {
 
 
 # Region: Private - Invoke-AdvancedAuthBody
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Handles AdvanceAuthentication API calls
@@ -177,13 +646,13 @@ function Invoke-AdvancedAuthBody {
             Action      = 'StartOOB'
         }
 
-        Write-Host 'Waiting for push notification approval...'
+        Write-Information 'Waiting for push notification approval...'
         $response = Invoke-Rest -Uri $advanceAuthUrl -Method Post -Body $body
 
         # Poll for push approval
         while ($response.Result.Summary -eq 'OobPending') {
             Start-Sleep -Seconds 2
-            Write-Verbose 'Polling for push approval...'
+            Write-Information 'Polling for push approval...'
 
             $pollBody = @{
                 SessionId   = $SessionId
@@ -196,26 +665,16 @@ function Invoke-AdvancedAuthBody {
         }
 
         return $response
-    }
-    elseif ($Mechanism.AnswerType -eq 'Text') {
+    } elseif ($Mechanism.AnswerType -eq 'Text') {
         # Text answer (password, OTP, etc.)
         $action = 'Answer'
 
         if ($Mechanism.Name -eq 'UP' -and $UPCreds) {
-            Write-Verbose 'Using stored UP credentials'
+            Write-Information 'Using stored UP credentials'
             $answer = $UPCreds.Password
-        }
-        else {
-            # PS5.1: No ternary operator
-            if ($Mechanism.Name -eq 'UP') {
-                $promptText = 'Password'
-            }
-            elseif ($Mechanism.Name -eq 'OTP') {
-                $promptText = 'OTP code'
-            }
-            else {
-                $promptText = 'Answer'
-            }
+        } else {
+            $promptText = $Mechanism.Name -eq 'UP' ? 'Password' :
+            ($Mechanism.Name -eq 'OTP' ? 'OTP code' : 'Answer')
             $answer = Read-Host "Enter $promptText" -AsSecureString
         }
 
@@ -238,8 +697,7 @@ function Invoke-AdvancedAuthBody {
         $body = $null
 
         return $response
-    }
-    else {
+    } else {
         throw "Unsupported AnswerType: $($Mechanism.AnswerType)"
     }
 }
@@ -248,7 +706,7 @@ function Invoke-AdvancedAuthBody {
 
 
 # Region: Private - Invoke-Challenge
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Processes authentication challenges from Identity API
@@ -294,20 +752,18 @@ function Invoke-Challenge {
     Write-Verbose "Processing challenges for session: $sessionId"
 
     $challengeNumber = 1
-    $finalResponse = $null
-
     foreach ($challenge in $IdaptiveResponse.Result.Challenges) {
-        Write-Host "Challenge $challengeNumber"
+        Write-Information "Challenge $challengeNumber"
         $mechanisms = $challenge.mechanisms
         $mechanismCount = $mechanisms.Count
 
         # Select mechanism
         if ($mechanismCount -gt 1) {
-            Write-Host "There are $mechanismCount options to choose from:"
+            Write-Information "There are $mechanismCount options to choose from:"
 
             $i = 1
             foreach ($mech in $mechanisms) {
-                Write-Host "$i - $($mech.Name) - $($mech.PromptMechChosen)"
+                Write-Information "$i - $($mech.Name) - $($mech.PromptMechChosen)"
                 $i++
             }
 
@@ -318,7 +774,7 @@ function Invoke-Challenge {
                     $option = [int]$userInput
                 }
                 catch {
-                    Write-Host "Invalid input. Please enter a number."
+                    Write-Information "Invalid input. Please enter a number."
                 }
             }
 
@@ -326,44 +782,42 @@ function Invoke-Challenge {
         }
         else {
             $selectedMechanism = $mechanisms[0]
-            Write-Host "$($selectedMechanism.Name) - $($selectedMechanism.PromptMechChosen)"
+            Write-Information "$($selectedMechanism.Name) - $($selectedMechanism.PromptMechChosen)"
         }
 
         # Process the selected mechanism
         $advanceAuthParams = @{
-            SessionId   = $sessionId
-            Mechanism   = $selectedMechanism
+            SessionId = $sessionId
+            Mechanism = $selectedMechanism
             IdentityURL = $IdentityURL
-            UPCreds     = $UPCreds
+            UPCreds = $UPCreds
         }
-        $finalResponse = Invoke-AdvancedAuthBody @advanceAuthParams
+        $answerToResponse = Invoke-AdvancedAuthBody @advanceAuthParams
 
-        Write-Verbose "Challenge response: $($finalResponse | ConvertTo-Json -Depth 5 -Compress)"
+        Write-Verbose "Challenge response: $($answerToResponse | ConvertTo-Json -Depth 5 -Compress)"
 
         # Check if we have a token (successful authentication)
-        if ($finalResponse.PSObject.Properties['success'] -and
-            $finalResponse.success -and
-            $finalResponse.Result.Token) {
+        if ($answerToResponse.PSObject.Properties['success'] -and $answerToResponse.success -and $answerToResponse.Result.Token) {
             Write-Verbose "Token received successfully"
-            return $finalResponse
+            return $answerToResponse
         }
 
         $challengeNumber++
     }
 
     # If we get here, no token was received
-    if (-not $finalResponse.success) {
-        throw "Authentication failed: $($finalResponse.Message)"
+    if (-not $answerToResponse.success) {
+        throw "Authentication failed: $($answerToResponse.Message)"
     }
 
-    return $finalResponse
+    return $answerToResponse
 }
 
 # EndRegion: Private - Invoke-Challenge
 
 
 # Region: Private - Invoke-OOBAUTHPIN
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Handles OOBAUTHPIN (SAML + PIN) authentication flow
@@ -407,6 +861,7 @@ function Invoke-OOBAUTHPIN {
         [string]$PIN
     )
 
+    $InformationPreference = 'Continue'
     # Extract required session information
     $idpRedirectShortUrl = $IdaptiveResponse.Result.IdpRedirectShortUrl
     $sessionId = $IdaptiveResponse.Result.SessionId
@@ -421,35 +876,24 @@ function Invoke-OOBAUTHPIN {
     }
 
     # Display instructions to user
-    Write-Host ""
-    Write-Host ("=" * 80)
-    Write-Host "OOBAUTHPIN Authentication Required"
-    Write-Host ("=" * 80)
-    Write-Host ""
-    Write-Host "Please complete the following steps:"
-    Write-Host "  1. Open this URL in your browser: $idpRedirectShortUrl"
-    Write-Host "  2. Complete SAML authentication"
-    Write-Host "  3. You will receive a PIN code via email or SMS"
-    Write-Host "  4. Enter the PIN code below"
-    Write-Host ""
-
-    # Attempt to open browser automatically
-    try {
-        Start-Process $idpRedirectShortUrl -ErrorAction SilentlyContinue
-        Write-Host "Browser opened automatically. If not, copy the URL above."
-    }
-    catch {
-        Write-Verbose "Could not auto-open browser: $($_.Exception.Message)"
-        Write-Host "Please manually open the URL in your browser."
-    }
-
-    Write-Host ""
+    Write-Information ""
+    Write-Information ("=" * 80)
+    Write-Information "OOBAUTHPIN Authentication Required"
+    Write-Information ("=" * 80)
+    Write-Information ""
+    Write-Information "Please complete the following steps:"
+    Write-Information "  1. Open this URL in your browser: $idpRedirectShortUrl"
+    Write-Information "  2. Complete SAML authentication"
+    Write-Information "  3. You will receive a PIN code via email or SMS"
+    Write-Information "  4. Enter the PIN code below"
+    Write-Information ""
+    Write-Information ""
 
     # Get PIN from user or parameter
     if ([string]::IsNullOrEmpty($PIN)) {
         $valid = $false
         do {
-            $inputValue = Read-Host "Enter PIN code (numbers only)"
+            $inputValue = Read-Host "Enter PIN code (numbers only)" -MaskInput
             $inputValue = $inputValue.Trim()
 
             if ($inputValue -match '^\d+$') {
@@ -457,7 +901,7 @@ function Invoke-OOBAUTHPIN {
                 $valid = $true
             }
             else {
-                Write-Host "Invalid input. Please enter numbers only."
+                Write-Information "Invalid input. Please enter numbers only."
             }
         }
         until ($valid)
@@ -506,7 +950,7 @@ function Invoke-OOBAUTHPIN {
 
 
 # Region: Private - Invoke-Rest
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Centralized REST API call wrapper with logging
@@ -556,10 +1000,10 @@ function Invoke-Rest {
     Write-Verbose "API Call: $Method $Uri"
 
     $restParams = @{
-        Uri         = $Uri
-        Method      = $Method
+        Uri = $Uri
+        Method = $Method
         ContentType = 'application/json'
-        TimeoutSec  = 30
+        TimeoutSec = 30
     }
 
     if ($Headers) {
@@ -570,8 +1014,7 @@ function Invoke-Rest {
     if ($Body) {
         if ($Body -is [string]) {
             $restParams.Body = $Body
-        }
-        else {
+        } else {
             $restParams.Body = $Body | ConvertTo-Json -Depth 10 -Compress
         }
         Write-Verbose "Body: $($restParams.Body)"
@@ -592,20 +1035,20 @@ function Invoke-Rest {
 
 
 # Region: Private - New-IdentitySession
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
-    Create new Identity session hashtable
+    Create new IdentitySession object
 
 .DESCRIPTION
-    Creates a new session hashtable with all required properties for session state management.
+    Creates a new IdentitySession class instance with all required properties.
     Used after successful authentication to store session data.
 
 .PARAMETER Properties
     Hashtable containing session properties (Token, TokenExpiry, IdentityURL, etc.)
 
 .OUTPUTS
-    Hashtable with complete session structure
+    IdentitySession object
 
 .EXAMPLE
     $session = New-IdentitySession -Properties @{
@@ -614,7 +1057,7 @@ function Invoke-Rest {
         IdentityURL = $identityUrl
         PCloudURL = $pcloudUrl
         Username = $username
-        AuthMethod = 'OAuth'
+        AuthMethod = [AuthenticationMechanism]::OAuth
     }
 
 .NOTES
@@ -622,31 +1065,19 @@ function Invoke-Rest {
 #>
 function New-IdentitySession {
     [CmdletBinding()]
-    [OutputType([hashtable])]
+    [OutputType([IdentitySession])]
     param(
         [Parameter(Mandatory)]
         [hashtable]$Properties
     )
 
-    Write-Verbose "Creating new Identity session for user: $($Properties.Username)"
+    Write-Verbose "Creating new IdentitySession for user: $($Properties.Username)"
 
-    # PS5.1: Use hashtable instead of class
-    $session = @{
-        Token             = $Properties.Token
-        TokenExpiry       = $Properties.TokenExpiry
-        IdentityURL       = $Properties.IdentityURL
-        PCloudURL         = $Properties.PCloudURL
-        Username          = $Properties.Username
-        SessionId         = $Properties.SessionId
-        AuthMethod        = $Properties.AuthMethod
-        StoredCredentials = $Properties.StoredCredentials
-        Metadata          = @{
-            CreatedAt     = Get-Date
-            LastRefreshed = Get-Date
-            RefreshCount  = 0
-            RefreshToken  = $null
-        }
-    }
+    $session = [IdentitySession]::new($Properties)
+
+    $session.Metadata.CreatedAt = Get-Date
+    $session.Metadata.LastRefreshed = Get-Date
+    $session.Metadata.RefreshCount = 0
 
     Write-Verbose "Session created. Expires: $($session.TokenExpiry)"
 
@@ -657,17 +1088,17 @@ function New-IdentitySession {
 
 
 # Region: Private - Update-IdentitySession
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
-    Update session with refreshed token
+    Update IdentitySession with refreshed token
 
 .DESCRIPTION
-    Updates an existing session hashtable with new token and expiry.
+    Updates an existing IdentitySession object with new token and expiry.
     Used for OAuth token refresh to extend session lifetime.
 
 .PARAMETER Session
-    Session hashtable to update
+    IdentitySession object to update
 
 .EXAMPLE
     Update-IdentitySession -Session $script:CurrentSession
@@ -680,25 +1111,37 @@ function Update-IdentitySession {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [hashtable]$Session
+        [IdentitySession]$Session
     )
 
-    # TODO: Implementation
-    throw "Not yet implemented"
+    Write-Verbose "Updating session with refreshed token"
+
+    if ($Session.AuthMethod -ne [AuthenticationMechanism]::OAuth) {
+        throw "Cannot auto-refresh: Only OAuth sessions support automatic refresh"
+    }
+
+    try {
+        $Session.Refresh()
+        Write-Verbose "Session refreshed successfully. New expiry: $($Session.TokenExpiry)"
+    }
+    catch {
+        Write-Verbose "Session refresh failed: $($_.Exception.Message)"
+        throw
+    }
 }
 
 # EndRegion: Private - Update-IdentitySession
 
 
 # Region: Public - Clear-IdentitySession
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Clears current Identity session
 
 .DESCRIPTION
     Clears the current session from memory and optionally calls logout endpoint
-    to invalidate token on server.
+    to invalidate token on server. Uses SessionManager class for lifecycle management.
 
 .PARAMETER NoLogout
     Skip calling logout endpoint (only clear local session)
@@ -719,15 +1162,39 @@ function Clear-IdentitySession {
         [switch]$NoLogout
     )
 
-    # TODO: Implementation
-    throw "Not yet implemented"
+    if (-not $script:CurrentSession) {
+        Write-Verbose "No active session to clear"
+        return
+    }
+
+    Write-Verbose "Clearing Identity session"
+
+    if (-not $NoLogout -and $script:CurrentSession.IdentityURL) {
+        try {
+            $logoutUrl = "$($script:CurrentSession.IdentityURL)/Security/logout"
+            $headers = $script:CurrentSession.GetAuthHeader()
+
+            Write-Verbose "Calling logout endpoint"
+            Invoke-RestMethod -Uri $logoutUrl -Method Post -Headers $headers -ErrorAction SilentlyContinue | Out-Null
+            Write-Verbose "Logout successful"
+        }
+        catch {
+            Write-Verbose "Logout call failed (continuing with local cleanup): $($_.Exception.Message)"
+        }
+    }
+
+    # Clear the session
+    $script:CurrentSession.Dispose()
+    $script:CurrentSession = $null
+
+    Write-Verbose "Session cleared"
 }
 
 # EndRegion: Public - Clear-IdentitySession
 
 
 # Region: Public - Get-IdentityHeader
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Main authentication entry point for CyberArk Identity
@@ -739,6 +1206,8 @@ function Clear-IdentitySession {
     - Username/Password
     - MFA (OTP, Push, etc.)
     - OOBAUTHPIN (SAML with PIN)
+
+    PS7 version utilizes classes and enums for enhanced type safety.
 
 .PARAMETER IdentityUserName
     Username for interactive authentication
@@ -799,15 +1268,14 @@ function Get-IdentityHeader {
         [switch]$ForceNewSession
     )
 
+    $InformationPreference = 'Continue'
     # Check for existing session
     if (-not $ForceNewSession -and $script:CurrentSession) {
-        $isExpired = $script:CurrentSession.TokenExpiry -and ((Get-Date) -gt $script:CurrentSession.TokenExpiry)
-        if (-not $isExpired) {
+        if (-not $script:CurrentSession.IsExpired()) {
             Write-Verbose 'Using existing session token'
-            $headers = ConvertFrom-SessionToHeaders -Session $script:CurrentSession
+            $headers = $script:CurrentSession.GetAuthHeader()
             return $headers.Authorization
-        }
-        else {
+        } else {
             Write-Verbose 'Session expired, re-authenticating'
         }
     }
@@ -817,13 +1285,7 @@ function Get-IdentityHeader {
         $IdentityTenantURL = Get-IdentityURL -PCloudURL $PCloudURL
     }
 
-    # PS5.1: No ternary operator
-    if ($IdentityTenantURL -match '^https://') {
-        $identityBaseUrl = $IdentityTenantURL
-    }
-    else {
-        $identityBaseUrl = "https://$IdentityTenantURL"
-    }
+    $identityBaseUrl = $IdentityTenantURL -match '^https://' ? $IdentityTenantURL : "https://$IdentityTenantURL"
     Write-Verbose "Identity URL: $identityBaseUrl"
 
     # OAuth flow
@@ -843,13 +1305,7 @@ function Get-IdentityHeader {
         $response = Invoke-RestMethod -Uri $tokenUrl -Method Post -Body $body -ContentType 'application/x-www-form-urlencoded'
 
         $token = $response.access_token
-        # PS5.1: No null coalescing
-        if ($response.expires_in) {
-            $expiresIn = $response.expires_in
-        }
-        else {
-            $expiresIn = 3600
-        }
+        $expiresIn = $response.expires_in ?? 3600
 
         # Create session - OAuth has no SessionId
         $session = New-IdentitySession -Properties @{
@@ -858,7 +1314,7 @@ function Get-IdentityHeader {
             IdentityURL       = $identityBaseUrl
             PCloudURL         = $PCloudURL
             Username          = $clientId
-            AuthMethod        = 'OAuth'
+            AuthMethod        = [AuthenticationMechanism]::OAuth
             StoredCredentials = $OAuthCreds
             SessionId         = $null
         }
@@ -874,13 +1330,7 @@ function Get-IdentityHeader {
     }
 
     # Interactive authentication
-    # PS5.1: No ternary operator
-    if ($PSCmdlet.ParameterSetName -eq 'UPCreds') {
-        $username = $UPCreds.UserName
-    }
-    else {
-        $username = $IdentityUserName
-    }
+    $username = $PSCmdlet.ParameterSetName -eq 'UPCreds' ? $UPCreds.UserName : $IdentityUserName
     Write-Verbose "Authenticating user: $username"
 
     $startAuthUrl = "$identityBaseUrl/Security/StartAuthentication"
@@ -888,18 +1338,17 @@ function Get-IdentityHeader {
         User    = $username
         Version = '1.0'
     }
-    $requestHeaders = @{
+    $Headers = @{
         'Content-Type'         = 'application/json'
         'X-IDAP-NATIVE-CLIENT' = 'true'
         OobIdPAuth             = 'true'
     }
 
-    $idaptiveResponse = Invoke-Rest -Uri $startAuthUrl -Method Post -Body $startAuthBody -Headers $requestHeaders
+    $idaptiveResponse = Invoke-Rest -Uri $startAuthUrl -Method Post -Body $startAuthBody -headers $headers
 
     # Check for SAML/OOBAUTHPIN flow (property may not exist in all responses)
-    $hasIdpRedirect = $null -ne $idaptiveResponse.Result.PSObject.Properties['IdpRedirectShortUrl']
-
-    if ($hasIdpRedirect -and -not [string]::IsNullOrEmpty($idaptiveResponse.Result.IdpRedirectShortUrl)) {
+    if ($idaptiveResponse.Result.PSObject.Properties['IdpRedirectShortUrl'] -and
+        -not [string]::IsNullOrEmpty($idaptiveResponse.Result.IdpRedirectShortUrl)) {
         Write-Verbose 'OOBAUTHPIN flow detected'
 
         $oobParams = @{
@@ -911,13 +1360,8 @@ function Get-IdentityHeader {
 
         if ($answerResponse.success -and $answerResponse.Result.Token) {
             $token = $answerResponse.Result.Token
-            # PS5.1: No ternary operator
-            if ($answerResponse.Result.PSObject.Properties['TokenLifetime']) {
-                $tokenLifetime = $answerResponse.Result.TokenLifetime
-            }
-            else {
-                $tokenLifetime = 3600
-            }
+            $tokenLifetime = ($answerResponse.Result.PSObject.Properties['TokenLifetime']) ? $answerResponse.Result.TokenLifetime : 3600
+
 
             # Create session
             $session = New-IdentitySession -Properties @{
@@ -927,19 +1371,16 @@ function Get-IdentityHeader {
                 PCloudURL         = $PCloudURL
                 Username          = $username
                 SessionId         = $idaptiveResponse.Result.SessionId
-                AuthMethod        = 'OOBAUTHPIN'
+                AuthMethod        = [AuthenticationMechanism]::OOBAUTHPIN
                 StoredCredentials = $null
             }
 
-            if ($answerResponse.Result.PSObject.Properties['RefreshToken']) {
-                $session.Metadata.RefreshToken = $answerResponse.Result.RefreshToken
-            }
+            $session.Metadata.RefreshToken = ($answerResponse.Result.PSObject.Properties['RefreshToken']) ? $answerResponse.Result.RefreshToken : $null
             $script:CurrentSession = $session
             $headers = Format-Token -Token $token
             return $headers
-        }
-        else {
-            $errorMsg = if ($answerResponse.PSObject.Properties['Message']) { $answerResponse.Message } else { 'Unknown error' }
+        } else {
+            $errorMsg = $answerResponse.PSObject.Properties['Message'] ? $answerResponse.Message : 'Unknown error'
             throw "OOBAUTHPIN authentication failed: $errorMsg"
         }
     }
@@ -955,55 +1396,27 @@ function Get-IdentityHeader {
     }
     $answerResponse = Invoke-Challenge @challengeParams
 
-    Write-Verbose "Response properties: $($answerResponse.PSObject.Properties.Name -join ', ')"
-    Write-Verbose "Response JSON: $($answerResponse | ConvertTo-Json -Depth 5 -Compress)"
-
     if ($answerResponse.PSObject.Properties['success'] -and $answerResponse.success -and $answerResponse.Result.Token) {
         $token = $answerResponse.Result.Token
-        # PS5.1: No ternary operator
-        if ($answerResponse.Result.PSObject.Properties['TokenLifetime']) {
-            $tokenLifetime = $answerResponse.Result.TokenLifetime
-        }
-        else {
-            $tokenLifetime = 3600
-        }
+        $tokenLifetime = ($answerResponse.Result.PSObject.Properties['TokenLifetime']) ? $answerResponse.Result.TokenLifetime : 3600
 
         # Create session
         $session = New-IdentitySession -Properties @{
-            Token             = $token
-            TokenExpiry       = (Get-Date).AddSeconds($tokenLifetime)
-            IdentityURL       = $identityBaseUrl
-            PCloudURL         = $PCloudURL
-            Username          = $username
-            SessionId         = $sessionId
-            AuthMethod        = 'UP'
+            Token       = $token
+            TokenExpiry = (Get-Date).AddSeconds($tokenLifetime)
+            IdentityURL = $identityBaseUrl
+            PCloudURL   = $PCloudURL
+            Username    = $username
+            SessionId   = $sessionId
+            AuthMethod  = [AuthenticationMechanism]::UP
             StoredCredentials = $null
         }
-
+        $session.Metadata.RefreshToken = ($answerResponse.Result.PSObject.Properties['RefreshToken']) ? $answerResponse.Result.RefreshToken : $null
         $script:CurrentSession = $session
         $headers = Format-Token -Token $token
         return $headers
-    }
-    else {
-        # Gather error details - safely check properties
-        $hasSuccess = $null -ne $answerResponse.PSObject.Properties['success']
-        $successValue = if ($hasSuccess) { $answerResponse.success } else { 'Property missing' }
-
-        $hasResult = $null -ne $answerResponse.PSObject.Properties['Result']
-        $hasToken = if ($hasResult -and $answerResponse.Result) {
-            $null -ne $answerResponse.Result.PSObject.Properties['Token'] -and $answerResponse.Result.Token
-        } else {
-            $false
-        }
-
-        # Try to extract error message
-        if ($answerResponse.PSObject.Properties['Message']) {
-            $errorMsg = $answerResponse.Message
-        } elseif ($hasResult -and $answerResponse.Result.PSObject.Properties['Message']) {
-            $errorMsg = $answerResponse.Result.Message
-        } else {
-            $errorMsg = "Success=$successValue, HasToken=$hasToken. Use -Verbose to see full response."
-        }
+    } else {
+        $errorMsg = $answerResponse.PSObject.Properties['Message'] ? $answerResponse.Message : 'Unknown error'
         throw "Authentication failed: $errorMsg"
     }
 }
@@ -1012,17 +1425,17 @@ function Get-IdentityHeader {
 
 
 # Region: Public - Get-IdentitySession
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Retrieves current Identity session details
 
 .DESCRIPTION
-    Returns current session information including token expiry, authentication method,
+    Returns current IdentitySession object with token expiry, authentication method,
     and other metadata.
 
 .OUTPUTS
-    Hashtable - Current session details
+    IdentitySession - Current session object
 
 .EXAMPLE
     $session = Get-IdentitySession
@@ -1032,18 +1445,27 @@ function Get-IdentityHeader {
 #>
 function Get-IdentitySession {
     [CmdletBinding()]
-    [OutputType([hashtable])]
+    [OutputType([IdentitySession])]
     param()
 
-    # TODO: Implementation
-    throw "Not yet implemented"
+    if (-not $script:CurrentSession) {
+        Write-Verbose "No active session"
+        return $null
+    }
+
+    Write-Verbose "Returning current session"
+    Write-Verbose "User: $($script:CurrentSession.Username)"
+    Write-Verbose "Expires: $($script:CurrentSession.TokenExpiry)"
+    Write-Verbose "Is Expired: $($script:CurrentSession.IsExpired())"
+
+    return $script:CurrentSession
 }
 
 # EndRegion: Public - Get-IdentitySession
 
 
 # Region: Public - Get-IdentityURL
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Discovers Identity URL from Privilege Cloud URL
@@ -1080,49 +1502,16 @@ function Get-IdentityURL {
     Write-Verbose "PCloud base URL: $pcloudBase"
 
     try {
-        $response = Invoke-WebRequest -Uri $pcloudBase -UseBasicParsing -ErrorAction Stop
-        Write-Verbose "Response Status: $($response.StatusCode)"
-        Write-Verbose "Response Type: $($response.GetType().FullName)"
-
-        # PS5.1: Try different property paths
-        if ($response.BaseResponse.ResponseUri) {
-            $identityHost = $response.BaseResponse.ResponseUri.Host
-            Write-Verbose "Using BaseResponse.ResponseUri.Host"
-        }
-        elseif ($response.BaseResponse.RequestMessage.RequestUri) {
-            $identityHost = $response.BaseResponse.RequestMessage.RequestUri.Host
-            Write-Verbose "Using BaseResponse.RequestMessage.RequestUri.Host"
-        }
-        elseif ($response.Headers.Location) {
-            $locationUri = [Uri]$response.Headers.Location
-            $identityHost = $locationUri.Host
-            Write-Verbose "Using Headers.Location"
-        }
-        else {
-            throw "Could not extract Identity URL from response. Response properties: $($response.PSObject.Properties.Name -join ', ')"
-        }
-    }
-    catch {
+        $response = Invoke-WebRequest -Uri $pcloudBase -UseBasicParsing -ErrorAction SilentlyContinue
+    } catch {
         if ($_.Exception.Response) {
             $response = $_.Exception.Response
-            Write-Verbose "Caught redirect response: $($response.StatusCode)"
-
-            # Try to extract from redirect response
-            if ($response.ResponseUri) {
-                $identityHost = $response.ResponseUri.Host
-            }
-            elseif ($response.Headers -and $response.Headers.Location) {
-                $locationUri = [Uri]$response.Headers.Location
-                $identityHost = $locationUri.Host
-            }
-            else {
-                throw "Failed to extract Identity URL from redirect: $($_.Exception.Message)"
-            }
-        }
-        else {
+        } else {
             throw "Failed to connect to PCloud URL: $($_.Exception.Message)"
         }
     }
+
+    $identityHost = $response.BaseResponse.RequestMessage.RequestUri.Host
 
     Write-Verbose "Discovered Identity host: $identityHost"
 
@@ -1133,14 +1522,14 @@ function Get-IdentityURL {
 
 
 # Region: Public - Test-IdentityToken
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Validates Identity token
 
 .DESCRIPTION
     Validates token format and checks if token is expired.
-    Optionally decodes JWT claims.
+    Optionally decodes JWT claims using TokenValidator class.
 
 .PARAMETER Token
     Bearer token to validate
@@ -1168,8 +1557,46 @@ function Test-IdentityToken {
         [string]$IdentityURL
     )
 
-    # TODO: Implementation
-    throw "Not yet implemented"
+    Write-Verbose "Validating token"
+
+    # Basic format check - JWT should have 3 parts separated by dots
+    if ($Token -notmatch '^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$') {
+        Write-Verbose "Token format invalid"
+        return $false
+    }
+
+    try {
+        # Decode the payload (second part)
+        $tokenParts = $Token.Split('.')
+        $payload = $tokenParts[1]
+
+        # Add padding if needed
+        $padding = '=' * ((4 - ($payload.Length % 4)) % 4)
+        $payload = $payload.Replace('-', '+').Replace('_', '/') + $padding
+
+        # Decode from Base64
+        $payloadBytes = [System.Convert]::FromBase64String($payload)
+        $payloadJson = [System.Text.Encoding]::UTF8.GetString($payloadBytes)
+        $claims = $payloadJson | ConvertFrom-Json
+
+        # Check expiration
+        if ($claims.exp) {
+            $expiryDate = [DateTimeOffset]::FromUnixTimeSeconds($claims.exp).LocalDateTime
+            Write-Verbose "Token expires: $expiryDate"
+
+            if ((Get-Date) -gt $expiryDate) {
+                Write-Verbose "Token has expired"
+                return $false
+            }
+        }
+
+        Write-Verbose "Token is valid"
+        return $true
+    }
+    catch {
+        Write-Verbose "Token validation error: $($_.Exception.Message)"
+        return $false
+    }
 }
 
 # EndRegion: Public - Test-IdentityToken
