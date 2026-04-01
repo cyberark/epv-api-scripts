@@ -1,88 +1,344 @@
-# Identity Authentication Module and Identity Authentication Module v2
+# CyberArk Identity Authentication Module
 
-## Main capabilities
+**Status:** ✅ Production Ready
+**Version:** 2.0.0
+**PowerShell Compatibility:** 5.1+ (IdentityAuth.psm1) | 7.0+ (IdentityAuth7.psm1)
 
-- `Get-IdentityHeader`: creates a hash of an authentication token with `X-IDAP-NATIVE-CLIENT = True`. The token can be output to the right format for psPAS.
+[![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B%20%7C%207.0%2B-blue)](https://github.com/PowerShell/PowerShell)
 
-- The scripts follow the recommendations for the authentication to Identity Security Platform - Shared Services (ISPSS) that can be found here: *links are outdated*
+PowerShell module for authenticating to CyberArk Identity Security Platform with support for OAuth, MFA, and OOBAUTHPIN (SAML+PIN) flows.
 
-  - <https://docs.cyberark.com/Product-Doc/OnlineHelp/PrivCloud-SS/Latest/en/Content/WebServices/ISP-Auth-APIs.htm>
+---
 
-  - <https://docs.cyberark.com/Product-Doc/OnlineHelp/Idaptive/Latest/en/Content/Developer-resources.htm>
+## Features
 
-- The function will get the IdentityHeader with or without MFA. It currently supports Password/EmailPush/SMSPush/MobileAppPush/SAML options to authenticate.
+- ✅ **Multiple Authentication Methods**
+  - OAuth client credentials
+  - Username/Password
+  - MFA (OTP, Push notifications, SMS, Email)
+  - OOBAUTHPIN (SAML + PIN)
 
-## Differences between v1 and v2
+- ✅ **Session Management**
+  - Automatic token caching
+  - Token expiry detection
+  - Reusable sessions across multiple API calls
 
-- The original version uses Internet Explorer to process SAML requests while v2 provides a URL in the same style as SIA. The function will timeout after approximately 5 minutes.
+- ✅ **Dual PowerShell Support**
+  - **IdentityAuth.psm1**: PowerShell 5.1+ (Windows-compatible)
+  - **IdentityAuth7.psm1**: PowerShell 7.0+ (Cross-platform with classes/enums)
 
-Some of the scripts available in epv-api-scripts are able to consume this token to authenticate.
+- ✅ **Security**
+  - No plaintext credential storage
+  - Secure credential handling with PSCredential
+  - In-memory only token storage
 
-## List Command
+---
 
-```powershell
-Import-Module IdentityAuth.psm1
-$header = Get-IdentityHeader
-```
+## Quick Start
 
-If you want to specify information prior to running the scripts you can run:
-
-```powershell
-Import-Module IdentityAuth.psm1
-$header = Get-IdentityHeader -PCloudURL "something.cyberark.cloud" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID"
-```
-
-```powershell
-Import-Module IdentityAuth.psm1
-$header = Get-IdentityHeader -IdentityTenantURL "something.id.cyberark.cloud" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID"
-```
-
-If you want to specify information prior to running the scripts including credentials for automatic response to a user password request you can run:
-
-```powershell
-Import-Module IdentityAuth.psm1
-$UPCreds = Get-Credential
-$header = Get-IdentityHeader  -PCloudURL "something.cyberark.cloud" -UPCreds $UPCreds
-```
-
-If you want to connect using OAuth:
+### Installation
 
 ```powershell
-Import-Module IdentityAuth.psm1
-$OAuth = Get-Credential
-$header = Get-IdentityHeader  -PCloudURL "something.cyberark.cloud" -OAuthCreds $OAuth
+# Download the module files
+# IdentityAuth.psm1 + IdentityAuth.psd1 (PS 5.1+)
+# OR
+# IdentityAuth7.psm1 + IdentityAuth7.psd1 (PS 7+)
+
+# PowerShell 5.1 (Windows)
+Import-Module .\IdentityAuth.psd1
+
+# PowerShell 7+ (Windows/Linux/macOS)
+Import-Module .\IdentityAuth7.psd1
 ```
 
-Format output in a psPAS-compatible format. Only run $header once based on type of connection desired
+### Basic Usage
+
+#### OAuth Authentication
+
 ```powershell
-Import-Module IdentityAuth.psm1
-$header = Get-IdentityHeader  -PCloudURL "something.cyberark.cloud" -psPASFormat -PCloudSubdomain "subdomain" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID"
-$header = Get-IdentityHeader  -PCloudURL "something.cyberark.cloud" -psPASFormat -PCloudSubdomain "subdomain" -UPCreds $UPCreds -PCloudSubdomain "subdomain"
-$header = Get-IdentityHeader  -PCloudURL "something.cyberark.cloud" -psPASFormat -PCloudSubdomain "subdomain" -OAuthCreds $OAuth
-use-PASSession $header
+# Create OAuth credentials
+$clientId = 'your-client-id'
+$clientSecret = 'your-client-secret' | ConvertTo-SecureString -AsPlainText -Force
+$oauthCreds = New-Object PSCredential($clientId, $clientSecret)
+
+# Authenticate and get token
+$headers = Get-IdentityHeader -OAuthCreds $oauthCreds -PCloudURL 'https://subdomain.privilegecloud.cyberark.cloud/PasswordVault'
+
+# Use headers with other scripts
+.\Accounts_Onboard_Utility.ps1 -logonToken $headers -PVWAURL $PCloudURL -CSVFile accounts.csv
 ```
 
-SYNTAX
-````powershell
-Get-IdentityHeader [-PCloudURL <String>] [-IdentityTenantURL <String>] -IdentityUserName <String> [-psPASFormat] [-PCloudSubdomain <String>] [<CommonParameters>]
+#### Interactive Authentication (Username/Password)
 
-Get-IdentityHeader [-PCloudURL <String>] [-IdentityTenantURL <String>] -UPCreds <PSCredential> [-psPASFormat] [-PCloudSubdomain <String>] [<CommonParameters>]
-
-Get-IdentityHeader [-PCloudURL <String>] [-IdentityTenantURL <String>] -OAuthCreds <PSCredential> [-psPASFormat] [-PCloudSubdomain <String>] [<CommonParameters>]
-````
-
-# Identity User Refresh
-## Main capabilities
-
-- Initiate a refresh of an Active Directory-based account in Identity.
-  - Refreshing will update attribute values and group memberships.
-  - https://identity-developer.cyberark.com/reference/post_cdirectoryservice-refreshtoken *outdated link*
-- Prefered to run in PowerShell 6+ to allow for use of parrell processing of jobs.
-  - IdentityRefresh_5.1.ps1 is a version that has been backported to work with PowerShell 5.1, however processing is done serially.
-- Multiple parameter types can be passed at once but only the highest will be processed. Order of processing: GroupName, UPB, UUID, UUIDArray.
-
-## Usage
 ```powershell
-.\IdentityRefresh.ps1 -logonToken $srcToken -IdentityTenantURL "https://something.id.cyberark.cloud" [-GroupName "CyberArk - Vault Users"] [-UPN "User@lab.local] [-UUID "23b7f98c-60b4-4c01-a33f-4caa99472343"] [-UUIDArray @("23b7f98c-60b4-4c01-a33f-e4caa9947703","21b74328c-60b4-4c01-a33f-4caa99472343")]
-.\IdentityRefresh_5.1.1.ps1 -logonToken $srcToken -IdentityTenantURL "https://something.id.cyberark.cloud" [-GroupName "CyberArk - Vault Users"] [-UPN "User@lab.local] [-UUID "23b7f98c-60b4-4c01-a33f-4caa99472343"] [-UUIDArray @("23b7f98c-60b4-4c01-a33f-e4caa9947703","21b74328c-60b4-4c01-a33f-4caa99472343")]
+# Prompt for credentials
+$upCreds = Get-Credential -Message "Enter CyberArk credentials"
+
+# Authenticate - flow handles MFA challenges automatically
+$headers = Get-IdentityHeader -UPCreds $upCreds -PCloudURL 'https://subdomain.privilegecloud.cyberark.cloud/PasswordVault'
 ```
+
+#### Interactive Authentication (Identity Username)
+
+```powershell
+# Authenticate with Identity Username (prompts for password/challenges)
+$headers = Get-IdentityHeader -IdentityUserName 'user@company.com' -PCloudURL 'https://subdomain.privilegecloud.cyberark.cloud/PasswordVault'
+```
+
+---
+
+## Authentication Flows
+
+### 1. OAuth Flow
+Best for: Automation, service accounts, CI/CD pipelines
+
+```powershell
+$oauthCreds = New-Object PSCredential('client-id', ('client-secret' | ConvertTo-SecureString -AsPlainText -Force))
+$headers = Get-IdentityHeader -OAuthCreds $oauthCreds -PCloudURL $PCloudURL
+```
+
+**Returns:** Hashtable with `Authorization` and `X-IDAP-NATIVE-CLIENT` headers
+
+### 2. Interactive Authentication Flow
+Best for: Interactive sessions with username/password authentication
+
+The module provides a **single interactive authentication flow** that automatically handles all challenges:
+- Username/Password
+- MFA (OTP, Push notifications, SMS, Email)
+- OOBAUTHPIN (SAML + PIN)
+
+**Two ways to authenticate:**
+
+**Option A: Pass PSCredential (username + password)**
+```powershell
+$upCreds = Get-Credential
+$headers = Get-IdentityHeader -UPCreds $upCreds -PCloudURL $PCloudURL
+```
+
+**Option B: Pass Identity Username (prompts for password)**
+```powershell
+$headers = Get-IdentityHeader -IdentityUserName 'user@domain.com' -PCloudURL $PCloudURL
+```
+
+**The flow automatically detects and handles:**
+- Standard password authentication
+- MFA challenges (OTP/Push/SMS/Email)
+- OOBAUTHPIN (SAML redirect + PIN entry)
+
+**For OOBAUTHPIN, the module:**
+1. Displays SAML authentication URL
+2. Waits for user to complete SAML login in browser
+3. Prompts user to enter PIN code (received via email/SMS after SAML auth)
+4. Returns authentication headers
+
+**Note:** PIN cannot be provided beforehand - it is generated by the IDP after SAML authentication completes.
+
+---
+
+## Session Management
+
+### Reusing Sessions
+
+```powershell
+# First authentication
+$headers1 = Get-IdentityHeader -OAuthCreds $creds -PCloudURL $PCloudURL
+
+# Reuses cached session (no new authentication)
+$headers2 = Get-IdentityHeader -OAuthCreds $creds -PCloudURL $PCloudURL
+
+# Force new authentication
+$headers3 = Get-IdentityHeader -OAuthCreds $creds -PCloudURL $PCloudURL -ForceNewSession
+```
+
+### Check Session Status
+
+```powershell
+# Get current session details
+$session = Get-IdentitySession
+
+# Check token expiry
+Write-Host "Token expires: $($session.TokenExpiry)"
+Write-Host "Is expired: $($session.IsExpired())"
+```
+
+### Clear Session
+
+```powershell
+# Logout and clear session
+Clear-IdentitySession
+
+# Clear session without logging out
+Clear-IdentitySession -NoLogout
+```
+
+---
+
+## Return Value
+
+All authentication functions return a **hashtable** with CyberArk API headers:
+
+```powershell
+@{
+    Authorization        = "Bearer eyJhbGc..."
+    X-IDAP-NATIVE-CLIENT = "true"
+}
+```
+
+**Usage with other scripts:**
+
+```powershell
+$headers = Get-IdentityHeader -OAuthCreds $creds -PCloudURL $PCloudURL
+
+# Use with any script that accepts -logonToken
+.\Accounts_Onboard_Utility.ps1 -logonToken $headers -PVWAURL $PCloudURL
+
+# Use with Invoke-RestMethod
+Invoke-RestMethod -Uri $apiUrl -Headers $headers
+```
+
+---
+
+## Parameters
+
+### Get-IdentityHeader
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `IdentityUserName` | String | Yes* | Username for interactive authentication |
+| `UPCreds` | PSCredential | Yes* | Credentials for UP authentication |
+| `OAuthCreds` | PSCredential | Yes* | OAuth client ID (username) and secret (password) |
+| `PCloudURL` | String | Yes | Privilege Cloud URL |
+| `IdentityTenantURL` | String | No | Identity URL (auto-discovered if not provided) |
+| `ForceNewSession` | Switch | No | Force new authentication (ignore cached session) |
+
+*One of `IdentityUserName`, `UPCreds`, or `OAuthCreds` is required
+
+---
+
+## Examples
+
+### Example 1: OAuth with EPV-API-Common Module
+
+```powershell
+Import-Module EPV-API-Common
+Import-Module IdentityAuth7
+
+# Authenticate to Identity
+$oauthCreds = Get-Credential -Message "Enter OAuth credentials"
+$headers = Get-IdentityHeader -OAuthCreds $oauthCreds -PCloudURL 'https://subdomain.privilegecloud.cyberark.cloud/PasswordVault'
+
+# Use with EPV-API-Common functions
+$pvwaSession = New-PASSession -BaseURI 'https://subdomain.privilegecloud.cyberark.cloud/PasswordVault' -IdentityHeaders $headers
+Get-PASAccount -search "admin"
+```
+
+### Example 2: Accounts Onboard Utility
+
+```powershell
+# Authenticate once
+$headers = Get-IdentityHeader -OAuthCreds $creds -PCloudURL 'https://subdomain.privilegecloud.cyberark.cloud/PasswordVault'
+
+# Use token with Accounts Onboard Utility
+.\Accounts_Onboard_Utility.ps1 `
+    -PVWAURL 'https://subdomain.privilegecloud.cyberark.cloud/PasswordVault' `
+    -logonToken $headers.Authorization `
+    -CSVFile "accounts.csv"
+```
+
+### Example 3: MFA Push Notification
+
+```powershell
+$upCreds = Get-Credential -Message "Enter username and password"
+$headers = Get-IdentityHeader -UPCreds $upCreds -PCloudURL 'https://subdomain.privilegecloud.cyberark.cloud/PasswordVault'
+
+# Output:
+# Challenge 1
+# There are 2 options to choose from:
+#   1 - UP - Enter Password
+#   2 - PF - Approve Login from CyberArk Mobile App
+# Please enter option number (1-2): 2
+# Waiting for push notification approval...
+```
+
+---
+
+## Troubleshooting
+
+### "Invalid URI: The hostname could not be parsed"
+
+**Cause:** Identity URL discovery failed
+
+**Solution:** Provide `-IdentityTenantURL` explicitly:
+
+```powershell
+$headers = Get-IdentityHeader -OAuthCreds $creds `
+    -PCloudURL 'https://subdomain.privilegecloud.cyberark.cloud/PasswordVault' `
+    -IdentityTenantURL 'https://abc123.id.cyberark.cloud'
+```
+
+### "PropertyNotFoundException" errors
+
+**Cause:** Using old cached module after rebuild
+
+**Solution:** Reimport the module:
+
+```powershell
+Remove-Module IdentityAuth* -Force -ErrorAction SilentlyContinue
+Import-Module .\IdentityAuth7.psd1 -Force
+```
+
+### Headers not working with other scripts
+
+**Cause:** Incompatible script expecting different format
+
+**Solution:** Ensure script supports Privilege Cloud authentication:
+
+```powershell
+$headers = Get-IdentityHeader -OAuthCreds $creds -PCloudURL $PCloudURL
+.\Script.ps1 -logonToken $headers -PVWAURL $PCloudURL
+```
+
+**Note:** All scripts in epv-api-scripts repository accept the hashtable format.
+
+---
+
+## PowerShell 5.1 vs 7+ Differences
+
+| Feature | PS 5.1 (IdentityAuth) | PS 7+ (IdentityAuth7) |
+|---------|----------------------|----------------------|
+| Session Object | Hashtable | Class (IdentitySession) |
+| Enums | Strings | Enums (AuthenticationMechanism) |
+| Type Safety | Basic | Enhanced with classes |
+| Syntax | Traditional if/else | Ternary operators, null coalescing |
+| Performance | Standard | Slightly faster |
+| Compatibility | Windows only | Cross-platform |
+
+**Both versions have identical functionality and return the same results.**
+
+---
+
+## Requirements
+
+- PowerShell 5.1+ (IdentityAuth.psm1) or PowerShell 7.0+ (IdentityAuth7.psm1)
+- Network access to CyberArk Identity and Privilege Cloud
+- Valid CyberArk credentials (OAuth or user account)
+
+---
+
+## Documentation
+
+- [Architecture Design](ARCHITECTURE-DESIGN.md) - Detailed architecture and flow diagrams
+- [Developer Guide](DEVELOPER-GUIDE.md) - Contributing and development setup
+
+---
+
+## Support
+
+For issues and feature requests, please open an issue in the GitHub repository.
+
+---
+
+**Last Updated:** 2026-01-28
+**Version:** 2.0.0
+
+
