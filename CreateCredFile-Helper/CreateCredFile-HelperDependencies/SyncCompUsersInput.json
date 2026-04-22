@@ -1,0 +1,14 @@
+{
+    "ComponentUsers":  [
+                           {
+                               "GenerateCredFile":  true,
+                               "CompDefaultUsername":  "bod-s-pcc-p",
+                               "APIGWFilePath":  "C:\\Program Files (x86)\\CyberArk\\Password Manager\\Vault\\apikey.ini",
+                               "DisplayName":  "CPM app user",
+                               "CredFilePath":  "C:\\Program Files (x86)\\CyberArk\\Password Manager\\Vault\\user.ini"
+                           }
+                       ],
+    "vaultAdminUsername":  "installeruser@saascorpslndn.local",
+    "Component":  "cpm",
+    "VaultIniPath":  "C:\\Program Files (x86)\\CyberArk\\Password Manager\\Vault\\Vault.ini"
+}

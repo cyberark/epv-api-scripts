@@ -1,0 +1,1187 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<PasswordVaultConfiguration>
+  <VersionInformation ProductVersion="120600" />
+  <General ApplicationRoot="https://AMPM-174F638BFD.ampm.cyberng.com/PasswordVault" AutoOpenObjectDetailsInSearch="No" PublicDataSafe="PVWAPublicData" IncludePasswordActionInAuditLogReasonField="Yes" AllowFraming="No" UseV10LogonPage="Yes" />
+  <AccountsFeed />
+  <Users UserPreferencesPrivateSafe="PVWAPrivateUserPrefs" UserPreferencesSafe="PVWAUserPrefs" PVWAMonitorGroup="PVWAMonitor" PVWAUsersGroup="PVWAUsers" PVWAAppUsersGroup="PVWAAppUsers" PVWAGWAccountGroup="PVWAGWAccounts" GWUserName="PVWAGWUser" GWUserFile="gwuser.ini" ApplicationUserName="PVWAAppUser" ApplicationUserFile="appuser.ini" ConfigurationSafe="PVWAConfig" LimitedStoreAuthGroup="" PVWASystemGroup="Vault Admins" />
+  <CPMNames>
+    <CPM Name="PasswordManager" />
+    <CPM Name="PasswordManager1" />
+  </CPMNames>
+  <SearchProperties>
+    <Property Name="PolicyID" />
+    <Property Name="DeviceType" />
+    <Property Name="Username" />
+    <Property Name="Address" />
+    <Property Name="ExtraPass1Name" />
+    <Property Name="ExtraPass2Name" />
+    <Property Name="ExtraPass3Name" />
+    <Property Name="DSN" />
+    <Property Name="Database" />
+    <Property Name="ServiceName" />
+    <Property Name="GroupName" />
+    <Property Name="Type" />
+    <Property Name="Description" />
+    <Property Name="Keywords" />
+    <Property Name="Port" />
+    <Property Name="Location" />
+    <Property Name="OwnerName" />
+    <Property Name="TaskName" />
+    <Property Name="CPMDisabled" />
+    <Property Name="UserDN" />
+    <Property Name="LogonDomain" />
+    <Property Name="SystemNumber" />
+    <Property Name="Client" />
+    <Property Name="WebSiteName" />
+    <Property Name="VirtualDirPath" />
+    <Property Name="WebSiteID" />
+    <Property Name="ApplicationName" />
+    <Property Name="TaskFolder" />
+    <Property Name="MachineType" />
+    <Property Name="FilePath" />
+    <Property Name="UsageDisplayName" />
+    <Property Name="DiscoveryPlatformType" />
+    <Property Name="MachineOSFamily" />
+    <Property Name="OSVersion" />
+    <Property Name="UserDisplayName" />
+    <Property Name="Domain" />
+    <Property Name="OU" />
+    <Property Name="AccountDescription" />
+    <Property Name="AccountOSGroups" />
+    <Property Name="LimitDomainAccess" />
+  </SearchProperties>
+  <InternalProperties>
+    <Property Name="ResetImmediately" />
+    <Property Name="NoGenerate" />
+    <Property Name="InProcess" />
+    <Property Name="UpdateUsages" />
+    <Property Name="SequenceID" />
+    <Property Name="CPMStatus" />
+    <Property Name="GroupName" />
+    <Property Name="ExtraPass1Name" />
+    <Property Name="ExtraPass1Folder" />
+    <Property Name="ExtraPass1Safe" />
+    <Property Name="ExtraPass2Name" />
+    <Property Name="ExtraPass2Folder" />
+    <Property Name="ExtraPass2Safe" />
+    <Property Name="ExtraPass3Name" />
+    <Property Name="ExtraPass3Folder" />
+    <Property Name="ExtraPass3Safe" />
+    <Property Name="MasterPassName" />
+    <Property Name="MasterPassFolder" />
+    <Property Name="CPMDisabled" />
+    <Property Name="RetriesCount" />
+    <Property Name="LastFailDate" />
+    <Property Name="LastTask" />
+    <Property Name="LastSuccessChange" />
+    <Property Name="StartChangeNotBefore" />
+    <Property Name="ResetImmediatelyReason" />
+    <Property Name="CPMErrorDetails" />
+    <Property Name="MachineType" />
+    <Property Name="LastSuccessReconciliation" />
+    <Property Name="CPMInternal" />
+    <Property Name="AccountDiscoveryDate" />
+    <Property Name="OU" />
+    <Property Name="CreationMethod" />
+    <Property Name="IP" />
+    <Property Name="OSVersion" />
+    <Property Name="UserDisplayName" />
+    <Property Name="Domain" />
+    <Property Name="DiscoveryPlatformType" />
+    <Property Name="AccountOSGroups" />
+    <Property Name="AccountDescription" />
+    <Property Name="AccountEnabled" />
+    <Property Name="AccountCategory" />
+    <Property Name="MachineOSFamily" />
+    <Property Name="PasswordNeverExpires" />
+    <Property Name="LastPasswordSetDate" />
+    <Property Name="LastLogonDate" />
+    <Property Name="AccountExpirationDate" />
+    <Property Name="ProvisioningAccount" />
+    <Property Name="LooselyFindReason" />
+    <Property Name="Fingerprint" />
+    <Property Name="Format" />
+    <Property Name="Length" />
+    <Property Name="Encryption" />
+    <Property Name="Path" />
+    <Property Name="AWSAccessKeyIDForDelete" />
+    <Property Name="LimitDomainAccess" />
+    <Property Name="MinValidityProcessed" />
+    <Property Name="KeyIDForDelete" />
+  </InternalProperties>
+  <LDAPSearch SearchType="BeginsWith">
+    <SearchField Name="Username" />
+  </LDAPSearch>
+  <SearchResults WideAccountsSearch="no" DisplaySearchAllAccountsWarning="No">
+  </SearchResults>
+  <PasswordNamePattern>
+    <Pattern Name="DeviceType" />
+    <Pattern Name="PolicyID" />
+    <Pattern Name="Address" />
+    <Pattern Name="Username" />
+    <Pattern Name="vty" />
+    <Pattern Name="DSN" />
+    <Pattern Name="ServiceName" />
+    <Pattern Name="TaskName" />
+    <Pattern Name="SystemNumber" />
+    <Pattern Name="Client" />
+  </PasswordNamePattern>
+  <UsageNamePattern>
+    <Pattern Name="MasterPassword" />
+    <Pattern Name="PolicyID" />
+    <Pattern Name="Address" />
+    <Pattern Name="ServiceName" />
+    <Pattern Name="TaskName" />
+    <Pattern Name="WebSiteName" />
+    <Pattern Name="WebSiteID" />
+    <Pattern Name="ApplicationName" />
+    <Pattern Name="AppPoolName" />
+    <Pattern Name="UsageDisplayName" />
+  </UsageNamePattern>
+  <PasswordDescriptorProperties>
+    <Property Name="PolicyID" />
+    <Property Name="UserName" />
+    <Property Name="Address" />
+    <Property Name="ServiceName" />
+    <Property Name="vty" />
+    <Property Name="DSN" />
+    <Property Name="TaskName" />
+  </PasswordDescriptorProperties>
+  <FileDescriptorProperties>
+    <Property Name="Folder" />
+    <Property Name="Name" />
+  </FileDescriptorProperties>
+  <FileDisplayColumns>
+    <Property Name="Safe" />
+    <Property Name="Name" />
+    <Property Name="LastModified" />
+    <Property Name="LastModifiedBy" />
+    <Property Name="Size" />
+  </FileDisplayColumns>
+  <Statistics />
+  <ChartCategories>
+    <Category Name="PolicyID" />
+    <Category Name="DeviceType" />
+  </ChartCategories>
+  <WebCharts WebChartsPhysicalPath="C:\CyberArk\Password Vault Web Access\WebCharts" WebChartsVirtualPath="Webcharts/" />
+  <AuthMethods>
+    <GeneralSettings DefaultMethod="CyberArk" RememberLastUsedMethod="No" MobileDefaultMethod="CyberArk" />
+    <AuthMethod Id="windows" DisplayName="" Enabled="No" LogoffUrl="" UseVaultAuthentication="No" UseRadius="No" MobileEnabled="No" />
+    <AuthMethod Id="pki" DisplayName="" Enabled="No" LogoffUrl="" UseVaultAuthentication="No" UseRadius="No" MobileEnabled="No" />
+    <AuthMethod Id="cyberark" DisplayName="" Enabled="Yes" LogoffUrl="" UseVaultAuthentication="Yes" UseRadius="No" MobileEnabled="Yes" />
+    <AuthMethod Id="oraclesso" DisplayName="" Enabled="No" LogoffUrl="http://[ssoserver]:7777/sso/logout?p_done_url=http://[iisserver]/PasswordVault" UseVaultAuthentication="No" UseRadius="No" MobileEnabled="No" />
+    <AuthMethod Id="rsa" DisplayName="" Enabled="No" LogoffUrl="/WebID/IISWebAgentIF.dll?logoff?referrer=/passwordvault" UseVaultAuthentication="No" UseRadius="No" MobileEnabled="No" />
+    <AuthMethod Id="radius" DisplayName="" Enabled="No" LogoffUrl="" UseVaultAuthentication="Yes" UseRadius="Yes" MobileEnabled="No" />
+    <AuthMethod Id="ldap" DisplayName="" Enabled="No" LogoffUrl="" MobileEnabled="No" />
+    <AuthMethod Id="saml" DisplayName="" Enabled="No" LogoffUrl="https://[samlserver]/?wa=wsignout1.0" UseVaultAuthentication="No" UseRadius="No" MobileEnabled="No" />
+  </AuthMethods>
+  <DefaultSafeAuthorizations>
+    <Authorization Name="UsePasswords" Checked="Yes" />
+    <Authorization Name="RetrievePasswords" Checked="Yes" />
+    <Authorization Name="ListPasswords" Checked="Yes" />
+    <Authorization Name="AddPasswords" Checked="No" />
+    <Authorization Name="UpdatePasswordValue" Checked="No" />
+    <Authorization Name="UpdatePasswordProperties" Checked="No" />
+    <Authorization Name="InitiateCpmChange" Checked="No" />
+    <Authorization Name="InitiateCpmChangeWithManualPassword" Checked="No" />
+    <Authorization Name="RenamePasswords" Checked="No" />
+    <Authorization Name="DeletePasswords" Checked="No" />
+    <Authorization Name="UnlockPasswords" Checked="No" />
+    <Authorization Name="ManageSafe" Checked="No" />
+    <Authorization Name="ManageSafeOwners" Checked="No" />
+    <Authorization Name="ViewAudit" Checked="Yes" />
+    <Authorization Name="ViewMembers" Checked="Yes" />
+    <Authorization Name="AuthorizePasswordRequests" Checked="No" />
+    <Authorization Name="AccessSafeWithoutConfirmation" Checked="No" />
+  </DefaultSafeAuthorizations>
+  <DualControl AllowDualControlWithTicketingIntegration="Yes">
+    <DualControlParameters>
+      <Parameter Id="EmergencyIndication" DisplayName="Emergency" AuditName="Emergency" Type="Boolean" Visible="Yes" />
+      <Parameter Id="ReferenceNo" AuditName="RefNo" DisplayName="Reference No" Type="Text" Visible="Yes" />
+    </DualControlParameters>
+  </DualControl>
+  <TicketingSystems EnableTicketingWithoutRequiredReason="Yes">
+    <System Name="ServiceNow" Assembly="CyberArk.ServiceNow" Class="CyberArk.ServiceNow.TicketValidator">
+      <TicketingParameters>
+        <Parameter Name="SystemConfiguration">
+          <Parameter Name="SystemURL" Value="https://%hostname%.service-now.com" />
+          <Parameter Name="FailsafeBypassCode" Value="" />
+          <Parameter Name="AuthenticationErrorMessage" Value="An authentication error occurred while communicating with the ticketing system. Please check the connection details settings" />
+          <Parameter Name="ConnectionErrorMessage" Value="A connection error occurred while communicating with the ticketing system. Please check the communication settings." />
+          <Parameter Name="IncidentTicketFormat" Value="^INC[0-9]*" />
+          <Parameter Name="ChangeTicketFormat" Value="^CHG[0-9]*" />
+        </Parameter>
+        <Parameter Name="TicketValidation">
+          <Parameter Name="IncidentTicketValidation">
+            <Parameter Name="ValidateIncidentTicketState" Value="No">
+              <Parameter Name="AllowedIncidentTicketStates" Value="New | In Progress | Closed | Cancelled | On Hold | Resolved | Assigned" />
+              <Parameter Name="IncidentTicketStateErrorMessage" Value="This ticket ID state is not allowed." />
+            </Parameter>
+          </Parameter>
+          <Parameter Name="ChangeTicketValidation">
+            <Parameter Name="ValidateChangeTicketState" Value="No">
+              <Parameter Name="AllowedChangeTicketStates" Value="new | Pending | Draft | In Progress | Closed | Closed Complete | Closed Incomplete | Closed | Cancelled | Closed Rejected | Closed Skipped | On Hold | Awaiting Approval | Approved | Rejected | Implemented | Assigned| CAB Review" />
+              <Parameter Name="ChangeTicketStateErrorMessage" Value="This ticket ID state is not allowed." />
+            </Parameter>
+            <Parameter Name="ValidateChangeTicketTimeframe" Value="No">
+              <Parameter Name="TimeZoneOffset" Value="0" />
+              <Parameter Name="ChangeTicketTimeframeErrorMessage" Value="This account cannot be used now. It can only be used during the timeframe specified in the ticket ID details." />
+              <Parameter Name="ChangeCultureInfo" Value="" />
+            </Parameter>
+            <Parameter Name="ValidateChangeTicketApprovalStatus" Value="No">
+              <Parameter Name="AllowedChangeTicketApprovalStatuses" Value="Approved | Not Yet Requested | Requested | Rejected" />
+              <Parameter Name="ChangeTicketApprovalStatusErrorMessage" Value="This ticket approval status is not allowed." />
+            </Parameter>
+          </Parameter>
+          <Parameter Name="TicketNotExistErrorMessage" Value="This ticket ID does not exist." />
+          <Parameter Name="TicketFormatErrorMessage" Value="This ticket format is not valid." />
+        </Parameter>
+      </TicketingParameters>
+      <ConnectionDetails File="" Safe="" />
+    </System>
+    <System Name="BMCRemedy" Assembly="CyberArk.BMCRemedy" Class="CyberArk.BMCRemedy.TicketValidator">
+      <TicketingParameters>
+        <Parameter Name="SystemConfiguration">
+          <Parameter Name="SystemURL" Value="http://%AR-URL%:%Port%" />
+          <Parameter Name="FailsafeBypassCode" Value="" />
+          <Parameter Name="AuthenticationErrorMessage" Value="An authentication error occurred while communicating with the ticketing system. Please check the connection details settings" />
+          <Parameter Name="ConnectionErrorMessage" Value="A connection error occurred while communicating with the ticketing system. Please check the communication settings." />
+          <Parameter Name="IncidentTicketFormat" Value="^INC[0-9]*" />
+          <Parameter Name="ChangeTicketFormat" Value="^CRQ[0-9]*" />
+        </Parameter>
+        <Parameter Name="TicketValidation">
+          <Parameter Name="IncidentTicketValidation">
+            <Parameter Name="ValidateIncidentTicketState" Value="No">
+              <Parameter Name="AllowedIncidentTicketStates" Value="New | Assigned | In Progress | Pending | Resolved | Closed | Cancelled" />
+              <Parameter Name="IncidentTicketStateErrorMessage" Value="This ticket ID state is not allowed." />
+            </Parameter>
+          </Parameter>
+          <Parameter Name="ChangeTicketValidation">
+            <Parameter Name="ValidateChangeTicketState" Value="No">
+              <Parameter Name="AllowedChangeTicketStates" Value="Draft | Request For Authorization | Request For Change | Planning In Progress | Scheduled For Review | Scheduled For Approval | Scheduled | Implementation In Progress | Completed | Closed | Pending | Rejected | Cancelled" />
+              <Parameter Name="ChangeTicketStateErrorMessage" Value="This ticket ID state is not allowed." />
+            </Parameter>
+            <Parameter Name="ValidateChangeTicketTimeframe" Value="No">
+              <Parameter Name="TimeZoneOffset" Value="0" />
+              <Parameter Name="ChangeTicketTimeframeErrorMessage" Value="This account cannot be used now. It can only be used during the timeframe specified in the ticket ID details." />
+            </Parameter>
+          </Parameter>
+          <Parameter Name="TicketNotExistErrorMessage" Value="This ticket ID does not exist." />
+          <Parameter Name="TicketFormatErrorMessage" Value="This ticket format is not valid." />
+        </Parameter>
+      </TicketingParameters>
+      <ConnectionDetails File="" Safe="" />
+    </System>
+  </TicketingSystems>
+  <ConnectionComponents>
+    <ConnectionComponent Id="SSH" Type="CyberArk.TransparentConnection.SSH.SSHConnectionComponent, CyberArk.PasswordVault.TransparentConnection.SSH">
+      <ComponentParameters>
+        <Parameter Name="port" Value="22" />
+      </ComponentParameters>
+      <UserParameters />
+    </ConnectionComponent>
+    <ConnectionComponent Id="RDP" Type="CyberArk.PasswordVault.TransparentConnection.RDP.RDPConnectionComponent, CyberArk.PasswordVault.TransparentConnection.RDP">
+      <ComponentParameters>
+        <Parameter Name="port" Value="3389" />
+      </ComponentParameters>
+      <UserParameters>
+        <Parameter Name="AllowMappingLocalDrives" Type="CyberArk.TransparentConnection.BooleanUserParameter, CyberArk.PasswordVault.TransparentConnection" Value="No" Visible="No" />
+        <Parameter Name="AllowConnectToConsole" Type="CyberArk.TransparentConnection.BooleanUserParameter, CyberArk.PasswordVault.TransparentConnection" Value="No" Visible="No" />
+        <Parameter Name="LogonDomain" Type="CyberArk.PasswordVault.TransparentConnection.RDP.LogonDomainUserParameter, CyberArk.PasswordVault.TransparentConnection.RDP" />
+      </UserParameters>
+    </ConnectionComponent>
+    <ConnectionComponent Id="PuTTY" Type="CyberArk.PasswordVault.TransparentConnection.Generic.GenericConnectionComponent, CyberArk.PasswordVault.TransparentConnection.Generic">
+      <ComponentParameters>
+        <Parameter Name="ExePath" Value="%ProgramFiles%\PuTTY\putty.exe" />
+        <Parameter Name="ConnectionScriptName" Value="PuTTY.js" />
+        <Parameter Name="DisplayDebuggingMessage" Value="No" />
+      </ComponentParameters>
+    </ConnectionComponent>
+    <ConnectionComponent Id="RDPapplet-Sample" Type="CyberArk.PasswordVault.TransparentConnection.Generic.GenericConnectionComponent, CyberArk.PasswordVault.TransparentConnection.Generic" FullScreen="No" EnableWindowScrollbar="No">
+      <ComponentParameters>
+        <Parameter Name="ConnectionScriptName" Value="RDPapplet.js" />
+        <Parameter Name="DisplayDebuggingMessage" Value="No" />
+      </ComponentParameters>
+      <UserParameters>
+        <Parameter Name="AllowMappingLocalDrives" Type="CyberArk.TransparentConnection.BooleanUserParameter, CyberArk.PasswordVault.TransparentConnection" Value="No" Visible="No" />
+        <Parameter Name="AllowConnectToConsole" Type="CyberArk.TransparentConnection.BooleanUserParameter, CyberArk.PasswordVault.TransparentConnection" Value="No" Visible="No" />
+        <Parameter Name="LogonDomain" Type="CyberArk.PasswordVault.TransparentConnection.RDP.LogonDomainUserParameter, CyberArk.PasswordVault.TransparentConnection.RDP" />
+      </UserParameters>
+    </ConnectionComponent>
+    <ConnectionComponent Id="RDPWinApplet" Type="CyberArk.PasswordVault.TransparentConnection.Generic.GenericConnectionComponent, CyberArk.PasswordVault.TransparentConnection.Generic" FullScreen="No" EnableWindowScrollbar="No">
+      <ComponentParameters>
+        <Parameter Name="ConnectionScriptName" Value="RDPWinApplet.js" />
+        <Parameter Name="DisplayDebuggingMessage" Value="No" />
+      </ComponentParameters>
+      <UserParameters>
+        <Parameter Name="AllowMappingLocalDrives" Type="CyberArk.TransparentConnection.BooleanUserParameter, CyberArk.PasswordVault.TransparentConnection" Value="No" Visible="No" />
+        <Parameter Name="AllowConnectToConsole" Type="CyberArk.TransparentConnection.BooleanUserParameter, CyberArk.PasswordVault.TransparentConnection" Value="No" Visible="No" />
+        <Parameter Name="LogonDomain" Type="CyberArk.PasswordVault.TransparentConnection.RDP.LogonDomainUserParameter, CyberArk.PasswordVault.TransparentConnection.RDP" />
+      </UserParameters>
+    </ConnectionComponent>
+    <ConnectionComponent Id="WebConnection" Type="CyberArk.PasswordVault.TransparentConnection.Generic.GenericConnectionComponent, CyberArk.PasswordVault.TransparentConnection.Generic" EnableToolbars="Yes">
+      <ComponentParameters>
+        <Parameter Name="ConnectionScriptName" Value="GenericWebConnector.js" />
+      </ComponentParameters>
+    </ConnectionComponent>
+  </ConnectionComponents>
+  <PrivilegedSessionManagementUI NonIERemoteDesktopAccess="RDPFile" DefaultConnectionMethod="RDP">
+    <SearchSessionRecordings>
+      <General />
+      <DisplayedColumns SortBy="Start">
+        <Column Name="RiskScore" Width="30" DataType="String" />
+        <Column Name="File" Width="80" DataType="String" Visible="No" />
+        <Column Name="Safe" Width="80" DataType="String" Visible="No" />
+        <Column Name="Folder" Width="30" DataType="String" Visible="No" />
+        <Column Name="User" Width="40" DataType="String" />
+        <Column Name="FromIP" Width="80" DataType="String" Visible="No" />
+        <Column Name="PIMSuCommand" Width="80" Visible="No" />
+        <Column Name="PIMSuCWD" Width="80" Visible="No" />
+        <Column Name="RemoteMachine" Width="80" Visible="No" />
+        <Column Name="ClientApp" Width="30" Visible="Yes" />
+        <Column Name="Protocol" Width="30" Visible="No" />
+        <Column Name="AccountDetails" Width="100" DataType="String" Visible="No" />
+        <Column Name="AccountUsername" Width="95" DataType="String" />
+        <Column Name="AccountAddress" Width="85" DataType="String" />
+        <Column Name="AccountPolicyID" Width="85" DataType="String" />
+        <Column Name="Start" Width="110" DataType="Date" />
+        <Column Name="End" Width="110" DataType="Date" Visible="No" />
+        <Column Name="Duration" Width="60" DataType="String" />
+        <Column Name="VideoSize" Width="30" DataType="String" />
+        <Column Name="TextSize" Width="30" DataType="String" Visible="No" />
+        <Column Name="LockedBy" Width="30" DataType="Image" />
+        <Column Name="TicketID" Width="30" DataType="String" Visible="No" />
+      </DisplayedColumns>
+      <LiveSessionsDisplayedColumns SortBy="Start">
+        <Column Name="RiskScore" Width="30" DataType="String" />
+        <Column Name="File" Width="80" DataType="String" Visible="No" />
+        <Column Name="Safe" Width="80" DataType="String" Visible="No" />
+        <Column Name="Folder" Width="30" DataType="String" Visible="No" />
+        <Column Name="User" Width="40" DataType="String" Visible="Yes" />
+        <Column Name="FromIP" Width="80" DataType="String" />
+        <Column Name="RemoteMachine" Width="80" Visible="No" DataType="String" />
+        <Column Name="ClientApp" Width="30" DataType="String" />
+        <Column Name="Protocol" Width="30" Visible="No" DataType="String" />
+        <Column Name="AccountDetails" Width="100" DataType="String" Visible="No" />
+        <Column Name="AccountUsername" Width="95" DataType="String" Visible="Yes" />
+        <Column Name="AccountAddress" Width="85" DataType="String" Visible="Yes" />
+        <Column Name="AccountPolicyID" Width="85" DataType="String" Visible="Yes" />
+        <Column Name="Start" Width="110" DataType="Date" Visible="Yes" />
+        <Column Name="TicketID" Width="30" DataType="String" Visible="No" />
+      </LiveSessionsDisplayedColumns>
+    </SearchSessionRecordings>
+    <PasswordDetailsSessionRecordings>
+      <DisplayedColumns SortBy="Start">
+        <Column Name="File" Width="80" DataType="String" Visible="No" />
+        <Column Name="Safe" Width="30" DataType="String" Visible="No" />
+        <Column Name="Folder" Width="30" DataType="String" Visible="No" />
+        <Column Name="User" Width="40" DataType="String" />
+        <Column Name="AccountAddress" Width="40" DataType="String" Visible="No" />
+        <Column Name="AccountDetails" Width="40" DataType="String" Visible="No" />
+        <Column Name="AccountPolicyID" Width="40" DataType="String" Visible="No" />
+        <Column Name="FromIP" Width="50" DataType="String" Visible="No" />
+        <Column Name="PIMSuCommand" Width="50" Visible="No" />
+        <Column Name="PIMSuCWD" Width="80" Visible="No" />
+        <Column Name="RemoteMachine" Width="80" Visible="No" />
+        <Column Name="ClientApp" Width="30" Visible="No" />
+        <Column Name="Protocol" Width="30" Visible="No" />
+        <Column Name="Start" Width="80" DataType="Date" />
+        <Column Name="End" Width="80" DataType="Date" Visible="No" />
+        <Column Name="Duration" Width="30" DataType="String" />
+        <Column Name="VideoSize" Width="30" DataType="String" />
+        <Column Name="TextSize" Width="30" DataType="String" Visible="No" />
+        <Column Name="LockedBy" Width="30" DataType="Image" />
+        <Column Name="TicketID" Width="30" DataType="String" Visible="No" />
+      </DisplayedColumns>
+    </PasswordDetailsSessionRecordings>
+    <LiveSessionDetails>
+      <ToolbarActions>
+        <Action Name="Monitor" />
+        <Action Name="Terminate" />
+      </ToolbarActions>
+      <LiveSessionDescriptorProperties>
+        <Property Name="VaultUser" />
+        <Property Name="PolicyID" />
+        <Property Name="Username" />
+        <Property Name="Address" />
+        <Property Name="Start" />
+        <Property Name="TicketID" Visible="No" />
+      </LiveSessionDescriptorProperties>
+    </LiveSessionDetails>
+    <RecordingDetails>
+      <ToolbarActions>
+        <Action Name="Play" />
+        <Action Name="Save" />
+        <Action Name="Protect" />
+        <Action Name="Unprotect" />
+      </ToolbarActions>
+      <RecordingDescriptorProperties>
+        <Property Name="VaultUser" />
+        <Property Name="PolicyID" />
+        <Property Name="Username" />
+        <Property Name="Address" />
+        <Property Name="Start" />
+        <Property Name="End" />
+      </RecordingDescriptorProperties>
+      <RecordingDetailsProperties>
+        <DisplayedProperties>
+          <Property Name="File" Visible="No" />
+          <Property Name="Folder" Visible="No" />
+          <Property Name="User" />
+          <Property Name="FromIP" />
+          <Property Name="PIMSuCommand" />
+          <Property Name="PIMSuCWD" />
+          <Property Name="RemoteMachine" />
+          <Property Name="Interface" />
+          <Property Name="ClientApp" />
+          <Property Name="Protocol" />
+          <Property Name="Start" />
+          <Property Name="End" />
+          <Property Name="Duration" />
+          <Property Name="UncompressedSize" Visible="No" />
+          <Property Name="Safe" />
+          <Property Name="LockedBy" />
+          <Property Name="TicketID" Visible="No" />
+        </DisplayedProperties>
+      </RecordingDetailsProperties>
+      <RecordingDetailsPasswordProperties>
+        <DisplayedProperties>
+          <Property Name="PolicyID" />
+          <Property Name="Username" />
+          <Property Name="Address" />
+        </DisplayedProperties>
+      </RecordingDetailsPasswordProperties>
+      <RecordingTypes>
+        <RecordingType Type="Video">
+          <DisplayedProperties>
+            <Property Name="Size" />
+            <Property Name="UncompressedSize" Visible="No" />
+            <Property Name="LastReviewedBy" />
+            <Property Name="LastReviewDate" />
+          </DisplayedProperties>
+        </RecordingType>
+        <RecordingType Type="Text">
+          <DisplayedProperties>
+            <Property Name="Size" />
+            <Property Name="UncompressedSize" Visible="No" />
+            <Property Name="LastReviewedBy" />
+            <Property Name="LastReviewDate" />
+          </DisplayedProperties>
+        </RecordingType>
+      </RecordingTypes>
+      <RecordingsSecurityIncidentsProperties>
+        <DisplayedProperties>
+          <Property Name="IncidentName" />
+          <Property Name="IncidentID" />
+          <Property Name="IncidentLink" />
+          <Property Name="RiskScore" />
+          <Property Name="IncidentStartDate" Visible="No" />
+          <Property Name="Activity" />
+          <Property Name="IncidentOffset" />
+        </DisplayedProperties>
+      </RecordingsSecurityIncidentsProperties>
+      <RecordingDetailsTabs>
+        <RecordingDetailsReviews>
+          <General />
+          <DisplayedColumns SortBy="Time">
+            <Column Name="Icon" Width="30" DataType="Image" />
+            <Column Name="Time" Width="100" DataType="Date" />
+            <Column Name="User" Width="60" DataType="String" />
+            <Column Name="Action" Width="80" DataType="String" />
+            <Column Name="Format" Width="60" DataType="String" />
+            <Column Name="MoreInfo" Width="80" DataType="String" />
+            <Column Name="Reason" Width="80" DataType="String" />
+            <Column Name="ClientID" Width="60" DataType="String" />
+          </DisplayedColumns>
+        </RecordingDetailsReviews>
+        <RecordingDetailsEvents>
+          <DisplayedColumns SortBy="Offset">
+            <Column Name="Offset" Width="20" DataType="String" />
+            <Column Name="Action" Width="100" DataType="String" />
+          </DisplayedColumns>
+        </RecordingDetailsEvents>
+      </RecordingDetailsTabs>
+    </RecordingDetails>
+    <Commands>
+      <DisplayedColumns SortBy="Command">
+        <Column Name="Command" Width="70" DataType="String" />
+        <Column Name="AuthorizedUser" Width="50" DataType="String" />
+        <Column Name="PIMSuType" Width="30" DataType="String" />
+        <Column Name="Policy" Width="30" DataType="String" />
+        <Column Name="Restrictions" DataType="String" />
+      </DisplayedColumns>
+    </Commands>
+    <Streaming />
+  </PrivilegedSessionManagementUI>
+  <PrivilegedSessionManagement>
+    <General>
+      <SearchProperties MaxRecords="1000">
+        <Recording>
+          <Property Name="PSMStartTime" />
+          <Property Name="PSMEndTime" />
+          <Property Name="PSMSourceAddress" />
+          <Property Name="PSMVaultUserName" />
+          <Property Name="PSMProtocol" />
+          <Property Name="PSMClientApp" />
+          <Property Name="PSMRemoteMachine" />
+          <Property Name="PSMPasswordID" />
+          <Property Name="PSMSafeID" />
+          <Property Name="PSMRecordingType" />
+          <Property Name="PSMRecordingEntity" />
+          <Property Name="PSMStatus" />
+          <Property Name="PIMSuCommand" />
+          <Property Name="PIMSuCWD" />
+          <Property Name="ProviderID" />
+          <Property Name="TicketID" />
+        </Recording>
+        <PasswordObject>
+          <Property Name="PolicyId" />
+          <Property Name="Port" />
+          <Property Name="Type" />
+          <Property Name="VTY" />
+          <Property Name="DSN" />
+          <Property Name="Database" />
+          <Property Name="DeviceType" />
+          <Property Name="UserDN" />
+          <Property Name="UserName" />
+          <Property Name="Address" />
+          <Property Name="ExtraPass1Name" />
+          <Property Name="ExtraPass1Folder" />
+          <Property Name="ExtraPass2Name" />
+          <Property Name="ExtraPass2Folder" />
+          <Property Name="ExtraPass3Name" />
+          <Property Name="ExtraPass3Folder" />
+        </PasswordObject>
+      </SearchProperties>
+      <ServerSettings>
+        <AdvancedSettings />
+      </ServerSettings>
+      <SessionSettings>
+        <AdvancedSettings />
+      </SessionSettings>
+      <RecorderSettings LocalRecordingsFolder="C:\program files\cyberark\psm\Recordings">
+        <AdvancedSettings />
+      </RecorderSettings>
+      <ConnectionClientSettings />
+    </General>
+  </PrivilegedSessionManagement>
+  <Reports DefaultSafe="PVWAReports" ManageReportsGroup="PVWAMonitor">
+    <ReportCollections>
+      <ReportCollection AssemblyName="InventoryReports" Name="Inventory Reports">
+        <CollectionParameters>
+          <Parameters Id="SearchProperties">
+            <Parameter Name="PolicyID" />
+            <Parameter Name="DeviceType" />
+            <Parameter Name="Username" />
+            <Parameter Name="Address" />
+            <Parameter Name="ExtraPass1Name" />
+            <Parameter Name="ExtraPass2Name" />
+            <Parameter Name="ExtraPass3Name" />
+            <Parameter Name="DSN" />
+            <Parameter Name="Database" />
+            <Parameter Name="ServiceName" />
+            <Parameter Name="GroupName" />
+            <Parameter Name="Type" />
+            <Parameter Name="Description" />
+            <Parameter Name="Keywords" />
+            <Parameter Name="Port" />
+            <Parameter Name="Location" />
+            <Parameter Name="OwnerName" />
+            <Parameter Name="TaskName" />
+            <Parameter Name="CPMDisabled" />
+            <Parameter Name="UserDN" />
+            <Parameter Name="LogonDomain" />
+            <Parameter Name="SystemNumber" />
+            <Parameter Name="Client" />
+            <Parameter Name="WebSiteName" />
+            <Parameter Name="VirtualDirPath" />
+            <Parameter Name="WebSiteID" />
+            <Parameter Name="ApplicationName" />
+            <Parameter Name="TaskFolder" />
+          </Parameters>
+        </CollectionParameters>
+        <OutputFields>
+          <Field Name="Safe" />
+          <Field Name="DeviceType" />
+          <Field Name="PolicyID" />
+          <Field Name="Address" />
+          <Field Name="Username" />
+          <Field Name="Group" />
+          <Field Name="LastAccessedDate" Type="DateTime" />
+          <Field Name="LastAccessedBy" />
+          <Field Name="LastModifiedDate" Type="DateTime" />
+          <Field Name="LastModifiedBy" />
+          <Field Name="ChangeFailure" />
+          <Field Name="VerificationFailure" />
+          <Field Name="FailReason" />
+        </OutputFields>
+        <Reports>
+          <Report Type="InventoryReports.InventoryReportUI" Visible="Yes" Name="Privileged Accounts Inventory" />
+          <Report Type="InventoryReports.ComplianceReportUI" Name="Privileged Accounts Compliance Status" Visible="Yes">
+            <OutputFields>
+              <Field Name="Username" />
+              <Field Name="Address" />
+              <Field Name="Safe" />
+              <Field Name="PolicyID" />
+              <Field Name="ComplianceStatus" />
+              <Field Name="NonComplianceReason" />
+              <Field Name="ExpirationDue" />
+              <Field Name="PlannedPasswordChange" Type="DateTime" />
+              <Field Name="ChangeMode" />
+              <Field Name="OneTimePasswords" />
+              <Field Name="ExpirationPeriod" />
+              <Field Name="LastModifiedDate" Type="DateTime" />
+              <Field Name="LastAccessedBy" />
+              <Field Name="LastAccessedDate" Type="DateTime" />
+              <Field Name="LastAccessRequestTimeframe" />
+            </OutputFields>
+          </Report>
+        </Reports>
+      </ReportCollection>
+      <ReportCollection AssemblyName="CyberArk.Reports.EntitlementReport" Name="Entitlement Reports">
+        <Reports>
+          <Report Type="CyberArk.Reports.EntitlementReport.EntitlementReportUI" Name="Entitlement Report" />
+        </Reports>
+        <OutputFields>
+          <Field Name="User" GroupByOrder="2" />
+          <Field Name="FullName" GroupByOrder="2" />
+          <Field Name="GroupOwnership" GroupByOrder="2" />
+          <Field Name="Location" GroupByOrder="2" />
+          <Field Name="UserType" GroupByOrder="2" />
+          <Field Name="TargetPolicy" GroupByOrder="3" />
+          <Field Name="TargetSystem" GroupByOrder="3" />
+          <Field Name="TargetAccount" GroupByOrder="3" />
+          <Field Name="Deleted" GroupByOrder="3" />
+          <Field Name="Safe" GroupByOrder="1" />
+          <Field Name="Read" GroupByOrder="3" />
+          <Field Name="Use" GroupByOrder="3" />
+          <Field Name="Change" GroupByOrder="3" />
+          <Field Name="OtherPermissions" GroupByOrder="3" />
+          <Field Name="Command" />
+          <Field Name="CommandEntitlement" />
+          <Field Name="CommandType" />
+          <Field Name="Restriction" />
+        </OutputFields>
+      </ReportCollection>
+      <ReportCollection AssemblyName="CyberArk.Reports.ApplicationReports" Name="Application Reports">
+        <Reports>
+          <Report Type="CyberArk.Reports.ApplicationReports.ApplicationReportUI" Visible="Yes" Name="Applications Inventory">
+            <CollectionParameters>
+            </CollectionParameters>
+            <OutputFields>
+              <Field Name="ApplicationId" />
+              <Field Name="BusinessOwner" />
+              <Field Name="Location" />
+              <Field Name="AllowedMachines" />
+              <Field Name="OSUsers" />
+              <Field Name="Path" />
+            </OutputFields>
+          </Report>
+        </Reports>
+        <OutputFields>
+        </OutputFields>
+      </ReportCollection>
+      <ReportCollection AssemblyName="CyberArk.Reports.ActivitiesReport" Name="Activity Reports">
+        <Reports>
+          <Report Type="CyberArk.Reports.ActivitiesReport.ActivitiesReportUI" Visible="Yes" Name="Activity Log">
+            <CollectionParameters>
+              <Parameters Id="InternalParameters">
+                <Parameter Name="MaxRecordsPerPage" Value="5000" />
+              </Parameters>
+              <Parameters Id="ActivitiesFilter">
+                <Parameter Name="PrivilegedAccountManagement" Value="22;24;31;38;44;45;46;47;50;52;57;60;88;89;105;106;107;121,123;122;124,125;126;130;132;133;134;135;136;137;138,140;139,141;152;153;154;155;158;159;160;161;162;163;164;165;166;167;187;188;189;198;205;272;294;333;334;336;337;338;340;341;343;350;351;352;354;378;379;380;381;414;415;416;417;418;419;420;421;426;434;435" />
+                <Parameter Value="36;37;108;109;111;112;114;115;116;117;118;119;127;128" Name="ApprovalWorkflow" />
+                <Parameter Name="FileAccess" Value="98;99;100;101;23;25;26;27;42;43;51;204;428" />
+                <Parameter Name="FileManagement" Value="62;190;191;192;193;195;199;229;138,140;139,141;152;153;154;155;158;159;160;161;162;163;164;165;166;167;198;205;272;294;427" />
+                <Parameter Name="PrivilegedAccountAccess" Value="23;25;26;27;40;41;42;43;55;56;204;295;296;300;301;302;303;304;306;307;308;319;320;344;345;346;347;348;359;361;362;372;373;374;375;376;377;411;412;436;437;438;439;459;462;463;464;471;472;473;474" />
+                <Parameter Name="SafeAndMemberManagement" Value="32;33;142;145;146;147;148;149;168;169;170;181;183;185;196;197;207;208;209;221;243;244;273;290;291" />
+                <Parameter Name="UserGroupAndLocationManagement" Value="0;1;2;10;16;58;63;64;65;66;68;69;70;71;72;73;74;78;79;80;82;83;120;143;144;171;172;173;174;175;176;177;178;179;180;182;184;186;206;211;214;215;216;217;218;219;222;237;238;239;246;247;248;249;252;253;254;255;256;257;259;260;261;262;263;264;265;266;269;270;271;276;277;278;279;280;281;286;287;288;289;292;293;297;298;309;314;315;316;317;318;440;441;442;443;444" />
+                <Parameter Name="ApplicationsManagement" Value="382;383" />
+                <Parameter Name="UserLogin" Value="4;5;7;8;15;18;19;20;21;102;103;104;113" />
+                <Parameter Name="VaultSystemAdministration" Value="6;9;61;81;85;86;87;90;91;92;93;95;96;97;150;156;157;194;200;201;202;203;224;236;241;250;251;84;85;310;311;312;313;364;365;367;477;478" />
+                <Parameter Name="MasterPolicyAudits" Value="385;386" />
+                <Parameter Name="MSPAudits" Value="455;456;457;458" />
+                <Parameter Name="PrivilegedThreatAnalytics" Value="460;461" />
+                <Parameter Name="ReportManagement" Value="305;321;322;323;324;325" />
+                <Parameter Name="PrivilegedAccountAuto-detection" Value="326;327;328;329;330;67;84;129" />
+                <Parameter Name="OnDemandPrivilegesManager" Value="387;388;389;390;391;392;393;394;395;396;397;398;399;400;401;402;403;404;405;406;407;408;409;410" />
+                <Parameter Name="UserProvisioningActivities" Value="422;423;424;425;429;430;431;432;433;488" />
+                <Parameter Name="PrivilegedAccountDiscoveryAndProvisioningActivities" Value="447;448;449;450;451;452" />
+                <Parameter Name="ComponentAuthenticationActivities" Value="465;466;467;468;469;470" />
+                <Parameter Name="BulkOperationsActivities" Value="480;481;482;483" />
+              </Parameters>
+              <Parameters Id="DefaultValues">
+                <Parameter Name="DefaultHistory" Value="7" />
+                <Parameter Name="DefaultActivityGroups" Value="PrivilegedAccountAccess;PrivilegedAccountManagement;ApprovalWorkflow;SafeAndMemberManagement;UserLogin;UserGroupAndLocationManagement;MasterPolicyAudits" />
+              </Parameters>
+            </CollectionParameters>
+            <OutputFields>
+              <Field Name="Time" Type="DateTime" />
+              <Field Name="User" />
+              <Field Name="Action" />
+              <Field Name="Safe" />
+              <Field Name="Target" />
+              <Field Name="TargetPolicy" />
+              <Field Name="TargetSystem" />
+              <Field Name="TargetAccount" />
+              <Field Name="NewTarget" />
+              <Field Name="Reason" />
+              <Field Name="Alert" />
+              <Field Name="RequestID" />
+              <Field Name="ClientID" />
+            </OutputFields>
+          </Report>
+        </Reports>
+        <OutputFields>
+        </OutputFields>
+      </ReportCollection>
+      <ReportCollection AssemblyName="CyberArk.Reports.AutoDetectionReport" Name="Auto-detection Reports">
+        <Reports>
+          <Report Type="CyberArk.Reports.AutoDetectionReport.AutoDetectionReportUI" Visible="Yes" Name="Auto-detection">
+            <CollectionParameters>
+              <Parameters Id="InternalParameters">
+                <Parameter Name="MaxSizeOfPage" Value="1048576" />
+              </Parameters>
+            </CollectionParameters>
+            <OutputFields>
+              <Field Name="MachineAddress" />
+              <Field Name="MachineStatus" />
+              <Field Name="Type" />
+              <Field Name="Address" />
+              <Field Name="UserName" />
+              <Field Name="UsageName" />
+              <Field Name="PolicyID" />
+              <Field Name="Action" />
+              <Field Name="Safe" />
+              <Field Name="Folder" />
+              <Field Name="ObjectName" />
+              <Field Name="AdditionalInformation" />
+            </OutputFields>
+          </Report>
+        </Reports>
+        <OutputFields>
+        </OutputFields>
+      </ReportCollection>
+    </ReportCollections>
+    <ReportsDisplayColumns SortBy="Created">
+      <Column Name="Icon" Width="30" DataType="Image" />
+      <Column Name="Report" Width="100" DataType="String" />
+      <Column Name="Created" Width="100" DataType="Date" />
+      <Column Name="CreatedBy" Width="100" DataType="string" />
+      <Column Name="Status" Width="60" DataType="String" />
+      <Column Name="Records" Width="40" DataType="String" />
+      <Column Name="Size" Width="30" DataType="String" />
+      <Column Name="LastUsed" Width="100" DataType="Date" Visible="No" />
+      <Column Name="LastUsedBy" Width="60" DataType="String" Visible="No" />
+      <Column Name="Duration" Width="100" DataType="String" Visible="No" />
+      <Column Name="Safe" Width="60" DataType="String" Visible="No" />
+      <Column Name="Location" Width="60" DataType="String" Visible="No" />
+      <Column Name="ReportType" Width="60" DataType="String" Visible="No" />
+    </ReportsDisplayColumns>
+    <ReportsGridActions>
+      <Action Name="SaveAsExcel" DisplayInGrid="Yes" />
+      <Action Name="SaveAsCSV" DisplayInGrid="Yes" />
+      <Action Name="Protect" DisplayInGrid="No" />
+      <Action Name="Unprotect" DisplayInGrid="No" />
+      <Action Name="Send" DisplayInGrid="No" />
+      <Action Name="Hide" DisplayInGrid="No" />
+      <Action Name="Delete" DisplayInGrid="No" />
+    </ReportsGridActions>
+    <ReportDefinitionsList>
+      <DisplayedColumns SortBy="Created">
+        <Column Name="Type" Width="100" DataType="String" Visible="No" />
+        <Column Name="Name" Width="80" DataType="String" />
+        <Column Name="NextRunDate" Width="100" DataType="Date" Visible="No" />
+        <Column Name="Created" Width="100" DataType="Date" Visible="No" />
+        <Column Name="CreatedBy" Width="100" DataType="String" Visible="No" />
+        <Column Name="Location" Width="120" DataType="String" Visible="No" />
+        <Column Name="Safe" Width="100" DataType="String" Visible="No" />
+        <Column Name="ReportRecurrence" Width="100" DataType="String" />
+        <Column Name="StartTime" Width="60" DataType="String" Visible="No" />
+      </DisplayedColumns>
+      <GridActions>
+        <Action Name="GenerateNow" DisplayInGrid="No" DisplayInActionMenu="Yes" />
+        <Action Name="Edit" DisplayInGrid="No" DisplayInActionMenu="Yes" />
+        <Action Name="Delete" DisplayInGrid="No" DisplayInActionMenu="Yes" />
+      </GridActions>
+    </ReportDefinitionsList>
+    <Scheduling DefinitionsSafe="PVWATaskDefinitions" MaximumTimeout="5">
+      <NotifyOnReportGenerationFailure>
+        <FailureNotificationGroup Name="Vault Admins" />
+      </NotifyOnReportGenerationFailure>
+    </Scheduling>
+    <SchedulingUI>
+      <SearchUsersDisplayColumns>
+        <Column Name="Icon" Width="30" DataType="String" />
+        <Column Name="Username" Width="80" DataType="String" />
+        <Column Name="FirstName" Width="100" DataType="String" />
+        <Column Name="LastName" Width="100" DataType="String" />
+        <Column Name="EmailAddress" Width="100" DataType="String" />
+      </SearchUsersDisplayColumns>
+    </SchedulingUI>
+    <ReportsStyle />
+  </Reports>
+  <AccessControl>
+    <AllowedReferrer BaseUrl="/WebID/" />
+  </AccessControl>
+  <Logging DebugLevel="None" InformationLevel="None">
+  </Logging>
+  <Caching />
+  <ConfigReferences>
+    <ConfigRef Assembly="CyberArk.PasswordVault.MetaConfig" Component="WebAccess">
+      <Class Name="CyberArk.PasswordVault.MetaConfig.MetaPVConfig" Safe="PVWAConfig" Folder="Root" File="PVConfiguration.xml" />
+      <Class Name="CyberArk.PasswordVault.MetaConfig.MetaSafeTemplate" Safe="PVWAConfig" Folder="Root" File="SafeTemplate.xml" />
+    </ConfigRef>
+    <ConfigRef Assembly="CyberArk.AppServices.Infra.LDAP.MetaConfig" Component="Vault" />
+    <ConfigRef Assembly="CyberArk.AppServices.Infra.ENE.MetaConfig" Component="Vault" />
+    <ConfigRef Assembly="CyberArk.EPM.MetaConfig" Component="EndpointPrivilegedProtectionPolicy">
+      <Class Name="CyberArk.EPM.MetaConfig.MetaEPMConfig" Safe="PVWAConfig" Folder="Root" File="EPMConfiguration.xml" />
+    </ConfigRef>
+  </ConfigReferences>
+  <PrivilegedAccountRequest />
+  <ApplicationsUIPreferences>
+    <Main>
+      <ToolbarActions>
+        <Action Name="Add" />
+        <Action Name="AddMany" />
+        <Action Name="Customize" />
+      </ToolbarActions>
+      <Applications>
+        <DisplayedColumns SortBy="ApplicationId">
+          <Column Name="ApplicationId" Width="80" DataType="String" />
+          <Column Name="BusinessOwner" Width="80" DataType="String" />
+          <Column Name="AllowedMachines" Width="80" DataType="String" />
+          <Column Name="Location" Width="80" DataType="String" Visible="No" />
+          <Column Name="Description" Width="80" DataType="String" Visible="No" />
+          <Column Name="BusinessOwnerEmail" Width="80" DataType="String" Visible="No" />
+          <Column Name="BusinessOwnerPhone" Width="80" DataType="String" Visible="No" />
+          <Column Name="Disabled" Width="40" DataType="String" Visible="No" />
+          <Column Name="AccessPermitted" Width="50" DataType="String" Visible="No" />
+          <Column Name="ExpirationDate" Width="50" DataType="String" Visible="No" />
+          <Column Name="OSUsers" Width="80" DataType="String" Visible="No" />
+          <Column Name="Paths" Width="80" DataType="String" Visible="No" />
+          <Column Name="Hashes" Width="80" DataType="String" Visible="No" />
+          <Column Name="CertificateSerialNumbers" Width="80" DataType="String" Visible="No" />
+        </DisplayedColumns>
+        <GridActions>
+          <Action Name="Edit" DisplayInGrid="Yes">
+          </Action>
+        </GridActions>
+      </Applications>
+    </Main>
+    <ApplicationDetails>
+      <ToolbarActions>
+        <Action Name="Back" />
+        <Action Name="Edit" />
+        <Action Name="Delete" />
+        <Action Name="Add" />
+        <Action Name="AddMany" />
+        <Action Name="Customize" />
+      </ToolbarActions>
+      <DisplayedProperties>
+        <Property Name="ApplicationId" />
+        <Property Name="Description" />
+        <Property Name="BusinessOwner" />
+        <Property Name="BusinessOwnerPhone" />
+        <Property Name="BusinessOwnerEmail" />
+        <Property Name="Location" />
+        <Property Name="AccessPermitted" />
+        <Property Name="ExpirationDate" />
+        <Property Name="Disabled" />
+      </DisplayedProperties>
+      <Tabs>
+        <AllowedMachines>
+          <ToolbarActions>
+            <Action Name="Add" />
+          </ToolbarActions>
+          <DisplayedColumns SortBy="Address">
+            <Column Name="Address" Width="700" DataType="String" />
+          </DisplayedColumns>
+          <GridActions>
+            <Action Name="Delete" DisplayInGrid="Yes">
+            </Action>
+          </GridActions>
+        </AllowedMachines>
+        <Authentication>
+          <ToolbarActions>
+            <Action Name="Add" />
+          </ToolbarActions>
+          <DisplayedColumns SortBy="ApplicationType">
+            <Column Name="ApplicationType" DataType="String" Width="150" />
+            <Column Name="Value" DataType="String" Width="150" />
+            <Column Name="ExtenedInfo" DataType="String" Width="150" />
+          </DisplayedColumns>
+          <GridActions>
+            <Action Name="Delete" DisplayInGrid="Yes">
+            </Action>
+          </GridActions>
+        </Authentication>
+      </Tabs>
+    </ApplicationDetails>
+    <AddApplications />
+  </ApplicationsUIPreferences>
+  <Applications>
+    <SearchProperties>
+      <Property Name="ApplicationId" />
+      <Property Name="ApplicationDescription" />
+      <Property Name="BusinessOwnerName" />
+      <Property Name="BusinessOwnerEmail" />
+      <Property Name="AuthenticationDetails" />
+    </SearchProperties>
+    <ManageApplicationsGroups />
+  </Applications>
+  <MobileApplication>
+    <MobileGeneral />
+    <SupportedDevices>
+      <Device Name="iPhone" Value="iPhone" />
+      <Device Name="Blackberry" Value="Blackberry" />
+      <Device Name="Android" Value="Android" />
+    </SupportedDevices>
+    <ApplicationLinks>
+      <Action Name="FullVersion" />
+      <Action Name="ChangePassword" />
+      <Action Name="About" />
+    </ApplicationLinks>
+    <AccountsSearchResults>
+      <SearchOptions />
+      <DisplayedProperties>
+        <Property Name="Username" />
+        <Property Name="Address" />
+        <Property Name="AccountStatus" />
+        <Property Name="Safe" />
+        <Property Name="PolicyID" />
+        <Property Name="DeviceType" Visible="No" />
+        <Property Name="Name" Visible="No" />
+        <Property Name="LastModified" Visible="No" />
+        <Property Name="LastVerified" Visible="No" />
+        <Property Name="LastUsed" Visible="No" />
+        <Property Name="UserDN" Visible="No" />
+        <Property Name="LockedBy" Visible="No" />
+        <Property Name="Keywords" Visible="No" />
+        <Property Name="Description" Visible="No" />
+      </DisplayedProperties>
+    </AccountsSearchResults>
+    <AccountDetails>
+      <ToolbarActions>
+        <Action Name="Show" />
+        <Action Name="Release" />
+        <Action Name="ShowPreviousVersion" />
+      </ToolbarActions>
+      <AccountProperties>
+        <Property Name="Safe" />
+        <Property Name="Name" />
+        <Property Name="LastModified" />
+        <Property Name="LastUsed" />
+        <Property Name="Username" />
+        <Property Name="Address" />
+        <Property Name="UserDN" />
+        <Property Name="PolicyID" />
+        <Property Name="AccountStatus" />
+        <Property Name="LastVerified" Visible="No" />
+        <Property Name="Keywords" Visible="No" />
+        <Property Name="DeviceType" Visible="No" />
+        <Property Name="LockedBy" Visible="No" />
+        <Property Name="Description" Visible="No" />
+      </AccountProperties>
+    </AccountDetails>
+    <RequestDetails>
+      <RequestProperties>
+        <Property Name="Status" />
+        <Property Name="RequestedOn" />
+        <Property Name="Requestor" />
+        <Property Name="Operation" />
+        <Property Name="Safe" />
+        <Property Name="Reason" />
+        <Property Name="AccessType" />
+        <Property Name="RequestID" />
+        <Property Name="TicketSystemName" />
+        <Property Name="TicketNumber" />
+      </RequestProperties>
+      <AccountProperties>
+        <Property Name="PolicyID" />
+        <Property Name="DeviceType" />
+        <Property Name="Safe" />
+        <Property Name="Name" />
+        <Property Name="LastModified" />
+        <Property Name="LastUsed" />
+        <Property Name="Username" />
+        <Property Name="Address" />
+        <Property Name="LastVerified" Visible="No" />
+        <Property Name="UserDN" Visible="No" />
+        <Property Name="LockedBy" Visible="No" />
+        <Property Name="Keywords" Visible="No" />
+        <Property Name="Description" Visible="No" />
+      </AccountProperties>
+    </RequestDetails>
+    <PasswordDetails>
+      <PasswordPhoneticDisplay>
+        <Languages>
+          <Default>
+            <Character Name="a" DisplayWord="alpha" />
+            <Character Name="A" DisplayWord="Alpha" />
+            <Character Name="b" DisplayWord="bravo" />
+            <Character Name="B" DisplayWord="Bravo" />
+            <Character Name="c" DisplayWord="charlie" />
+            <Character Name="C" DisplayWord="Charlie" />
+            <Character Name="d" DisplayWord="delta" />
+            <Character Name="D" DisplayWord="Delta" />
+            <Character Name="e" DisplayWord="echo" />
+            <Character Name="E" DisplayWord="Echo" />
+            <Character Name="f" DisplayWord="foxtrot" />
+            <Character Name="F" DisplayWord="Foxtrot" />
+            <Character Name="g" DisplayWord="golf" />
+            <Character Name="G" DisplayWord="Golf" />
+            <Character Name="h" DisplayWord="hotel" />
+            <Character Name="H" DisplayWord="Hotel" />
+            <Character Name="i" DisplayWord="india" />
+            <Character Name="I" DisplayWord="India" />
+            <Character Name="j" DisplayWord="juliet" />
+            <Character Name="J" DisplayWord="Juliet" />
+            <Character Name="k" DisplayWord="kilo" />
+            <Character Name="K" DisplayWord="Kilo" />
+            <Character Name="l" DisplayWord="lima" />
+            <Character Name="L" DisplayWord="Lima" />
+            <Character Name="m" DisplayWord="mike" />
+            <Character Name="M" DisplayWord="Mike" />
+            <Character Name="n" DisplayWord="november" />
+            <Character Name="N" DisplayWord="November" />
+            <Character Name="o" DisplayWord="oscar" />
+            <Character Name="O" DisplayWord="Oscar" />
+            <Character Name="p" DisplayWord="papa" />
+            <Character Name="P" DisplayWord="Papa" />
+            <Character Name="q" DisplayWord="quebec" />
+            <Character Name="Q" DisplayWord="Quebec" />
+            <Character Name="r" DisplayWord="romeo" />
+            <Character Name="R" DisplayWord="Romeo" />
+            <Character Name="s" DisplayWord="sierra" />
+            <Character Name="S" DisplayWord="Sierra" />
+            <Character Name="t" DisplayWord="tango" />
+            <Character Name="T" DisplayWord="Tango" />
+            <Character Name="u" DisplayWord="uniform" />
+            <Character Name="U" DisplayWord="Uniform" />
+            <Character Name="v" DisplayWord="victor" />
+            <Character Name="V" DisplayWord="Victor" />
+            <Character Name="w" DisplayWord="whiskey" />
+            <Character Name="W" DisplayWord="Whiskey" />
+            <Character Name="x" DisplayWord="xray" />
+            <Character Name="X" DisplayWord="Xray" />
+            <Character Name="y" DisplayWord="yankee" />
+            <Character Name="Y" DisplayWord="Yankee" />
+            <Character Name="z" DisplayWord="zulu" />
+            <Character Name="Z" DisplayWord="Zulu" />
+            <Character Name="0" DisplayWord="Zero" />
+            <Character Name="1" DisplayWord="One" />
+            <Character Name="2" DisplayWord="Two" />
+            <Character Name="3" DisplayWord="Three" />
+            <Character Name="4" DisplayWord="Four" />
+            <Character Name="5" DisplayWord="Five" />
+            <Character Name="6" DisplayWord="Six" />
+            <Character Name="7" DisplayWord="Seven" />
+            <Character Name="8" DisplayWord="Eight" />
+            <Character Name="9" DisplayWord="Nine" />
+          </Default>
+        </Languages>
+      </PasswordPhoneticDisplay>
+    </PasswordDetails>
+  </MobileApplication>
+  <SetupConfiguration>
+    <Setup AssemblyName="CyberArk.Setup.Ldap" Type="CyberArk.Setup.Ldap.LdapUI" Visible="Yes" Name="LDAP" />
+    <Setup AssemblyName="CyberArk.Setup.ENE" Type="CyberArk.Setup.ENE.EneUI" Visible="Yes" Name="ENE" />
+  </SetupConfiguration>
+  <AccountsUIPreferences>
+    <Main>
+      <ViewsSettings>
+        <OperationalViews />
+        <RequestsViews />
+        <AccountViews />
+      </ViewsSettings>
+      <ToolbarActions>
+        <Action Name="Change" />
+        <Action Name="Verify" />
+        <Action Name="Reconcile" />
+        <Action Name="Release" />
+        <Action Name="Acknowledge" />
+        <Action Name="Resume" />
+        <Action Name="Edit" />
+        <Action Name="Move" />
+        <Action Name="Delete" />
+        <Action Name="Undelete" />
+        <Action Name="Favorites" />
+        <Action Name="Cart" />
+        <Action Name="Detect Now" />
+        <Action Name="Add" />
+        <Action Name="Customize" />
+      </ToolbarActions>
+      <Accounts>
+        <DisplayedColumns SortBy="Safe">
+          <Column Name="Username" Width="80" DataType="String" />
+          <Column Name="Address" Width="80" DataType="String" />
+          <Column Name="Safe" Width="80" DataType="String" />
+          <Column Name="PolicyID" Width="80" DataType="String" />
+          <Column Name="Folder" Visible="No" />
+          <Column Name="Name" Visible="No" />
+          <Column Name="LastModifiedBy" Visible="No" />
+          <Column Name="LastUsedBy" Visible="No" />
+          <Column Name="LockedBy" Visible="No" />
+          <Column Name="LastVerified" Visible="No" DataType="Date" />
+          <Column Name="SubnetMask" DisplayName="Subnet Mask" Visible="No" />
+        </DisplayedColumns>
+        <GridActions>
+          <Action Name="Show" DisplayInGrid="Yes" DisplayInActionMenu="No" />
+          <Action Name="Copy" DisplayInGrid="Yes" DisplayInActionMenu="No" />
+          <Action Name="Connect" DisplayInGrid="Yes" DisplayInActionMenu="Yes" />
+          <Action Name="Favorites" DisplayInActionMenu="Yes" />
+          <Action Name="Cart" DisplayInActionMenu="Yes" />
+          <Action Name="DisplayUsages" DisplayInActionMenu="Yes" />
+          <Action Name="DisplayFailedUsages" DisplayInActionMenu="Yes" />
+        </GridActions>
+      </Accounts>
+      <Usages>
+        <DisplayedColumns SortBy="MasterAccount">
+          <Column Name="MasterAccount" />
+          <Column Name="PolicyID" Width="80" DataType="String" />
+          <Column Name="UsageInfo" />
+          <Column Name="Address" Width="80" DataType="String" />
+          <Column Name="Safe" Width="80" Visible="No" />
+          <Column Name="Folder" Visible="No" />
+          <Column Name="Name" Visible="No" />
+        </DisplayedColumns>
+        <GridActions>
+          <Action Name="Master" DisplayInGrid="Yes" DisplayInActionMenu="No" />
+          <Action Name="Edit" DisplayInGrid="Yes" DisplayInActionMenu="No" />
+        </GridActions>
+      </Usages>
+      <PendingAccounts>
+        <DisplayedColumns SortBy="Address">
+          <Column Name="Username" Width="15" DataType="String" />
+          <Column Name="Address" Width="28" DataType="String" />
+          <Column Name="DiscoveryPlatformType" Width="17" DataType="String" />
+          <Column Name="Dependencies" Width="10" DataType="String" />
+          <Column Name="PasswordAge" Width="12" DataType="String" />
+          <Column Name="AccountCategory" Width="18" DataType="String" />
+          <Column Name="AccountDiscoveryDate" Width="28" DataType="String" Visible="No" />
+          <Column Name="Trusts" Width="28" DataType="String" Visible="No" />
+        </DisplayedColumns>
+      </PendingAccounts>
+    </Main>
+  </AccountsUIPreferences>
+  <UsersCollections>
+    <Collection Type="FavoritesAccounts" />
+    <Collection Type="AccountsRecently" />
+    <Collection Type="CartAccounts" MaxCount="10000" />
+  </UsersCollections>
+  <WebHelp>
+    <Link FileName="PIM Suite Implementation Guide.pdf" />
+    <Link FileName="PIM Suite End-user Guide.pdf" />
+  </WebHelp>
+  <ApplicationAssemblies>
+    <Assembly Name="CyberArk.PasswordVault.PolicyMgt.Web" />
+    <Assembly Name="CyberArk.PasswordVault.EPV.Web" />
+    <Assembly Name="CyberArk.PasswordVault.WebServices" />
+    <Assembly Name="CyberArk.Infra.WebServices" />
+    <Assembly Name="CyberArk.PasswordVault.PASWebServices" />
+  </ApplicationAssemblies>
+  <MessageQueueConnection />
+  <BulkOperations />
+  <APIThrottling />
+</PasswordVaultConfiguration>
