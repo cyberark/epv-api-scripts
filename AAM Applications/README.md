@@ -70,7 +70,7 @@ See documentation for Set-CyberArkDefault to see all parameters and options
 ```powershell
 # Set defaults once (Assumes CyberArk authentication and prompts for credentials)
 # Assumes that Set-CyberArkDefaults.ps1 has been copied to same folder (Not required)
-..\Set-CyberArkDefaults.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault"
+.\Set-CyberArkDefaults.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault"
 
 # Now run scripts without common parameters
 .\Get-CyberArkApplications.ps1
@@ -392,7 +392,7 @@ $params = @{
     PVWAURL = "https://pvwa.company.com/passwordvault"
     CSVPath = ".\myApps.csv"
 }
-..\Export-Import-Applications.ps1 @params
+.\Export-Import-Applications.ps1 @params
 
 # Export specific application
 $params = @{
@@ -401,7 +401,7 @@ $params = @{
     AppID   = "App1"
     CSVPath = ".\myApps.csv"
 }
-..\Export-Import-Applications.ps1 @params
+.\Export-Import-Applications.ps1 @params
 
 # Export using LDAP authentication
 $params = @{
@@ -410,7 +410,7 @@ $params = @{
     AuthType = "ldap"
     CSVPath  = ".\myApps.csv"
 }
-..\Export-Import-Applications.ps1 @params
+.\Export-Import-Applications.ps1 @params
 ```
 
 **Import Examples:**
@@ -421,7 +421,7 @@ $params = @{
     PVWAURL = "https://pvwa.company.com/passwordvault"
     CSVPath = ".\myApps.csv"
 }
-..\Export-Import-Applications.ps1 @params
+.\Export-Import-Applications.ps1 @params
 
 # Import using LDAP authentication
 $params = @{
@@ -430,7 +430,7 @@ $params = @{
     AuthType = "ldap"
     CSVPath  = ".\myApps.csv"
 }
-..\Export-Import-Applications.ps1 @params
+.\Export-Import-Applications.ps1 @params
 ```
 
 **CSV Format:**
@@ -571,7 +571,7 @@ Run the example:
 
 ## Integration with Other Scripts
 
-These scripts use standard parameters and session token patterns compatible with other CyberArk scripts in this repository. For maximum efficiency, use with [Set-CyberArkDefaults.ps1](../Defaults) to set common parameters once and reuse across all scripts.
+These scripts use standard parameters and session token patterns compatible with other CyberArk scripts in this repository. For maximum efficiency, use with [Set-CyberArkDefaults.ps1](./Defaults) to set common parameters once and reuse across all scripts.
 
 ## Requirements
 
