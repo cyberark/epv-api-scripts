@@ -1,4 +1,4 @@
-﻿# CyberArk Application Management Scripts
+# CyberArk Application Management Scripts
 
 PowerShell scripts for managing CyberArk Applications and their authentication methods via REST API.
 
@@ -35,24 +35,28 @@ These scripts provide a complete toolkit for CyberArk Application Identity Manag
 Prompts for CyberArk credentials on each command
 ```powershell
 # List all applications
-.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com"
+.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault"
 
 # Create a new application
-.\New-CyberArkApplication.ps1 -PVWAUrl "https://pvwa.company.com" -AppID "MyApp"
+.\New-CyberArkApplication.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -AppID "MyApp"
 
 # Add Path authentication
-.\Add-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -AppID "MyApp" -Path "C:\Program Files\MyApp\app.exe"
+$params = @{
+    PVWAUrl = "https://pvwa.company.com/passwordvault"
+    AppID   = "MyApp"
+    Path    = "C:\Program Files\MyApp\app.exe"
+}
+.\Add-CyberArkAppAuthentication.ps1 @params
 ```
 
 ### Privilege Cloud
 
 ```powershell
 # Privilege Cloud requires session token (obtain through Identity authentication)
-.\Get-CyberArkApplications.ps1 -PVWAUrl "https://mikeb.privilegecloud.cyberark.cloud" -logonToken "your-session-token"
+.\Get-CyberArkApplications.ps1 -PVWAUrl "https://<subdomain>.privilegecloud.cyberark.cloud/passwordvault" -logonToken "your-session-token"
 
 # For easier usage with Privilege Cloud, use Set-CyberArkDefaults.ps1
-.\Set-CyberArkDefaults.ps1 -PCloudURL "https://mikeb.privilegecloud.cyberark.cloud" -logonToken "your-session-token"
+.\Set-CyberArkDefaults.ps1 -PCloudURL "https://<subdomain>.privilegecloud.cyberark.cloud/passwordvault" -logonToken "your-session-token"
 .\Get-CyberArkApplications.ps1
 ```
 
@@ -66,7 +70,7 @@ See documentation for Set-CyberArkDefault to see all parameters and options
 ```powershell
 # Set defaults once (Assumes CyberArk authentication and prompts for credentials)
 # Assumes that Set-CyberArkDefaults.ps1 has been copied to same folder (Not required)
-..\Set-CyberArkDefaults.ps1 -PVWAUrl "https://pvwa.company.com"
+..\Set-CyberArkDefaults.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault"
 
 # Now run scripts without common parameters
 .\Get-CyberArkApplications.ps1
@@ -81,7 +85,7 @@ See documentation for Set-CyberArkDefault to see all parameters and options
 ```powershell
 # Set defaults with session token (obtain token separately)
 # Assumes that Set-CyberArkDefaults.ps1 has been copied to same folder (Not required)
-.\Set-CyberArkDefaults.ps1 -PCloudURL "https://mikeb.privilegecloud.cyberark.cloud" -logonToken "your-session-token"
+.\Set-CyberArkDefaults.ps1 -PCloudURL "https://<subdomain>.privilegecloud.cyberark.cloud/passwordvault" -logonToken "your-session-token"
 
 # Now run scripts without common parameters
 .\Get-CyberArkApplications.ps1
@@ -109,13 +113,13 @@ Retrieves CyberArk Applications with optional filtering.
 **Examples:**
 ```powershell
 # List all applications
-.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com"
+.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault"
 
 # Filter by AppID
-.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" -AppID "MyApp"
+.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -AppID "MyApp"
 
 # Use LDAP authentication
-.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" -AuthenticationType ldap
+.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -AuthenticationType ldap
 ```
 
 ### New-CyberArkApplication
@@ -135,14 +139,17 @@ Creates a new CyberArk Application.
 **Examples:**
 ```powershell
 # Create basic application
-.\New-CyberArkApplication.ps1 -PVWAUrl "https://pvwa.company.com" -AppID "MyApp"
+.\New-CyberArkApplication.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -AppID "MyApp"
 
 # Create with full details
-.\New-CyberArkApplication.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -AppID "MyApp" `
-    -Description "Production Application" `
-    -BusinessOwnerEmail "owner@company.com" `
-    -Location "\Applications\Production"
+$params = @{
+    PVWAUrl            = "https://pvwa.company.com/passwordvault"
+    AppID              = "MyApp"
+    Description        = "Production Application"
+    BusinessOwnerEmail = "owner@company.com"
+    Location           = "\Applications\Production"
+}
+.\New-CyberArkApplication.ps1 @params
 ```
 
 ### Get-CyberArkAppAuthentication
@@ -155,7 +162,7 @@ Retrieves authentication methods configured for an application.
 
 **Examples:**
 ```powershell
-.\Get-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" -AppID "MyApp"
+.\Get-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -AppID "MyApp"
 ```
 
 ### Add-CyberArkAppAuthentication
@@ -189,38 +196,64 @@ Adds authentication methods to an application. You can add multiple authenticati
 **Examples:**
 ```powershell
 # Path authentication
-.\Add-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -AppID "MyApp" -Path "C:\Program Files\MyApp\app.exe"
+$params = @{
+    PVWAUrl = "https://pvwa.company.com/passwordvault"
+    AppID   = "MyApp"
+    Path    = "C:\Program Files\MyApp\app.exe"
+}
+.\Add-CyberArkAppAuthentication.ps1 @params
 
 # Add multiple authentication methods at once
-.\Add-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -AppID "MyApp" `
-    -Path "C:\Program Files\MyApp\app.exe" `
-    -OSUser "DOMAIN\ServiceAccount" `
-    -MachineAddress "192.168.1.0/24"
+$params = @{
+    PVWAUrl        = "https://pvwa.company.com/passwordvault"
+    AppID          = "MyApp"
+    Path           = "C:\Program Files\MyApp\app.exe"
+    OSUser         = "DOMAIN\ServiceAccount"
+    MachineAddress = "192.168.1.0/24"
+}
+.\Add-CyberArkAppAuthentication.ps1 @params
 
 # Add multiple paths
-.\Add-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -AppID "MyApp" `
-    -Path @("C:\App\app1.exe", "C:\App\app2.exe")
+$params = @{
+    PVWAUrl = "https://pvwa.company.com/passwordvault"
+    AppID   = "MyApp"
+    Path    = @("C:\App\app1.exe", "C:\App\app2.exe")
+}
+.\Add-CyberArkAppAuthentication.ps1 @params
 
 # Machine Address authentication (subnet)
-.\Add-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -AppID "MyApp" -MachineAddress "192.168.1.0/24"
+$params = @{
+    PVWAUrl        = "https://pvwa.company.com/passwordvault"
+    AppID          = "MyApp"
+    MachineAddress = "192.168.1.0/24"
+}
+.\Add-CyberArkAppAuthentication.ps1 @params
 
 # OS User authentication
-.\Add-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -AppID "MyApp" -OSUser "DOMAIN\ServiceAccount"
+$params = @{
+    PVWAUrl = "https://pvwa.company.com/passwordvault"
+    AppID   = "MyApp"
+    OSUser  = "DOMAIN\ServiceAccount"
+}
+.\Add-CyberArkAppAuthentication.ps1 @params
 
 # Certificate Attributes authentication
-.\Add-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -AppID "MyApp" `
-    -CertificateSubject @("CN=app.company.com","OU=IT") `
-    -CertificateIssuer @("CN=Company Root CA")
+$params = @{
+    PVWAUrl            = "https://pvwa.company.com/passwordvault"
+    AppID              = "MyApp"
+    CertificateSubject = @("CN=app.company.com","OU=IT")
+    CertificateIssuer  = @("CN=Company Root CA")
+}
+.\Add-CyberArkAppAuthentication.ps1 @params
 
 # Hash authentication with comment
-.\Add-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -AppID "MyApp" -Hash "A1B2C3D4E5F6" -HashComment "Production server hash"
+$params = @{
+    PVWAUrl     = "https://pvwa.company.com/passwordvault"
+    AppID       = "MyApp"
+    Hash        = "A1B2C3D4E5F6"
+    HashComment = "Production server hash"
+}
+.\Add-CyberArkAppAuthentication.ps1 @params
 ```
 
 ### Remove-CyberArkAppAuthentication
@@ -235,10 +268,10 @@ Deletes an authentication method from an application.
 **Examples:**
 ```powershell
 # First, get the AuthID
-.\Get-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" -AppID "MyApp"
+.\Get-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -AppID "MyApp"
 
 # Delete the authentication method
-.\Remove-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" -AppID "MyApp" -AuthID 5
+.\Remove-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -AppID "MyApp" -AuthID 5
 ```
 
 ### Remove-CyberArkApplication
@@ -251,7 +284,7 @@ Deletes an application from CyberArk (prompts for confirmation).
 
 **Examples:**
 ```powershell
-.\Remove-CyberArkApplication.ps1 -PVWAUrl "https://pvwa.company.com" -AppID "MyApp"
+.\Remove-CyberArkApplication.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -AppID "MyApp"
 ```
 
 ### Export-CyberArkApplications
@@ -269,16 +302,27 @@ Exports CyberArk Applications and their authentication methods to CSV. Supports 
 **Examples:**
 ```powershell
 # Export all applications
-.\Export-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -CSVPath ".\applications.csv"
+$params = @{
+    PVWAUrl = "https://pvwa.company.com/passwordvault"
+    CSVPath = ".\applications.csv"
+}
+.\Export-CyberArkApplications.ps1 @params
 
 # Export specific application
-.\Export-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -AppID "MyApp" -CSVPath ".\myapp.csv"
+$params = @{
+    PVWAUrl = "https://pvwa.company.com/passwordvault"
+    AppID   = "MyApp"
+    CSVPath = ".\myapp.csv"
+}
+.\Export-CyberArkApplications.ps1 @params
 
 # Export using session token
-.\Export-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -CSVPath ".\applications.csv" -logonToken $token
+$params = @{
+    PVWAUrl    = "https://pvwa.company.com/passwordvault"
+    CSVPath    = ".\applications.csv"
+    logonToken = $token
+}
+.\Export-CyberArkApplications.ps1 @params
 ```
 
 ### Import-CyberArkApplications
@@ -295,16 +339,27 @@ Imports CyberArk Applications and their authentication methods from CSV. Creates
 **Examples:**
 ```powershell
 # Import applications from CSV
-.\Import-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -CSVPath ".\applications.csv"
+$params = @{
+    PVWAUrl = "https://pvwa.company.com/passwordvault"
+    CSVPath = ".\applications.csv"
+}
+.\Import-CyberArkApplications.ps1 @params
 
 # Import using session token
-.\Import-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -CSVPath ".\applications.csv" -logonToken $token
+$params = @{
+    PVWAUrl    = "https://pvwa.company.com/passwordvault"
+    CSVPath    = ".\applications.csv"
+    logonToken = $token
+}
+.\Import-CyberArkApplications.ps1 @params
 
 # Import using LDAP authentication
-.\Import-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -CSVPath ".\applications.csv" -AuthenticationType ldap
+$params = @{
+    PVWAUrl            = "https://pvwa.company.com/passwordvault"
+    CSVPath            = ".\applications.csv"
+    AuthenticationType = "ldap"
+}
+.\Import-CyberArkApplications.ps1 @params
 ```
 
 **CSV Format:**
@@ -332,35 +387,50 @@ Exports CyberArk Applications and their authentication methods to CSV, or import
 **Export Examples:**
 ```powershell
 # Export all applications to CSV
-..\Export-Import-Applications.ps1 -Export `
-    -PVWAURL "https://pvwa.company.com/PasswordVault" `
-    -CSVPath ".\myApps.csv"
+$params = @{
+    Export  = $true
+    PVWAURL = "https://pvwa.company.com/passwordvault"
+    CSVPath = ".\myApps.csv"
+}
+..\Export-Import-Applications.ps1 @params
 
 # Export specific application
-..\Export-Import-Applications.ps1 -Export `
-    -PVWAURL "https://pvwa.company.com/PasswordVault" `
-    -AppID "App1" `
-    -CSVPath ".\myApps.csv"
+$params = @{
+    Export  = $true
+    PVWAURL = "https://pvwa.company.com/passwordvault"
+    AppID   = "App1"
+    CSVPath = ".\myApps.csv"
+}
+..\Export-Import-Applications.ps1 @params
 
 # Export using LDAP authentication
-..\Export-Import-Applications.ps1 -Export `
-    -PVWAURL "https://pvwa.company.com/PasswordVault" `
-    -AuthType ldap `
-    -CSVPath ".\myApps.csv"
+$params = @{
+    Export   = $true
+    PVWAURL  = "https://pvwa.company.com/passwordvault"
+    AuthType = "ldap"
+    CSVPath  = ".\myApps.csv"
+}
+..\Export-Import-Applications.ps1 @params
 ```
 
 **Import Examples:**
 ```powershell
 # Import applications from CSV
-..\Export-Import-Applications.ps1 -Import `
-    -PVWAURL "https://pvwa.company.com/PasswordVault" `
-    -CSVPath ".\myApps.csv"
+$params = @{
+    Import  = $true
+    PVWAURL = "https://pvwa.company.com/passwordvault"
+    CSVPath = ".\myApps.csv"
+}
+..\Export-Import-Applications.ps1 @params
 
 # Import using LDAP authentication
-..\Export-Import-Applications.ps1 -Import `
-    -PVWAURL "https://pvwa.company.com/PasswordVault" `
-    -AuthType ldap `
-    -CSVPath ".\myApps.csv"
+$params = @{
+    Import   = $true
+    PVWAURL  = "https://pvwa.company.com/passwordvault"
+    AuthType = "ldap"
+    CSVPath  = ".\myApps.csv"
+}
+..\Export-Import-Applications.ps1 @params
 ```
 
 **CSV Format:**
@@ -379,7 +449,7 @@ All scripts support these common parameters:
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `PVWAUrl` | String | Yes | Base URL of PVWA (e.g., https://pvwa.company.com) |
+| `PVWAUrl` | String | Yes | Base URL of PVWA (e.g., https://pvwa.company.com/passwordvault) |
 | `Credential` | PSCredential | No | Credentials for authentication (prompts if not provided) |
 | `AuthenticationType` | String | No | Authentication type: cyberark, ldap, radius (default: cyberark) |
 | `OTP` | String | No | RADIUS one-time password |
@@ -399,22 +469,26 @@ This enables efficient batch operations by reusing authentication.
 Standard CyberArk vault authentication.
 
 ```powershell
-.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com"
+.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault"
 ```
 
 ### LDAP
 Authenticate using LDAP credentials.
 
 ```powershell
-.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" -AuthenticationType ldap
+.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -AuthenticationType ldap
 ```
 
 ### RADIUS
 Authenticate using RADIUS with OTP.
 
 ```powershell
-.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" `
-    -AuthenticationType radius -OTP "123456"
+$params = @{
+    PVWAUrl            = "https://pvwa.company.com/passwordvault"
+    AuthenticationType = "radius"
+    OTP                = "123456"
+}
+.\Get-CyberArkApplications.ps1 @params
 ```
 
 ## Show-CyberArkAppWorkflow
@@ -450,17 +524,22 @@ Complete demonstration script showing the full application management workflow w
 **Examples:**
 ```powershell
 # Interactive mode - prompts for confirmation at each step
-.\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com"
+.\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault"
 
 # Automated mode - runs complete workflow hands-free
-.\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com" -Automated
+.\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -Automated
 
 # With credentials
 $cred = Get-Credential
-.\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com" -Credential $cred -Automated
+$params = @{
+    PVWAUrl    = "https://pvwa.company.com/passwordvault"
+    Credential = $cred
+    Automated  = $true
+}
+.\Show-CyberArkAppWorkflow.ps1 @params
 
 # Using session token
-.\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com" -logonToken $token
+.\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -logonToken $token
 ```
 
 **Workflow Steps:**
@@ -487,7 +566,7 @@ See [Show-CyberArkAppWorkflow.ps1](Show-CyberArkAppWorkflow.ps1) for a complete 
 
 Run the example:
 ```powershell
-.\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com"
+.\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault"
 ```
 
 ## Integration with Other Scripts
@@ -546,7 +625,7 @@ All scripts include:
 ### Enable Verbose Logging
 
 ```powershell
-.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" -Verbose
+.\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -Verbose
 ```
 
 ## References

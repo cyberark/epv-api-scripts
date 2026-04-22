@@ -7,7 +7,7 @@
     Displays application details before deletion and requires user confirmation.
 
 .PARAMETER PVWAUrl
-    The base URL of the CyberArk PVWA (e.g., https://pvwa.company.com)
+    The base URL of the CyberArk PVWA (e.g., https://pvwa.company.com/passwordvault)
 
 .PARAMETER Credential
     PSCredential object for CyberArk authentication. If not provided, will prompt.
@@ -20,14 +20,17 @@
 
 .EXAMPLE
     $cred = Get-Credential
-    .\Remove-CyberArkApplication.ps1 -PVWAUrl "https://pvwa.company.com" `
-        -Credential $cred `
-        -AppID "MyApp"
+    $params = @{
+        PVWAUrl    = "https://pvwa.company.com/passwordvault"
+        Credential = $cred
+        AppID      = "MyApp"
+    }
+    .\Remove-CyberArkApplication.ps1 @params
 
 .EXAMPLE
     # List applications first, then delete
-    .\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com"
-    .\Remove-CyberArkApplication.ps1 -PVWAUrl "https://pvwa.company.com" -AppID "MyApp"
+    .\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault"
+    .\Remove-CyberArkApplication.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -AppID "MyApp"
 #>
 
 [CmdletBinding()]

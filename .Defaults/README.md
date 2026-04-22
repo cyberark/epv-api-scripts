@@ -148,7 +148,7 @@ The module exports six functions:
 Import-Module CyberArkDefaults
 
 # Set defaults (will prompt for credentials)
-Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local"
+Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local/passwordvault"
 
 # Now run any CyberArk script without common parameters
 .\Safe-Management.ps1 -Add -SafeName "T-APP-MyApp" -Description "Application Safe"
@@ -171,7 +171,7 @@ Import-Module CyberArkDefaults
 $header = Get-IdentityHeader -IdentityTenantURL "something.id.cyberark.cloud" -IdentityUserName "UserToAuthenticate@cyberark.cloud.ID"
 
 # Set defaults with token
-Set-CyberArkDefaults -PCloudURL "https://EPV-API-Script.privilegecloud.cyberark.cloud/PasswordVault" -logonToken $header
+Set-CyberArkDefaults -PCloudURL "https://<subdomain>.privilegecloud.cyberark.cloud/passwordvault" -logonToken $header
 
 # Now run any CyberArk script
 .\Safe-Management.ps1 -Add -SafeName "T-APP-MyApp" -Description "Application Safe"
@@ -191,14 +191,14 @@ Clear-CyberArkDefaults
 ```powershell
 # Use existing credential object
 $cred = Get-Credential
-Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local" -Credential $cred
+Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local/passwordvault" -Credential $cred
 ```
 
 ### LDAP Authentication
 
 ```powershell
 # Use LDAP authentication
-Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local" -AuthenticationType ldap
+Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local/passwordvault" -AuthenticationType ldap
 ```
 
 ### RADIUS Authentication
@@ -206,21 +206,21 @@ Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local" -AuthenticationType ldap
 ```powershell
 # RADIUS with OTP
 $cred = Get-Credential
-Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local" -AuthenticationType radius -Credential $cred -OTP "123456"
+Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local/passwordvault" -AuthenticationType radius -Credential $cred -OTP "123456"
 ```
 
 ### Skip Authentication
 
 ```powershell
 # Set URL only (no authentication - will prompt per script)
-Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local" -SkipAuthentication
+Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local/passwordvault" -SkipAuthentication
 ```
 
 ### Disable Certificate Validation
 
 ```powershell
 # Disable certificate validation (testing only)
-Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local" -DisableCertificateValidation
+Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local/passwordvault" -DisableCertificateValidation
 ```
 
 ## How It Works
@@ -239,8 +239,8 @@ This works with:
 - Any PowerShell script that uses these parameter names
 
 **Note:** For Privilege Cloud, always include `/PasswordVault` in the URL:
-- Gen 2 (Current): `https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault`
-- Gen 1 (Legacy): `https://<subdomain>.privilegecloud.cyberark.cloud/PasswordVault`
+- Gen 2 (Current): `https://<subdomain>.privilegecloud.cyberark.cloud/passwordvault`
+- Gen 1 (Legacy): `https://<subdomain>.privilegecloud.cyberark.cloud/passwordvault`
 
 ## Session Management
 
@@ -248,7 +248,7 @@ This works with:
 
 ```powershell
 # Authenticate and set defaults
-Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local"
+Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local/passwordvault"
 
 # ... work with multiple scripts ...
 
@@ -260,7 +260,7 @@ Invoke-CyberArkLogoff
 
 ```powershell
 # Set defaults with external token (use full URL with /PasswordVault)
-Set-CyberArkDefaults -PCloudURL "https://EPV-API-Scripts.privilegecloud.cyberark.cloud/PasswordVault" -logonToken $token
+Set-CyberArkDefaults -PCloudURL "https://<subdomain>.privilegecloud.cyberark.cloud/passwordvault" -logonToken $token
 
 # ... work with multiple scripts ...
 

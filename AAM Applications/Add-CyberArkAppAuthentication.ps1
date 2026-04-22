@@ -54,7 +54,7 @@
     Array of certificate SAN attributes (e.g., @("DNS Name=www.example.com")) for Certificate Attributes authentication
 
 .PARAMETER PVWAUrl
-    The base URL of the CyberArk PVWA (e.g., https://pvwa.company.com)
+    The base URL of the CyberArk PVWA (e.g., https://pvwa.company.com/passwordvault)
 
 .PARAMETER Credential
     PSCredential object for CyberArk authentication. If not provided, will prompt.
@@ -68,27 +68,39 @@
 
 .EXAMPLE
     # Add multiple authentication methods at once
-    .\Add-CyberArkAppAuthentication.ps1 -AppID "MyApp" `
-        -Path "C:\Program Files\MyApp\app.exe" `
-        -OSUser "DOMAIN\ServiceAccount" `
-        -MachineAddress "192.168.1.0/24"
+    $params = @{
+        AppID          = "MyApp"
+        Path           = "C:\Program Files\MyApp\app.exe"
+        OSUser         = "DOMAIN\ServiceAccount"
+        MachineAddress = "192.168.1.0/24"
+    }
+    .\Add-CyberArkAppAuthentication.ps1 @params
 
 .EXAMPLE
     # Add multiple paths
-    .\Add-CyberArkAppAuthentication.ps1 -AppID "MyApp" `
-        -Path @("C:\App\app1.exe", "C:\App\app2.exe")
+    $params = @{
+        AppID = "MyApp"
+        Path  = @("C:\App\app1.exe", "C:\App\app2.exe")
+    }
+    .\Add-CyberArkAppAuthentication.ps1 @params
 
 .EXAMPLE
     # Add Certificate Attributes authentication
-    .\Add-CyberArkAppAuthentication.ps1 -AppID "MyApp" `
-        -CertificateSubject @("CN=app.company.com","OU=IT") `
-        -CertificateIssuer @("CN=Company Root CA")
+    $params = @{
+        AppID              = "MyApp"
+        CertificateSubject = @("CN=app.company.com","OU=IT")
+        CertificateIssuer  = @("CN=Company Root CA")
+    }
+    .\Add-CyberArkAppAuthentication.ps1 @params
 
 .EXAMPLE
     # Add Hash with comment
-    .\Add-CyberArkAppAuthentication.ps1 -AppID "MyApp" `
-        -Hash "A1B2C3D4E5F6" `
-        -HashComment "Production server hash"
+    $params = @{
+        AppID       = "MyApp"
+        Hash        = "A1B2C3D4E5F6"
+        HashComment = "Production server hash"
+    }
+    .\Add-CyberArkAppAuthentication.ps1 @params
 
 .EXAMPLE
     # Just verify application exists (no auth methods specified)
@@ -159,8 +171,8 @@ param(
 
 # Disable certificate validation if requested (NOT recommended for production)
 if ($DisableCertificateValidation) {
-    Write-Warning "Certificate validation is disabled. This should only be used for testing!"
-    add-type @"
+    Write-Warning 'Certificate validation is disabled. This should only be used for testing!'
+    Add-Type @'
         using System.Net;
         using System.Security.Cryptography.X509Certificates;
         public class TrustAllCertsPolicy : ICertificatePolicy {
@@ -170,7 +182,7 @@ if ($DisableCertificateValidation) {
                 return true;
             }
         }
-"@
+'@
     [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 }
 
@@ -184,11 +196,11 @@ $authMethodsToAdd = @()
 if ($Path) {
     foreach ($p in $Path) {
         $authMethodsToAdd += @{
-            Type = 'Path'
+            Type   = 'Path'
             Object = @{
-                AuthType = 'path'
-                AuthValue = $p
-                IsFolder = $PathIsFolder
+                AuthType             = 'path'
+                AuthValue            = $p
+                IsFolder             = $PathIsFolder
                 AllowInternalScripts = $PathAllowInternalScripts
             }
         }
@@ -199,14 +211,14 @@ if ($Path) {
 if ($Hash) {
     foreach ($h in $Hash) {
         $authObj = @{
-            AuthType = 'hash'
+            AuthType  = 'hash'
             AuthValue = $h
         }
         if ($HashComment) {
             $authObj['Comment'] = $HashComment
         }
         $authMethodsToAdd += @{
-            Type = 'Hash'
+            Type   = 'Hash'
             Object = $authObj
         }
     }
@@ -216,9 +228,9 @@ if ($Hash) {
 if ($OSUser) {
     foreach ($user in $OSUser) {
         $authMethodsToAdd += @{
-            Type = 'OSUser'
+            Type   = 'OSUser'
             Object = @{
-                AuthType = 'osUser'
+                AuthType  = 'osUser'
                 AuthValue = $user
             }
         }
@@ -229,9 +241,9 @@ if ($OSUser) {
 if ($MachineAddress) {
     foreach ($addr in $MachineAddress) {
         $authMethodsToAdd += @{
-            Type = 'MachineAddress'
+            Type   = 'MachineAddress'
             Object = @{
-                AuthType = 'machineAddress'
+                AuthType  = 'machineAddress'
                 AuthValue = $addr
             }
         }
@@ -242,14 +254,14 @@ if ($MachineAddress) {
 if ($CertificateSerialNumber) {
     foreach ($serial in $CertificateSerialNumber) {
         $authObj = @{
-            AuthType = 'certificateserialnumber'
+            AuthType  = 'certificateserialnumber'
             AuthValue = $serial
         }
         if ($CertificateSerialNumberComment) {
             $authObj['Comment'] = $CertificateSerialNumberComment
         }
         $authMethodsToAdd += @{
-            Type = 'CertificateSerialNumber'
+            Type   = 'CertificateSerialNumber'
             Object = $authObj
         }
     }
@@ -270,7 +282,7 @@ if ($CertificateIssuer -or $CertificateSubject -or $CertificateSubjectAlternativ
         $authObj['SubjectAlternativeName'] = $CertificateSubjectAlternativeName
     }
     $authMethodsToAdd += @{
-        Type = 'CertificateAttr'
+        Type   = 'CertificateAttr'
         Object = $authObj
     }
 }
@@ -332,7 +344,7 @@ try {
 
     # If no authentication methods specified, throw an error
     if ($authMethodsToAdd.Count -eq 0) {
-        throw "No authentication methods specified. Please provide at least one authentication parameter (Path, Hash, OSUser, MachineAddress, CertificateSerialNumber, or Certificate attributes)."
+        throw 'No authentication methods specified. Please provide at least one authentication parameter (Path, Hash, OSUser, MachineAddress, CertificateSerialNumber, or Certificate attributes).'
     }
 
     # Setup headers and URLs
@@ -367,16 +379,28 @@ try {
         foreach ($existing in $existingAuthMethods.authentication) {
             if ($authType -eq 'CertificateAttr' -and $existing.AuthType -eq 'certificateattr') {
                 # For certificate attributes, compare all fields
-                $existingSubject = if ($existing.Subject) { @($existing.Subject) } else { @() }
-                $existingIssuer = if ($existing.Issuer) { @($existing.Issuer) } else { @() }
-                $existingSAN = if ($existing.SubjectAlternativeName) { @($existing.SubjectAlternativeName) } else { @() }
+                $existingSubject = if ($existing.Subject) {
+                    @($existing.Subject)
+                } else {
+                    @()
+                }
+                $existingIssuer = if ($existing.Issuer) {
+                    @($existing.Issuer)
+                } else {
+                    @()
+                }
+                $existingSAN = if ($existing.SubjectAlternativeName) {
+                    @($existing.SubjectAlternativeName)
+                } else {
+                    @()
+                }
 
                 $subjectMatches = (-not $authObj.Subject -and $existingSubject.Count -eq 0) -or
-                                 ($authObj.Subject -and $existingSubject.Count -gt 0 -and -not (Compare-Object $authObj.Subject $existingSubject))
+                ($authObj.Subject -and $existingSubject.Count -gt 0 -and -not (Compare-Object $authObj.Subject $existingSubject))
                 $issuerMatches = (-not $authObj.Issuer -and $existingIssuer.Count -eq 0) -or
-                                ($authObj.Issuer -and $existingIssuer.Count -gt 0 -and -not (Compare-Object $authObj.Issuer $existingIssuer))
+                ($authObj.Issuer -and $existingIssuer.Count -gt 0 -and -not (Compare-Object $authObj.Issuer $existingIssuer))
                 $sanMatches = (-not $authObj.SubjectAlternativeName -and $existingSAN.Count -eq 0) -or
-                             ($authObj.SubjectAlternativeName -and $existingSAN.Count -gt 0 -and -not (Compare-Object $authObj.SubjectAlternativeName $existingSAN))
+                ($authObj.SubjectAlternativeName -and $existingSAN.Count -gt 0 -and -not (Compare-Object $authObj.SubjectAlternativeName $existingSAN))
 
                 if ($subjectMatches -and $issuerMatches -and $sanMatches) {
                     $isDuplicate = $true
@@ -392,7 +416,11 @@ try {
         }
 
         if ($isDuplicate) {
-            $displayValue = if ($authObj.AuthValue) { $authObj.AuthValue } else { "Certificate Attributes" }
+            $displayValue = if ($authObj.AuthValue) {
+                $authObj.AuthValue
+            } else {
+                'Certificate Attributes'
+            }
             $skippedAuths += "$authType`: $displayValue (duplicate)"
             Write-Output "  Skipping $authType authentication - already exists: $displayValue"
             continue
@@ -410,12 +438,20 @@ try {
             $addAuthUrl = "$PVWAUrl/WebServices/PIMServices.svc/Applications/$AppID/Authentications/"
             Invoke-RestMethod -Uri $addAuthUrl -Method Post -Headers $headers -Body $requestBody | Out-Null
 
-            $displayValue = if ($authObj.AuthValue) { $authObj.AuthValue } else { "Certificate Attributes" }
+            $displayValue = if ($authObj.AuthValue) {
+                $authObj.AuthValue
+            } else {
+                'Certificate Attributes'
+            }
             $addedAuths += "$authType`: $displayValue"
             Write-Output "  Successfully added $authType authentication: $displayValue"
 
         } catch {
-            $displayValue = if ($authObj.AuthValue) { $authObj.AuthValue } else { "Certificate Attributes" }
+            $displayValue = if ($authObj.AuthValue) {
+                $authObj.AuthValue
+            } else {
+                'Certificate Attributes'
+            }
             $failedAuths += "$authType`: $displayValue - $($_.Exception.Message)"
             Write-Output "  Failed to add $authType authentication: $($_.Exception.Message)"
         }
@@ -457,7 +493,7 @@ $('=' * 80)
 
         if ($authMethods.authentication) {
             Write-Output "`nApplication '$AppID' now has $($authMethods.authentication.Count) authentication method(s):"
-            Write-Output ("=" * 80)
+            Write-Output ('=' * 80)
 
             foreach ($auth in $authMethods.authentication) {
                 Write-Output "  - Auth ID: $($auth.authID) | Type: $($auth.AuthType)"
@@ -483,7 +519,7 @@ $('=' * 80)
                     Write-Output "    AllowInternalScripts: $($auth.AllowInternalScripts)"
                 }
             }
-            Write-Output ("=" * 80)
+            Write-Output ('=' * 80)
         }
     }
 

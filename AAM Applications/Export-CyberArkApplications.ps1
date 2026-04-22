@@ -8,7 +8,7 @@
     Works with both Privilege Cloud and Self-Hosted PAM.
 
 .PARAMETER PVWAUrl
-    The base URL of the PVWA (e.g., https://pvwa.company.com or https://tenant.privilegecloud.cyberark.cloud)
+    The base URL of the PVWA (e.g., https://pvwa.company.com/passwordvault or https://<subdomain>.privilegecloud.cyberark.cloud/passwordvault)
 
 .PARAMETER AppID
     Optional. Filter export to a specific application ID
@@ -33,15 +33,15 @@
     Disables SSL certificate validation (not recommended for production)
 
 .EXAMPLE
-    .\Export-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" -CSVPath ".\applications.csv"
+    .\Export-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -CSVPath ".\applications.csv"
     Exports all applications to CSV
 
 .EXAMPLE
-    .\Export-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" -AppID "MyApp" -CSVPath ".\myapp.csv"
+    .\Export-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -AppID "MyApp" -CSVPath ".\myapp.csv"
     Exports a specific application
 
 .EXAMPLE
-    .\Export-CyberArkApplications.ps1 -PVWAUrl "https://tenant.privilegecloud.cyberark.cloud" -logonToken $token -CSVPath ".\apps.csv"
+    .\Export-CyberArkApplications.ps1 -PVWAUrl "https://<subdomain>.privilegecloud.cyberark.cloud/passwordvault" -logonToken $token -CSVPath ".\apps.csv"
     Exports using existing session token (Privilege Cloud)
 
 .NOTES
@@ -52,7 +52,7 @@
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true, HelpMessage = "PVWA URL (e.g., https://pvwa.company.com)")]
+    [Parameter(Mandatory = $true, HelpMessage = "PVWA URL (e.g., https://pvwa.company.com/passwordvault)")]
     [Alias("url")]
     [ValidateNotNullOrEmpty()]
     [string]$PVWAUrl,

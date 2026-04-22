@@ -7,7 +7,7 @@
     or filters by AppID, Location, and sublocation settings.
 
 .PARAMETER PVWAUrl
-    The base URL of the CyberArk PVWA (e.g., https://pvwa.company.com)
+    The base URL of the CyberArk PVWA (e.g., https://pvwa.company.com/passwordvault)
 
 .PARAMETER Credential
     PSCredential object for CyberArk authentication. If not provided, will prompt.
@@ -26,20 +26,26 @@
 
 .EXAMPLE
     # Get all applications
-    .\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com"
+    .\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault"
 
 .EXAMPLE
     # Get specific application
     $cred = Get-Credential
-    .\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" `
-        -Credential $cred `
-        -AppID "MyApp"
+    $params = @{
+        PVWAUrl    = "https://pvwa.company.com/passwordvault"
+        Credential = $cred
+        AppID      = "MyApp"
+    }
+    .\Get-CyberArkApplications.ps1 @params
 
 .EXAMPLE
     # Get applications in specific location
-    .\Get-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" `
-        -Location "\Applications" `
-        -IncludeSublocations $false
+    $params = @{
+        PVWAUrl             = "https://pvwa.company.com/passwordvault"
+        Location            = "\Applications"
+        IncludeSublocations = $false
+    }
+    .\Get-CyberArkApplications.ps1 @params
 #>
 
 [CmdletBinding()]

@@ -478,7 +478,7 @@ function Set-CyberArkDefaults {
         once and run multiple scripts without repeating parameters.
 
     .PARAMETER PVWAUrl
-        The base URL of the CyberArk Self-Hosted PVWA (e.g., https://pvwa.lab.local)
+        The base URL of the CyberArk Self-Hosted PVWA (e.g., https://pvwa.lab.local/passwordvault)
         For Privilege Cloud, use -PCloudURL instead.
 
     .PARAMETER PCloudURL
@@ -507,19 +507,19 @@ function Set-CyberArkDefaults {
     .EXAMPLE
         # Privilege Cloud - REQUIRES session token
         $token = "your-privilege-cloud-session-token"
-        Set-CyberArkDefaults -PCloudURL "https://EPV-API-Scripts.privilegecloud.cyberark.cloud/PasswordVault" -logonToken $token
+        Set-CyberArkDefaults -PCloudURL "https://<subdomain>.privilegecloud.cyberark.cloud/passwordvault" -logonToken $token
 
     .EXAMPLE
         # Self-Hosted - Authenticate and set defaults
-        Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local"
+        Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local/passwordvault"
 
     .EXAMPLE
         # Use LDAP authentication
-        Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local" -AuthenticationType ldap
+        Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local/passwordvault" -AuthenticationType ldap
 
     .EXAMPLE
         # Set defaults without authentication
-        Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local" -SkipAuthentication
+        Set-CyberArkDefaults -PVWAUrl "https://pvwa.lab.local/passwordvault" -SkipAuthentication
     #>
     [CmdletBinding(DefaultParameterSetName = 'SetDefaults')]
     param(

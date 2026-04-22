@@ -7,7 +7,7 @@
     method from a specified application using the AuthID.
 
 .PARAMETER PVWAUrl
-    The base URL of the CyberArk PVWA (e.g., https://pvwa.company.com)
+    The base URL of the CyberArk PVWA (e.g., https://pvwa.company.com/passwordvault)
 
 .PARAMETER Credential
     PSCredential object for CyberArk authentication. If not provided, will prompt.
@@ -24,21 +24,27 @@
 
 .EXAMPLE
     $cred = Get-Credential
-    .\Remove-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" `
-        -Credential $cred `
-        -AppID "MyApp" `
-        -AuthID 5
+    $params = @{
+        PVWAUrl    = "https://pvwa.company.com/passwordvault"
+        Credential = $cred
+        AppID      = "MyApp"
+        AuthID     = 5
+    }
+    .\Remove-CyberArkAppAuthentication.ps1 @params
 
 .EXAMPLE
-    .\Remove-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" `
-        -AppID "MyApp" `
-        -AuthID 5
+    $params = @{
+        PVWAUrl = "https://pvwa.company.com/passwordvault"
+        AppID   = "MyApp"
+        AuthID  = 5
+    }
+    .\Remove-CyberArkAppAuthentication.ps1 @params
     # Credentials will be prompted if not provided
 
 .EXAMPLE
     # List authentication methods to find AuthID, then delete
-    .\Get-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" -AppID "MyApp"
-    .\Remove-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" -AppID "MyApp" -AuthID 5
+    .\Get-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -AppID "MyApp"
+    .\Remove-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -AppID "MyApp" -AuthID 5
 #>
 
 [CmdletBinding()]

@@ -16,7 +16,7 @@
     efficient than authenticating for each individual operation.
 
 .PARAMETER PVWAUrl
-    The base URL of the CyberArk PVWA (e.g., https://pvwa.company.com)
+    The base URL of the CyberArk PVWA (e.g., https://pvwa.company.com/passwordvault)
 
 .PARAMETER AuthenticationType
     The authentication type: cyberark, ldap, or radius (Default: cyberark)
@@ -31,22 +31,22 @@
     Run in automated mode without prompts. Assumes yes to export/import demo and no to cleanup.
 
 .EXAMPLE
-    .\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com"
+    .\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault"
 
 .EXAMPLE
-    .\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com" -Automated
+    .\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -Automated
 
 .EXAMPLE
-    .\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com" -AuthenticationType ldap
+    .\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -AuthenticationType ldap
 
 .EXAMPLE
     $cred = Get-Credential
-    .\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com" -Credential $cred
+    .\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -Credential $cred
 
 .EXAMPLE
     # Use existing token
-    $token = (Invoke-RestMethod -Uri "https://pvwa.company.com/API/Auth/CyberArk/Logon" ...)
-    .\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com" -logonToken $token
+    $token = (Invoke-RestMethod -Uri "https://pvwa.company.com/passwordvault/API/Auth/CyberArk/Logon" ...)
+    .\Show-CyberArkAppWorkflow.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -logonToken $token
 #>
 
 [CmdletBinding()]

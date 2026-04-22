@@ -6,7 +6,7 @@
     This script authenticates to CyberArk and creates a new application in the Vault.
 
 .PARAMETER PVWAUrl
-    The base URL of the CyberArk PVWA (e.g., https://pvwa.company.com)
+    The base URL of the CyberArk PVWA (e.g., https://pvwa.company.com/passwordvault)
 
 .PARAMETER Credential
     PSCredential object for CyberArk authentication. If not provided, will prompt.
@@ -49,18 +49,24 @@
 
 .EXAMPLE
     $cred = Get-Credential
-    .\New-CyberArkApplication.ps1 -PVWAUrl "https://pvwa.company.com" `
-        -Credential $cred `
-        -AppID "MyNewApp" `
-        -Description "My application for testing" `
-        -Location "\Applications"
+    $params = @{
+        PVWAUrl     = "https://pvwa.company.com/passwordvault"
+        Credential  = $cred
+        AppID       = "MyNewApp"
+        Description = "My application for testing"
+        Location    = "\Applications"
+    }
+    .\New-CyberArkApplication.ps1 @params
 
 .EXAMPLE
-    .\New-CyberArkApplication.ps1 -PVWAUrl "https://pvwa.company.com" `
-        -AppID "MyNewApp" `
-        -BusinessOwnerFName "John" `
-        -BusinessOwnerLName "Doe" `
-        -BusinessOwnerEmail "john.doe@company.com"
+    $params = @{
+        PVWAUrl            = "https://pvwa.company.com/passwordvault"
+        AppID              = "MyNewApp"
+        BusinessOwnerFName = "John"
+        BusinessOwnerLName = "Doe"
+        BusinessOwnerEmail = "john.doe@company.com"
+    }
+    .\New-CyberArkApplication.ps1 @params
 #>
 
 [CmdletBinding()]
