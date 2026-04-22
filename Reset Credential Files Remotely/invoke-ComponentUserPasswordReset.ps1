@@ -348,15 +348,15 @@ function Invoke-SelectionMenu {
     }
     $raw = Read-Host -Prompt 'Enter comma-separated numbers (e.g. 1,3,5), * for all, or 0 to exit'
     if ($raw.Trim() -eq '0') {
-        return @() 
+        return @()
     }
     if ($raw.Trim() -eq '*') {
-        return $Items 
+        return $Items
     }
     $selected = $raw.Split(',') | ForEach-Object {
         $index = [int]$_.Trim() - 1
         if ($index -ge 0 -and $index -lt $Items.Count) {
-            $Items[$index] 
+            $Items[$index]
         }
     }
     return $selected
@@ -490,12 +490,16 @@ Write-LogMessage -type Verbose -MSG 'Getting Component List'
 $targetComponents = @()
 $availableServers = @()
 
-# Resolve the PVWA host once so we can skip components running on the same server
-$pvwaHost = $PVWAURL.Replace('\', '/').Replace('https://', '').Replace('http://', '').Split('/')[0].Split(':')[0].ToLower()
-$pvwaIP = try {
-    ([System.Net.Dns]::GetHostAddresses($pvwaHost) | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -First 1).IPAddressToString 
+# Resolve ALL IPv4 addresses for the PVWA host once.
+# A PVWA with multiple NICs may register components under different IPs, so we collect
+# the full set here and compare each component IP against all of them.
+$pvwaHost = ([System.Uri]$PVWAURL).Host.ToLower()
+$pvwaIPs = try {
+    [System.Net.Dns]::GetHostAddresses($pvwaHost) |
+    Where-Object { $_.AddressFamily -eq 'InterNetwork' } |
+    ForEach-Object { $_.IPAddressToString }
 } catch {
-    $pvwaHost 
+    @()
 }
 
 foreach ($comp in $selectedComponents) {
@@ -539,14 +543,40 @@ foreach ($comp in $selectedComponents) {
             if ('255.255.255.255' -eq $result.'IP Address') {
                 continue
             }
-            # Skip components running on the same server as the PVWA we are connected to
-            $serverHost = ($result.'IP Address').ToLower()
-            $serverIP = try {
-                ([System.Net.Dns]::GetHostAddresses($serverHost) | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -First 1).IPAddressToString 
-            } catch {
-                $serverHost 
+            # Skip components running on the same server as the PVWA we are connected to.
+            # The PVWA only records the last IP a component connected from, which may not
+            # be the component's only IP, so we apply two independent checks:
+            #
+            # Check 1 - IP match: compare the component's reported IP against all IPv4
+            #   addresses that the PVWA hostname resolves to.  This handles the common
+            #   case and also catches a multi-NIC PVWA where the component happened to
+            #   connect via a different interface.
+            #
+            # Check 2 - FQDN match: reverse-resolve the component IP to its hostname and
+            #   compare against the PVWA hostname.  This catches the case where the
+            #   component registered under a different IP than the one in $PVWAURL but
+            #   is still the same physical/virtual machine.
+            $serverAddress = ($result.'IP Address').ToLower()
+            $isSameMachine = $false
+
+            # Check 1: IP address membership
+            if ($pvwaIPs -contains $serverAddress) {
+                $isSameMachine = $true
             }
-            if ($pvwaIP -eq $serverIP -or $pvwaHost -eq $serverHost) {
+
+            # Check 2: reverse DNS FQDN comparison (only if IP check did not already match)
+            if (-not $isSameMachine) {
+                $serverFQDN = try {
+                    [System.Net.Dns]::GetHostEntry($serverAddress).HostName.ToLower()
+                } catch {
+                    $null
+                }
+                if ($null -ne $serverFQDN -and $serverFQDN -eq $pvwaHost) {
+                    $isSameMachine = $true
+                }
+            }
+
+            if ($isSameMachine) {
                 Write-LogMessage -type Warning -MSG "Skipping component user $($result.'Component User') on $($result.'IP Address') - it is running on the PVWA this script is connected to. Resetting its password without updating the credential file would break the component."
                 continue
             }
