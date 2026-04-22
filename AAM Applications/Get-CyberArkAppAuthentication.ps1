@@ -7,7 +7,7 @@
     methods configured for a specified application.
 
 .PARAMETER PVWAUrl
-    The base URL of the CyberArk PVWA (e.g., https://pvwa.company.com)
+    The base URL of the CyberArk PVWA (e.g., https://pvwa.company.com/passwordvault)
 
 .PARAMETER Credential
     PSCredential object for CyberArk authentication. If not provided, will prompt.
@@ -20,13 +20,19 @@
 
 .EXAMPLE
     $cred = Get-Credential
-    .\Get-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" `
-        -Credential $cred `
-        -AppID "MyApp"
+    $params = @{
+        PVWAUrl    = "https://pvwa.company.com/passwordvault"
+        Credential = $cred
+        AppID      = "MyApp"
+    }
+    .\Get-CyberArkAppAuthentication.ps1 @params
 
 .EXAMPLE
-    .\Get-CyberArkAppAuthentication.ps1 -PVWAUrl "https://pvwa.company.com" `
-        -AppID "MyApp"
+    $params = @{
+        PVWAUrl = "https://pvwa.company.com/passwordvault"
+        AppID   = "MyApp"
+    }
+    .\Get-CyberArkAppAuthentication.ps1 @params
     # Credentials will be prompted if not provided
 #>
 

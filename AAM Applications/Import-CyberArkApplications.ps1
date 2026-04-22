@@ -8,7 +8,7 @@
     Works with both Privilege Cloud and Self-Hosted PAM.
 
 .PARAMETER PVWAUrl
-    The base URL of the PVWA (e.g., https://pvwa.company.com or https://tenant.privilegecloud.cyberark.cloud)
+    The base URL of the PVWA (e.g., https://pvwa.company.com/passwordvault or https://<subdomain>.privilegecloud.cyberark.cloud/passwordvault)
 
 .PARAMETER CSVPath
     Path to the CSV file containing applications to import
@@ -30,15 +30,15 @@
     Disables SSL certificate validation (not recommended for production)
 
 .EXAMPLE
-    .\Import-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" -CSVPath ".\applications.csv"
+    .\Import-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -CSVPath ".\applications.csv"
     Imports all applications from CSV
 
 .EXAMPLE
-    .\Import-CyberArkApplications.ps1 -PVWAUrl "https://tenant.privilegecloud.cyberark.cloud" -logonToken $token -CSVPath ".\apps.csv"
+    .\Import-CyberArkApplications.ps1 -PVWAUrl "https://<subdomain>.privilegecloud.cyberark.cloud/passwordvault" -logonToken $token -CSVPath ".\apps.csv"
     Imports using existing session token (Privilege Cloud)
 
 .EXAMPLE
-    .\Import-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com" -CSVPath ".\apps.csv" -AuthenticationType ldap
+    .\Import-CyberArkApplications.ps1 -PVWAUrl "https://pvwa.company.com/passwordvault" -CSVPath ".\apps.csv" -AuthenticationType ldap
     Imports using LDAP authentication
 
 .NOTES
@@ -49,7 +49,7 @@
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true, HelpMessage = "PVWA URL (e.g., https://pvwa.company.com)")]
+    [Parameter(Mandatory = $true, HelpMessage = "PVWA URL (e.g., https://pvwa.company.com/passwordvault)")]
     [Alias("url")]
     [ValidateNotNullOrEmpty()]
     [string]$PVWAUrl,

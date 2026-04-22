@@ -38,7 +38,7 @@ For new implementations, use the modern Export/Import scripts.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| PVWAURL | String | Yes | PVWA base URL (e.g., https://pvwa.company.com/PasswordVault) |
+| PVWAURL | String | Yes | PVWA base URL (e.g., https://pvwa.company.com/passwordvault) |
 | AuthType | String | No | Authentication type: cyberark, ldap, radius (default: cyberark) |
 | Export | Switch | Yes* | Export mode switch |
 | Import | Switch | Yes* | Import mode switch |
@@ -55,12 +55,12 @@ For new implementations, use the modern Export/Import scripts.
 
 ```powershell
 # Export all applications (simple form)
-.\Export-Import-Applications.ps1 -Export -PVWAURL "https://pvwa.company.com/PasswordVault" -CSVPath ".\applications.csv"
+.\Export-Import-Applications.ps1 -Export -PVWAURL "https://pvwa.company.com/passwordvault" -CSVPath ".\applications.csv"
 
 # Export all applications (using splatting for readability)
 $params = @{
     Export = $true
-    PVWAURL = "https://pvwa.company.com/PasswordVault"
+    PVWAURL = "https://pvwa.company.com/passwordvault"
     CSVPath = ".\applications.csv"
 }
 .\Export-Import-Applications.ps1 @params
@@ -68,7 +68,7 @@ $params = @{
 # Export specific application
 $params = @{
     Export = $true
-    PVWAURL = "https://pvwa.company.com/PasswordVault"
+    PVWAURL = "https://pvwa.company.com/passwordvault"
     AppID = "MyApp"
     CSVPath = ".\myapp.csv"
 }
@@ -77,17 +77,8 @@ $params = @{
 # Export using LDAP authentication
 $params = @{
     Export = $true
-    PVWAURL = "https://pvwa.company.com/PasswordVault"
+    PVWAURL = "https://pvwa.company.com/passwordvault"
     AuthType = "ldap"
-    CSVPath = ".\applications.csv"
-}
-.\Export-Import-Applications.ps1 @params
-
-# Export with pre-existing credentials
-$cred = Get-Credential
-$params = @{
-    Export = $true
-    PVWAURL = "https://pvwa.company.com/PasswordVault"
     PVWACredentials = $cred
     CSVPath = ".\applications.csv"
 }
@@ -100,7 +91,7 @@ $params = @{
 # Import applications from CSV
 $params = @{
     Import = $true
-    PVWAURL = "https://pvwa.company.com/PasswordVault"
+    PVWAURL = "https://pvwa.company.com/passwordvault"
     CSVPath = ".\applications.csv"
 }
 .\Export-Import-Applications.ps1 @params
@@ -108,7 +99,7 @@ $params = @{
 # Import using LDAP authentication
 $params = @{
     Import = $true
-    PVWAURL = "https://pvwa.company.com/PasswordVault"
+    PVWAURL = "https://pvwa.company.com/passwordvault"
     AuthType = "ldap"
     CSVPath = ".\applications.csv"
 }
@@ -117,7 +108,7 @@ $params = @{
 # Import with session token
 $params = @{
     Import = $true
-    PVWAURL = "https://pvwa.company.com/PasswordVault"
+    PVWAURL = "https://pvwa.company.com/passwordvault"
     CSVPath = ".\applications.csv"
     logonToken = $token
 }
@@ -176,14 +167,14 @@ To migrate from this legacy script to modern scripts:
 # Old way
 $params = @{
     Export = $true
-    PVWAURL = "https://pvwa.company.com/PasswordVault"
+    PVWAURL = "https://pvwa.company.com/passwordvault"
     CSVPath = "app.csv"
 }
 .\Export-Import-Applications.ps1 @params
 
 # New way
 $params = @{
-    PVWAUrl = "https://pvwa.company.com"
+    PVWAUrl = "https://pvwa.company.com/passwordvault"
     CSVPath = "app.csv"
 }
 ..\Export-CyberArkApplications.ps1 @params
@@ -194,14 +185,14 @@ $params = @{
 # Old way
 $params = @{
     Import = $true
-    PVWAURL = "https://pvwa.company.com/PasswordVault"
+    PVWAURL = "https://pvwa.company.com/passwordvault"
     CSVPath = "app.csv"
 }
 .\Export-Import-Applications.ps1 @params
 
 # New way (requires CSV conversion)
 $params = @{
-    PVWAUrl = "https://pvwa.company.com"
+    PVWAUrl = "https://pvwa.company.com/passwordvault"
     CSVPath = "app.csv"
 }
 ..\Import-CyberArkApplications.ps1 @params
