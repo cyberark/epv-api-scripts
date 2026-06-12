@@ -1,115 +1,64 @@
-# Create-PersonalPrivilgedAccounts
->Supported version: CyberArk PAS version 11.6 and above
+# Personal Privileged Accounts
 
-## Main Capabilities
-- Create personal Safes and Privileged Accounts from a .csv file.
-- In the example scripts, you will find examples of concurrent sessions and bulk onboarding.
+Automates the creation of personal privileged safes and account onboarding in CyberArk via the v2 REST API. Works with both on-premises vaults and Privilege Cloud.
 
-## Usage
-```powershell
-Create-PersonalPrivilgedAccounts.ps1 -PVWAURL <string> -CSVPath <string> [-AuthType <cyberark,ldap,radius>] [-OTP <string>] [-SafeNamePattern <string>] [-PlatformID <string>] [-DisableSSLVerify] [<CommonParameters>]
-```
+## What it does
 
-## API references
-- [Create bulk upload of accounts](https://docs.cyberark.com/Product-Doc/OnlineHelp/PAS/Latest/en/Content/WebServices/Create-bulk-upload-of-accounts-v10.htm?tocpath=Developer%7CREST%20APIs%7CAccounts%7CBulk%20upload%20of%20accounts%7C_____1)
-- [Get all bulk account uploads for user](https://docs.cyberark.com/Product-Doc/OnlineHelp/PAS/Latest/en/Content/WebServices/Get-all-bulk-account-uploads-for-user-v10.htm?tocpath=Developer%7CREST%20APIs%7CAccounts%7CBulk%20upload%20of%20accounts%7C_____2)
-- [Authentication (using the concurrentSession)](https://docs.cyberark.com/Product-Doc/OnlineHelp/PAS/Latest/en/Content/SDK/CyberArk%20Authentication%20-%20Logon_v10.htm?tocpath=Developer%7CREST%20APIs%7CAuthentication%7CLogon%7C_____1)
+For each row in a CSV, the main script:
 
-## Parameters
-- PVWAURL
-	- The URL of the PVWA that you are working with. 
-	- Note that the URL needs to include 'PasswordVault', for example: "https://myPVWA.myDomain.com/PasswordVault"
-	- When working with PVWA behind a load balancer, note that the session must be defined as sticky session. Alternatively, work with a single node PVWA.
-- DisableSSLVerify
-	**(NOT RECOMMENDED)**
-	- Disable the SSL certificate verification.
-	- Use only if your PVWA environment doesn't include a valid SSL certificate.
-- AuthType
-	- Authentication types for logon. 
-	- Available values: _CyberArk, LDAP, RADIUS_
-	- Default value: _CyberArk_
-- OTP
-	- In cases where RADIUS authentication is used and one-time-password is needed, use this parameter to enter the OTP value.
-- CsvPath
-	- The .csv file path for the Accounts to be onboarded.
-- SafeNamePattern
-    - String pattern to name the Safes.
-    - Use an asterix ('*') to decide the place holder of the user name.
-    - You can use only *one* asterix in the template.
-	- Default value: _"*ADM"_
-- PlatformID
-	- Default value: _"WindDomain"_
+1. Creates a personal safe for the user (skips if it already exists)
+2. Adds the user as safe owner plus any configured default members
+3. Bulk-onboards the account via the CyberArk Bulk Accounts API
 
-## Examples
+## Files
 
-### Example 1 - Basic Scenario
->Admin wants to create a personal Safe for 2 users, each safe will include a single privileged account.
+| File | Description |
+| --- | --- |
+| `Create-PersonalPrivilgedAccounts.ps1` | Main script |
+| `Edit-PersonalPrivilegedAccountsConfig.ps1` | Create, update, and validate the JSON config file |
+| `PersonalPrivilegedAccounts.json` | Example config — on-premises |
+| `PersonalPrivilegedAccounts-PCloud.json` | Example config — Privilege Cloud |
+| `sample_personal_accounts.csv` | Example CSV with all supported columns |
+| `Test-PersonalPrivilgedAccounts.ps1` | End-to-end test runner |
+| `Test-PersonalPrivilgedAccountsConfig.ps1` | Config validation script |
+| `Test-PersonalPrivilgedAccounts.json` | Fixture config for the E2E test runner |
+| `Test-PersonalPrivilgedAccounts.csv` | Fixture CSV for the E2E test runner |
+| `Test-PersonalPrivilgedAccounts.md` | E2E test plan and assertion table |
 
-CSV example (privAccounts.csv):
-|UserName|SafeName|AccountUser|AccountAddress|AccountPlatform|Password|
-|--------|--------|-----------|--------------|---------------|--------|
-|User1|User1|User1_ADM|myDomain.com|WinDomainPrivileged|Ch4ng3Me!|
-|User2|User2|User2_ADM|myDomain.com|WinDomainPrivileged|Ch4ng3Me!|
-
-The command would be:
-```powershell
-Create-PersonalPrivilgedAccounts.ps1 "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\privAccounts.csv
-```
-
-### Example 2 - Different Safe Pattern Name
->Admin wants to create a personal Safe for 2 users, each Safe will include a single privileged account.
-
-- Using default Platform ID (WinDomain)
-- Safes will follow a template of "<`UserName`>_ADM"
-
-CSV example (privAccounts.csv):
-|UserName|AccountUser|AccountAddress|Password|
-|--------|-----------|--------------|--------|
-|User1|User1_ADM|myDomain.com|Ch4ng3Me!|
-|User2|User2_ADM|myDomain.com|Ch4ng3Me!|
-
-The command would be:
-```powershell
-Create-PersonalPrivilgedAccounts.ps1 "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\privAccounts.csv -SafeNamePattern "*_ADM"
-```
-
-If we want the same thing for Safes with a different name pattern of "Priv_<`UserName`>", the command would be:
+## Quick start
 
 ```powershell
-Create-PersonalPrivilgedAccounts.ps1 "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\privAccounts.csv -SafeNamePattern "Priv_*"
+# On-premises — interactive
+$params = @{
+    PVWAURL = 'https://pvwa.company.com/PasswordVault'
+    CSVPath = '.\accounts.csv'
+}
+.\Create-PersonalPrivilgedAccounts.ps1 @params
 ```
-
-### Example 3 - Custom Properties
->Admin wants to create a personal Safe for 2 users, each Safe will include a single privileged account.
-
-- For each account, we want to add a custom property called Owner. It will be written directly in the .csv file.
-- Safes will follow a template of "<`UserName`>_ADM".
-
-CSV example (privAccounts.csv):
-
-|UserName|AccountUser|AccountAddress|Password|Owner|
-|--------|-----------|--------------|--------|-----|
-|User1|User1_ADM|myDomain.com|Ch4ng3Me!|User 1|
-|User2|User2_ADM|myDomain.com|Ch4ng3Me!|User 2|
-
-
-The command would be:
 
 ```powershell
-Create-PersonalPrivilgedAccounts.ps1 "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\privAccounts.csv -SafeNamePattern "*_ADM"
+# Privilege Cloud — pre-obtained token
+$PCloudURL = 'https://tenant.privilegecloud.cyberark.cloud/PasswordVault'
+$token = Get-IdentityHeader -IdentityUserName 'user@company.com' -PCloudURL $PCloudURL
+
+$params = @{
+    PVWAURL    = $PCloudURL
+    logonToken = $token
+    CSVPath    = '.\accounts.csv'
+}
+.\Create-PersonalPrivilgedAccounts.ps1 @params
 ```
 
+## Requirements
 
-If you want to exclude CPM management for the accounts, you can use the following CSV example (privAccounts.csv):
+- PowerShell 5.1+
+- CyberArk PVWA v12.1+ (v2 REST API)
+- Vault account with permission to create safes and add safe members
 
-|UserName|AccountUser|AccountAddress|Password|Owner|enableAutoMgmt|manualMgmtReason|
-|--------|-----------|--------------|--------|-----|--------------|----------------|
-|User1|User1_ADM|myDomain.com|Ch4ng3Me!|User 1|True||
-|User2|User2_ADM|myDomain.com|Ch4ng3Me!|User 2|False|No change|
+## Documentation
 
-The command would be:
-```powershell
-Create-PersonalPrivilgedAccounts.ps1 "https://myPVWA.myDomain.com/PasswordVault" -CsvPath .\privAccounts.csv -SafeNamePattern "*_ADM"
-```
-
-
+| Document | Contents |
+| --- | --- |
+| [INSTALL.md](INSTALL.md) | Prerequisites, permissions, config setup, first run |
+| [USER-GUIDE.md](USER-GUIDE.md) | CSV format, config sets, common scenarios, automation |
+| [REFERENCE.md](REFERENCE.md) | All parameters, full config schema, permission tables |

@@ -30,3 +30,6 @@ Migration/Migration via VEM/Convert-VEMFiles/Ignore
 *.good.csv
 .github/copilot-instructions.md
 
+Personal Privileged Accounts/Create-PersonalPrivilgedAccountsv4-prod (1).ps1
+Personal Privileged Accounts/Create-PersonalPrivilgedAccounts-v2-Plan.md
+output.txt

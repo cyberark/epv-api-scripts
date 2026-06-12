@@ -1,0 +1,6 @@
+userName,SafeConfigSet,SafeNamePattern,CPMName,NumberOfDaysRetention,NumberOfVersionsRetention,safeName,UserConfigSet,createSafeOnly,accountUser,password,accountAddress,accountPlatform,enableAutoMgmt,manualMgmtReason,remoteMachineAddresses,restrictMachineAccessToList,networkId
+jsmith,,,,,,,,,jsmith_adm,,domain.corp.com,WinDomain,yes,,,,
+bjones,prod,,,,,,,,,,,,WinDomain,yes,,,,
+mwilliams,dev,,,,,mwilliams_ADM,dev,,mwilliams_adm,,dev.domain.corp.com,WinDomain_dev,no,Managed by HR process,192.168.1.10;192.168.1.11,yes,
+tdavis,,,,,,,,,tdavis_adm,InitialP@ss1,domain.corp.com,WinServerLocal,yes,,,,
+agarcia,,,,,,,,,agarcia_adm,,unix.corp.com,UnixSSH,yes,,,,
