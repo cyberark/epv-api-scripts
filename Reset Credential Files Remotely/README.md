@@ -17,6 +17,7 @@ in the Vault — without requiring an operator to log on to each component serve
 | `Reset-LinuxComponentCredential.ps1` | Linux/PSMP helper functions dot-sourced by the orchestrator (stub — not yet implemented) | Not run directly |
 | `Test-RemoteConnectivity.ps1` | Pre-flight check — tests WinRM connectivity from orchestrating machine to targets | Orchestrating machine |
 | `Test-WinRMConfiguration.ps1` | Diagnoses WinRM configuration on a component server | Target server (locally) |
+| `Invoke-ComponentUserPasswordReset.ps1` | Updates the cyberark componenet user in the vault only! | Orchestrating machine |
 
 ---
 
@@ -214,3 +215,20 @@ page does not expose component IP addresses directly.
   Use `Test-RemoteConnectivity.ps1 -Fix` to add entries, or prefer SSL to avoid this entirely.
 - **PVWA self-protection:** When the PVWA's own component user is included in the reset scope,
   the script automatically skips the PVWA to prevent locking out the REST API session in use.
+
+
+## Resetting passwords in the vault only
+
+Run `Invoke-ComponentUserPasswordReset.ps1` **from the orchestrating machine**:
+
+```powershell
+# Non-interactive — reset all CP component users in the vault (in series)
+$cred = Get-Credential
+.\Invoke-ComponentUserPasswordReset.ps1 -PVWAURL 'https://pvwa.lab.local/PasswordVault' `
+    -PVWACredentials $cred -ComponentType CP -AllServers
+# Reset only disconnected components passwords using a pre-existing logon token, cannot be installeruser in privilegecloud
+.\Invoke-ComponentUserPasswordReset.ps1 -PVWAURL 'https://pvwa.lab.local/PasswordVault' `
+    -LogonToken $token -DisconnectedOnly
+```
+
+Provide admins to reset the password using createcredfile on their local CPs (as you cannot access them with your credentials remotely). 
