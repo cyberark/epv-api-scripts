@@ -1,0 +1,209 @@
+{
+    "SafeConfigSet": {
+        "default": {
+            "Options": {
+                "useExisting": true
+            },
+            "Properties": {
+                "CPMName": "BAB-PCloud",
+                "NumberOfDaysRetention": 7,
+                "SafeNamePattern": "*_ADM",
+                "DefaultSafeMembers": [
+                    {
+                        "Name": "BAB-SafeAdmins",
+                        "Role": "Full",
+                        "SearchIn": "C30B30B1-0B46-49AC-8D99-F6279EED7999",
+                        "MemberType": "Role"
+                    },
+                    {
+                        "Name": "BAB-SafeAuditors",
+                        "RoleConfigSet": "CustomAudit",
+                        "SearchIn": "C30B30B1-0B46-49AC-8D99-F6279EED7999",
+                        "MemberType": "Role"
+                    },
+                    {
+                        "Name": "BAB-Test",
+                        "SearchIn": "C30B30B1-0B46-49AC-8D99-F6279EED7999",
+                        "MemberType": "Role",
+                        "Permissions": {
+                            "useAccounts": true,
+                            "retrieveAccounts": false,
+                            "listAccounts": true,
+                            "addAccounts": false,
+                            "updateAccountContent": false,
+                            "updateAccountProperties": false,
+                            "initiateCPMAccountManagementOperations": false,
+                            "specifyNextAccountContent": false,
+                            "renameAccounts": false,
+                            "deleteAccounts": false,
+                            "unlockAccounts": false,
+                            "manageSafe": false,
+                            "manageSafeMembers": false,
+                            "backupSafe": false,
+                            "viewAuditLog": false,
+                            "viewSafeMembers": false,
+                            "accessWithoutConfirmation": false,
+                            "createFolders": false,
+                            "deleteFolders": false,
+                            "moveAccountsAndFolders": false,
+                            "requestsAuthorizationLevel1": false,
+                            "requestsAuthorizationLevel2": false
+                        }
+                    }
+                ],
+                "SafeEndUserRole": "EndUser",
+                "SafeEndUserSearchIn": "C30B30B1-0B46-49AC-8D99-F6279EED7999",
+                "SafeEndUserMemberType": "User"
+            }
+        },
+        "prod": {
+            "Options": {
+                "useExisting": true
+            },
+            "Properties": {
+                "CPMName": "BAB-PCloud",
+                "NumberOfVersionsRetention": 10,
+                "SafeNamePattern": "*_ADM",
+                "DefaultSafeMembers": [
+                    {
+                        "Name": "BAB-SafeAdmins",
+                        "Role": "Full",
+                        "SearchIn": "C30B30B1-0B46-49AC-8D99-F6279EED7999",
+                        "MemberType": "Role"
+                    },
+                    {
+                        "Name": "BAB-SafeAuditors",
+                        "RoleConfigSet": "CustomAudit",
+                        "SearchIn": "C30B30B1-0B46-49AC-8D99-F6279EED7999",
+                        "MemberType": "Role"
+                    }
+                ]
+            }
+        },
+        "dev": {
+            "Options": {
+                "useExisting": true
+            },
+            "Properties": {
+                "CPMName": "BAB-PCloud",
+                "NumberOfDaysRetention": 30,
+                "SafeNamePattern": "*_DEV",
+                "DefaultSafeMembers": [
+                    {
+                        "Name": "BAB-SafeAdmins",
+                        "Role": "AccountsManager",
+                        "SearchIn": "C30B30B1-0B46-49AC-8D99-F6279EED7999",
+                        "MemberType": "Role"
+                    }
+                ]
+            }
+        },
+        "test": {
+            "Options": {
+                "useExisting": true
+            },
+            "Properties": {
+                "CPMName": "BAB-PCloud",
+                "NumberOfDaysRetention": 7,
+                "SafeNamePattern": "TST_*",
+                "SafeEndUserRole": "EndUser",
+                "SafeEndUserSearchIn": "C30B30B1-0B46-49AC-8D99-F6279EED7999",
+                "SafeEndUserMemberType": "User",
+                "DefaultSafeMembers": [
+                    {
+                        "Name": "Privilege Cloud Administrators",
+                        "SearchIn": "Vault",
+                        "Role": "Full",
+                        "MemberType": "Role"
+                    }
+                ]
+            }
+        }
+    },
+    "UserConfigSet": {
+        "default": {
+            "Options": {
+                "accountUserPattern": "*_adm",
+                "allowDuplicateAccounts": false
+            },
+            "Properties": {
+                "accountPlatform": "WinDomain",
+                "accountAddress": "corp.example.com",
+                "enableAutoMgmt": "yes"
+            }
+        },
+        "prod": {
+            "Options": {
+                "accountUserPattern": "*_ADM",
+                "allowDuplicateAccounts": false
+            },
+            "Properties": {
+                "accountPlatform": "WinDomain",
+                "accountAddress": "prod.example.com",
+                "enableAutoMgmt": "yes"
+            }
+        },
+        "dev": {
+            "Options": {
+                "accountUserPattern": "*_adm",
+                "allowDuplicateAccounts": false
+            },
+            "Properties": {
+                "accountPlatform": "WinDomain",
+                "accountAddress": "dev.example.com",
+                "enableAutoMgmt": "no",
+                "manualMgmtReason": "Managed externally in dev"
+            }
+        }
+    },
+    "RoleConfigSet": {
+        "CustomAudit": {
+            "useAccounts": false,
+            "retrieveAccounts": false,
+            "listAccounts": true,
+            "addAccounts": false,
+            "updateAccountContent": false,
+            "updateAccountProperties": false,
+            "initiateCPMAccountManagementOperations": false,
+            "specifyNextAccountContent": false,
+            "renameAccounts": false,
+            "deleteAccounts": false,
+            "unlockAccounts": false,
+            "manageSafe": false,
+            "manageSafeMembers": false,
+            "backupSafe": false,
+            "viewAuditLog": true,
+            "viewSafeMembers": true,
+            "accessWithoutConfirmation": false,
+            "createFolders": false,
+            "deleteFolders": false,
+            "moveAccountsAndFolders": false,
+            "requestsAuthorizationLevel1": false,
+            "requestsAuthorizationLevel2": false
+        },
+        "UseAndRetrieve": {
+            "useAccounts": true,
+            "retrieveAccounts": true,
+            "listAccounts": true,
+            "addAccounts": false,
+            "updateAccountContent": false,
+            "updateAccountProperties": false,
+            "initiateCPMAccountManagementOperations": false,
+            "specifyNextAccountContent": false,
+            "renameAccounts": false,
+            "deleteAccounts": false,
+            "unlockAccounts": false,
+            "manageSafe": false,
+            "manageSafeMembers": false,
+            "backupSafe": false,
+            "viewAuditLog": true,
+            "viewSafeMembers": false,
+            "accessWithoutConfirmation": false,
+            "createFolders": false,
+            "deleteFolders": false,
+            "moveAccountsAndFolders": false,
+            "requestsAuthorizationLevel1": false,
+            "requestsAuthorizationLevel2": false
+        }
+    }
+}
