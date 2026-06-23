@@ -1,7 +1,7 @@
 # EPV-API-Common PowerShell Module
 
 [![PowerShell Version](https://img.shields.io/badge/PowerShell-7.4%2B-blue.svg)](https://github.com/PowerShell/PowerShell)
-[![Version](https://img.shields.io/badge/Version-0.1.7.1--Alpha-green.svg)]()
+[![Version](https://img.shields.io/badge/Version-0.1.8.29--Alpha-green.svg)]()
 [![License](https://img.shields.io/badge/License-CyberArk-blue.svg)]()
 
 ## Overview
@@ -188,6 +188,7 @@ EPV-API-Common/
 - `Remove-SensitiveData` - Data sanitization
 - `Get-UPN` - Active Directory UPN lookup
 - `Get-SamAccountName` - Active Directory SAM lookup
+- `Set-EPVTimeDisplay` - Control timestamp display (local time, UTC, or any UTC offset)
 
 ## Configuration
 
@@ -199,6 +200,17 @@ $global:LogSensitiveData = $true
 
 # Set default log file location
 $global:LogFile = "C:\Logs\EPV-API-Common.log"
+```
+
+### Timestamp Display
+
+All format views (Account, Safe, SafeMember, Comp, User) respect a session-level time zone setting:
+
+```powershell
+Set-EPVTimeDisplay              # Local time (default)
+Set-EPVTimeDisplay -UTC         # UTC
+Set-EPVTimeDisplay -UTCOffset -5   # UTC-5
+Set-EPVTimeDisplay -UTCOffset 5.5  # UTC+5:30
 ```
 
 ### Logging Configuration
@@ -319,14 +331,15 @@ This module is maintained by CyberArk. For issues, feature requests, or contribu
 
 ## Version History
 
-### 0.1.2-Alpha (Current)
-- Enhanced function documentation
-- Improved error handling and logging
-- Added distribution packaging with installation script
-- Extended Privileged Cloud support
-- Added Discovery Management functions
+### 0.1.8.29-Alpha (Current)
+- Added `Set-EPVTimeDisplay` function — control timestamp display (local, UTC, or any UTC offset)
+- Added custom format views for Account and User types
+- Improved format views for Safe, SafeMember, and Comp types
+- Fixed `lastModificationTime` timestamp calculation in Safe format view
+- Added `Never` guard for Comp last logon date display
 
 ### Previous Versions
+- 0.1.2: Enhanced function documentation, improved error handling and logging, distribution packaging
 - 0.1.1: Initial discovery and connector management functions
 - 0.1.0: Core PAS functionality and session management
 
