@@ -80,10 +80,10 @@ Omit `-logonToken`. Credentials are prompted or passed via `-PVWACredentials`:
 ### Safe inventory
 
 ```powershell
-# Pipeline (SM.ps1 format — safeName, description, managingCPM, retention)
+# Pipeline (SM.ps1 format - safeName, description, managingCPM, retention)
 .\Get-SafeReport.ps1 -PCloudURL $url -logonToken $token
 
-# Pipeline (EPV-API-Common format — Import-Safe | New-Safe)
+# Pipeline (EPV-API-Common format - Import-Safe | New-Safe)
 .\Get-SafeReport.ps1 -PCloudURL $url -logonToken $token -EPVFormat
 
 # To CSV - SM.ps1 format
@@ -102,14 +102,14 @@ Omit `-logonToken`. Credentials are prompted or passed via `-PVWACredentials`:
 # Pipeline
 .\Get-SafeReport.ps1 -PCloudURL $url -logonToken $token -MembersOnly
 
-# To CSV — then feed to Safe-Management.ps1
+# To CSV - then feed to Safe-Management.ps1
 .\.\Get-SafeReport.ps1 -PCloudURL $url -logonToken $token -MembersOnly -ReportPath .\members.csv
 .\Safe-Management.ps1 -PVWAURL $url -logonToken $token -UpdateMembers -AddOnUpdate -FilePath .\members.csv  # upsert (add if missing, update if exists)
 .\Safe-Management.ps1 -PVWAURL $url -logonToken $token -AddMembers   -FilePath .\members.csv  # add only
 .\Safe-Management.ps1 -PVWAURL $url -logonToken $token -UpdateMembers -FilePath .\members.csv  # update only
 
 
-# To CSV — then feed to EPV-API-Common
+# To CSV - then feed to EPV-API-Common
 .\Get-SafeReport.ps1 -PCloudURL $url -logonToken $token -MembersOnly -EPVFormat -ReportPath .\members-epv.csv
 Import-SafeMember .\members-epv.csv | Add-SafeMember -UpdateOnDuplicate
 ```
@@ -120,7 +120,7 @@ Import-SafeMember .\members-epv.csv | Add-SafeMember -UpdateOnDuplicate
 # Pipeline
 .\Get-SafeReport.ps1 -PCloudURL $url -logonToken $token -IncludeMembers
 
-# To CSV — safe + member operations together in one pass
+# To CSV - safe + member operations together in one pass
 .\Get-SafeReport.ps1 -PCloudURL $url -logonToken $token -IncludeMembers -ReportPath .\full.csv
 .\Safe-Management.ps1 -PVWAURL $url -logonToken $token -Add -FilePath .\full.csv
 
@@ -137,7 +137,7 @@ Import-Safe .\safes-epv.csv | New-Safe
 Import-Safe .\safes-epv.csv | Set-Safe
 ```
 
-### Cross-environment migration (full — safes + members)
+### Cross-environment migration (full - safes + members)
 
 ```powershell
 # Export from source
@@ -155,7 +155,7 @@ Import-Safe .\safes-epv.csv | Set-Safe
 | `-Update` | | Default safe inventory, `-IncludeMembers` | Updates safes; also processes members if present |
 | `-AddMembers` | | `-MembersOnly`, `-IncludeMembers` | Adds new members only |
 | `-UpdateMembers` | | `-MembersOnly`, `-IncludeMembers` | Updates existing members only |
-| `-UpdateMembers` | `-AddOnUpdate` | `-MembersOnly`, `-IncludeMembers` | **Upsert** — updates existing, adds missing |
+| `-UpdateMembers` | `-AddOnUpdate` | `-MembersOnly`, `-IncludeMembers` | **Upsert** - updates existing, adds missing |
 | `-DeleteMembers` | | `-MembersOnly`, `-IncludeMembers` | Removes members |
 | `-Delete` | | Any mode | Only needs `safename` column |
 
@@ -193,3 +193,4 @@ Suppressed by `-HidePerms`. Restricted by `-PermList`.
 
 - CyberArk PVWA v12.1 and above
 - CyberArk Privilege Cloud
+
