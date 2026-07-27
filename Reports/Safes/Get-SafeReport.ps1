@@ -22,7 +22,7 @@ Modes (default is safe inventory):
 
 Authentication:
   -logonToken    : Pre-existing token (Privilege Cloud or any pre-authenticated session)
-  (omit)         : Self-hosted PVWA — credentials prompted or supplied via -PVWACredentials
+  (omit)         : Self-hosted PVWA - credentials prompted or supplied via -PVWACredentials
 
 SUPPORTED VERSIONS:
 CyberArk PVWA v12.1 and above
@@ -62,13 +62,13 @@ param
     [Parameter(Mandatory = $false)]
     [Switch]$IncludeMembers,
 
-    # Member rows only — minimal safe context, cleanest Safe-Management.ps1 format
+    # Member rows only - minimal safe context, cleanest Safe-Management.ps1 format
     [Parameter(Mandatory = $false)]
     [Switch]$MembersOnly,
     #endregion
 
     #region Output paths
-    # Safe-Management.ps1 compatible CSV — omit to pipe objects to the pipeline instead
+    # Safe-Management.ps1 compatible CSV - omit to pipe objects to the pipeline instead
     [Parameter(Mandatory = $false)]
     [ValidatePattern('^\.csv$|.*\.csv$')]
     [Alias('Report')]
@@ -186,7 +186,7 @@ function Invoke-Rest {
             throw
         }
         # Surface the error in verbose even when suppressed
-        Write-Verbose "Invoke-Rest: Caught error (SilentlyContinue) — $($_.Exception.Message)"
+        Write-Verbose "Invoke-Rest: Caught error (SilentlyContinue) - $($_.Exception.Message)"
         if ($_.Exception.Response) {
             $statusCode = [int]$_.Exception.Response.StatusCode
             Write-Verbose "Invoke-Rest: HTTP $statusCode $($_.Exception.Response.StatusDescription)"
@@ -219,7 +219,7 @@ try {
     if ($null -ne $logonToken) {
         if ($logonToken.GetType().Name -eq 'String') {
             if ($logonToken.StartsWith('Bearer ')) {
-                # Identity/PCloud Bearer token — Privilege Cloud also requires X-IDAP-NATIVE-CLIENT
+                # Identity/PCloud Bearer token - Privilege Cloud also requires X-IDAP-NATIVE-CLIENT
                 Write-Verbose 'Auth: logonToken is a Bearer string; adding X-IDAP-NATIVE-CLIENT header'
                 $g_LogonHeader = @{
                     Authorization          = $logonToken
@@ -227,7 +227,7 @@ try {
                 }
             }
             else {
-                # Self-hosted PVWA token — raw opaque value, passed straight as the Authorization header value
+                # Self-hosted PVWA token - raw opaque value, passed straight as the Authorization header value
                 Write-Verbose 'Auth: logonToken is a raw string; using as-is for Authorization header value'
                 $g_LogonHeader = @{Authorization = $logonToken }
             }
@@ -278,17 +278,17 @@ Write-Verbose 'Retrieving safes...'
 $skipSafeAPI = $MembersOnly.IsPresent -and ($null -ne $SafeName)
 
 if ($skipSafeAPI) {
-    Write-Verbose "Safes: MembersOnly with named safes — skipping safe API ($($SafeName.Count) safe(s))"
+    Write-Verbose "Safes: MembersOnly with named safes - skipping safe API ($($SafeName.Count) safe(s))"
     $allSafes = $SafeName | ForEach-Object { [pscustomobject]@{ SafeName = $_ } }
 }
 elseif ($SafeName) {
-    Write-Verbose "Safes: Targeted mode — $($SafeName.Count) safe(s) requested"
+    Write-Verbose "Safes: Targeted mode - $($SafeName.Count) safe(s) requested"
     foreach ($name in $SafeName) {
         $encodedName = ConvertTo-URL -Text $name
         Write-Verbose "Safes: GET ${URL_Safes}/$encodedName"
         $safeResponse = Invoke-Rest -Command GET -URI "${URL_Safes}/$encodedName" -Header $g_LogonHeader -ErrAction SilentlyContinue
         if ($null -eq $safeResponse) {
-            Write-Verbose "Safes: No response for '$name' — skipping"
+            Write-Verbose "Safes: No response for '$name' - skipping"
         }
         else {
             Write-Verbose "Safes: Found safe '$($safeResponse.SafeName)'"
@@ -303,7 +303,7 @@ else {
         Write-Verbose "Safes: GET $safeUrl"
         $safeResponse = Invoke-Rest -Command GET -URI $safeUrl -Header $g_LogonHeader -ErrAction SilentlyContinue
         if ($null -eq $safeResponse) {
-            Write-Verbose 'Safes: Response is null — API call failed (check verbose error above)'
+            Write-Verbose 'Safes: Response is null - API call failed (check verbose error above)'
         }
         elseif (-not $safeResponse.value) {
             Write-Verbose 'Safes: Response received but .value is empty'
@@ -332,7 +332,7 @@ if ($allSafes.Count -eq 0) {
 }
 Write-Verbose "Retrieved $($allSafes.Count) safes total"
 
-#region Output: Safe inventory (default — no -IncludeMembers or -MembersOnly)
+#region Output: Safe inventory (default - no -IncludeMembers or -MembersOnly)
 if (-not $IncludeMembers.IsPresent -and -not $MembersOnly.IsPresent) {
     Write-Verbose 'Safe inventory mode'
     [array]$safeInvProps = @(
@@ -392,7 +392,7 @@ do {
     Write-Verbose "Users: GET $userUrl"
     $userResponse = Invoke-Rest -Command GET -URI $userUrl -Header $g_LogonHeader -ErrAction SilentlyContinue
     if ($null -eq $userResponse) {
-        Write-Verbose 'Users: Response is null — UserType/Source enrichment will be unavailable'
+        Write-Verbose 'Users: Response is null - UserType/Source enrichment will be unavailable'
     }
     elseif (-not $userResponse.Users) {
         Write-Verbose "Users: Response received but .Users is empty"
@@ -430,7 +430,7 @@ foreach ($safe in $allSafes) {
         Write-Verbose "Members: GET $memberUrl"
         $memberResponse = Invoke-Rest -Command GET -URI $memberUrl -Header $g_LogonHeader -ErrAction SilentlyContinue
         if ($null -eq $memberResponse) {
-            Write-Verbose "Members: Response null for safe '$($safe.SafeName)' — skipping"
+            Write-Verbose "Members: Response null for safe '$($safe.SafeName)' - skipping"
         }
         elseif (-not $memberResponse.value) {
             Write-Verbose "Members: No members returned for safe '$($safe.SafeName)'"
@@ -468,7 +468,7 @@ Write-Verbose "Filtered to $($filteredMembers.Count) members"
 # Both modes are Safe-Management.ps1 compatible (-AddMembers / -UpdateMembers -FilePath)
 Write-Verbose 'Building member output...'
 
-# MembersOnly: lean — safename + member identity + permissions
+# MembersOnly: lean - safename + member identity + permissions
 # IncludeMembers: adds safe context (extra columns ignored by Safe-Management.ps1)
 if ($MembersOnly) {
     [array]$smBaseProps = @('safename', 'member', 'MemberLocation', 'MemberType')
@@ -593,7 +593,7 @@ if ($EPVFormat) {
         $smRows | Select-Object -Property $smOutputProps | Sort-Object -Property member, safename | Export-Csv @smExportParams
         Write-Host "Safe-Management report written to: $ReportPath ($($smRows.Count) records)"
     } else {
-        Write-Verbose 'ReportPath not specified — writing to pipeline'
+        Write-Verbose 'ReportPath not specified - writing to pipeline'
         $smRows | Select-Object -Property $smOutputProps | Sort-Object -Property member, safename
     }
 }
@@ -605,3 +605,4 @@ if ($script:DoLogoff) {
     Invoke-Rest -Command POST -URI $URL_Logoff -Header $g_LogonHeader -ErrAction SilentlyContinue | Out-Null
 }
 #endregion
+
