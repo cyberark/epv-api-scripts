@@ -9,7 +9,8 @@ No external module dependencies.
 
 Modes (default is safe inventory):
   (default)                       : safeName, description, managingCPM, retention
-  -AllSafeDetails                 : All safe API fields
+  -AllSafeDetails                 : All safe API fields (timestamps, creator, location, etc.)
+  -IncludeQuota                   : Add quota/usedQuota (one extra API call per safe)
   -Members                        : Member rows only (cleanest Safe-Management.ps1 format)
   -Members -AllSafeDetails        : Member rows with safe context + permissions
 
@@ -118,7 +119,7 @@ param
     [Parameter(Mandatory = $false)]
     [Switch]$GroupsOnly,
 
-    # Timestamp format for AllSafeDetails date fields: Epoch (raw), UTC (readable UTC string), Local (local time)
+    # Timestamp format for date fields in output: Epoch (raw), UTC (readable UTC string), Local (local time)
     [Parameter(Mandatory = $false)]
     [ValidateSet('Epoch', 'UTC', 'Local')]
     [String]$TimeFormat = 'Local',
