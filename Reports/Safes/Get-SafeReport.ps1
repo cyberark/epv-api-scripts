@@ -10,11 +10,10 @@ No external module dependencies.
 Modes (default is safe inventory):
   (default)                       : safeName, description, managingCPM, retention
   -AllSafeDetails                 : All safe API fields
-  -IncludeMembers                 : Member rows with basic safe context + permissions
-  -IncludeMembers -AllSafeDetails : Member rows with all safe fields + permissions
-  -MembersOnly                    : Member rows only (cleanest Safe-Management.ps1 format)
+  -Members                        : Member rows only (cleanest Safe-Management.ps1 format)
+  -Members -AllSafeDetails        : Member rows with safe context + permissions
 
--IncludeMembers and -MembersOnly are both Safe-Management.ps1 compatible.
+-Members output is Safe-Management.ps1 compatible.
   -ReportPath     : CSV file path (omit to write to pipeline)
   -EPVFormat       : Output EPV-API-Common format instead of Safe-Management.ps1 format
                      Safe mode   : Import-Safe  | New-Safe / Set-Safe
@@ -31,8 +30,18 @@ CyberArk Privilege Cloud
 VERSION HISTORY:
 2.0.0   2026-07-22  Removed PSPAS dependency; raw REST implementation
                     Dual output format (Safe-Management and EPV-API-Common)
+2.1.0   2026-07-27  Parameter sets: EPVFormat is mutually exclusive with HidePerms/PermList
+                    Lazy evaluation: safeInvProps/safeInvRows/smRows only built when needed
+                    Replaced ExcludeUsers with GroupsOnly switch; IncludeGroups/GroupsOnly mutually exclusive
+                    Filtering redesign: Members API field-based, no Users API dependency
+2.2.0   2026-07-27  AllSafeDetails re-fetches individual safe endpoints for complete API response
+                    Added quota, usedQuota, membershipExpirationDate fields
+                    Added TimeFormat parameter (Epoch/UTC/Local, default Local)
+                    IncludeSystemMembers merged with IncludePredefinedUsers (single flag)
+2.2.1   2026-07-27  Replaced AllSafeDetails re-fetch with dedicated -IncludeQuota switch
+                    AllSafeDetails uses list endpoint only; -IncludeQuota triggers per-safe detail calls
 ########################################################################### #>
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = 'SafeMgmt')]
 param
 (
     #region Authentication
@@ -58,13 +67,10 @@ param
     [Parameter(Mandatory = $false)]
     [Switch]$AllSafeDetails,
 
-    # Member rows with safe context columns (Safe-Management.ps1 compatible, extra columns ignored)
+    # Member report (safe name + member identity + permissions)
+    # Combine with -AllSafeDetails to add safe context columns
     [Parameter(Mandatory = $false)]
-    [Switch]$IncludeMembers,
-
-    # Member rows only - minimal safe context, cleanest Safe-Management.ps1 format
-    [Parameter(Mandatory = $false)]
-    [Switch]$MembersOnly,
+    [Switch]$Members,
     #endregion
 
     #region Output paths
@@ -77,7 +83,8 @@ param
     # Switch to EPV-API-Common output format instead of Safe-Management.ps1 format
     # Safe mode   : Import-Safe  | New-Safe / Set-Safe
     # Member modes: Import-SafeMember | Add-SafeMember
-    [Parameter(Mandatory = $false)]
+    # Fixed column schema required for pipe compatibility - cannot combine with -HidePerms or -PermList
+    [Parameter(Mandatory = $false, ParameterSetName = 'EPV')]
     [Switch]$EPVFormat,
     #endregion
 
@@ -86,27 +93,42 @@ param
     [Parameter(Mandatory = $false)]
     [string[]]$SafeName,
 
+    # Include internal/system safes (excluded by default, includes CPM safes)
     [Parameter(Mandatory = $false)]
-    [array]$UserTypes = @('EPVUser', 'BasicUser'),
+    [Switch]$IncludeSystemSafes,
 
+    # Fetch quota and usedQuota per safe via individual safe endpoint (one extra API call per safe)
+    # Not needed for most reports; use when capacity planning data is required
     [Parameter(Mandatory = $false)]
-    [Switch]$ExcludeUsers,
+    [Switch]$IncludeQuota,
 
+    # Include built-in system/service account members normally excluded (mirrors Migrate.psm1 ownersToRemove)
+    [Parameter(Mandatory = $false)]
+    [Switch]$IncludeSystemMembers,
+
+    # Include members with expired membership (excluded by default)
+    [Parameter(Mandatory = $false)]
+    [Switch]$IncludeExpiredMembers,
+
+    # Include group members in addition to users (default: users only)
     [Parameter(Mandatory = $false)]
     [Switch]$IncludeGroups,
 
+    # Return group members only; mutually exclusive with -IncludeGroups
     [Parameter(Mandatory = $false)]
-    [Switch]$IncludeApps,
+    [Switch]$GroupsOnly,
 
+    # Timestamp format for AllSafeDetails date fields: Epoch (raw), UTC (readable UTC string), Local (local time)
     [Parameter(Mandatory = $false)]
-    [Switch]$IncludePredefinedUsers,
+    [ValidateSet('Epoch', 'UTC', 'Local')]
+    [String]$TimeFormat = 'Local',
 
-    # Suppress all permission columns
-    [Parameter(Mandatory = $false)]
+    # Suppress all permission columns (Safe-Management.ps1 format only; cannot combine with -EPVFormat)
+    [Parameter(Mandatory = $false, ParameterSetName = 'SafeMgmt')]
     [Switch]$HidePerms,
 
-    # Include only these specific permission columns
-    [Parameter(Mandatory = $false)]
+    # Include only these specific permission columns (Safe-Management.ps1 format only; cannot combine with -EPVFormat)
+    [Parameter(Mandatory = $false, ParameterSetName = 'SafeMgmt')]
     $PermList
     #endregion
 )
@@ -114,6 +136,30 @@ param
 #region Setup
 $script:DoLogoff = $false
 $script:LastHttpError = $null
+
+# Static list of internal CyberArk system safes excluded from output by default.
+# Use -IncludeSystemSafes to bypass this filter.
+[String[]]$script:systemSafes = @(
+    'System', 'VaultInternal', 'Notification Engine', 'SharedAuth_Internal', 'PVWAUserPrefs',
+    'PVWAConfig', 'PVWAReports', 'PVWATaskDefinitions', 'PVWAPrivateUserPrefs', 'PVWAPublicData',
+    'PVWATicketingSystem', 'AccountsFeed', 'PSM', 'xRay', 'PIMSuRecordings', 'xRay_Config',
+    'AccountsFeedADAccounts', 'AccountsFeedDiscoveryLogs', 'PSMSessions', 'PSMLiveSessions',
+    'PSMUniversalConnectors', 'PSMPConf', 'PSMNotifications', 'PSMUnmanagedSessionAccounts',
+    'PSMRecordings', 'PSMPADBridgeConf', 'PSMPADBUserProfile', 'PSMPADBridgeCustom',
+    'AppProviderConf', 'PasswordManagerTemp', 'PasswordManager_Pending', 'PasswordManagerShared',
+    'TelemetryConfig', 'SCIM Config'
+)
+
+# System/service account usernames excluded from member output by default (mirrors Migrate.psm1 ownersToRemove).
+# Use -IncludeSystemMembers to bypass this filter and also include vault predefined users from the API.
+[String[]]$script:defaultMembersToExclude = @(
+    'Auditors', 'Backup Users', 'Batch', 'PasswordManager', 'DR Users', 'Master',
+    'Notification Engines', 'Notification Engine', 'Operators',
+    'PTAAppUsers', 'PTAAppUser', 'PVWAGWAccounts', 'PVWAAppUsers',
+    'PVWAAppUser', 'PVWAAppUser1', 'PVWAAppUser2', 'PVWAAppUser3', 'PVWAAppUser4',
+    'PVWAAppUser5', 'PVWAAppUser6', 'PVWAUsers', 'PVWAMonitor',
+    'PSMUsers', 'PSMAppUsers', 'PTAUser', 'Administrator', 'Export'
+)
 
 if ($PVWAURL.EndsWith('/')) {
     $PVWAURL = $PVWAURL.TrimEnd('/')
@@ -126,6 +172,12 @@ $URL_Safes = "${URL_PVWAAPI}/Safes"
 $URL_Users = "${URL_PVWAAPI}/Users"
 Write-Verbose "Setup: URL_Safes = $URL_Safes"
 Write-Verbose "Setup: URL_Users = $URL_Users"
+
+# Parameter mutual-exclusion check before any API calls
+if ($IncludeGroups -and $GroupsOnly) {
+    Write-Error '-IncludeGroups and -GroupsOnly cannot be combined. Use -IncludeGroups for users + groups, or -GroupsOnly for groups only.'
+    return
+}
 #endregion
 
 #region Functions
@@ -212,6 +264,17 @@ function ConvertTo-AuthLevel {
     if ($Permissions.requestsAuthorizationLevel1 -eq $true) { return 1 }
     return 0
 }
+
+function ConvertFrom-Epoch {
+    param([long]$EpochValue)
+    # CyberArk API returns UTC timestamps as 10-digit (seconds) or 16-digit (microseconds) - same field, mixed precision
+    if ($null -eq $EpochValue -or $EpochValue -eq 0) { return $null }
+    if ($TimeFormat -eq 'Epoch') { return $EpochValue }
+    $epochSeconds = if ($EpochValue -gt 9999999999) { [long]($EpochValue / 1000000) } else { $EpochValue }
+    $utc = [System.DateTimeOffset]::FromUnixTimeSeconds($epochSeconds).UtcDateTime
+    if ($TimeFormat -eq 'Local') { return $utc.ToLocalTime().ToString('yyyy-MM-dd HH:mm:ss') }
+    return $utc.ToString('yyyy-MM-dd HH:mm:ss') + ' UTC'
+}
 #endregion
 
 #region Authentication
@@ -274,11 +337,11 @@ Write-Verbose "Data: URL_PVWAAPI = $URL_PVWAAPI"
 
 Write-Verbose 'Retrieving safes...'
 [array]$allSafes = @()
-# Skip safe API when MembersOnly + SafeName provided: names known, no safe details needed
-$skipSafeAPI = $MembersOnly.IsPresent -and ($null -ne $SafeName)
+# Skip safe API when Members + no details + SafeName provided: names known, no safe details needed
+$skipSafeAPI = $Members.IsPresent -and -not $AllSafeDetails.IsPresent -and ($null -ne $SafeName)
 
 if ($skipSafeAPI) {
-    Write-Verbose "Safes: MembersOnly with named safes - skipping safe API ($($SafeName.Count) safe(s))"
+    Write-Verbose "Safes: Members with named safes - skipping safe API ($($SafeName.Count) safe(s))"
     $allSafes = $SafeName | ForEach-Object { [pscustomobject]@{ SafeName = $_ } }
 }
 elseif ($SafeName) {
@@ -322,7 +385,8 @@ else {
 if ($allSafes.Count -eq 0) {
     if ($script:LastHttpError -eq 401) {
         Write-Error 'Authentication failed (HTTP 401). The logon token has expired or is invalid. Obtain a new token and try again.'
-    } else {
+    }
+    else {
         Write-Warning 'No safes retrieved. Verify permissions and PVWA URL.'
     }
     if ($script:DoLogoff) {
@@ -332,22 +396,70 @@ if ($allSafes.Count -eq 0) {
 }
 Write-Verbose "Retrieved $($allSafes.Count) safes total"
 
-#region Output: Safe inventory (default - no -IncludeMembers or -MembersOnly)
-if (-not $IncludeMembers.IsPresent -and -not $MembersOnly.IsPresent) {
-    Write-Verbose 'Safe inventory mode'
-    [array]$safeInvProps = @(
-        'safeName', 'description', 'managingCPM', 'numberOfVersionsRetention',
-        @{Name = 'numDaysRetention'; Expression = { $_.numberOfDaysRetention }}
-    )
-    if ($AllSafeDetails) {
-        $safeInvProps += @(
-            'safeUrlId', 'safeNumber', 'location', 'creator',
-            @{Name = 'EnableOLAC'; Expression = { $_.olacEnabled }},
-            'autoPurgeEnabled', 'creationTime', 'lastModificationTime', 'isExpiredMember'
-        )
+# Filter system safes unless -IncludeSystemSafes is specified
+if (-not $IncludeSystemSafes.IsPresent) {
+    # Start with the static system safes list
+    [array]$allExcluded = $script:systemSafes
+
+    # Attempt to discover CPM users via system health API and exclude their safes
+    # Requires Vault Admin / auditor permissions - fails silently for non-admin accounts
+    $cpmApiResult = Invoke-Rest -Command GET -URI "${URL_PVWAAPI}/ComponentsMonitoringDetails/CPM/" -Header $g_LogonHeader -ErrAction SilentlyContinue
+    if ($null -ne $cpmApiResult -and -not [string]::IsNullOrEmpty($cpmApiResult.ComponentsDetails.ComponentUSername)) {
+        $cpmUsers = @($cpmApiResult.ComponentsDetails.ComponentUSername)
+        Write-Verbose "SystemSafes: $($cpmUsers.Count) CPM user(s) found - adding CPM safes to exclusion list"
+        foreach ($cpmUser in $cpmUsers) {
+            $allExcluded += $cpmUser
+            $allExcluded += "${cpmUser}_Accounts"
+            $allExcluded += "${cpmUser}_ADInternal"
+            $allExcluded += "${cpmUser}_Info"
+            $allExcluded += "${cpmUser}_workspace"
+        }
     }
-    $safeInvRows = $allSafes | Select-Object -Property $safeInvProps
+    else {
+        Write-Verbose 'SystemSafes: CPM users unavailable (non-admin account or API inaccessible) - CPM safes will not be excluded'
+    }
+
+    $beforeCount = $allSafes.Count
+    $allSafes = @($allSafes | Where-Object { $_.SafeName -notin $allExcluded })
+    $excluded = $beforeCount - $allSafes.Count
+    if ($excluded -gt 0) { Write-Verbose "SystemSafes: excluded $excluded system/CPM safe(s) (use -IncludeSystemSafes to include them)" }
+}
+else {
+    Write-Verbose 'SystemSafes: -IncludeSystemSafes set - system and CPM safes included'
+}
+
+if ($allSafes.Count -eq 0) {
+    Write-Warning 'No safes remain after filtering. Use -IncludeSystemSafes to include system safes.'
+    if ($script:DoLogoff) {
+        Invoke-Rest -Command POST -URI $URL_Logoff -Header $g_LogonHeader -ErrAction SilentlyContinue | Out-Null
+    }
+    return
+}
+
+# When -IncludeQuota is set and safes came from the paginated list endpoint, re-fetch each
+# safe individually via GET /api/Safes/{SafeUrlId} to get quota and usedQuota.
+# Targeted -SafeName runs already call individual endpoints so no re-fetch needed there.
+if ($IncludeQuota -and -not $SafeName) {
+    Write-Verbose "IncludeQuota: Re-fetching $($allSafes.Count) safe(s) individually for quota data..."
+    [array]$detailedSafes = @()
+    foreach ($safe in $allSafes) {
+        $encodedName = ConvertTo-URL -Text $safe.SafeName
+        $detailResponse = Invoke-Rest -Command GET -URI "${URL_Safes}/$encodedName" -Header $g_LogonHeader -ErrAction SilentlyContinue
+        if ($null -ne $detailResponse) {
+            $detailedSafes += $detailResponse
+        } else {
+            Write-Verbose "IncludeQuota: No detail response for '$($safe.SafeName)' - quota will be null"
+            $detailedSafes += $safe
+        }
+    }
+    $allSafes = $detailedSafes
+    Write-Verbose "IncludeQuota: Individual fetch complete ($($allSafes.Count) safes)"
+}
+
+if (-not $Members.IsPresent) {
+    Write-Verbose 'Safe inventory mode'
     if ($EPVFormat) {
+        # Fixed column schema required for pipe compatibility with Import-Safe / New-Safe / Set-Safe
         Write-Verbose 'Safe inventory: EPV-API-Common format (Import-Safe | New-Safe / Set-Safe)'
         $epvSafeRows = $allSafes | ForEach-Object {
             [pscustomobject]@{
@@ -364,14 +476,35 @@ if (-not $IncludeMembers.IsPresent -and -not $MembersOnly.IsPresent) {
         if (-not [string]::IsNullOrEmpty($ReportPath)) {
             $epvSafeRows | Export-Csv -Path $ReportPath -NoTypeInformation
             Write-Host "EPV-API-Common safe inventory written to: $ReportPath ($($allSafes.Count) safes)"
-        } else {
+        }
+        else {
             $epvSafeRows
         }
-    } else {
+    }
+    else {
+        [array]$safeInvProps = @(
+            'safeName', 'description', 'managingCPM', 'numberOfVersionsRetention',
+            @{Name = 'numDaysRetention'; Expression = { $_.numberOfDaysRetention } }
+        )
+        if ($AllSafeDetails) {
+            $safeInvProps += @(
+                'safeUrlId', 'safeNumber', 'location', 'creator',
+                @{Name = 'EnableOLAC'; Expression = { $_.olacEnabled } },
+                'autoPurgeEnabled',
+                @{Name = 'creationTime'; Expression = { ConvertFrom-Epoch $_.creationTime } },
+                @{Name = 'lastModificationTime'; Expression = { ConvertFrom-Epoch $_.lastModificationTime } },
+                'isExpiredMember'
+            )
+        }
+        if ($IncludeQuota) {
+            $safeInvProps += @('quota', 'usedQuota')
+        }
+        $safeInvRows = $allSafes | Select-Object -Property $safeInvProps
         if (-not [string]::IsNullOrEmpty($ReportPath)) {
             $safeInvRows | Export-Csv -Path $ReportPath -NoTypeInformation
             Write-Host "Safe inventory written to: $ReportPath ($($allSafes.Count) safes)"
-        } else {
+        }
+        else {
             $safeInvRows
         }
     }
@@ -385,40 +518,39 @@ if (-not $IncludeMembers.IsPresent -and -not $MembersOnly.IsPresent) {
 [hashtable]$safesHT = @{}
 $allSafes | ForEach-Object { $safesHT[$_.SafeName] = $_ }
 
-Write-Verbose 'Retrieving users for UserType/Source enrichment...'
+# Users API only needed when -Members -AllSafeDetails is used (Source/UserType columns in output)
 [hashtable]$usersHT = @{}
-$userUrl = "${URL_Users}?limit=1000"
-do {
-    Write-Verbose "Users: GET $userUrl"
-    $userResponse = Invoke-Rest -Command GET -URI $userUrl -Header $g_LogonHeader -ErrAction SilentlyContinue
-    if ($null -eq $userResponse) {
-        Write-Verbose 'Users: Response is null - UserType/Source enrichment will be unavailable'
-    }
-    elseif (-not $userResponse.Users) {
-        Write-Verbose "Users: Response received but .Users is empty"
-        Write-Verbose "Users: Response properties = [$($userResponse.PSObject.Properties.Name -join ', ')]"
-    }
-    else {
-        Write-Verbose "Users: Page returned $($userResponse.Users.Count) users"
-        $userResponse.Users | ForEach-Object {
-            if (-not $usersHT.ContainsKey($_.username)) {
-                $usersHT[$_.username] = $_
+if ($Members.IsPresent -and $AllSafeDetails.IsPresent) {
+    Write-Verbose 'Retrieving users for Source/UserType enrichment (-Members -AllSafeDetails)...'
+    $userUrl = "${URL_Users}?limit=1000"
+    do {
+        Write-Verbose "Users: GET $userUrl"
+        $userResponse = Invoke-Rest -Command GET -URI $userUrl -Header $g_LogonHeader -ErrAction SilentlyContinue
+        if ($null -eq $userResponse) {
+            Write-Verbose 'Users: Response is null - UserType/Source enrichment will be unavailable'
+        }
+        elseif (-not $userResponse.Users) {
+            Write-Verbose "Users: Response received but .Users is empty"
+            Write-Verbose "Users: Response properties = [$($userResponse.PSObject.Properties.Name -join ', ')]"
+        }
+        else {
+            Write-Verbose "Users: Page returned $($userResponse.Users.Count) users"
+            $userResponse.Users | ForEach-Object {
+                if (-not $usersHT.ContainsKey($_.username)) {
+                    $usersHT[$_.username] = $_
+                }
             }
         }
-    }
-    $userUrl = if ($userResponse -and $userResponse.nextLink) { "$PVWAURL/$($userResponse.nextLink)" } else { $null }
-} while ($userUrl)
-Write-Verbose "Users: $($usersHT.Count) total users loaded"
-
-[array]$includedUserTypes = @()
-if (-not $ExcludeUsers) {
-    $includedUserTypes += $UserTypes
+        $userUrl = if ($userResponse -and $userResponse.nextLink) { "$PVWAURL/$($userResponse.nextLink)" } else { $null }
+    } while ($userUrl)
+    Write-Verbose "Users: $($usersHT.Count) total users loaded"
 }
-if ($IncludeApps) {
-    $includedUserTypes = @('AppProvider', 'AIMAccount') + $includedUserTypes
+else {
+    Write-Verbose 'Users: API skipped (not needed for this mode)'
 }
 
-$inclPred = if ($IncludePredefinedUsers) { 'true' } else { 'false' }
+# -IncludeSystemMembers bypasses both the name-based exclude list and the vault predefined-user API filter
+$inclPred = if ($IncludeSystemMembers) { 'true' } else { 'false' }
 
 Write-Verbose 'Retrieving safe members...'
 [array]$allSafeMembers = @()
@@ -450,9 +582,24 @@ Write-Verbose "Members: $($allSafeMembers.Count) total safe member records retri
 #endregion
 
 #region Filtering
+# Primary filter: use Members API response fields directly - no Users API required
 [array]$filteredMembers = $allSafeMembers | Where-Object {
-    ($_.UserInfo.UserType -in $includedUserTypes) -or ($IncludeGroups.IsPresent -and $_.memberType -eq 'Group')
+    # Exclude members with expired membership by default
+    ($IncludeExpiredMembers.IsPresent -or -not $_.isExpiredMembershipEnable) -and
+    # Exclude known system/service accounts by name; -IncludeSystemMembers also set inclPred=true above
+    ($IncludeSystemMembers.IsPresent -or $_.memberName -notin $script:defaultMembersToExclude)
 }
+
+# Member type filtering
+if ($GroupsOnly) {
+    # Groups only
+    $filteredMembers = @($filteredMembers | Where-Object { $_.memberType -ne 'User' })
+}
+elseif (-not $IncludeGroups) {
+    # Default: users only
+    $filteredMembers = @($filteredMembers | Where-Object { $_.memberType -eq 'User' })
+}
+# else: -IncludeGroups = users + groups
 
 if ($filteredMembers.Count -eq 0) {
     Write-Warning 'No safe members found matching the specified filters. Expand search parameters and try again.'
@@ -464,96 +611,22 @@ if ($filteredMembers.Count -eq 0) {
 Write-Verbose "Filtered to $($filteredMembers.Count) members"
 #endregion
 
-#region Output: Member format (-IncludeMembers / -MembersOnly)
-# Both modes are Safe-Management.ps1 compatible (-AddMembers / -UpdateMembers -FilePath)
+#region Output: Member format (-Members)
+# Safe-Management.ps1 compatible (-AddMembers / -UpdateMembers -FilePath)
 Write-Verbose 'Building member output...'
-
-# MembersOnly: lean - safename + member identity + permissions
-# IncludeMembers: adds safe context (extra columns ignored by Safe-Management.ps1)
-if ($MembersOnly) {
-    [array]$smBaseProps = @('safename', 'member', 'MemberLocation', 'MemberType')
-} else {
-    # IncludeMembers
-    [array]$smBaseProps = @('safename', 'description', 'managingCPM', 'numberOfVersionsRetention', 'numDaysRetention', 'member', 'MemberLocation', 'MemberType', 'Source', 'UserType')
-    if ($AllSafeDetails) {
-        $smBaseProps += @('safeLocation', 'EnableOLAC', 'autoPurgeEnabled', 'creationTime', 'lastModificationTime')
-    }
-}
-
-[array]$smPermProps = @(
-    'UseAccounts', 'RetrieveAccounts', 'ListAccounts', 'AddAccounts',
-    'UpdateAccountContent', 'UpdateAccountProperties',
-    'InitiateCPMAccountManagementOperations', 'SpecifyNextAccountContent',
-    'RenameAccounts', 'DeleteAccounts', 'UnlockAccounts',
-    'ManageSafe', 'ManageSafeMembers', 'BackupSafe',
-    'ViewAuditLog', 'ViewSafeMembers', 'RequestsAuthorizationLevel',
-    'AccessWithoutConfirmation', 'CreateFolders', 'DeleteFolders',
-    'MoveAccountsAndFolders'
-)
-
-if ($HidePerms) {
-    [array]$smOutputProps = $smBaseProps
-}
-elseif (-not [string]::IsNullOrEmpty($PermList)) {
-    [array]$smOutputProps = $smBaseProps + $PermList
-}
-else {
-    [array]$smOutputProps = $smBaseProps + $smPermProps
-}
-
-$smRows = $filteredMembers | ForEach-Object {
-    $p = $_.permissions
-    [pscustomobject]@{
-        safename                               = $_.SafeName
-        member                                 = $_.memberName
-        MemberLocation                         = $_.location
-        MemberType                             = $_.memberType
-        Source                                 = $_.UserInfo.Source
-        UserType                               = $_.UserInfo.UserType
-        Description                            = $_.SafeInfo.description
-        safeLocation                           = $_.SafeInfo.location
-        managingCPM                            = $_.SafeInfo.managingCPM
-        numDaysRetention                       = $_.SafeInfo.numberOfDaysRetention
-        numberOfVersionsRetention              = $_.SafeInfo.numberOfVersionsRetention
-        EnableOLAC                             = $_.SafeInfo.olacEnabled
-        autoPurgeEnabled                       = $_.SafeInfo.autoPurgeEnabled
-        creationTime                           = $_.SafeInfo.creationTime
-        lastModificationTime                   = $_.SafeInfo.lastModificationTime
-        UseAccounts                            = $p.useAccounts
-        RetrieveAccounts                       = $p.retrieveAccounts
-        ListAccounts                           = $p.listAccounts
-        AddAccounts                            = $p.addAccounts
-        UpdateAccountContent                   = $p.updateAccountContent
-        UpdateAccountProperties                = $p.updateAccountProperties
-        InitiateCPMAccountManagementOperations = $p.initiateCPMAccountManagementOperations
-        SpecifyNextAccountContent              = $p.specifyNextAccountContent
-        RenameAccounts                         = $p.renameAccounts
-        DeleteAccounts                         = $p.deleteAccounts
-        UnlockAccounts                         = $p.unlockAccounts
-        ManageSafe                             = $p.manageSafe
-        ManageSafeMembers                      = $p.manageSafeMembers
-        BackupSafe                             = $p.backupSafe
-        ViewAuditLog                           = $p.viewAuditLog
-        ViewSafeMembers                        = $p.viewSafeMembers
-        RequestsAuthorizationLevel             = ConvertTo-AuthLevel -Permissions $p
-        AccessWithoutConfirmation              = $p.accessWithoutConfirmation
-        CreateFolders                          = $p.createFolders
-        DeleteFolders                          = $p.deleteFolders
-        MoveAccountsAndFolders                 = $p.moveAccountsAndFolders
-    }
-}
 
 $smExportParams = @{
     Path              = $ReportPath
     NoTypeInformation = $true
 }
 if ($EPVFormat) {
+    # Fixed column schema required for pipe compatibility with Import-SafeMember / Add-SafeMember
     Write-Verbose 'Member output: EPV-API-Common format (Import-SafeMember | Add-SafeMember)'
     $epvRows = $filteredMembers | ForEach-Object {
         $p = $_.permissions
         $mt = if ($_.memberType -eq 'User') { 'User' }
-              elseif ($_.memberType -eq 'Group' -and $_.memberName -match '.+@.+') { 'Group' }
-              else { 'Role' }
+        elseif ($_.memberType -eq 'Group' -and $_.memberName -match '.+@.+') { 'Group' }
+        else { 'Role' }
         [pscustomobject]@{
             'Safe Name'                                  = $_.SafeName
             'Member Name'                                = $_.memberName
@@ -585,14 +658,98 @@ if ($EPVFormat) {
     if (-not [string]::IsNullOrEmpty($ReportPath)) {
         $epvRows | Sort-Object -Property 'Safe Name', 'Member Name' | Export-Csv @smExportParams
         Write-Host "EPV-API-Common member report written to: $ReportPath ($($epvRows.Count) records)"
-    } else {
+    }
+    else {
         $epvRows | Sort-Object -Property 'Safe Name', 'Member Name'
     }
-} else {
+}
+else {
+    # Safe-Management.ps1 format
+    # -Members alone: lean - safename + member identity + permissions
+    # -Members -AllSafeDetails: adds safe context columns
+    if (-not $AllSafeDetails) {
+        [array]$smBaseProps = @('safename', 'member', 'MemberLocation', 'MemberType', 'membershipExpirationDate')
+    }
+    else {
+        # Members + safe details
+        [array]$smBaseProps = @('safename', 'description', 'managingCPM', 'numberOfVersionsRetention', 'numDaysRetention', 'member', 'MemberLocation', 'MemberType', 'membershipExpirationDate', 'Source', 'UserType')
+        $smBaseProps += @('safeLocation', 'EnableOLAC', 'autoPurgeEnabled', 'creationTime', 'lastModificationTime')
+        if ($IncludeQuota) {
+            $smBaseProps += @('quota', 'usedQuota')
+        }
+    }
+
+    [array]$smPermProps = @(
+        'UseAccounts', 'RetrieveAccounts', 'ListAccounts', 'AddAccounts',
+        'UpdateAccountContent', 'UpdateAccountProperties',
+        'InitiateCPMAccountManagementOperations', 'SpecifyNextAccountContent',
+        'RenameAccounts', 'DeleteAccounts', 'UnlockAccounts',
+        'ManageSafe', 'ManageSafeMembers', 'BackupSafe',
+        'ViewAuditLog', 'ViewSafeMembers', 'RequestsAuthorizationLevel',
+        'AccessWithoutConfirmation', 'CreateFolders', 'DeleteFolders',
+        'MoveAccountsAndFolders'
+    )
+
+    if ($HidePerms) {
+        [array]$smOutputProps = $smBaseProps
+    }
+    elseif (-not [string]::IsNullOrEmpty($PermList)) {
+        [array]$smOutputProps = $smBaseProps + $PermList
+    }
+    else {
+        [array]$smOutputProps = $smBaseProps + $smPermProps
+    }
+
+    $smRows = $filteredMembers | ForEach-Object {
+        $p = $_.permissions
+        [pscustomobject]@{
+            safename                               = $_.SafeName
+            member                                 = $_.memberName
+            MemberLocation                         = $_.location
+            MemberType                             = $_.memberType
+            membershipExpirationDate               = ConvertFrom-Epoch $_.membershipExpirationDate
+            Source                                 = $_.UserInfo.Source
+            UserType                               = $_.UserInfo.UserType
+            Description                            = $_.SafeInfo.description
+            safeLocation                           = $_.SafeInfo.location
+            managingCPM                            = $_.SafeInfo.managingCPM
+            numDaysRetention                       = $_.SafeInfo.numberOfDaysRetention
+            numberOfVersionsRetention              = $_.SafeInfo.numberOfVersionsRetention
+            EnableOLAC                             = $_.SafeInfo.olacEnabled
+            autoPurgeEnabled                       = $_.SafeInfo.autoPurgeEnabled
+            quota                                  = $_.SafeInfo.quota
+            usedQuota                              = $_.SafeInfo.usedQuota
+            creationTime                           = ConvertFrom-Epoch $_.SafeInfo.creationTime
+            lastModificationTime                   = ConvertFrom-Epoch $_.SafeInfo.lastModificationTime
+            UseAccounts                            = $p.useAccounts
+            RetrieveAccounts                       = $p.retrieveAccounts
+            ListAccounts                           = $p.listAccounts
+            AddAccounts                            = $p.addAccounts
+            UpdateAccountContent                   = $p.updateAccountContent
+            UpdateAccountProperties                = $p.updateAccountProperties
+            InitiateCPMAccountManagementOperations = $p.initiateCPMAccountManagementOperations
+            SpecifyNextAccountContent              = $p.specifyNextAccountContent
+            RenameAccounts                         = $p.renameAccounts
+            DeleteAccounts                         = $p.deleteAccounts
+            UnlockAccounts                         = $p.unlockAccounts
+            ManageSafe                             = $p.manageSafe
+            ManageSafeMembers                      = $p.manageSafeMembers
+            BackupSafe                             = $p.backupSafe
+            ViewAuditLog                           = $p.viewAuditLog
+            ViewSafeMembers                        = $p.viewSafeMembers
+            RequestsAuthorizationLevel             = ConvertTo-AuthLevel -Permissions $p
+            AccessWithoutConfirmation              = $p.accessWithoutConfirmation
+            CreateFolders                          = $p.createFolders
+            DeleteFolders                          = $p.deleteFolders
+            MoveAccountsAndFolders                 = $p.moveAccountsAndFolders
+        }
+    }
+
     if (-not [string]::IsNullOrEmpty($ReportPath)) {
         $smRows | Select-Object -Property $smOutputProps | Sort-Object -Property member, safename | Export-Csv @smExportParams
         Write-Host "Safe-Management report written to: $ReportPath ($($smRows.Count) records)"
-    } else {
+    }
+    else {
         Write-Verbose 'ReportPath not specified - writing to pipeline'
         $smRows | Select-Object -Property $smOutputProps | Sort-Object -Property member, safename
     }
