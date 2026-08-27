@@ -1,0 +1,10 @@
+safe,username,address,platformID,name,AccountID,Action,DisableReason,NewCredentials,ChangeImmediately
+WIN-LCL-SRV-ADMIN,Administrator,FINAPP05.example.com,WinServerLocal,,,Verify,,,
+WIN-LCL-SRV-ADMIN,Administrator,FINAPP08.example.com,WinServerLocal,,,Change,,,
+DEV-UNX-LCL-ROOT,a-root,FinDevORA01.example.com,UnixSSH,,,Reconcile,,,
+DEV-UNX-LCL-ROOT,a-root,FinDevORA02.example.com,UnixSSH,a-root-FinDevORA02,,Verify,,,
+WIN-LCL-SRV-ADMIN,,,,,12_34,Verify,,,
+WIN-LCL-SRV-ADMIN,svc_account,FINAPP10.example.com,WinServerLocal,,,Disable,Scheduled maintenance window,,
+WIN-LCL-SRV-ADMIN,svc_account,FINAPP10.example.com,WinServerLocal,,,Resume,,,
+WIN-LCL-SRV-ADMIN,svc_account,FINAPP10.example.com,WinServerLocal,,,SetNextPassword,,NewP@ssw0rd123!,true
+WIN-LCL-SRV-ADMIN,svc_account,FINAPP10.example.com,WinServerLocal,,,ChangeInVault,,NewP@ssw0rd123!,
