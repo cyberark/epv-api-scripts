@@ -56,7 +56,7 @@ $Script:LOG_FILE_PATH = "$PSScriptRoot\_CreateCredFile-Helper.log"
 $global:CPMnewSyncToolFolder = "$PSScriptRoot\CreateCredFile-HelperDependencies"
 
 # Script Version
-$ScriptVersion = "4.0"
+$ScriptVersion = "4.1"
 
 #region Writer Functions
 
@@ -583,7 +583,7 @@ Function Find-Components
 #>
 	param(
 		[Parameter(Mandatory=$false)]
-		[ValidateSet("All","CPM","PVWA","PSM","AIM")]
+		[ValidateSet("All","CPM","PVWA","PSM","AIM","Synchronizer")]
 		[String]$Component = "All"
 	)
 
@@ -596,6 +596,8 @@ Function Find-Components
 		$REGKEY_PSMSERVICEold = "Cyber-Ark Privileged Session Manager" #12.7-
         $REGKEY_PSMSERVICEnew = "CyberArk Privileged Session Manager" #13.0+
 		$REGKEY_AIMSERVICE = "CyberArk Application Password Provider"
+        # Vault Conjur Synchronizer service name changed between versions, so we look for all known names
+        $REGKEY_SYNCHRONIZERSERVICES = @("CyberArkVaultConjurSynchronizer","CyberArk Vault Conjur Synchronizer","CyberArkConjurSynchronizer")
 	}
 	Process {
 		if(![string]::IsNullOrEmpty($Component))
@@ -744,10 +746,109 @@ Function Find-Components
 					}
 					break
 				}
+				"Synchronizer"
+				{
+					try{
+						# Check if the Vault Conjur Synchronizer is installed
+						Write-LogMessage -Type "Debug" -MSG "Searching for Vault Conjur Synchronizer..."
+						$componentPath = $null
+						ForEach($candidate in $REGKEY_SYNCHRONIZERSERVICES)
+						{
+							$foundPath = Get-ServiceInstallPath $candidate
+							if($foundPath)
+							{
+								$componentPath = $foundPath
+								$REGKEY_SYNCHRONIZERSERVICE = $candidate
+								break
+							}
+						}
+						If($null -ne $componentPath)
+						{
+							Write-LogMessage -Type "Info" -MSG "Found Vault Conjur Synchronizer installation"
+							# The Synchronizer executable name changed between versions, so we take it from the service ImagePath
+							$SyncExePath = $componentPath.Replace('"',"").Trim()
+							$SyncPath = Split-Path -Path $SyncExePath -Parent
+							$ConfigPath = (Join-Path -Path $SyncPath -ChildPath "Vault\Vault.ini")
+							$fileVersion = [version]"0.0"
+							try{
+								# The Synchronizer product version holds build metadata (eg; '1.0.0+9f75c61'), take only the version part
+								$fileVersion = [version]((Get-FileVersion $SyncExePath) -split '\+')[0]
+							} catch {
+								Write-LogMessage -Type "Debug" -MSG "Could not determine Vault Conjur Synchronizer version from '$SyncExePath'"
+							}
+							$ServiceLogs = @(Join-Path -Path $SyncPath -ChildPath "Logs\*.log" | Get-ChildItem -ErrorAction SilentlyContinue | Select-Object -Last 10)
+							# The Synchronizer Vault user is created as an application provider type user
+							$UserType = "AppProvider"
+							# The cred file location is taken from the Synchronizer configuration file ('CRED_FILE_PATH' key)
+							$appFilePath = (Join-Path -Path $SyncPath -ChildPath "Vault\VaultConjurSynchronizerUser.cred")
+							$SyncConfigFile = "$SyncExePath.config"
+							If(Test-Path $SyncConfigFile)
+							{
+								[xml]$SyncConfigContent = Get-Content $SyncConfigFile
+								$credFilePathSetting = ($SyncConfigContent.configuration.appSettings.add | Where-Object { $_.key -eq "CRED_FILE_PATH" }).value
+								If(! [string]::IsNullOrEmpty($credFilePathSetting))
+								{
+									# The configured path can be relative to the installation folder (eg; './Vault/VaultConjurSynchronizerUser.cred')
+									If([System.IO.Path]::IsPathRooted($credFilePathSetting)){
+										$appFilePath = [System.IO.Path]::GetFullPath($credFilePathSetting)
+									} Else {
+										$appFilePath = [System.IO.Path]::GetFullPath((Join-Path -Path $SyncPath -ChildPath $credFilePathSetting))
+									}
+								}
+							}
+							Else
+							{
+								Write-LogMessage -Type "Debug" -MSG "Could not find the Synchronizer configuration file '$SyncConfigFile', assuming the default cred file location"
+							}
+							#Create New Fresh Cred File, it will not overwrite an existing one, this is just incase there was no cred to begin with.
+							If(! (Test-Path $appFilePath))
+							{
+								Write-LogMessage -Type "Debug" -MSG "Cred file '$appFilePath' does not exist, creating an empty one"
+								New-Item -Path $appFilePath -ItemType File -ErrorAction SilentlyContinue | Out-Null
+								If((Test-Path $appFilePath) -and (Test-Path $ConfigPath))
+								{
+									Get-Acl -Path $ConfigPath | Set-Acl -Path $appFilePath
+								}
+							}
+							$ComponentUser = @()
+							If(Test-Path $appFilePath){
+								$ComponentUser = @($appFilePath)
+							}
+							# CreateCredFile.exe is not always kept in the installation folder, it also comes with the Synchronizer installation package
+							$CredFileToolPath = ""
+							ForEach($toolPath in @((Join-Path -Path $SyncPath -ChildPath "Vault\CreateCredFile.exe"),(Join-Path -Path $SyncPath -ChildPath "CreateCredFile.exe")))
+							{
+								If(Test-Path $toolPath){
+									$CredFileToolPath = $toolPath
+									break
+								}
+							}
+							If([string]::IsNullOrEmpty($CredFileToolPath))
+							{
+								$foundTool = @(Get-ChildItem -Path $SyncPath -Filter "CreateCredFile.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1)
+								If($foundTool.Count -gt 0){
+									$CredFileToolPath = $foundTool[0].FullName
+								}
+								Else{
+									Write-LogMessage -Type "Debug" -MSG "Could not find CreateCredFile.exe under '$SyncPath', will ask for its path when selected"
+								}
+							}
+							$myObject = New-Object PSObject -Property @{Name="Synchronizer";DisplayName="CyberArk Vault Conjur Synchronizer";
+                                                                    ServiceName=$REGKEY_SYNCHRONIZERSERVICE;Path=$SyncPath;Version=$fileVersion;
+                                                                    ComponentUser=$ComponentUser;ConfigPath=$ConfigPath;ServiceLogs=$ServiceLogs;UserType=$UserType;
+                                                                    ExePath=$SyncExePath;CredFileToolPath=$CredFileToolPath}
+                            $myObject | Add-Member -MemberType ScriptMethod -Name InitPVWAURL -Value { Set-PVWAURL -ComponentID $this.Name -ConfigPath $this.ConfigPath -AuthType $AuthType } | Out-Null
+                            return $myObject
+						}
+					} catch {
+						Write-LogMessage -Type "Error" -Msg "Error detecting $Component component. Error: $(Join-ExceptionMessage $_.Exception)"
+					}
+					break
+				}
 				"All"
 				{
 					try{
-						ForEach($comp in @("CPM","PVWA","PSM","AIM"))
+						ForEach($comp in @("CPM","PVWA","PSM","AIM","Synchronizer"))
 						{
 							$retArrComponents += Find-Components -Component $comp
 						}
@@ -785,7 +886,7 @@ Function Set-PVWAURL{
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [ValidateSet("PVWA","CPM","PSM","AIM")]
+        [ValidateSet("PVWA","CPM","PSM","AIM","Synchronizer")]
         [string]$ComponentID,
         [Parameter(Mandatory=$False)]
         [string]$ConfigPath,
@@ -829,7 +930,7 @@ Function Set-PVWAURL{
                     $foundConfig = $true
                 }
             }
-            if ($ComponentID -eq "AIM"){
+            if ($ComponentID -in @("AIM","Synchronizer")){
                 try{
                     # In case there is more than one address, get the first one
                     $GetPVWAStringURL = ((Get-Content $ConfigPath | Where-Object {$_ -match "Address" }).Split("=")[1]).Split(",")[0]
@@ -1644,7 +1745,7 @@ Function Invoke-GenerateCredFile
     param (
         [Parameter(Mandatory=$true)]
         [string]$ComponentID,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string]$ComponentVersion,
         [Parameter(Mandatory=$true)]
         [string]$ComponentPath,
@@ -1653,13 +1754,38 @@ Function Invoke-GenerateCredFile
         [Parameter(Mandatory=$true)]
         [string]$ComponentUser,
         [Parameter(Mandatory=$true)]
-        [securestring]$NewPassword
+        [securestring]$NewPassword,
+        [Parameter(Mandatory=$false)]
+        [string]$ExePath,
+        [Parameter(Mandatory=$false)]
+        [string]$CredFileToolPath
     )
     try{
         #Generate a new password with Complexity and we use it later for the Vault part
         $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($NewPassword) #Convert Password to BSTR
         $GetComponentUserDetailsNewPW = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR) #Convert Password to Plaintext
         Write-LogMessage -type Info -MSG "Generating CredFile: '$FileName'"
+        # The Synchronizer cred file is bound to the running executable, it is generated the same way on all versions
+        If($ComponentID -eq "Synchronizer")
+        {
+            If([string]::IsNullOrEmpty($CredFileToolPath)) { $CredFileToolPath = "$ComponentPath\Vault\CreateCredFile.exe" }
+            If(! (Test-Path $CredFileToolPath))
+            {
+                Throw "Could not find CreateCredFile.exe in '$CredFileToolPath'"
+            }
+            $createCredFileArgs = @("`"$FileName`"", "Password", "/Username", $ComponentUser, "/Password", $GetComponentUserDetailsNewPW)
+            # The cred file is bound to the Synchronizer executable that consumes it
+            If(! [string]::IsNullOrEmpty($ExePath)) { $createCredFileArgs += @("/ExePath", $ExePath) }
+            $createCredFileArgs += @("/AppType", "AppPrv", "/DPAPIMachineProtection", "/Hostname", "/IPAddress", "/EntropyFile")
+            #Other hardening options that can be added: "/DiskSignature", "/InstallTime", "/MACAddress", "/MachineGUID"
+            $createCredFileResponse = & $CredFileToolPath $createCredFileArgs 2>&1
+            Write-LogMessage -type Verbose -MSG "CreateCredFile output: $createCredFileResponse"
+            If($LASTEXITCODE -ne 0)
+            {
+                Throw "CreateCredFile.exe failed with exit code $LASTEXITCODE. Output: $createCredFileResponse"
+            }
+            return
+        }
         #Generate Cred, Check if component is version 12 or lower and select the relevant cred file command
         If($ComponentVersion -gt 12)
         {
@@ -1789,6 +1915,38 @@ Function Invoke-ResetCredFile
         $Component.InitPVWAURL()
         # Prompt User and get Token
         Invoke-Logon
+        If($Component.Name -eq "Synchronizer")
+        {
+            # CreateCredFile.exe is not always deployed with the Synchronizer, in that case ask where it is
+            If([string]::IsNullOrEmpty($Component.CredFileToolPath) -or (! (Test-Path $Component.CredFileToolPath)))
+            {
+                $syncCredTool = $(Read-Host "Couldn't find CreateCredFile.exe, enter its full path (it is included in the Vault Conjur Synchronizer installation package)").Replace('"',"").Trim()
+                If([string]::IsNullOrEmpty($syncCredTool) -or (! (Test-Path $syncCredTool)))
+                {
+                    Throw "Could not find CreateCredFile.exe in '$syncCredTool'"
+                }
+                $Component.CredFileToolPath = $syncCredTool
+            }
+            # In case the cred file was not detected (eg; couldn't be created), ask for its location
+            If($Component.ComponentUser.Count -eq 0)
+            {
+                $syncCredFile = $(Read-Host "Couldn't find the Synchronizer cred file, enter its full path (eg; '$(Join-Path -Path $Component.Path -ChildPath "Vault\VaultConjurSynchronizerUser.cred")')").Replace('"',"").Trim()
+                If([string]::IsNullOrEmpty($syncCredFile))
+                {
+                    Throw "No Synchronizer cred file path was entered"
+                }
+                If(! (Test-Path $syncCredFile))
+                {
+                    # Create a new empty cred file and give it the same permissions as Vault.ini
+                    New-Item -Path $syncCredFile -ItemType File -Force | Out-Null
+                    If(Test-Path $Component.ConfigPath)
+                    {
+                        Get-Acl -Path $Component.ConfigPath | Set-Acl -Path $syncCredFile
+                    }
+                }
+                $Component.ComponentUser = @($syncCredFile)
+            }
+        }
         # For cases where there is more than one service to stop
         Foreach($svc in $Component.ServiceName)
         {
@@ -1802,6 +1960,9 @@ Function Invoke-ResetCredFile
             ComponentPath = $Component.Path;
             NewPassword = $generatedPassword
         }
+        # Components that bind the cred file to their executable (Synchronizer) need the exe and the CreateCredFile tool locations
+        If(! [string]::IsNullOrEmpty($Component.ExePath)) { $generateCredFileParameters.Add("ExePath", $Component.ExePath) }
+        If(! [string]::IsNullOrEmpty($Component.CredFileToolPath)) { $generateCredFileParameters.Add("CredFileToolPath", $Component.CredFileToolPath) }
         #Run through each existing cred File (For CPM: User.ini, for PSM: psmapp.cred, psmgw.cred) and generate cred using $ComponentUser
         Foreach($credFile in $Component.ComponentUser)
         {
@@ -1809,28 +1970,33 @@ Function Invoke-ResetCredFile
             $ComponentUser = $(Get-CredFileUser -File $credFile)
             if([string]::IsNullOrEmpty($ComponentUser))
             {
-                # In case we did not find the Component User from the credFile - Look in other places
-                Write-LogMessage -Type Info -MSG "Could not find Component User from CredFile, trying to look for all offline components"
-                # Look for all offline components
-                $offlineComponents = $(Get-SystemHealth -ComponentID $Component.Name -OfflineOnly)
-                # Compare offline components to the specific component logs
-                Foreach($user in $offlineComponents)
+                $offlineComponents = @()
+                # The Synchronizer is not reported in System Health, so for it we go straight to manual input
+                If($Component.Name -ne "Synchronizer")
                 {
-                    $foundUser = $(Find-UserInSystemLogs -User $User.ComponentUserName -LogPaths $Component.ServiceLogs)
-                    If(! [string]::IsNullOrEmpty($foundUser)){
-                        Write-LogMessage -Type Info -MSG "Found a match between an offline component user '$foundUser' and local logs, will use it to generate CredFile."
-                        $ComponentUser = $foundUser
-                        #If the $CredFile is psmgw.cred then we split the SystemHealth PSM App user into 2 strings and replace "PSMApp_blabla" with "PSMgw_blabla" so we also reset the gw cred.
-                            If ($credFile -like "*psmgw.cred*"){
-								$ComponentUser = "PSMGw_"+$foundUser.split("_")[1]
-                            }
-                        Break
+                    # In case we did not find the Component User from the credFile - Look in other places
+                    Write-LogMessage -Type Info -MSG "Could not find Component User from CredFile, trying to look for all offline components"
+                    # Look for all offline components
+                    $offlineComponents = $(Get-SystemHealth -ComponentID $Component.Name -OfflineOnly)
+                    # Compare offline components to the specific component logs
+                    Foreach($user in $offlineComponents)
+                    {
+                        $foundUser = $(Find-UserInSystemLogs -User $User.ComponentUserName -LogPaths $Component.ServiceLogs)
+                        If(! [string]::IsNullOrEmpty($foundUser)){
+                            Write-LogMessage -Type Info -MSG "Found a match between an offline component user '$foundUser' and local logs, will use it to generate CredFile."
+                            $ComponentUser = $foundUser
+                            #If the $CredFile is psmgw.cred then we split the SystemHealth PSM App user into 2 strings and replace "PSMApp_blabla" with "PSMgw_blabla" so we also reset the gw cred.
+                                If ($credFile -like "*psmgw.cred*"){
+								    $ComponentUser = "PSMGw_"+$foundUser.split("_")[1]
+                                }
+                            Break
+                        }
                     }
                 }
                 If($offlineComponents.Count -eq 0 -or $ComponentUser -eq $null)
                 {
                     # We couldn't find any component User - ask the user to input the user name
-                    Write-LogMessage -Type Info -MSG "Couldn't match offline component user in SystemHealth in local Logs, will have to input manually."
+                    Write-LogMessage -Type Info -MSG "Couldn't determine the component user automatically, will have to input manually."
                     $ComponentUser = $(Read-Host "Enter the relevant user name for CredFile: '$credFile'")
                 }
             }
@@ -1853,7 +2019,15 @@ Function Invoke-ResetCredFile
             }
         }
 
-        Get-SystemHealth -componentUserDetails $(Get-CredFileUser -File $Component.ComponentUser[0]) -ComponentID $Component.Name
+        If($Component.Name -eq "Synchronizer")
+        {
+            # The Synchronizer doesn't report to System Health, its own logs are the only indication
+            Write-LogMessage -type Info -MSG "Synchronizer cred file was reset, verify the service is syncing by checking its logs under '$(Join-Path -Path $Component.Path -ChildPath "Logs")'"
+        }
+        Else
+        {
+            Get-SystemHealth -componentUserDetails $(Get-CredFileUser -File $Component.ComponentUser[0]) -ComponentID $Component.Name
+        }
         #Test-SystemLogs -ComponentID $Component.Name -LogPath $Component.serviceLogs[0] | Out-Null
         #Invoke-Logoff
     } catch {
@@ -1874,7 +2048,16 @@ Function Get-UserAndResetPassword{
     try{
         $SearchComponentUserURL = $URL_Users+"?filter=componentUser&search=$ComponentUser&UserType=$UserType"
         $GetUsersResponse = Invoke-RestMethod -Method Get -Uri $SearchComponentUserURL -Headers $pvwaLogonHeader -ContentType "application/json" -TimeoutSec 2700 | Select-Object -ExpandProperty Users | where {$_.username -eq $ComponentUser}
-        If($null -ne $GetUsersResponse){
+        If($null -eq $GetUsersResponse){
+            # The Vault user type doesn't always match the component type (eg; Synchronizer), so search again without filtering on it
+            Write-LogMessage -Type Debug -Msg "Couldn't find user '$ComponentUser' with UserType '$UserType', searching without the UserType filter"
+            $SearchComponentUserURL = $URL_Users+"?filter=componentUser&search=$ComponentUser"
+            $GetUsersResponse = Invoke-RestMethod -Method Get -Uri $SearchComponentUserURL -Headers $pvwaLogonHeader -ContentType "application/json" -TimeoutSec 2700 | Select-Object -ExpandProperty Users | where {$_.username -eq $ComponentUser}
+        }
+        If($null -eq $GetUsersResponse){
+            Write-LogMessage -Type Warning -Msg "Couldn't find user '$ComponentUser' in the Vault, its password was NOT reset in the Vault. Reach out to CyberArk to set the same password on the Vault side."
+        }
+        Else{
             #Try to reset Password
             Try{
                 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($NewPassword) #Convert Password to BSTR
@@ -2364,8 +2547,15 @@ try{
                         }
 				}
             }
-			# TODO maybe add logs check here instead?
-			Test-SystemLogs -ComponentID $typeChosen.Name -LogPath $typeChosen.serviceLogs[0] | Out-Null
+			
+			If(($typeChosen.serviceLogs.Count -gt 0) -and (Test-Path $typeChosen.serviceLogs[0]))
+			{
+				Test-SystemLogs -ComponentID $typeChosen.Name -LogPath $typeChosen.serviceLogs[0] | Out-Null
+			}
+			Else
+			{
+				Write-LogMessage -type Debug -MSG "No log file was found for $($typeChosen.Name), skipping the logs check"
+			}
         }
     }
     else {
