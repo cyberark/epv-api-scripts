@@ -12,7 +12,7 @@
 This script will reset component cred file both locally and sync it in the Vault via API.
 
 1. Before running the script, prepare your Privilege Cloud Admin account (typically <subdomain>_admin or "InstallationUser@..cyberark.cloud" if you are on ISPSS platform).
-2. Copy the script to the machine of the component (CPM/PSM/CP).
+2. Copy the script to the machine of the component (CPM/PSM/CP/Vault Conjur Synchronizer).
 3. Run the script in PowerShell Administrator mode.
 4. You can use extra flags if you want to skip version or auth with an LDAP account ( -SkipVersionCheck -skipTLS), example:
 ./CreateCredFile-Helper.ps1 -SkipVersionCheck
@@ -29,6 +29,9 @@ CreateCredFile.exe "<PathToCredFile>" Password /username <ComponentUserName> /Pa
 
 AIM/CP:
 CreateCredFile.exe "<PathToCredFile>" Password /username <ComponentUserName> /Password <NewPassword> /DPAPIMachineProtection /EntropyFile /Hostname /IpAddress
+
+Vault Conjur Synchronizer:
+CreateCredFile.exe "<PathToCredFile>" Password /Username <ComponentUserName> /Password <NewPassword> /ExePath "<PathToSynchronizerExeFile>" /AppType AppPrv /DPAPIMachineProtection /Hostname /IPAddress /EntropyFile
 
 Example:
 CreateCredFile.exe "C:\Program Files (x86)\CyberArk\PSM\Vault\psmapp.cred" Password /username PSMApp_351d715 /Password MyNewTempPassword123 /AppType "PSMApp" /DPAPIMachineProtection /EntropyFile /ExePath "C:\Program Files (x86)\CyberArk\PSM\CAPSM.exe" /Hostname /IpAddress
