@@ -5,6 +5,8 @@
 
 Migrate accounts and safes from one environment into another using this module.
 
+To migrate a single Safe interactively, with step-by-step prompts and read-back validation, see [Migrate-CyberArkSafe.ps1](#migrate-cyberarksafeps1).
+
 ## Process flow
 ### Commands used
 1. `Import-Module '.\Migrate.psm1' -force`
@@ -203,3 +205,83 @@ After execution, the following is recommended:
 - Once you started using the destination environment and verifications are complete: delete the user Account used to import Safes. The import user will retain full permissions to any safe it created, the easiest and most secure method to ensure that access is removed is to delete the user.
 
 To get further information about the parameters, use `Get-Help Sync-Accounts -full`.
+
+## Migrate-CyberArkSafe.ps1
+
+### Main capabilities
+
+A standalone, interactive script that migrates **one Safe at a time** from a source environment to a destination environment. It copies:
+- The Safe and its properties
+- Safe memberships and their permissions
+- Optionally, the Safe's Accounts, including their secrets
+
+Every object the script creates is read back from the destination and checked against the source. Unlike `Migrate.psm1`, this script uses the [psPAS](https://github.com/pspete/psPAS) module and does not need the other files in this folder.
+
+### Requirements
+
+- PowerShell 5.1 or later
+- psPAS 6.0.0 or later (`Install-Module psPAS`), which uses the Gen2 Safes, Safe Members and Accounts APIs (PVWA v12.2 or later)
+- **In the source environment**, the user running the script needs these permissions on the source Safe:
+  - List Accounts
+  - Retrieve Accounts
+  - View Safe members
+- **In the destination environment**, the user running the script needs:
+  - Add Safes (Vault authorization)
+  - Manage Safe members
+  - Add Accounts
+  - Retrieve Accounts on the new Safe, if `-ValidateSecrets` is used
+
+### Process flow
+
+1. Enter the source Safe name, then choose **Safe only** or **Safe with accounts**.
+2. The script signs in to the source PVWA, reads the Safe, its properties and its members, and prints a summary.
+3. If you chose **Safe with accounts**: choose to export **all** Accounts, or review them **one at a time** (Y = include, N = skip). Secrets are held in memory as *SecureStrings* only.
+4. The script signs out of the source environment.
+5. Enter the destination Safe name. It defaults to the source name.
+6. The script signs in to the destination PVWA and looks for that Safe:
+    - If the Safe does not exist: it creates the Safe with the same properties and the same members and permissions. Built-in members are not copied.
+    - If the Safe already exists: it does not re-create the Safe. It can optionally add any members that are missing.
+    - Either way, it then reads the Safe and its members back and checks them against the source.
+7. If Accounts were exported: choose to import **all** of them, or **one at a time** (Y/N). Each created Account is read back and checked against the source. If `-ValidateSecrets` is passed, the secret is checked too.
+8. The script prints a summary and exports the results to a .csv file.
+
+### Syntax
+
+```powershell
+.\Migrate-CyberArkSafe.ps1 [[-SourcePVWAUrl] <String>] [[-SourceAuthType] <String>] [[-DestinationPVWAUrl] <String>] [[-DestinationAuthType] <String>] [[-DestinationDirectoryName] <String>] [[-RetrievalReason] <String>] [-ValidateSecrets] [-SkipCertificateCheck] [<CommonParameters>]
+```
+
+| Parameter | Description |
+| --- | --- |
+| `SourcePVWAUrl` | Base URL of the source PVWA. Must start with `https://`. |
+| `SourceAuthType` | Authentication method for the source environment: `CyberArk`, `LDAP` (default) or `RADIUS`. |
+| `DestinationPVWAUrl` | Base URL of the destination PVWA. Must start with `https://`. |
+| `DestinationAuthType` | Authentication method for the destination environment: `CyberArk`, `LDAP` (default) or `RADIUS`. |
+| `DestinationDirectoryName` | LDAP directory name in the destination environment, used to find Safe members that do not yet exist there. If it is not set, you are prompted for each such member. |
+| `RetrievalReason` | Reason sent when retrieving secrets, for source Safes that require a reason for access. |
+| `ValidateSecrets` | After each Account is created, retrieve its secret and compare it with the source secret. This adds a retrieval audit record in the destination environment. |
+| `SkipCertificateCheck` | Skip TLS certificate validation. For lab use only. |
+
+#### Example
+
+```powershell
+.\Migrate-CyberArkSafe.ps1 -SourcePVWAUrl https://pvwa-source.corp.local `
+    -DestinationPVWAUrl https://pvwa-destination.corp.local -SourceAuthType LDAP -DestinationAuthType LDAP `
+    -DestinationDirectoryName corp.local -ValidateSecrets -Verbose
+```
+
+For full parameter help, use `Get-Help .\Migrate-CyberArkSafe.ps1 -Full`.
+
+### Logging
+
+- Log file: `<ScriptFolder>\Logs\<ScriptName>_<SourceSafeName>_<yyyyMMdd_HHmmss>.log`
+- Results: the same name with a `.csv` extension
+- Secrets are **never** written to the log or the .csv file.
+- Exit code `0` means everything succeeded. Exit code `1` means at least one step failed or a value did not match.
+
+### Current limitations
+
+1. Built-in members (Administrator, Auditors, Backup Users, etc.) are not copied. The destination environment adds its own.
+2. Linked Accounts (logon, reconcile and extra passwords), Account version history, dependencies and folders are not migrated.
+3. RADIUS challenge/response (OTP) sign-ins are not supported. Use `LDAP` or `CyberArk` authentication.
+4. The pre- and post-migration recommendations for `Sync-Accounts` above also apply to this script: for example, stop the CPMs and turn off exclusive access and one-time passwords while migrating.
