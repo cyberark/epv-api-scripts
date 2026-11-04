@@ -21,44 +21,7 @@ Set-StrictMode -Version Latest
 $script:CurrentSession = $null
 
 
-# Region: Private - Test-ResponseHasToken
-<#
-.SYNOPSIS
-    Safely tests whether an authentication response carries a token
 
-.DESCRIPTION
-    Under Set-StrictMode, reading .success, .Result or .Result.Token throws
-    PropertyNotFoundException when the property is absent. That happens whenever
-    an intermediate step (for example the first factor of a multi-factor login)
-    returns a Result with challenges but no Token. This checks each level first.
-
-.NOTES
-    Private function - Internal use only
-#>
-function Test-ResponseHasToken {
-    [CmdletBinding()]
-    [OutputType([bool])]
-    param(
-        [Parameter(Position = 0)]
-        $Response
-    )
-
-    if ($null -eq $Response) {
-        return $false
-    }
-    $successProp = $Response.PSObject.Properties['success']
-    if ($null -eq $successProp -or -not $successProp.Value) {
-        return $false
-    }
-    $resultProp = $Response.PSObject.Properties['Result']
-    if ($null -eq $resultProp -or $null -eq $resultProp.Value) {
-        return $false
-    }
-    $tokenProp = $resultProp.Value.PSObject.Properties['Token']
-    return ($null -ne $tokenProp -and [bool]$tokenProp.Value)
-}
-
-# EndRegion: Private - Test-ResponseHasToken
 
 # Region: Private - ConvertFrom-SessionToHeaders
 #Requires -Version 5.1
@@ -726,6 +689,44 @@ function Update-IdentitySession {
 
 # EndRegion: Private - Update-IdentitySession
 
+# Region: Private - Test-ResponseHasToken
+<#
+.SYNOPSIS
+    Safely tests whether an authentication response carries a token
+
+.DESCRIPTION
+    Under Set-StrictMode, reading .success, .Result or .Result.Token throws
+    PropertyNotFoundException when the property is absent. That happens whenever
+    an intermediate step (for example the first factor of a multi-factor login)
+    returns a Result with challenges but no Token. This checks each level first.
+
+.NOTES
+    Private function - Internal use only
+#>
+function Test-ResponseHasToken {
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Position = 0)]
+        $Response
+    )
+
+    if ($null -eq $Response) {
+        return $false
+    }
+    $successProp = $Response.PSObject.Properties['success']
+    if ($null -eq $successProp -or -not $successProp.Value) {
+        return $false
+    }
+    $resultProp = $Response.PSObject.Properties['Result']
+    if ($null -eq $resultProp -or $null -eq $resultProp.Value) {
+        return $false
+    }
+    $tokenProp = $resultProp.Value.PSObject.Properties['Token']
+    return ($null -ne $tokenProp -and [bool]$tokenProp.Value)
+}
+
+# EndRegion: Private - Test-ResponseHasToken
 
 # Region: Public - Clear-IdentitySession
 #Requires -Version 5.1
