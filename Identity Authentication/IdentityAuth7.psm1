@@ -87,7 +87,7 @@ class IdentityAuthResponse {
 
     # Extract token from response
     [string] ToToken() {
-        if ($this.Success -and $this.Result.Token) {
+        if ($this.Success -and $this.Result -and $this.Result.PSObject.Properties['Token'] -and $this.Result.Token) {
             return $this.Result.Token
         }
         return $null
@@ -502,6 +502,45 @@ enum SessionState {
 
 # Region: Private - ConvertFrom-SessionToHeaders
 #Requires -Version 7.0
+# Region: Private - Test-ResponseHasToken
+<#
+.SYNOPSIS
+    Safely tests whether an authentication response carries a token
+
+.DESCRIPTION
+    Under Set-StrictMode, reading .success, .Result or .Result.Token throws
+    PropertyNotFoundException when the property is absent. That happens whenever
+    an intermediate step (for example the first factor of a multi-factor login)
+    returns a Result with challenges but no Token. This checks each level first.
+
+.NOTES
+    Private function - Internal use only
+#>
+function Test-ResponseHasToken {
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Position = 0)]
+        $Response
+    )
+
+    if ($null -eq $Response) {
+        return $false
+    }
+    $successProp = $Response.PSObject.Properties['success']
+    if ($null -eq $successProp -or -not $successProp.Value) {
+        return $false
+    }
+    $resultProp = $Response.PSObject.Properties['Result']
+    if ($null -eq $resultProp -or $null -eq $resultProp.Value) {
+        return $false
+    }
+    $tokenProp = $resultProp.Value.PSObject.Properties['Token']
+    return ($null -ne $tokenProp -and [bool]$tokenProp.Value)
+}
+
+# EndRegion: Private - Test-ResponseHasToken
+
 <#
 .SYNOPSIS
     Convert IdentitySession object to authorization headers
@@ -797,7 +836,7 @@ function Invoke-Challenge {
         Write-Verbose "Challenge response: $($answerToResponse | ConvertTo-Json -Depth 5 -Compress)"
 
         # Check if we have a token (successful authentication)
-        if ($answerToResponse.PSObject.Properties['success'] -and $answerToResponse.success -and $answerToResponse.Result.Token) {
+        if ((Test-ResponseHasToken $answerToResponse)) {
             Write-Verbose "Token received successfully"
             return $answerToResponse
         }
@@ -806,7 +845,7 @@ function Invoke-Challenge {
     }
 
     # If we get here, no token was received
-    if (-not $answerToResponse.success) {
+    if (-not ($answerToResponse.PSObject.Properties['success'] -and $answerToResponse.success)) {
         throw "Authentication failed: $($answerToResponse.Message)"
     }
 
@@ -927,7 +966,7 @@ function Invoke-OOBAUTHPIN {
         Write-Verbose "PIN submitted successfully"
 
         # Check if token received
-        if ($pinResponse.success -and $pinResponse.Result.Token) {
+        if ((Test-ResponseHasToken $pinResponse)) {
             Write-Verbose "OOBAUTHPIN authentication successful"
             return $pinResponse
         }
@@ -1358,7 +1397,7 @@ function Get-IdentityHeader {
         }
         $answerResponse = Invoke-OOBAUTHPIN @oobParams
 
-        if ($answerResponse.success -and $answerResponse.Result.Token) {
+        if ((Test-ResponseHasToken $answerResponse)) {
             $token = $answerResponse.Result.Token
             $tokenLifetime = ($answerResponse.Result.PSObject.Properties['TokenLifetime']) ? $answerResponse.Result.TokenLifetime : 3600
 
@@ -1396,7 +1435,7 @@ function Get-IdentityHeader {
     }
     $answerResponse = Invoke-Challenge @challengeParams
 
-    if ($answerResponse.PSObject.Properties['success'] -and $answerResponse.success -and $answerResponse.Result.Token) {
+    if ((Test-ResponseHasToken $answerResponse)) {
         $token = $answerResponse.Result.Token
         $tokenLifetime = ($answerResponse.Result.PSObject.Properties['TokenLifetime']) ? $answerResponse.Result.TokenLifetime : 3600
 
@@ -1496,8 +1535,19 @@ function Get-IdentityURL {
 
     Write-Verbose "Discovering Identity URL from: $PCloudURL"
 
-    $PCloudURL.ToLower() -match '^(?:https|http):\/\/(?<sub>.*)(.privilegecloud).cyberark.(?<top>cloud|com)\/(privilegecloud|passwordvault)(\/?)$' | Out-Null
-    $pcloudBase = "https://$($matches['sub']).cyberark.$($matches['top'])"
+    # Accept the bare tenant URL (https://sub.cyberark.cloud), the PCloud URL
+    # (https://sub.privilegecloud.cyberark.cloud/PasswordVault) or anything else
+    # (used as-is). Never read $Matches unless the match succeeded.
+    $cleanUrl = $PCloudURL.ToLower().TrimEnd('/')
+    if ($cleanUrl -match '^(?:https|http):\/\/(?<sub>[^.]+)\.cyberark\.(?<top>cloud|com)') {
+        $pcloudBase = "https://$($Matches['sub']).cyberark.$($Matches['top'])"
+    }
+    elseif ($cleanUrl -match '^(?:https|http):\/\/(?<sub>.+)\.privilegecloud\.cyberark\.(?<top>cloud|com)') {
+        $pcloudBase = "https://$($Matches['sub']).cyberark.$($Matches['top'])"
+    }
+    else {
+        $pcloudBase = $cleanUrl
+    }
 
     Write-Verbose "PCloud base URL: $pcloudBase"
 

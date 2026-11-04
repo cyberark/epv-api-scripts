@@ -21,6 +21,45 @@ Set-StrictMode -Version Latest
 $script:CurrentSession = $null
 
 
+# Region: Private - Test-ResponseHasToken
+<#
+.SYNOPSIS
+    Safely tests whether an authentication response carries a token
+
+.DESCRIPTION
+    Under Set-StrictMode, reading .success, .Result or .Result.Token throws
+    PropertyNotFoundException when the property is absent. That happens whenever
+    an intermediate step (for example the first factor of a multi-factor login)
+    returns a Result with challenges but no Token. This checks each level first.
+
+.NOTES
+    Private function - Internal use only
+#>
+function Test-ResponseHasToken {
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Position = 0)]
+        $Response
+    )
+
+    if ($null -eq $Response) {
+        return $false
+    }
+    $successProp = $Response.PSObject.Properties['success']
+    if ($null -eq $successProp -or -not $successProp.Value) {
+        return $false
+    }
+    $resultProp = $Response.PSObject.Properties['Result']
+    if ($null -eq $resultProp -or $null -eq $resultProp.Value) {
+        return $false
+    }
+    $tokenProp = $resultProp.Value.PSObject.Properties['Token']
+    return ($null -ne $tokenProp -and [bool]$tokenProp.Value)
+}
+
+# EndRegion: Private - Test-ResponseHasToken
+
 # Region: Private - ConvertFrom-SessionToHeaders
 #Requires -Version 5.1
 <#
@@ -341,9 +380,7 @@ function Invoke-Challenge {
         Write-Verbose "Challenge response: $($finalResponse | ConvertTo-Json -Depth 5 -Compress)"
 
         # Check if we have a token (successful authentication)
-        if ($finalResponse.PSObject.Properties['success'] -and
-            $finalResponse.success -and
-            $finalResponse.Result.Token) {
+        if ((Test-ResponseHasToken $finalResponse)) {
             Write-Verbose "Token received successfully"
             return $finalResponse
         }
@@ -352,7 +389,7 @@ function Invoke-Challenge {
     }
 
     # If we get here, no token was received
-    if (-not $finalResponse.success) {
+    if (-not ($finalResponse.PSObject.Properties['success'] -and $finalResponse.success)) {
         throw "Authentication failed: $($finalResponse.Message)"
     }
 
@@ -483,7 +520,7 @@ function Invoke-OOBAUTHPIN {
         Write-Verbose "PIN submitted successfully"
 
         # Check if token received
-        if ($pinResponse.success -and $pinResponse.Result.Token) {
+        if ((Test-ResponseHasToken $pinResponse)) {
             Write-Verbose "OOBAUTHPIN authentication successful"
             return $pinResponse
         }
@@ -909,7 +946,7 @@ function Get-IdentityHeader {
         }
         $answerResponse = Invoke-OOBAUTHPIN @oobParams
 
-        if ($answerResponse.success -and $answerResponse.Result.Token) {
+        if ((Test-ResponseHasToken $answerResponse)) {
             $token = $answerResponse.Result.Token
             # PS5.1: No ternary operator
             if ($answerResponse.Result.PSObject.Properties['TokenLifetime']) {
@@ -958,7 +995,7 @@ function Get-IdentityHeader {
     Write-Verbose "Response properties: $($answerResponse.PSObject.Properties.Name -join ', ')"
     Write-Verbose "Response JSON: $($answerResponse | ConvertTo-Json -Depth 5 -Compress)"
 
-    if ($answerResponse.PSObject.Properties['success'] -and $answerResponse.success -and $answerResponse.Result.Token) {
+    if ((Test-ResponseHasToken $answerResponse)) {
         $token = $answerResponse.Result.Token
         # PS5.1: No ternary operator
         if ($answerResponse.Result.PSObject.Properties['TokenLifetime']) {
@@ -1074,8 +1111,19 @@ function Get-IdentityURL {
 
     Write-Verbose "Discovering Identity URL from: $PCloudURL"
 
-    $PCloudURL.ToLower() -match '^(?:https|http):\/\/(?<sub>.*)(.privilegecloud).cyberark.(?<top>cloud|com)\/(privilegecloud|passwordvault)(\/?)$' | Out-Null
-    $pcloudBase = "https://$($matches['sub']).cyberark.$($matches['top'])"
+    # Accept the bare tenant URL (https://sub.cyberark.cloud), the PCloud URL
+    # (https://sub.privilegecloud.cyberark.cloud/PasswordVault) or anything else
+    # (used as-is). Never read $Matches unless the match succeeded.
+    $cleanUrl = $PCloudURL.ToLower().TrimEnd('/')
+    if ($cleanUrl -match '^(?:https|http):\/\/(?<sub>[^.]+)\.cyberark\.(?<top>cloud|com)') {
+        $pcloudBase = "https://$($Matches['sub']).cyberark.$($Matches['top'])"
+    }
+    elseif ($cleanUrl -match '^(?:https|http):\/\/(?<sub>.+)\.privilegecloud\.cyberark\.(?<top>cloud|com)') {
+        $pcloudBase = "https://$($Matches['sub']).cyberark.$($Matches['top'])"
+    }
+    else {
+        $pcloudBase = $cleanUrl
+    }
 
     Write-Verbose "PCloud base URL: $pcloudBase"
 
