@@ -520,7 +520,7 @@ Function Add-AccountDependency
 		$retResult = $false
 		if($null -ne $MasterID)
 		{
-			$accountDetails = $(Invoke-Rest -Uri ($URL_AccountsDetails -f $MasterID) -Header $global:g_LogonHeader-Command "GET")
+			$accountDetails = $(Invoke-Rest -Uri ($URL_AccountsDetails -f $MasterID) -Header $global:g_LogonHeader -Command "GET")
 		}
 		$addDiscoveredAccountBody = @{
 			"userName"=$dependencyObject.userName; 
@@ -541,9 +541,9 @@ Function Add-AccountDependency
 		If($null -ne $accountDetails)
 		{
 			# Verify details and complete missing ones
-			if($accountDetails.useName -ne $dependencyObject.userName)
+			if($accountDetails.userName -ne $dependencyObject.userName)
 			{
-				$addDiscoveredAccountBody.userName = $accountDetails.useName
+				$addDiscoveredAccountBody.userName = $accountDetails.userName
 			}
 			if($accountDetails.address -ne $dependencyObject.address)
 			{
@@ -734,7 +734,7 @@ catch {
 			# Search for Master Account
 			$foundMasterAccount = $null
 			try {
-				$foundMasterAccount = (Find-MasterAccount -accountName $account.userName -accountAddress $account.address).id
+				$foundMasterAccount = (Find-MasterAccount -accountName $account.userName -accountAddress $account.address)
 			} catch {
 				Write-LogMessage -Type Error -Msg "Error searching for Master Account. Error: $(Join-ExceptionMessage $_.Exception)"
 			}
