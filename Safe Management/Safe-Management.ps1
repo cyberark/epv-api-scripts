@@ -1546,7 +1546,7 @@ switch ($PsCmdlet.ParameterSetName) {
                             else {
                                 $parameters.EnableOLAC = Convert-ToBool $parameters.EnableOLAC
                             }
-                            if (($parameters.keys.count -gt 1) -or ($CreateSafeWithNameOnly)) {
+                            if (($parameters.keys.count -gt 1) -or ($CreateSafeWithNameOnly) -or ($Delete)) {
                                 if ($Add) {
                                     # If safe doesn't exist, create the new safe
                                     if ((Test-Safe -SafeName $line.safename) -eq $false) {
