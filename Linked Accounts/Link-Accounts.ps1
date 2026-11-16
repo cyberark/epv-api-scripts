@@ -703,7 +703,7 @@ If ([string]::IsNullOrEmpty($CsvPath)) {
 Write-LogMessage -type Info -MSG 'Importing accounts to link'
 [PSCustomObject[]]$accountsCSV = Import-Csv $csvPath -Delimiter $delimiter
 $badAccounts = "$csvPath.bad.csv"
-Remove-Item $csvPathBad -Force -ErrorAction SilentlyContinue
+Remove-Item $badAccounts -Force -ErrorAction SilentlyContinue
 
 $masterCount = @($accountsCSV | Select-Object -Property userName, address, safe -Unique).Count
 Write-LogMessage -type Info -MSG "Found a total of $masterCount accounts with links"
